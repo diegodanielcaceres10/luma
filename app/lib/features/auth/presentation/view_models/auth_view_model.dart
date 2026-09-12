@@ -1,12 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../../data/repositories/auth_repository.dart';
-
 class AuthViewModel extends ChangeNotifier {
-  final AuthRepository _repository;
-
-  AuthViewModel(this._repository);
-
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -20,7 +14,7 @@ class AuthViewModel extends ChangeNotifier {
     _errorMessage = null;
 
     try {
-      await _repository.signInWithGoogle();
+      // TODO: Implement authentication.
     } catch (error) {
       _errorMessage = 'Unable to sign in with Google.';
     } finally {
