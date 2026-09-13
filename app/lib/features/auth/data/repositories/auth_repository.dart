@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 
 class AuthRepository {
@@ -13,11 +14,9 @@ class AuthRepository {
     return _service.signOut();
   }
 
-  bool get isAuthenticated {
-    return _service.currentSession != null;
-  }
+  bool get isAuthenticated => _service.currentSession != null;
 
-  Stream get authStateChanges {
-    return _service.authStateChanges;
-  }
+  User? get currentUser => _service.currentUser;
+
+  Stream<AuthState> get authStateChanges => _service.authStateChanges;
 }

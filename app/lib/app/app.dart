@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/data/repositories/auth_repository.dart';
 import '../features/auth/data/services/auth_service.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
+import '../features/auth/presentation/screens/welcome_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
 import 'theme/app_theme.dart';
 
@@ -37,7 +38,14 @@ class _LumaAppState extends State<LumaApp> {
       title: 'Luma',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: LoginScreen(viewModel: _authViewModel),
+      home: ListenableBuilder(
+        listenable: _authViewModel,
+        builder: (context, _) {
+          return _authViewModel.isAuthenticated
+              ? WelcomeScreen(viewModel: _authViewModel)
+              : LoginScreen(viewModel: _authViewModel);
+        },
+      ),
     );
   }
 }

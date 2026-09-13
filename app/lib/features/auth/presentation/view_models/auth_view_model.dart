@@ -1,16 +1,35 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../data/repositories/auth_repository.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _repository;
+  late final StreamSubscription _authSubscription;
 
-  AuthViewModel(this._repository);
+  AuthViewModel(this._repository) {
+    _isAuthenticated = _repository.isAuthenticated;
+    _authSubscription = _repository.authStateChanges.listen((_) {
+      _isAuthenticated = _repository.isAuthenticated;
+      notifyListeners();
+    });
+  }
 
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isAuthenticated = false;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isAuthenticated => _isAuthenticated;
+
+  String get displayName {
+    final user = _repository.currentUser;
+    final metadata = user?.userMetadata;
+    return metadata?['full_name'] ??
+        metadata?['name'] ??
+        user?.email ??
+        'usuario';
+  }
 
   Future<void> signInWithGoogle() async {
     if (_isLoading) return;
@@ -28,6 +47,10 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> signOut() async {
+    await _repository.signOut();
+  }
+
   void clearError() {
     _errorMessage = null;
     notifyListeners();
@@ -36,5 +59,11 @@ class AuthViewModel extends ChangeNotifier {
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
   }
 }

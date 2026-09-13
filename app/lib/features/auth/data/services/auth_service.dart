@@ -15,11 +15,9 @@ class AuthService {
     await _client.auth.signOut();
   }
 
-  Session? get currentSession {
-    return _client.auth.currentSession;
-  }
+  Session? get currentSession => _client.auth.currentSession;
 
-  Stream<AuthState> get authStateChanges {
-    return _client.auth.onAuthStateChange;
-  }
+  User? get currentUser => _client.auth.currentUser;
+
+  Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 }
