@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../models/home_mock_data.dart';
 
 class HomeScreen extends StatelessWidget {
-  final AuthViewModel viewModel;
+  final AuthViewModel authViewModel;
+  final AccountViewModel accountViewModel;
 
-  const HomeScreen({super.key, required this.viewModel});
+  const HomeScreen({
+    super.key,
+    required this.authViewModel,
+    required this.accountViewModel,
+  });
 
   static const _categories = [
     CategorySpend(
@@ -87,30 +93,40 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            _Header(name: viewModel.displayName),
-            const SizedBox(height: 20),
-            const _BalanceCard(),
-            const SizedBox(height: 20),
-            const _QuickActions(),
-            const SizedBox(height: 24),
-            _SectionCard(
-              title: 'Gastos por categoría',
-              child: Column(
-                children:
-                    _categories.map((c) => _CategoryRow(data: c)).toList(),
-              ),
-            ),
-            const SizedBox(height: 24),
-            _SectionCard(
-              title: 'Últimos movimientos',
-              child: Column(
-                children: _movements.map((m) => _MovementRow(data: m)).toList(),
-              ),
-            ),
-          ],
+        child: ListenableBuilder(
+          listenable: accountViewModel,
+          builder: (context, _) {
+            return ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                _Header(name: authViewModel.displayName),
+                const SizedBox(height: 20),
+                _BalanceCard(
+                  isLoading: accountViewModel.isLoading,
+                  total: accountViewModel.totalBalance,
+                  currency: accountViewModel.primaryCurrency,
+                ),
+                const SizedBox(height: 20),
+                const _QuickActions(),
+                const SizedBox(height: 24),
+                _SectionCard(
+                  title: 'Gastos por categoría',
+                  child: Column(
+                    children:
+                        _categories.map((c) => _CategoryRow(data: c)).toList(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _SectionCard(
+                  title: 'Últimos movimientos',
+                  child: Column(
+                    children:
+                        _movements.map((m) => _MovementRow(data: m)).toList(),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
       bottomNavigationBar: const _BottomNav(),
@@ -145,6 +161,7 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
+        //
         const IconButton(
           onPressed: null,
           icon: Icon(Icons.notifications_none_rounded),
@@ -156,7 +173,15 @@ class _Header extends StatelessWidget {
 }
 
 class _BalanceCard extends StatelessWidget {
-  const _BalanceCard();
+  final bool isLoading;
+  final double total;
+  final String currency;
+
+  const _BalanceCard({
+    required this.isLoading,
+    required this.total,
+    required this.currency,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -171,10 +196,10 @@ class _BalanceCard extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
@@ -184,17 +209,26 @@ class _BalanceCard extends StatelessWidget {
               Icon(Icons.visibility_outlined, color: Colors.white70),
             ],
           ),
-          SizedBox(height: 8),
-          Text(
-            '2.480,75 €',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: 8),
-          Row(
+          const SizedBox(height: 8),
+          isLoading
+              ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  '${total.toStringAsFixed(2)} $currency',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+          const SizedBox(height: 8),
+          const Row(
             children: [
               Icon(Icons.trending_up_rounded,
                   color: Colors.greenAccent, size: 18),
