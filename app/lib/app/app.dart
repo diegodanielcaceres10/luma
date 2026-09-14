@@ -9,6 +9,9 @@ import '../features/auth/data/services/auth_service.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
 import '../features/home/presentation/screens/home_screen.dart';
+import '../features/transactions/data/repositories/transaction_repository.dart';
+import '../features/transactions/data/services/transaction_service.dart';
+import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import 'theme/app_theme.dart';
 
 class LumaApp extends StatefulWidget {
@@ -21,6 +24,7 @@ class LumaApp extends StatefulWidget {
 class _LumaAppState extends State<LumaApp> {
   late final AuthViewModel _authViewModel;
   late final AccountViewModel _accountViewModel;
+  late final TransactionViewModel _transactionViewModel;
 
   @override
   void initState() {
@@ -33,16 +37,25 @@ class _LumaAppState extends State<LumaApp> {
     final accountRepository = AccountRepository(AccountService(client));
     _accountViewModel = AccountViewModel(accountRepository);
 
+    final transactionRepository =
+        TransactionRepository(TransactionService(client));
+    _transactionViewModel = TransactionViewModel(transactionRepository);
+
     _authViewModel.addListener(_onAuthChanged);
     if (_authViewModel.isAuthenticated) {
-      _accountViewModel.loadAccounts();
+      _loadUserData();
     }
   }
 
   void _onAuthChanged() {
     if (_authViewModel.isAuthenticated) {
-      _accountViewModel.loadAccounts();
+      _loadUserData();
     }
+  }
+
+  void _loadUserData() {
+    _accountViewModel.loadAccounts();
+    _transactionViewModel.loadCurrentMonth();
   }
 
   @override
@@ -50,6 +63,7 @@ class _LumaAppState extends State<LumaApp> {
     _authViewModel.removeListener(_onAuthChanged);
     _authViewModel.dispose();
     _accountViewModel.dispose();
+    _transactionViewModel.dispose();
     super.dispose();
   }
 
@@ -66,6 +80,7 @@ class _LumaAppState extends State<LumaApp> {
               ? HomeScreen(
                   authViewModel: _authViewModel,
                   accountViewModel: _accountViewModel,
+                  transactionViewModel: _transactionViewModel,
                 )
               : LoginScreen(viewModel: _authViewModel);
         },

@@ -1,100 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/category_visuals.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
-import '../models/home_mock_data.dart';
+import '../../../transactions/data/models/transaction_entry.dart';
+import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 
 class HomeScreen extends StatelessWidget {
   final AuthViewModel authViewModel;
   final AccountViewModel accountViewModel;
+  final TransactionViewModel transactionViewModel;
 
   const HomeScreen({
     super.key,
     required this.authViewModel,
     required this.accountViewModel,
+    required this.transactionViewModel,
   });
-
-  static const _categories = [
-    CategorySpend(
-      label: 'Vivienda',
-      amount: '650,00 €',
-      percent: '52%',
-      dotColor: AppColors.primary,
-      icon: Icons.home_rounded,
-    ),
-    CategorySpend(
-      label: 'Alimentación',
-      amount: '280,40 €',
-      percent: '23%',
-      dotColor: AppColors.success,
-      icon: Icons.restaurant_rounded,
-    ),
-    CategorySpend(
-      label: 'Transporte',
-      amount: '180,20 €',
-      percent: '14%',
-      dotColor: Color(0xFFF59E0B),
-      icon: Icons.directions_car_rounded,
-    ),
-    CategorySpend(
-      label: 'Ocio',
-      amount: '95,60 €',
-      percent: '8%',
-      dotColor: AppColors.error,
-      icon: Icons.sports_esports_rounded,
-    ),
-    CategorySpend(
-      label: 'Otros',
-      amount: '39,10 €',
-      percent: '3%',
-      dotColor: AppColors.textMuted,
-      icon: Icons.more_horiz_rounded,
-    ),
-  ];
-
-  static const _movements = [
-    MovementItem(
-      title: 'Salario',
-      subtitle: 'Ingreso · 12 jun. 2025',
-      amount: '+1.800,00 €',
-      isIncome: true,
-      icon: Icons.arrow_downward_rounded,
-      iconColor: AppColors.success,
-    ),
-    MovementItem(
-      title: 'Mercadona',
-      subtitle: 'Alimentación · 11 jun. 2025',
-      amount: '-54,30 €',
-      isIncome: false,
-      icon: Icons.restaurant_rounded,
-      iconColor: AppColors.error,
-    ),
-    MovementItem(
-      title: 'Gasolina',
-      subtitle: 'Transporte · 10 jun. 2025',
-      amount: '-70,00 €',
-      isIncome: false,
-      icon: Icons.directions_car_rounded,
-      iconColor: AppColors.primary,
-    ),
-    MovementItem(
-      title: 'Alquiler',
-      subtitle: 'Vivienda · 5 jun. 2025',
-      amount: '-650,00 €',
-      isIncome: false,
-      icon: Icons.home_rounded,
-      iconColor: AppColors.primary,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: accountViewModel,
+          listenable: Listenable.merge([accountViewModel, transactionViewModel]),
           builder: (context, _) {
             return ListView(
               padding: const EdgeInsets.all(20),
@@ -111,17 +43,19 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 _SectionCard(
                   title: 'Gastos por categoría',
-                  child: Column(
-                    children:
-                        _categories.map((c) => _CategoryRow(data: c)).toList(),
+                  child: _CategoryBreakdown(
+                    isLoading: transactionViewModel.isLoading,
+                    breakdown: transactionViewModel.categoryBreakdown,
+                    currency: accountViewModel.primaryCurrency,
                   ),
                 ),
                 const SizedBox(height: 24),
                 _SectionCard(
                   title: 'Últimos movimientos',
-                  child: Column(
-                    children:
-                        _movements.map((m) => _MovementRow(data: m)).toList(),
+                  child: _RecentMovements(
+                    isLoading: transactionViewModel.isLoading,
+                    movements: transactionViewModel.recentMovements,
+                    currency: accountViewModel.primaryCurrency,
                   ),
                 ),
               ],
@@ -161,10 +95,10 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        //
-        const IconButton(
+        // TODO: sin acción todavía.
+        IconButton(
           onPressed: null,
-          icon: Icon(Icons.notifications_none_rounded),
+          icon: const Icon(Icons.notifications_none_rounded),
           color: AppColors.text,
         ),
       ],
@@ -199,9 +133,9 @@ class _BalanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children: const [
               Text(
                 'Saldo total',
                 style: TextStyle(color: Colors.white70, fontSize: 14),
@@ -228,8 +162,10 @@ class _BalanceCard extends StatelessWidget {
                   ),
                 ),
           const SizedBox(height: 8),
-          const Row(
-            children: [
+          // TODO: la variación vs. mes anterior sigue mock — falta comparar
+          // el total de este mes contra el del mes previo.
+          Row(
+            children: const [
               Icon(Icons.trending_up_rounded,
                   color: Colors.greenAccent, size: 18),
               SizedBox(width: 4),
@@ -301,6 +237,7 @@ class _QuickActionButton extends StatelessWidget {
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
+        // TODO: sin acción todavía.
         onTap: null,
         borderRadius: BorderRadius.circular(16),
         child: Container(
@@ -359,10 +296,11 @@ class _SectionCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const TextButton(
+              // TODO: sin acción todavía.
+              TextButton(
                 onPressed: null,
                 child: Row(
-                  children: [
+                  children: const [
                     Text('Ver todos'),
                     Icon(Icons.chevron_right_rounded, size: 18),
                   ],
@@ -378,83 +316,160 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _CategoryRow extends StatelessWidget {
-  final CategorySpend data;
+class _CategoryBreakdown extends StatelessWidget {
+  final bool isLoading;
+  final List<CategoryTotal> breakdown;
+  final String currency;
 
-  const _CategoryRow({required this.data});
+  const _CategoryBreakdown({
+    required this.isLoading,
+    required this.breakdown,
+    required this.currency,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: data.dotColor,
-              shape: BoxShape.circle,
-            ),
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (breakdown.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          'Todavía no hay gastos este mes.',
+          style: AppTextStyles.subtitle,
+        ),
+      );
+    }
+
+    return Column(
+      children: breakdown.map((c) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: colorFromHex(c.category.color,
+                      fallback: AppColors.primary),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(iconFromName(c.category.icon),
+                  size: 18, color: AppColors.textMuted),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(c.category.name, style: AppTextStyles.body),
+              ),
+              Text('${c.amount.toStringAsFixed(2)} $currency',
+                  style: AppTextStyles.body),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 40,
+                child: Text(
+                  '${c.percent.toStringAsFixed(0)}%',
+                  textAlign: TextAlign.right,
+                  style: AppTextStyles.subtitle.copyWith(fontSize: 12),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Icon(data.icon, size: 18, color: AppColors.textMuted),
-          const SizedBox(width: 8),
-          Expanded(child: Text(data.label, style: AppTextStyles.body)),
-          Text(data.amount, style: AppTextStyles.body),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 36,
-            child: Text(
-              data.percent,
-              textAlign: TextAlign.right,
-              style: AppTextStyles.subtitle.copyWith(fontSize: 12),
-            ),
-          ),
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 }
 
-class _MovementRow extends StatelessWidget {
-  final MovementItem data;
+class _RecentMovements extends StatelessWidget {
+  final bool isLoading;
+  final List<TransactionEntry> movements;
+  final String currency;
 
-  const _MovementRow({required this.data});
+  const _RecentMovements({
+    required this.isLoading,
+    required this.movements,
+    required this.currency,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: data.iconColor.withOpacity(0.15),
-            child: Icon(data.icon, color: data.iconColor, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(data.title, style: AppTextStyles.body),
-                Text(
-                  data.subtitle,
-                  style: AppTextStyles.subtitle.copyWith(fontSize: 12),
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (movements.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          'Todavía no hay movimientos este mes.',
+          style: AppTextStyles.subtitle,
+        ),
+      );
+    }
+
+    final dateFormat = DateFormat('d MMM. yyyy', 'es');
+
+    return Column(
+      children: movements.map((m) {
+        final color = m.isIncome
+            ? AppColors.success
+            : colorFromHex(m.category.color, fallback: AppColors.primary);
+        final sign = m.isIncome ? '+' : '-';
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: color.withOpacity(0.15),
+                child: Icon(
+                  m.isIncome
+                      ? Icons.arrow_downward_rounded
+                      : iconFromName(m.category.icon),
+                  color: color,
+                  size: 18,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      m.description?.isNotEmpty == true
+                          ? m.description!
+                          : m.category.name,
+                      style: AppTextStyles.body,
+                    ),
+                    Text(
+                      '${m.category.name} · ${dateFormat.format(m.date)}',
+                      style: AppTextStyles.subtitle.copyWith(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '$sign${m.amount.toStringAsFixed(2)} $currency',
+                style: AppTextStyles.body.copyWith(
+                  color: m.isIncome ? AppColors.success : AppColors.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-          Text(
-            data.amount,
-            style: AppTextStyles.body.copyWith(
-              color: data.isIncome ? AppColors.success : AppColors.error,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 }
