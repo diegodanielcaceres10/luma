@@ -5,7 +5,6 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
-import '../../../../core/widgets/luma_logo.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -50,94 +49,43 @@ class DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.authBackgroundTop,
-            AppColors.authBackgroundBottom,
+    return ListenableBuilder(
+      listenable: Listenable.merge([accountViewModel, transactionViewModel]),
+      builder: (context, _) {
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          children: [
+            _GreetingRow(
+              initials: authViewModel.initials,
+              firstName: authViewModel.displayName.split(' ').first,
+            ),
+            const SizedBox(height: 20),
+            _BalanceCard(
+              isLoading: accountViewModel.isLoading,
+              total: accountViewModel.totalBalance,
+              currency: accountViewModel.primaryCurrency,
+            ),
+            const SizedBox(height: 28),
+            const _SectionHeader(title: 'Acciones rápidas'),
+            const SizedBox(height: 12),
+            _QuickActions(
+              onAddIncome: () => _openAddTransaction(context, 'income'),
+              onAddExpense: () => _openAddTransaction(context, 'expense'),
+            ),
+            const SizedBox(height: 28),
+            _SectionHeader(
+              title: 'Últimos movimientos',
+              onSeeAll: onSeeAllMovements,
+            ),
+            const SizedBox(height: 8),
+            _RecentMovements(
+              isLoading: transactionViewModel.isLoading,
+              movements: transactionViewModel.recentMovements,
+              currency: accountViewModel.primaryCurrency,
+            ),
           ],
-        ),
-      ),
-      child: SafeArea(
-        child: ListenableBuilder(
-          listenable:
-              Listenable.merge([accountViewModel, transactionViewModel]),
-          builder: (context, _) {
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-              children: [
-                const _TopBar(),
-                const SizedBox(height: 24),
-                _GreetingRow(
-                  initials: authViewModel.initials,
-                  firstName: authViewModel.displayName.split(' ').first,
-                ),
-                const SizedBox(height: 20),
-                _BalanceCard(
-                  isLoading: accountViewModel.isLoading,
-                  total: accountViewModel.totalBalance,
-                  currency: accountViewModel.primaryCurrency,
-                ),
-                const SizedBox(height: 28),
-                const _SectionHeader(title: 'Acciones rápidas'),
-                const SizedBox(height: 12),
-                _QuickActions(
-                  onAddIncome: () => _openAddTransaction(context, 'income'),
-                  onAddExpense: () => _openAddTransaction(context, 'expense'),
-                ),
-                const SizedBox(height: 28),
-                _SectionHeader(
-                  title: 'Últimos movimientos',
-                  onSeeAll: onSeeAllMovements,
-                ),
-                const SizedBox(height: 8),
-                _RecentMovements(
-                  isLoading: transactionViewModel.isLoading,
-                  movements: transactionViewModel.recentMovements,
-                  currency: accountViewModel.primaryCurrency,
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _TopBar extends StatelessWidget {
-  const _TopBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // Abre el drawer del Scaffold del HomeShell (ancestro de este tab).
-        IconButton(
-          onPressed: () => Scaffold.of(context).openDrawer(),
-          icon: const Icon(Icons.menu_rounded),
-          color: AppColors.authTextPrimary,
-        ),
-        const LumaLogo(size: 28),
-        const SizedBox(width: 8),
-        const Text(
-          'Luma',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: AppColors.authTextPrimary,
-          ),
-        ),
-        const Spacer(),
-        const IconButton(
-          onPressed: null,
-          icon: Icon(Icons.notifications_none_rounded),
-          color: AppColors.authTextPrimary,
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -255,7 +203,6 @@ class _BalanceCard extends StatelessWidget {
                         color: AppColors.authAccent, size: 16),
                     SizedBox(width: 4),
                     Text(
-                      //
                       '+12% vs. mes anterior',
                       style: TextStyle(
                         color: AppColors.authAccent,

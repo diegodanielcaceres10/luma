@@ -8,6 +8,7 @@ import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../transactions/presentation/screens/movements_tab.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
+import '../widgets/luma_header.dart';
 import '../widgets/placeholder_tab.dart';
 import 'dashboard_tab.dart';
 
@@ -73,12 +74,52 @@ class _HomeShellState extends State<HomeShell> {
 
     return Scaffold(
       drawer: _AppDrawer(currentIndex: _index, onSelect: _onTabTap),
-      body: IndexedStack(index: _index, children: tabs),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.authBackgroundTop,
+              AppColors.authBackgroundBottom,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              LumaHeader(trailing: _headerAction()),
+              Expanded(child: IndexedStack(index: _index, children: tabs)),
+            ],
+          ),
+        ),
+      ),
       bottomNavigationBar: _BottomNav(
         currentIndex: _index,
         onTap: _onTabTap,
       ),
     );
+  }
+
+  /// Acción a la derecha del header, según la pestaña activa.
+  Widget? _headerAction() {
+    switch (_index) {
+      case 0:
+        return const IconButton(
+          onPressed: null,
+          icon: Icon(Icons.notifications_none_rounded),
+          color: AppColors.authTextPrimary,
+        );
+      case 3:
+        return const IconButton(
+          onPressed: null,
+          icon: Icon(Icons.settings_outlined),
+          color: AppColors.authTextPrimary,
+        );
+      default:
+        return null;
+    }
   }
 }
 
@@ -104,9 +145,8 @@ class _BottomNav extends StatelessWidget {
             children: List.generate(_navItems.length, (i) {
               final item = _navItems[i];
               final isSelected = i == currentIndex;
-              final color = isSelected
-                  ? AppColors.authAccent
-                  : AppColors.authTextFooter;
+              final color =
+                  isSelected ? AppColors.authAccent : AppColors.authTextFooter;
 
               return InkWell(
                 onTap: () => onTap(i),
@@ -192,8 +232,7 @@ class _AppDrawer extends StatelessWidget {
                   item.$2,
                   style: TextStyle(
                     color: color,
-                    fontWeight:
-                        isSelected ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
                 selected: isSelected,

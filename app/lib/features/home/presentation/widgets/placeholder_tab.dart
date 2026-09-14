@@ -18,6 +18,7 @@ class PlaceholderTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      top: false,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

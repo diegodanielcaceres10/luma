@@ -34,6 +34,7 @@ class MovementsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      top: false,
       child: ListenableBuilder(
         listenable: transactionViewModel,
         builder: (context, _) {

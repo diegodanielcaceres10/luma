@@ -11,77 +11,62 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.authBackgroundTop,
-            AppColors.authBackgroundBottom,
-          ],
-        ),
-      ),
-      child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: AppColors.authAccentDark.withOpacity(0.35),
-                  child: Text(
-                    viewModel.initials,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.authTextPrimary,
+            CircleAvatar(
+              radius: 32,
+              backgroundColor: AppColors.authAccentDark.withOpacity(0.35),
+              child: Text(
+                viewModel.initials,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.authTextPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    viewModel.displayName,
+                    style: AppTextStyles.authTitle.copyWith(fontSize: 20),
+                  ),
+                  const SizedBox(height: 4),
+                  if (viewModel.email != null)
+                    Text(
+                      viewModel.email!,
+                      style: AppTextStyles.authSubtitle.copyWith(fontSize: 14),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        viewModel.displayName,
-                        style: AppTextStyles.authTitle.copyWith(fontSize: 20),
-                      ),
-                      const SizedBox(height: 4),
-                      if (viewModel.email != null)
-                        Text(
-                          viewModel.email!,
-                          style: AppTextStyles.authSubtitle
-                              .copyWith(fontSize: 14),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 28),
-            _ProfileCard(
-              children: [
-                _ProfileRow(
-                  icon: Icons.person_outline_rounded,
-                  label: 'Nombre',
-                  value: viewModel.displayName,
-                ),
-                _ProfileRow(
-                  icon: Icons.mail_outline_rounded,
-                  label: 'Correo electrónico',
-                  value: viewModel.email ?? '—',
-                  showDivider: false,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _SignOutButton(onPressed: viewModel.signOut),
           ],
         ),
-      ),
+        const SizedBox(height: 28),
+        _ProfileCard(
+          children: [
+            _ProfileRow(
+              icon: Icons.person_outline_rounded,
+              label: 'Nombre',
+              value: viewModel.displayName,
+            ),
+            _ProfileRow(
+              icon: Icons.mail_outline_rounded,
+              label: 'Correo electrónico',
+              value: viewModel.email ?? '—',
+              showDivider: false,
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _SignOutButton(onPressed: viewModel.signOut),
+      ],
     );
   }
 }
