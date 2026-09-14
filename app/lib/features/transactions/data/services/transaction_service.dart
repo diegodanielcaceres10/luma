@@ -23,6 +23,22 @@ class TransactionService {
         .toList();
   }
 
+  /// Trae todas las transacciones del usuario (todo el historial), más
+  /// recientes primero. [limit] evita traer miles de filas de una — para
+  /// paginar de verdad más adelante conviene sumar un offset/cursor.
+  Future<List<TransactionEntry>> fetchAll({int limit = 200}) async {
+    final rows = await _client
+        .from('transactions')
+        .select('*, categories(id, name, color, icon)')
+        .order('date', ascending: false)
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    return (rows as List)
+        .map((row) => TransactionEntry.fromMap(row as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<void> createTransaction({
     required String userId,
     required String accountId,

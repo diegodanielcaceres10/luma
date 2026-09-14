@@ -10,6 +10,10 @@ class TransactionRepository {
     return _service.fetchForMonth(month);
   }
 
+  Future<List<TransactionEntry>> getAll() {
+    return _service.fetchAll();
+  }
+
   Future<void> create({
     required String userId,
     required String accountId,

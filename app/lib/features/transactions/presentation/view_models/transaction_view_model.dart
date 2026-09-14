@@ -20,13 +20,21 @@ class TransactionViewModel extends ChangeNotifier {
   TransactionViewModel(this._repository);
 
   bool _isLoading = false;
+  bool _isLoadingAll = false;
   bool _isSubmitting = false;
   String? _errorMessage;
   List<TransactionEntry> _transactions = [];
+  List<TransactionEntry> _allTransactions = [];
+  bool _hasLoadedAll = false;
 
   bool get isLoading => _isLoading;
+  bool get isLoadingAll => _isLoadingAll;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
+
+  /// Historial completo (no limitado al mes actual), para la pestaña
+  /// Movimientos. Hay que llamar loadAllTransactions() antes de leerlo.
+  List<TransactionEntry> get allTransactions => _allTransactions;
 
   List<TransactionEntry> get recentMovements => _transactions.take(4).toList();
 
@@ -73,6 +81,22 @@ class TransactionViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> loadAllTransactions() async {
+    _isLoadingAll = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _allTransactions = await _repository.getAll();
+      _hasLoadedAll = true;
+    } catch (error) {
+      _errorMessage = 'No se pudieron cargar los movimientos.';
+    } finally {
+      _isLoadingAll = false;
+      notifyListeners();
+    }
+  }
+
   /// Devuelve true si se creó correctamente. En ese caso ya deja
   /// _transactions actualizado con el mes actual recargado.
   Future<bool> createTransaction({
@@ -99,6 +123,9 @@ class TransactionViewModel extends ChangeNotifier {
         date: date,
       );
       await loadCurrentMonth();
+      if (_hasLoadedAll) {
+        await loadAllTransactions();
+      }
       return true;
     } catch (error) {
       _errorMessage = 'No se pudo guardar la transacción.';

@@ -5,6 +5,7 @@ import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../transactions/presentation/screens/movements_tab.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import '../widgets/placeholder_tab.dart';
 import 'dashboard_tab.dart';
@@ -29,6 +30,18 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  bool _movementsLoaded = false;
+
+  void _onTabTap(int index) {
+    setState(() => _index = index);
+
+    // Carga perezosa: el historial completo de transacciones recién se
+    // pide la primera vez que se entra a "Movimientos", no al arrancar.
+    if (index == 1 && !_movementsLoaded) {
+      _movementsLoaded = true;
+      widget.transactionViewModel.loadAllTransactions();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +52,10 @@ class _HomeShellState extends State<HomeShell> {
         transactionViewModel: widget.transactionViewModel,
         categoryViewModel: widget.categoryViewModel,
       ),
-      const PlaceholderTab(icon: Icons.history_rounded, label: 'Movimientos'),
+      MovementsTab(
+        transactionViewModel: widget.transactionViewModel,
+        currency: widget.accountViewModel.primaryCurrency,
+      ),
       const PlaceholderTab(
           icon: Icons.bar_chart_rounded, label: 'Estadísticas'),
       ProfileScreen(viewModel: widget.authViewModel),
@@ -49,7 +65,7 @@ class _HomeShellState extends State<HomeShell> {
       body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: _BottomNav(
         currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
+        onTap: _onTabTap,
       ),
     );
   }
