@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Category;
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
@@ -156,14 +156,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               else
                 DropdownButtonFormField<Category>(
                   value: _selectedCategory,
-                  decoration:
-                      const InputDecoration(border: OutlineInputBorder()),
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
                   items: categories
-                      .map((c) =>
-                          DropdownMenuItem(value: c, child: Text(c.name)))
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
                       .toList(),
-                  onChanged: (value) =>
-                      setState(() => _selectedCategory = value),
+                  onChanged: (value) => setState(() => _selectedCategory = value),
                 ),
               const SizedBox(height: 20),
               const Text('Cuenta', style: AppTextStyles.subtitle),
@@ -178,20 +175,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               else
                 DropdownButtonFormField<Account>(
                   value: _selectedAccount,
-                  decoration:
-                      const InputDecoration(border: OutlineInputBorder()),
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
                   items: accounts
                       .map((a) => DropdownMenuItem(
                             value: a,
                             child: Text('${a.name} (${a.currency})'),
                           ))
                       .toList(),
-                  onChanged: (value) =>
-                      setState(() => _selectedAccount = value),
+                  onChanged: (value) => setState(() => _selectedAccount = value),
                 ),
               const SizedBox(height: 20),
-              const Text('Descripción (opcional)',
-                  style: AppTextStyles.subtitle),
+              const Text('Descripción (opcional)', style: AppTextStyles.subtitle),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _descriptionController,
@@ -206,8 +200,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               InkWell(
                 onTap: _pickDate,
                 child: InputDecorator(
-                  decoration:
-                      const InputDecoration(border: OutlineInputBorder()),
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [

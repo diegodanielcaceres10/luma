@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
+import '../../../../core/utils/currency_format.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -47,8 +48,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable:
-              Listenable.merge([accountViewModel, transactionViewModel]),
+          listenable: Listenable.merge([accountViewModel, transactionViewModel]),
           builder: (context, _) {
             return ListView(
               padding: const EdgeInsets.all(20),
@@ -120,9 +120,10 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        const IconButton(
+        // TODO: sin acción todavía.
+        IconButton(
           onPressed: null,
-          icon: Icon(Icons.notifications_none_rounded),
+          icon: const Icon(Icons.notifications_none_rounded),
           color: AppColors.text,
         ),
       ],
@@ -157,9 +158,9 @@ class _BalanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children: const [
               Text(
                 'Saldo total',
                 style: TextStyle(color: Colors.white70, fontSize: 14),
@@ -178,7 +179,7 @@ class _BalanceCard extends StatelessWidget {
                   ),
                 )
               : Text(
-                  '${total.toStringAsFixed(2)} $currency',
+                  formatCurrency(total, currency),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 30,
@@ -186,8 +187,10 @@ class _BalanceCard extends StatelessWidget {
                   ),
                 ),
           const SizedBox(height: 8),
-          const Row(
-            children: [
+          // TODO: la variación vs. mes anterior sigue mock — falta comparar
+          // el total de este mes contra el del mes previo.
+          Row(
+            children: const [
               Icon(Icons.trending_up_rounded,
                   color: Colors.greenAccent, size: 18),
               SizedBox(width: 4),
@@ -225,7 +228,9 @@ class _QuickActions extends StatelessWidget {
     final actions = [
       (Icons.add_rounded, 'Añadir\ningreso', AppColors.primary, onAddIncome),
       (Icons.remove_rounded, 'Añadir\ngasto', AppColors.error, onAddExpense),
+      // TODO: sin acción todavía.
       (Icons.bar_chart_rounded, 'Ver\nestadísticas', AppColors.primary, null),
+      // TODO: sin acción todavía.
       (Icons.credit_card_rounded, 'Categorías', AppColors.primary, null),
     ];
 
@@ -326,10 +331,11 @@ class _SectionCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const TextButton(
+              // TODO: sin acción todavía.
+              TextButton(
                 onPressed: null,
                 child: Row(
-                  children: [
+                  children: const [
                     Text('Ver todos'),
                     Icon(Icons.chevron_right_rounded, size: 18),
                   ],
@@ -397,7 +403,7 @@ class _CategoryBreakdown extends StatelessWidget {
               Expanded(
                 child: Text(c.category.name, style: AppTextStyles.body),
               ),
-              Text('${c.amount.toStringAsFixed(2)} $currency',
+              Text(formatCurrency(c.amount, currency),
                   style: AppTextStyles.body),
               const SizedBox(width: 12),
               SizedBox(
@@ -489,7 +495,7 @@ class _RecentMovements extends StatelessWidget {
                 ),
               ),
               Text(
-                '$sign${m.amount.toStringAsFixed(2)} $currency',
+                '$sign${formatCurrency(m.amount, currency)}',
                 style: AppTextStyles.body.copyWith(
                   color: m.isIncome ? AppColors.success : AppColors.error,
                   fontWeight: FontWeight.w600,
