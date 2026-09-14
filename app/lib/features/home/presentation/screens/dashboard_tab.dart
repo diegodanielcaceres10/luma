@@ -5,6 +5,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/luma_logo.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -19,6 +20,7 @@ class DashboardTab extends StatelessWidget {
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
   final CategoryViewModel categoryViewModel;
+  final VoidCallback? onSeeAllMovements;
 
   const DashboardTab({
     super.key,
@@ -26,6 +28,7 @@ class DashboardTab extends StatelessWidget {
     required this.accountViewModel,
     required this.transactionViewModel,
     required this.categoryViewModel,
+    this.onSeeAllMovements,
   });
 
   void _openAddTransaction(BuildContext context, String type) {
@@ -47,82 +50,136 @@ class DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListenableBuilder(
-        listenable: Listenable.merge([accountViewModel, transactionViewModel]),
-        builder: (context, _) {
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              _Header(name: authViewModel.displayName),
-              const SizedBox(height: 20),
-              _BalanceCard(
-                isLoading: accountViewModel.isLoading,
-                total: accountViewModel.totalBalance,
-                currency: accountViewModel.primaryCurrency,
-              ),
-              const SizedBox(height: 20),
-              _QuickActions(
-                onAddIncome: () => _openAddTransaction(context, 'income'),
-                onAddExpense: () => _openAddTransaction(context, 'expense'),
-              ),
-              const SizedBox(height: 24),
-              _SectionCard(
-                title: 'Gastos por categoría',
-                child: _CategoryBreakdown(
-                  isLoading: transactionViewModel.isLoading,
-                  breakdown: transactionViewModel.categoryBreakdown,
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.authBackgroundTop,
+            AppColors.authBackgroundBottom,
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: ListenableBuilder(
+          listenable: Listenable.merge([accountViewModel, transactionViewModel]),
+          builder: (context, _) {
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              children: [
+                const _TopBar(),
+                const SizedBox(height: 24),
+                _GreetingRow(
+                  initials: authViewModel.initials,
+                  firstName: authViewModel.displayName.split(' ').first,
+                ),
+                const SizedBox(height: 20),
+                _BalanceCard(
+                  isLoading: accountViewModel.isLoading,
+                  total: accountViewModel.totalBalance,
                   currency: accountViewModel.primaryCurrency,
                 ),
-              ),
-              const SizedBox(height: 24),
-              _SectionCard(
-                title: 'Últimos movimientos',
-                child: _RecentMovements(
+                const SizedBox(height: 28),
+                _SectionHeader(title: 'Acciones rápidas'),
+                const SizedBox(height: 12),
+                _QuickActions(
+                  onAddIncome: () => _openAddTransaction(context, 'income'),
+                  onAddExpense: () => _openAddTransaction(context, 'expense'),
+                ),
+                const SizedBox(height: 28),
+                _SectionHeader(
+                  title: 'Últimos movimientos',
+                  onSeeAll: onSeeAllMovements,
+                ),
+                const SizedBox(height: 8),
+                _RecentMovements(
                   isLoading: transactionViewModel.isLoading,
                   movements: transactionViewModel.recentMovements,
                   currency: accountViewModel.primaryCurrency,
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  final String name;
-
-  const _Header({required this.name});
+class _TopBar extends StatelessWidget {
+  const _TopBar();
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // TODO: wire a Drawer/menu once there's something to open from here.
+        IconButton(
+          onPressed: null,
+          icon: const Icon(Icons.menu_rounded),
+          color: AppColors.authTextPrimary,
+        ),
+        const LumaLogo(size: 28),
+        const SizedBox(width: 8),
+        const Text(
+          'Luma',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: AppColors.authTextPrimary,
+          ),
+        ),
+        const Spacer(),
+        // TODO: wire real notifications once there's something to show.
+        IconButton(
+          onPressed: null,
+          icon: const Icon(Icons.notifications_none_rounded),
+          color: AppColors.authTextPrimary,
+        ),
+      ],
+    );
+  }
+}
+
+class _GreetingRow extends StatelessWidget {
+  final String initials;
+  final String firstName;
+
+  const _GreetingRow({required this.initials, required this.firstName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 26,
+          backgroundColor: AppColors.authAccentDark.withOpacity(0.35),
+          child: Text(
+            initials,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.authTextPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Buenos días,', style: AppTextStyles.subtitle),
               Text(
-                '$name 👋',
-                style: AppTextStyles.title.copyWith(fontSize: 26),
+                'Hola, $firstName 👋',
+                style: AppTextStyles.authTitle.copyWith(fontSize: 20),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               const Text(
-                'Aquí tienes un resumen de tus finanzas de este mes.',
-                style: AppTextStyles.subtitle,
+                'Aquí tienes un resumen de tus finanzas.',
+                style: AppTextStyles.authSubtitle,
               ),
             ],
           ),
-        ),
-        const IconButton(
-          onPressed: null,
-          icon: Icon(Icons.notifications_none_rounded),
-          color: AppColors.text,
         ),
       ],
     );
@@ -142,70 +199,193 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.primaryDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Stack(
         children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Saldo total',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.authAccentDark, AppColors.authBackgroundBottom],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              Icon(Icons.visibility_outlined, color: Colors.white70),
-            ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.calendar_today_rounded,
+                        color: Colors.white70, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Balance general del mes',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                isLoading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        formatCurrency(total, currency),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                const SizedBox(height: 8),
+                const Row(
+                  children: [
+                    Icon(Icons.arrow_upward_rounded,
+                        color: AppColors.authAccent, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      // TODO: calcular la variación real vs. el mes anterior.
+                      '+12% vs. mes anterior',
+                      style: TextStyle(
+                        color: AppColors.authAccent,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white24, height: 1),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.white.withOpacity(0.12),
+                      child: const Icon(Icons.credit_card_rounded,
+                          color: Colors.white, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Total pendiente de pagar',
+                            style: TextStyle(
+                                color: Colors.white70, fontSize: 12),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            // TODO: sumar deudas/tarjetas pendientes reales.
+                            '\$ 320,00',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Ver detalles',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Icon(Icons.chevron_right_rounded,
+                              color: Colors.white, size: 16),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          isLoading
-              ? const SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(
-                  formatCurrency(total, currency),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
+          // Decorative highlight, top-right — echoes the login screen glow.
+          Positioned(
+            top: -60,
+            right: -60,
+            child: IgnorePointer(
+              child: Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.10),
+                      Colors.white.withOpacity(0),
+                    ],
                   ),
                 ),
-          const SizedBox(height: 8),
-          const Row(
-            children: [
-              Icon(Icons.trending_up_rounded,
-                  color: Colors.greenAccent, size: 18),
-              SizedBox(width: 4),
-              Text(
-                '+320,50 €',
-                style: TextStyle(
-                  color: Colors.greenAccent,
-                  fontWeight: FontWeight.w600,
-                ),
               ),
-              SizedBox(width: 4),
-              Text(
-                'vs. mes anterior',
-                style: TextStyle(color: Colors.white70),
-              ),
-            ],
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final VoidCallback? onSeeAll;
+
+  const _SectionHeader({required this.title, this.onSeeAll});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.authTextPrimary,
+          ),
+        ),
+        TextButton(
+          onPressed: onSeeAll,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.authTextSecondary,
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(0, 0),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Ver todas', style: TextStyle(fontSize: 13)),
+              Icon(Icons.chevron_right_rounded, size: 16),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -221,196 +401,94 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actions = [
-      (Icons.add_rounded, 'Añadir\ningreso', AppColors.primary, onAddIncome),
-      (Icons.remove_rounded, 'Añadir\ngasto', AppColors.error, onAddExpense),
-      (Icons.bar_chart_rounded, 'Ver\nestadísticas', AppColors.primary, null),
-      (Icons.credit_card_rounded, 'Categorías', AppColors.primary, null),
-    ];
-
     return Row(
-      children: actions
-          .map(
-            (a) => Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: _QuickActionButton(
-                  icon: a.$1,
-                  label: a.$2,
-                  color: a.$3,
-                  onTap: a.$4,
-                ),
-              ),
-            ),
-          )
-          .toList(),
+      children: [
+        Expanded(
+          child: _QuickActionCard(
+            icon: Icons.arrow_downward_rounded,
+            iconColor: AppColors.authIncome,
+            title: 'Agregar ingreso',
+            subtitle: 'Sumá dinero a tu cuenta',
+            onTap: onAddIncome,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _QuickActionCard(
+            icon: Icons.arrow_upward_rounded,
+            iconColor: AppColors.authExpense,
+            title: 'Agregar gasto',
+            subtitle: 'Registrá un nuevo gasto',
+            onTap: onAddExpense,
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _QuickActionButton extends StatelessWidget {
+class _QuickActionCard extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback? onTap;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
 
-  const _QuickActionButton({
+  const _QuickActionCard({
     required this.icon,
-    required this.label,
-    required this.color,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(16),
+      color: AppColors.authCardFill,
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.authCardBorder),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: color.withOpacity(0.15),
-                child: Icon(icon, color: color, size: 20),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: iconColor.withOpacity(0.85),
+                    child: Icon(icon, color: Colors.white, size: 18),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right_rounded,
+                      color: AppColors.authTextFooter, size: 18),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: AppTextStyles.body.copyWith(fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final Widget child;
-
-  const _SectionCard({required this.title, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+              const SizedBox(height: 14),
               Text(
                 title,
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 16,
+                style: const TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
+                  color: AppColors.authTextPrimary,
                 ),
               ),
-              const TextButton(
-                onPressed: null,
-                child: Row(
-                  children: [
-                    Text('Ver todos'),
-                    Icon(Icons.chevron_right_rounded, size: 18),
-                  ],
-                ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: AppTextStyles.authSubtitle.copyWith(fontSize: 12),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoryBreakdown extends StatelessWidget {
-  final bool isLoading;
-  final List<CategoryTotal> breakdown;
-  final String currency;
-
-  const _CategoryBreakdown({
-    required this.isLoading,
-    required this.breakdown,
-    required this.currency,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (breakdown.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Text(
-          'Todavía no hay gastos este mes.',
-          style: AppTextStyles.subtitle,
         ),
-      );
-    }
-
-    return Column(
-      children: breakdown.map((c) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: colorFromHex(c.category.color,
-                      fallback: AppColors.primary),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(iconFromName(c.category.icon),
-                  size: 18, color: AppColors.textMuted),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(c.category.name, style: AppTextStyles.body),
-              ),
-              Text(formatCurrency(c.amount, currency),
-                  style: AppTextStyles.body),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 40,
-                child: Text(
-                  '${c.percent.toStringAsFixed(0)}%',
-                  textAlign: TextAlign.right,
-                  style: AppTextStyles.subtitle.copyWith(fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
+      ),
     );
   }
 }
@@ -440,32 +518,32 @@ class _RecentMovements extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 16),
         child: Text(
           'Todavía no hay movimientos este mes.',
-          style: AppTextStyles.subtitle,
+          style: AppTextStyles.authSubtitle,
         ),
       );
     }
 
-    final dateFormat = DateFormat('d MMM. yyyy', 'es');
+    final dateFormat = DateFormat('d MMM yyyy', 'es');
 
     return Column(
       children: movements.map((m) {
         final color = m.isIncome
-            ? AppColors.success
-            : colorFromHex(m.category.color, fallback: AppColors.primary);
+            ? AppColors.authIncome
+            : colorFromHex(m.category.color, fallback: AppColors.authExpense);
         final sign = m.isIncome ? '+' : '-';
 
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: color.withOpacity(0.15),
+                backgroundColor: color.withOpacity(0.85),
                 child: Icon(
                   m.isIncome
                       ? Icons.arrow_downward_rounded
                       : iconFromName(m.category.icon),
-                  color: color,
+                  color: Colors.white,
                   size: 18,
                 ),
               ),
@@ -478,21 +556,33 @@ class _RecentMovements extends StatelessWidget {
                       m.description?.isNotEmpty == true
                           ? m.description!
                           : m.category.name,
-                      style: AppTextStyles.body,
+                      style: AppTextStyles.authBody,
                     ),
                     Text(
-                      '${m.category.name} · ${dateFormat.format(m.date)}',
-                      style: AppTextStyles.subtitle.copyWith(fontSize: 12),
+                      dateFormat.format(m.date),
+                      style: AppTextStyles.authSubtitle.copyWith(fontSize: 12),
                     ),
                   ],
                 ),
               ),
-              Text(
-                '$sign${formatCurrency(m.amount, currency)}',
-                style: AppTextStyles.body.copyWith(
-                  color: m.isIncome ? AppColors.success : AppColors.error,
-                  fontWeight: FontWeight.w600,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$sign${formatCurrency(m.amount, currency)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: m.isIncome
+                          ? AppColors.authIncome
+                          : AppColors.authExpense,
+                    ),
+                  ),
+                  Text(
+                    m.isIncome ? 'Ingreso' : m.category.name,
+                    style: AppTextStyles.authSubtitle.copyWith(fontSize: 12),
+                  ),
+                ],
               ),
             ],
           ),

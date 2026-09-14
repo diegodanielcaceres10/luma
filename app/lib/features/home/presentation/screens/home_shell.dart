@@ -51,6 +51,7 @@ class _HomeShellState extends State<HomeShell> {
         accountViewModel: widget.accountViewModel,
         transactionViewModel: widget.transactionViewModel,
         categoryViewModel: widget.categoryViewModel,
+        onSeeAllMovements: () => _onTabTap(1),
       ),
       MovementsTab(
         transactionViewModel: widget.transactionViewModel,
@@ -79,39 +80,64 @@ class _BottomNav extends StatelessWidget {
 
   static const _items = [
     (Icons.home_rounded, 'Inicio'),
-    (Icons.history_rounded, 'Movimientos'),
+    (Icons.trending_up_rounded, 'Movimientos'),
     (Icons.bar_chart_rounded, 'Estadísticas'),
     (Icons.person_outline_rounded, 'Perfil'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return BottomAppBar(
-      color: AppColors.surface,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(_items.length, (i) {
-          final item = _items[i];
-          final isSelected = i == currentIndex;
-          final color = isSelected ? AppColors.primary : AppColors.textMuted;
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.authBackgroundBottom,
+        border: Border(top: BorderSide(color: AppColors.authCardBorder)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(_items.length, (i) {
+              final item = _items[i];
+              final isSelected = i == currentIndex;
+              final color = isSelected
+                  ? AppColors.authAccent
+                  : AppColors.authTextFooter;
 
-          return InkWell(
-            onTap: () => onTap(i),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(item.$1, color: color),
-                  Text(
-                    item.$2,
-                    style: TextStyle(fontSize: 11, color: color),
+              return InkWell(
+                onTap: () => onTap(i),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(item.$1, color: color, size: 22),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.$2,
+                        style: TextStyle(fontSize: 11, color: color),
+                      ),
+                      const SizedBox(height: 3),
+                      SizedBox(
+                        width: 16,
+                        height: 2,
+                        child: isSelected
+                            ? const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: AppColors.authAccent,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          );
-        }),
+                ),
+              );
+            }),
+          ),
+        ),
       ),
     );
   }

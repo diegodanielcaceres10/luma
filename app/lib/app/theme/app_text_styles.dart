@@ -43,4 +43,10 @@ abstract final class AppTextStyles {
     color: AppColors.authTextFooter,
     height: 1.6,
   );
+
+  static const authBody = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w500,
+    color: AppColors.authTextPrimary,
+  );
 }

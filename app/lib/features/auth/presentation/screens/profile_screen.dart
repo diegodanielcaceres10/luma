@@ -32,9 +32,7 @@ class ProfileScreen extends StatelessWidget {
                   radius: 32,
                   backgroundColor: AppColors.authAccentDark.withOpacity(0.35),
                   child: Text(
-                    viewModel.displayName.isNotEmpty
-                        ? viewModel.displayName[0].toUpperCase()
-                        : '?',
+                    viewModel.initials,
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,

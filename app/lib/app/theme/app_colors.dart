@@ -30,4 +30,7 @@ abstract final class AppColors {
   static const authCardFill = Color(0x14FFFFFF); // white @ 8%
   static const authCardBorder = Color(0x1FFFFFFF); // white @ 12%
   static const authIconBg = Color(0x1FFFFFFF); // white @ 12%
+
+  static const authIncome = authAccent;
+  static const authExpense = Color(0xFFEF6F5B);
 }
