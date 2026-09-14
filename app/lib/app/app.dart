@@ -8,6 +8,9 @@ import '../features/auth/data/repositories/auth_repository.dart';
 import '../features/auth/data/services/auth_service.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
+import '../features/categories/data/repositories/category_repository.dart';
+import '../features/categories/data/services/category_service.dart';
+import '../features/categories/presentation/view_models/category_view_model.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/transactions/data/repositories/transaction_repository.dart';
 import '../features/transactions/data/services/transaction_service.dart';
@@ -25,6 +28,7 @@ class _LumaAppState extends State<LumaApp> {
   late final AuthViewModel _authViewModel;
   late final AccountViewModel _accountViewModel;
   late final TransactionViewModel _transactionViewModel;
+  late final CategoryViewModel _categoryViewModel;
 
   @override
   void initState() {
@@ -41,6 +45,9 @@ class _LumaAppState extends State<LumaApp> {
         TransactionRepository(TransactionService(client));
     _transactionViewModel = TransactionViewModel(transactionRepository);
 
+    final categoryRepository = CategoryRepository(CategoryService(client));
+    _categoryViewModel = CategoryViewModel(categoryRepository);
+
     _authViewModel.addListener(_onAuthChanged);
     if (_authViewModel.isAuthenticated) {
       _loadUserData();
@@ -56,6 +63,7 @@ class _LumaAppState extends State<LumaApp> {
   void _loadUserData() {
     _accountViewModel.loadAccounts();
     _transactionViewModel.loadCurrentMonth();
+    _categoryViewModel.loadCategories();
   }
 
   @override
@@ -64,6 +72,7 @@ class _LumaAppState extends State<LumaApp> {
     _authViewModel.dispose();
     _accountViewModel.dispose();
     _transactionViewModel.dispose();
+    _categoryViewModel.dispose();
     super.dispose();
   }
 
@@ -81,6 +90,7 @@ class _LumaAppState extends State<LumaApp> {
                   authViewModel: _authViewModel,
                   accountViewModel: _accountViewModel,
                   transactionViewModel: _transactionViewModel,
+                  categoryViewModel: _categoryViewModel,
                 )
               : LoginScreen(viewModel: _authViewModel);
         },

@@ -9,4 +9,24 @@ class TransactionRepository {
   Future<List<TransactionEntry>> getForMonth(DateTime month) {
     return _service.fetchForMonth(month);
   }
+
+  Future<void> create({
+    required String userId,
+    required String accountId,
+    required String categoryId,
+    required String type,
+    required double amount,
+    String? description,
+    required DateTime date,
+  }) {
+    return _service.createTransaction(
+      userId: userId,
+      accountId: accountId,
+      categoryId: categoryId,
+      type: type,
+      amount: amount,
+      description: description,
+      date: date,
+    );
+  }
 }

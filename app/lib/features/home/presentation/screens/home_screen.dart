@@ -6,27 +6,49 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
+import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../transactions/data/models/transaction_entry.dart';
+import '../../../transactions/presentation/screens/add_transaction_screen.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 
 class HomeScreen extends StatelessWidget {
   final AuthViewModel authViewModel;
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
+  final CategoryViewModel categoryViewModel;
 
   const HomeScreen({
     super.key,
     required this.authViewModel,
     required this.accountViewModel,
     required this.transactionViewModel,
+    required this.categoryViewModel,
   });
+
+  void _openAddTransaction(BuildContext context, String type) {
+    final userId = authViewModel.userId;
+    if (userId == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AddTransactionScreen(
+          type: type,
+          userId: userId,
+          accountViewModel: accountViewModel,
+          categoryViewModel: categoryViewModel,
+          transactionViewModel: transactionViewModel,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: Listenable.merge([accountViewModel, transactionViewModel]),
+          listenable:
+              Listenable.merge([accountViewModel, transactionViewModel]),
           builder: (context, _) {
             return ListView(
               padding: const EdgeInsets.all(20),
@@ -39,7 +61,10 @@ class HomeScreen extends StatelessWidget {
                   currency: accountViewModel.primaryCurrency,
                 ),
                 const SizedBox(height: 20),
-                const _QuickActions(),
+                _QuickActions(
+                  onAddIncome: () => _openAddTransaction(context, 'income'),
+                  onAddExpense: () => _openAddTransaction(context, 'expense'),
+                ),
                 const SizedBox(height: 24),
                 _SectionCard(
                   title: 'Gastos por categoría',
@@ -95,10 +120,9 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        // TODO: sin acción todavía.
-        IconButton(
+        const IconButton(
           onPressed: null,
-          icon: const Icon(Icons.notifications_none_rounded),
+          icon: Icon(Icons.notifications_none_rounded),
           color: AppColors.text,
         ),
       ],
@@ -133,9 +157,9 @@ class _BalanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
                 'Saldo total',
                 style: TextStyle(color: Colors.white70, fontSize: 14),
@@ -162,10 +186,8 @@ class _BalanceCard extends StatelessWidget {
                   ),
                 ),
           const SizedBox(height: 8),
-          // TODO: la variación vs. mes anterior sigue mock — falta comparar
-          // el total de este mes contra el del mes previo.
-          Row(
-            children: const [
+          const Row(
+            children: [
               Icon(Icons.trending_up_rounded,
                   color: Colors.greenAccent, size: 18),
               SizedBox(width: 4),
@@ -190,15 +212,21 @@ class _BalanceCard extends StatelessWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions();
+  final VoidCallback onAddIncome;
+  final VoidCallback onAddExpense;
+
+  const _QuickActions({
+    required this.onAddIncome,
+    required this.onAddExpense,
+  });
 
   @override
   Widget build(BuildContext context) {
     final actions = [
-      (Icons.add_rounded, 'Añadir\ningreso', AppColors.primary),
-      (Icons.remove_rounded, 'Añadir\ngasto', AppColors.error),
-      (Icons.bar_chart_rounded, 'Ver\nestadísticas', AppColors.primary),
-      (Icons.credit_card_rounded, 'Categorías', AppColors.primary),
+      (Icons.add_rounded, 'Añadir\ningreso', AppColors.primary, onAddIncome),
+      (Icons.remove_rounded, 'Añadir\ngasto', AppColors.error, onAddExpense),
+      (Icons.bar_chart_rounded, 'Ver\nestadísticas', AppColors.primary, null),
+      (Icons.credit_card_rounded, 'Categorías', AppColors.primary, null),
     ];
 
     return Row(
@@ -211,6 +239,7 @@ class _QuickActions extends StatelessWidget {
                   icon: a.$1,
                   label: a.$2,
                   color: a.$3,
+                  onTap: a.$4,
                 ),
               ),
             ),
@@ -224,11 +253,13 @@ class _QuickActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
+  final VoidCallback? onTap;
 
   const _QuickActionButton({
     required this.icon,
     required this.label,
     required this.color,
+    required this.onTap,
   });
 
   @override
@@ -237,8 +268,7 @@ class _QuickActionButton extends StatelessWidget {
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        // TODO: sin acción todavía.
-        onTap: null,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -296,11 +326,10 @@ class _SectionCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              // TODO: sin acción todavía.
-              TextButton(
+              const TextButton(
                 onPressed: null,
                 child: Row(
-                  children: const [
+                  children: [
                     Text('Ver todos'),
                     Icon(Icons.chevron_right_rounded, size: 18),
                   ],

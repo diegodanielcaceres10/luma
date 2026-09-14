@@ -20,10 +20,12 @@ class TransactionViewModel extends ChangeNotifier {
   TransactionViewModel(this._repository);
 
   bool _isLoading = false;
+  bool _isSubmitting = false;
   String? _errorMessage;
   List<TransactionEntry> _transactions = [];
 
   bool get isLoading => _isLoading;
+  bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
 
   List<TransactionEntry> get recentMovements => _transactions.take(4).toList();
@@ -67,6 +69,43 @@ class TransactionViewModel extends ChangeNotifier {
       _errorMessage = 'No se pudieron cargar los movimientos.';
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Devuelve true si se creó correctamente. En ese caso ya deja
+  /// _transactions actualizado con el mes actual recargado.
+  Future<bool> createTransaction({
+    required String userId,
+    required String accountId,
+    required String categoryId,
+    required String type,
+    required double amount,
+    String? description,
+    required DateTime date,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.create(
+        userId: userId,
+        accountId: accountId,
+        categoryId: categoryId,
+        type: type,
+        amount: amount,
+        description: description,
+        date: date,
+      );
+      await loadCurrentMonth();
+      return true;
+    } catch (error) {
+      _errorMessage = 'No se pudo guardar la transacción.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSubmitting = false;
       notifyListeners();
     }
   }

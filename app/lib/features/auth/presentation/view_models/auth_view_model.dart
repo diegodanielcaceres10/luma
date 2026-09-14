@@ -22,6 +22,8 @@ class AuthViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _isAuthenticated;
 
+  String? get userId => _repository.currentUser?.id;
+
   String get displayName {
     final user = _repository.currentUser;
     final metadata = user?.userMetadata;
