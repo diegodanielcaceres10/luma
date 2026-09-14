@@ -35,15 +35,15 @@ class GoogleSignInButton extends StatelessWidget {
                   color: Color(0xFF1F1F1F),
                 ),
               )
-            : Row(
+            : const Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const _GoogleMark(size: 20),
-                  const SizedBox(width: 12),
+                  _GoogleMark(size: 20),
+                  SizedBox(width: 12),
                   Text(
                     'Continuar con Google',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1F1F1F),
@@ -78,7 +78,8 @@ class _GoogleMarkPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
     final strokeWidth = radius * 0.42;
-    final rect = Rect.fromCircle(radius: radius - strokeWidth / 2, center: center);
+    final rect =
+        Rect.fromCircle(radius: radius - strokeWidth / 2, center: center);
 
     final paint = Paint()
       ..style = PaintingStyle.stroke

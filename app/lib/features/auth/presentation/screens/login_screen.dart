@@ -23,9 +23,9 @@ class LoginScreen extends StatelessWidget {
           body: Stack(
             children: [
               // Background gradient.
-              Positioned.fill(
+              const Positioned.fill(
                 child: DecoratedBox(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -91,7 +91,7 @@ class LoginScreen extends StatelessWidget {
                             ),
                           ],
                           const Spacer(flex: 5),
-                          Text(
+                          const Text(
                             'Desarrollado por Diego Caceres\nv1.0.0',
                             style: AppTextStyles.authFooter,
                             textAlign: TextAlign.center,

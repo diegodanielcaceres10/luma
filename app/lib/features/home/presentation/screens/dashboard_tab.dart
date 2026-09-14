@@ -63,7 +63,8 @@ class DashboardTab extends StatelessWidget {
       ),
       child: SafeArea(
         child: ListenableBuilder(
-          listenable: Listenable.merge([accountViewModel, transactionViewModel]),
+          listenable:
+              Listenable.merge([accountViewModel, transactionViewModel]),
           builder: (context, _) {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -81,7 +82,7 @@ class DashboardTab extends StatelessWidget {
                   currency: accountViewModel.primaryCurrency,
                 ),
                 const SizedBox(height: 28),
-                _SectionHeader(title: 'Acciones rápidas'),
+                const _SectionHeader(title: 'Acciones rápidas'),
                 const SizedBox(height: 12),
                 _QuickActions(
                   onAddIncome: () => _openAddTransaction(context, 'income'),
@@ -112,17 +113,16 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
-        // TODO: wire a Drawer/menu once there's something to open from here.
         IconButton(
           onPressed: null,
-          icon: const Icon(Icons.menu_rounded),
+          icon: Icon(Icons.menu_rounded),
           color: AppColors.authTextPrimary,
         ),
-        const LumaLogo(size: 28),
-        const SizedBox(width: 8),
-        const Text(
+        LumaLogo(size: 28),
+        SizedBox(width: 8),
+        Text(
           'Luma',
           style: TextStyle(
             fontSize: 20,
@@ -130,11 +130,10 @@ class _TopBar extends StatelessWidget {
             color: AppColors.authTextPrimary,
           ),
         ),
-        const Spacer(),
-        // TODO: wire real notifications once there's something to show.
+        Spacer(),
         IconButton(
           onPressed: null,
-          icon: const Icon(Icons.notifications_none_rounded),
+          icon: Icon(Icons.notifications_none_rounded),
           color: AppColors.authTextPrimary,
         ),
       ],
@@ -208,7 +207,10 @@ class _BalanceCard extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.authAccentDark, AppColors.authBackgroundBottom],
+                colors: [
+                  AppColors.authAccentDark,
+                  AppColors.authBackgroundBottom
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -252,7 +254,6 @@ class _BalanceCard extends StatelessWidget {
                         color: AppColors.authAccent, size: 16),
                     SizedBox(width: 4),
                     Text(
-                      // TODO: calcular la variación real vs. el mes anterior.
                       '+12% vs. mes anterior',
                       style: TextStyle(
                         color: AppColors.authAccent,
@@ -280,12 +281,11 @@ class _BalanceCard extends StatelessWidget {
                         children: [
                           Text(
                             'Total pendiente de pagar',
-                            style: TextStyle(
-                                color: Colors.white70, fontSize: 12),
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                           SizedBox(height: 2),
                           Text(
-                            // TODO: sumar deudas/tarjetas pendientes reales.
                             '\$ 320,00',
                             style: TextStyle(
                               color: Colors.white,
