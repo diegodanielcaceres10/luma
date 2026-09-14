@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/widgets/luma_logo.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
@@ -9,6 +10,14 @@ import '../../../transactions/presentation/screens/movements_tab.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import '../widgets/placeholder_tab.dart';
 import 'dashboard_tab.dart';
+
+/// Accesos compartidos entre el bottom nav y el drawer del menú hamburguesa.
+const _navItems = [
+  (Icons.home_rounded, 'Inicio'),
+  (Icons.trending_up_rounded, 'Movimientos'),
+  (Icons.bar_chart_rounded, 'Estadísticas'),
+  (Icons.person_outline_rounded, 'Perfil'),
+];
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -63,6 +72,7 @@ class _HomeShellState extends State<HomeShell> {
     ];
 
     return Scaffold(
+      drawer: _AppDrawer(currentIndex: _index, onSelect: _onTabTap),
       body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: _BottomNav(
         currentIndex: _index,
@@ -78,13 +88,6 @@ class _BottomNav extends StatelessWidget {
 
   const _BottomNav({required this.currentIndex, required this.onTap});
 
-  static const _items = [
-    (Icons.home_rounded, 'Inicio'),
-    (Icons.trending_up_rounded, 'Movimientos'),
-    (Icons.bar_chart_rounded, 'Estadísticas'),
-    (Icons.person_outline_rounded, 'Perfil'),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
@@ -98,8 +101,8 @@ class _BottomNav extends StatelessWidget {
           height: 64,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(_items.length, (i) {
-              final item = _items[i];
+            children: List.generate(_navItems.length, (i) {
+              final item = _navItems[i];
               final isSelected = i == currentIndex;
               final color = isSelected
                   ? AppColors.authAccent
@@ -137,6 +140,76 @@ class _BottomNav extends StatelessWidget {
               );
             }),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AppDrawer extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onSelect;
+
+  const _AppDrawer({required this.currentIndex, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: AppColors.authBackgroundBottom,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Row(
+                children: [
+                  LumaLogo(size: 28),
+                  SizedBox(width: 8),
+                  Text(
+                    'Luma',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.authTextPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.authCardBorder),
+            const SizedBox(height: 8),
+            ...List.generate(_navItems.length, (i) {
+              final item = _navItems[i];
+              final isSelected = i == currentIndex;
+              final color = isSelected
+                  ? AppColors.authAccent
+                  : AppColors.authTextSecondary;
+
+              return ListTile(
+                leading: Icon(item.$1, color: color),
+                title: Text(
+                  item.$2,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight:
+                        isSelected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+                selected: isSelected,
+                selectedTileColor: AppColors.authCardFill,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  onSelect(i);
+                },
+              );
+            }),
+          ],
         ),
       ),
     );

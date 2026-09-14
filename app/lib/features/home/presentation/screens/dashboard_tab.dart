@@ -113,16 +113,17 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
+        // Abre el drawer del Scaffold del HomeShell (ancestro de este tab).
         IconButton(
-          onPressed: null,
-          icon: Icon(Icons.menu_rounded),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+          icon: const Icon(Icons.menu_rounded),
           color: AppColors.authTextPrimary,
         ),
-        LumaLogo(size: 28),
-        SizedBox(width: 8),
-        Text(
+        const LumaLogo(size: 28),
+        const SizedBox(width: 8),
+        const Text(
           'Luma',
           style: TextStyle(
             fontSize: 20,
@@ -130,8 +131,8 @@ class _TopBar extends StatelessWidget {
             color: AppColors.authTextPrimary,
           ),
         ),
-        Spacer(),
-        IconButton(
+        const Spacer(),
+        const IconButton(
           onPressed: null,
           icon: Icon(Icons.notifications_none_rounded),
           color: AppColors.authTextPrimary,
@@ -254,6 +255,7 @@ class _BalanceCard extends StatelessWidget {
                         color: AppColors.authAccent, size: 16),
                     SizedBox(width: 4),
                     Text(
+                      //
                       '+12% vs. mes anterior',
                       style: TextStyle(
                         color: AppColors.authAccent,
