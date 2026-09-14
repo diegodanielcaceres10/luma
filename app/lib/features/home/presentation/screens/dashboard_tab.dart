@@ -12,13 +12,15 @@ import '../../../transactions/data/models/transaction_entry.dart';
 import '../../../transactions/presentation/screens/add_transaction_screen.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 
-class HomeScreen extends StatelessWidget {
+/// Contenido de la pestaña "Inicio". No tiene Scaffold propio — vive dentro
+/// del Scaffold del HomeShell, que es quien pone el bottomNavigationBar.
+class DashboardTab extends StatelessWidget {
   final AuthViewModel authViewModel;
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
   final CategoryViewModel categoryViewModel;
 
-  const HomeScreen({
+  const DashboardTab({
     super.key,
     required this.authViewModel,
     required this.accountViewModel,
@@ -45,50 +47,47 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: ListenableBuilder(
-          listenable: Listenable.merge([accountViewModel, transactionViewModel]),
-          builder: (context, _) {
-            return ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _Header(name: authViewModel.displayName),
-                const SizedBox(height: 20),
-                _BalanceCard(
-                  isLoading: accountViewModel.isLoading,
-                  total: accountViewModel.totalBalance,
+    return SafeArea(
+      child: ListenableBuilder(
+        listenable: Listenable.merge([accountViewModel, transactionViewModel]),
+        builder: (context, _) {
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              _Header(name: authViewModel.displayName),
+              const SizedBox(height: 20),
+              _BalanceCard(
+                isLoading: accountViewModel.isLoading,
+                total: accountViewModel.totalBalance,
+                currency: accountViewModel.primaryCurrency,
+              ),
+              const SizedBox(height: 20),
+              _QuickActions(
+                onAddIncome: () => _openAddTransaction(context, 'income'),
+                onAddExpense: () => _openAddTransaction(context, 'expense'),
+              ),
+              const SizedBox(height: 24),
+              _SectionCard(
+                title: 'Gastos por categoría',
+                child: _CategoryBreakdown(
+                  isLoading: transactionViewModel.isLoading,
+                  breakdown: transactionViewModel.categoryBreakdown,
                   currency: accountViewModel.primaryCurrency,
                 ),
-                const SizedBox(height: 20),
-                _QuickActions(
-                  onAddIncome: () => _openAddTransaction(context, 'income'),
-                  onAddExpense: () => _openAddTransaction(context, 'expense'),
+              ),
+              const SizedBox(height: 24),
+              _SectionCard(
+                title: 'Últimos movimientos',
+                child: _RecentMovements(
+                  isLoading: transactionViewModel.isLoading,
+                  movements: transactionViewModel.recentMovements,
+                  currency: accountViewModel.primaryCurrency,
                 ),
-                const SizedBox(height: 24),
-                _SectionCard(
-                  title: 'Gastos por categoría',
-                  child: _CategoryBreakdown(
-                    isLoading: transactionViewModel.isLoading,
-                    breakdown: transactionViewModel.categoryBreakdown,
-                    currency: accountViewModel.primaryCurrency,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _SectionCard(
-                  title: 'Últimos movimientos',
-                  child: _RecentMovements(
-                    isLoading: transactionViewModel.isLoading,
-                    movements: transactionViewModel.recentMovements,
-                    currency: accountViewModel.primaryCurrency,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
+              ),
+            ],
+          );
+        },
       ),
-      bottomNavigationBar: const _BottomNav(),
     );
   }
 }
@@ -120,10 +119,9 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        // TODO: sin acción todavía.
-        IconButton(
+        const IconButton(
           onPressed: null,
-          icon: const Icon(Icons.notifications_none_rounded),
+          icon: Icon(Icons.notifications_none_rounded),
           color: AppColors.text,
         ),
       ],
@@ -158,9 +156,9 @@ class _BalanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
                 'Saldo total',
                 style: TextStyle(color: Colors.white70, fontSize: 14),
@@ -187,10 +185,8 @@ class _BalanceCard extends StatelessWidget {
                   ),
                 ),
           const SizedBox(height: 8),
-          // TODO: la variación vs. mes anterior sigue mock — falta comparar
-          // el total de este mes contra el del mes previo.
-          Row(
-            children: const [
+          const Row(
+            children: [
               Icon(Icons.trending_up_rounded,
                   color: Colors.greenAccent, size: 18),
               SizedBox(width: 4),
@@ -228,9 +224,7 @@ class _QuickActions extends StatelessWidget {
     final actions = [
       (Icons.add_rounded, 'Añadir\ningreso', AppColors.primary, onAddIncome),
       (Icons.remove_rounded, 'Añadir\ngasto', AppColors.error, onAddExpense),
-      // TODO: sin acción todavía.
       (Icons.bar_chart_rounded, 'Ver\nestadísticas', AppColors.primary, null),
-      // TODO: sin acción todavía.
       (Icons.credit_card_rounded, 'Categorías', AppColors.primary, null),
     ];
 
@@ -331,11 +325,10 @@ class _SectionCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              // TODO: sin acción todavía.
-              TextButton(
+              const TextButton(
                 onPressed: null,
                 child: Row(
-                  children: const [
+                  children: [
                     Text('Ver todos'),
                     Icon(Icons.chevron_right_rounded, size: 18),
                   ],
@@ -505,51 +498,6 @@ class _RecentMovements extends StatelessWidget {
           ),
         );
       }).toList(),
-    );
-  }
-}
-
-class _BottomNav extends StatelessWidget {
-  const _BottomNav();
-
-  @override
-  Widget build(BuildContext context) {
-    final items = [
-      (Icons.home_rounded, 'Inicio'),
-      (Icons.history_rounded, 'Movimientos'),
-      (Icons.bar_chart_rounded, 'Estadísticas'),
-      (Icons.person_outline_rounded, 'Perfil'),
-    ];
-
-    return BottomAppBar(
-      color: AppColors.surface,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: items
-            .map(
-              (item) => Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    item.$1,
-                    color: item.$1 == Icons.home_rounded
-                        ? AppColors.primary
-                        : AppColors.textMuted,
-                  ),
-                  Text(
-                    item.$2,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: item.$1 == Icons.home_rounded
-                          ? AppColors.primary
-                          : AppColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            )
-            .toList(),
-      ),
     );
   }
 }

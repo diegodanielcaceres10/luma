@@ -11,7 +11,7 @@ import '../features/auth/presentation/view_models/auth_view_model.dart';
 import '../features/categories/data/repositories/category_repository.dart';
 import '../features/categories/data/services/category_service.dart';
 import '../features/categories/presentation/view_models/category_view_model.dart';
-import '../features/home/presentation/screens/home_screen.dart';
+import '../features/home/presentation/screens/home_shell.dart';
 import '../features/transactions/data/repositories/transaction_repository.dart';
 import '../features/transactions/data/services/transaction_service.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
@@ -86,7 +86,7 @@ class _LumaAppState extends State<LumaApp> {
         listenable: _authViewModel,
         builder: (context, _) {
           return _authViewModel.isAuthenticated
-              ? HomeScreen(
+              ? HomeShell(
                   authViewModel: _authViewModel,
                   accountViewModel: _accountViewModel,
                   transactionViewModel: _transactionViewModel,
