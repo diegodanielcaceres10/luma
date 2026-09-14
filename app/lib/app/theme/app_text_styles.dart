@@ -21,4 +21,26 @@ abstract final class AppTextStyles {
     fontSize: 14,
     color: AppColors.text,
   );
+
+  // Auth screens (dark background).
+  static const authTitle = TextStyle(
+    fontSize: 34,
+    fontWeight: FontWeight.w600,
+    color: AppColors.authTextPrimary,
+    letterSpacing: -0.5,
+  );
+
+  static const authSubtitle = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w400,
+    color: AppColors.authTextSecondary,
+    height: 1.5,
+  );
+
+  static const authFooter = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: AppColors.authTextFooter,
+    height: 1.6,
+  );
 }
