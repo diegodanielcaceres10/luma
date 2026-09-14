@@ -26,4 +26,8 @@ abstract final class AppColors {
   static const authTextPrimary = Color(0xFFFFFFFF);
   static const authTextSecondary = Color(0xFFAFC2B8);
   static const authTextFooter = Color(0xFF6C7F76);
+
+  static const authCardFill = Color(0x14FFFFFF); // white @ 8%
+  static const authCardBorder = Color(0x1FFFFFFF); // white @ 12%
+  static const authIconBg = Color(0x1FFFFFFF); // white @ 12%
 }

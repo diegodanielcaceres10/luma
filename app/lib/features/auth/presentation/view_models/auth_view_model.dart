@@ -24,6 +24,8 @@ class AuthViewModel extends ChangeNotifier {
 
   String? get userId => _repository.currentUser?.id;
 
+  String? get email => _repository.currentUser?.email;
+
   String get displayName {
     final user = _repository.currentUser;
     final metadata = user?.userMetadata;
