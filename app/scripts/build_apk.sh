@@ -1,6 +1,6 @@
 #!/bin/sh
 # Compila el APK en modo debug (release lo genera GitHub) y lo deja en
-# app/dist/ (fuera de git) con nombre app-debug-<timestamp>.apk.
+# app/dist/ (fuera de git) con nombre luma-app-debug-<timestamp>.apk.
 #
 # Uso:
 #   ./scripts/build_apk.sh           # compila y lo deja en dist/
@@ -24,7 +24,7 @@ DIST_DIR="dist"
 mkdir -p "$DIST_DIR"
 
 TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-DEST_APK="$DIST_DIR/app-debug-$TIMESTAMP.apk"
+DEST_APK="$DIST_DIR/luma-app-debug-$TIMESTAMP.apk"
 
 mv "$SRC_APK" "$DEST_APK"
 

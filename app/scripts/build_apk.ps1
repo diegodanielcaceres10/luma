@@ -1,5 +1,5 @@
 # Compila el APK en modo debug (release lo genera GitHub) y lo deja en
-# app/dist/ (fuera de git) con nombre app-debug-<timestamp>.apk.
+# app/dist/ (fuera de git) con nombre luma-app-debug-<timestamp>.apk.
 #
 # Uso:
 #   .\scripts\build_apk.ps1              # compila e instala en dist/
@@ -32,7 +32,7 @@ $DistDir = "dist"
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 
 $Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$DestApk = "$DistDir\app-debug-$Timestamp.apk"
+$DestApk = "$DistDir\luma-app-debug-$Timestamp.apk"
 
 Move-Item -Force $SrcApk $DestApk
 
