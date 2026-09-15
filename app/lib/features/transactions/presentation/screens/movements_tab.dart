@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../data/models/transaction_entry.dart';
@@ -33,60 +32,64 @@ class MovementsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: ListenableBuilder(
-        listenable: transactionViewModel,
-        builder: (context, _) {
-          final vm = transactionViewModel;
+    return ListenableBuilder(
+      listenable: transactionViewModel,
+      builder: (context, _) {
+        final vm = transactionViewModel;
 
-          if (vm.isLoadingAll && vm.allTransactions.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
+        if (vm.isLoadingAll && vm.allTransactions.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.authAccent),
+          );
+        }
 
-          if (vm.allTransactions.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: vm.loadAllTransactions,
-              child: ListView(
-                children: const [
-                  SizedBox(height: 120),
-                  Center(
-                    child: Text(
-                      'Todavía no hay movimientos.',
-                      style: AppTextStyles.subtitle,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final grouped = _groupByMonth(vm.allTransactions);
-
+        if (vm.allTransactions.isEmpty) {
           return RefreshIndicator(
+            color: AppColors.authAccent,
+            backgroundColor: AppColors.authBackgroundBottom,
             onRefresh: vm.loadAllTransactions,
             child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                const Text('Movimientos', style: AppTextStyles.title),
-                const SizedBox(height: 20),
-                for (final entry in grouped.entries) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8, top: 8),
-                    child: Text(
-                      _capitalize(entry.key),
-                      style: AppTextStyles.body.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textMuted,
-                      ),
+              children: const [
+                SizedBox(height: 120),
+                Center(
+                  child: Text(
+                    'Todavía no hay movimientos.',
+                    style: TextStyle(color: AppColors.authTextSecondary),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final grouped = _groupByMonth(vm.allTransactions);
+
+        return RefreshIndicator(
+          color: AppColors.authAccent,
+          backgroundColor: AppColors.authBackgroundBottom,
+          onRefresh: vm.loadAllTransactions,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: [
+              for (final entry in grouped.entries) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8, top: 8),
+                  child: Text(
+                    _capitalize(entry.key),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: AppColors.authTextSecondary,
                     ),
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border),
-                    ),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.authCardFill,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.authCardBorder),
+                  ),
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       children: entry.value
@@ -97,13 +100,13 @@ class MovementsTab extends StatelessWidget {
                           .toList(),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                ],
+                ),
+                const SizedBox(height: 20),
               ],
-            ),
-          );
-        },
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -119,24 +122,24 @@ class _MovementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('d MMM. yyyy', 'es');
+    final dateFormat = DateFormat('d MMM yyyy', 'es');
     final color = movement.isIncome
-        ? AppColors.success
-        : colorFromHex(movement.category.color, fallback: AppColors.primary);
+        ? AppColors.authIncome
+        : colorFromHex(movement.category.color, fallback: AppColors.authExpense);
     final sign = movement.isIncome ? '+' : '-';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: color.withOpacity(0.15),
+            backgroundColor: color.withOpacity(0.85),
             child: Icon(
               movement.isIncome
                   ? Icons.arrow_downward_rounded
                   : iconFromName(movement.category.icon),
-              color: color,
+              color: Colors.white,
               size: 18,
             ),
           ),
@@ -149,21 +152,43 @@ class _MovementRow extends StatelessWidget {
                   movement.description?.isNotEmpty == true
                       ? movement.description!
                       : movement.category.name,
-                  style: AppTextStyles.body,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.authTextPrimary,
+                  ),
                 ),
                 Text(
-                  '${movement.category.name} · ${dateFormat.format(movement.date)}',
-                  style: AppTextStyles.subtitle.copyWith(fontSize: 12),
+                  dateFormat.format(movement.date),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.authTextSecondary,
+                  ),
                 ),
               ],
             ),
           ),
-          Text(
-            '$sign${formatCurrency(movement.amount, currency)}',
-            style: AppTextStyles.body.copyWith(
-              color: movement.isIncome ? AppColors.success : AppColors.error,
-              fontWeight: FontWeight.w600,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$sign${formatCurrency(movement.amount, currency)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: movement.isIncome
+                      ? AppColors.authIncome
+                      : AppColors.authExpense,
+                ),
+              ),
+              Text(
+                movement.isIncome ? 'Ingreso' : movement.category.name,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.authTextSecondary,
+                ),
+              ),
+            ],
           ),
         ],
       ),

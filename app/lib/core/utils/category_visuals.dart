@@ -9,27 +9,57 @@ Color colorFromHex(String? hex, {Color fallback = Colors.grey}) {
   return value != null ? Color(value) : fallback;
 }
 
-/// Mapea el nombre de icono guardado en `categories.icon` a un IconData.
-/// AJUSTAR según la convención que uses al sembrar categorías
-/// (por ahora asume nombres simples en inglés: 'home', 'food', etc.).
-IconData iconFromName(String? name) {
-  switch (name) {
-    case 'home':
-    case 'housing':
-      return Icons.home_rounded;
-    case 'food':
-    case 'restaurant':
-      return Icons.restaurant_rounded;
-    case 'car':
-    case 'transport':
-      return Icons.directions_car_rounded;
-    case 'entertainment':
-    case 'games':
-      return Icons.sports_esports_rounded;
-    case 'salary':
-    case 'income':
-      return Icons.arrow_downward_rounded;
-    default:
-      return Icons.more_horiz_rounded;
-  }
+/// Convierte un Color de vuelta a hex ('#4F46E5'), para guardar en la DB.
+String colorToHex(Color color) {
+  return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
 }
+
+/// Catálogo fijo de íconos disponibles para categorías. Es la fuente única
+/// de verdad tanto para el picker del formulario como para el mapeo de
+/// `categories.icon` -> IconData. Si agregas una entrada acá, aparece
+/// automáticamente en el selector.
+const Map<String, IconData> kCategoryIcons = {
+  'home': Icons.home_rounded,
+  'food': Icons.restaurant_rounded,
+  'car': Icons.directions_car_rounded,
+  'entertainment': Icons.sports_esports_rounded,
+  'salary': Icons.arrow_downward_rounded,
+  'shopping': Icons.shopping_bag_rounded,
+  'health': Icons.local_hospital_rounded,
+  'education': Icons.school_rounded,
+  'travel': Icons.flight_rounded,
+  'gift': Icons.card_giftcard_rounded,
+  'phone': Icons.phone_iphone_rounded,
+  'other': Icons.more_horiz_rounded,
+};
+
+/// Alias antiguos que pueden existir ya guardados en la DB, mapeados a una
+/// entrada de [kCategoryIcons].
+const Map<String, String> _iconAliases = {
+  'housing': 'home',
+  'restaurant': 'food',
+  'transport': 'car',
+  'games': 'entertainment',
+  'income': 'salary',
+};
+
+/// Mapea el nombre de icono guardado en `categories.icon` a un IconData.
+IconData iconFromName(String? name) {
+  if (name == null) return kCategoryIcons['other']!;
+  final resolved = _iconAliases[name] ?? name;
+  return kCategoryIcons[resolved] ?? kCategoryIcons['other']!;
+}
+
+/// Paleta fija de colores para el picker de categorías. Elegidos para verse
+/// bien tanto sobre fondo oscuro (chips propios) como en textos/íconos
+/// sobre las cards con fondo authCardFill.
+const List<String> kCategoryColors = [
+  '#4CBB7A', // authAccent (verde marca)
+  '#4F46E5', // indigo
+  '#0EA5E9', // sky
+  '#8B5CF6', // violeta
+  '#EC4899', // rosa
+  '#F59E0B', // ámbar
+  '#EF6F5B', // authExpense (coral)
+  '#94A3B8', // gris neutro
+];

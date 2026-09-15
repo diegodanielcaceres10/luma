@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/data/models/category.dart';
@@ -41,6 +40,28 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   DateTime _selectedDate = DateTime.now();
 
   bool get _isIncome => widget.type == 'income';
+  Color get _accentColor =>
+      _isIncome ? AppColors.authIncome : AppColors.authExpense;
+
+  static const _labelStyle = TextStyle(color: AppColors.authTextSecondary);
+
+  static const _fieldDecoration = InputDecoration(
+    filled: true,
+    fillColor: AppColors.authCardFill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authCardBorder),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authCardBorder),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authAccent),
+    ),
+    hintStyle: TextStyle(color: AppColors.authTextFooter),
+  );
 
   @override
   void dispose() {
@@ -55,6 +76,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.authAccent,
+            onPrimary: AppColors.authBackgroundBottom,
+            surface: AppColors.authBackgroundBottom,
+            onSurface: AppColors.authTextPrimary,
+          ),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
@@ -104,151 +136,172 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     _selectedAccount ??= accounts.isNotEmpty ? accounts.first : null;
 
     return Scaffold(
+      backgroundColor: AppColors.authBackgroundBottom,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.authBackgroundBottom,
         elevation: 0,
         title: Text(
           _isIncome ? 'Añadir ingreso' : 'Añadir gasto',
-          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            color: AppColors.authTextPrimary,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        iconTheme: const IconThemeData(color: AppColors.text),
+        iconTheme: const IconThemeData(color: AppColors.authTextPrimary),
       ),
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              const Text('Monto', style: AppTextStyles.subtitle),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _amountController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  hintText: '0.00',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Ingresa un monto';
-                  }
-                  final parsed = double.tryParse(value.replaceAll(',', '.'));
-                  if (parsed == null || parsed <= 0) {
-                    return 'Monto inválido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              const Text('Categoría', style: AppTextStyles.subtitle),
-              const SizedBox(height: 8),
-              if (widget.categoryViewModel.isLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (categories.isEmpty)
-                Text(
-                  _isIncome
-                      ? 'No hay categorías de ingreso todavía.'
-                      : 'No hay categorías de gasto todavía.',
-                  style: AppTextStyles.body.copyWith(color: AppColors.error),
-                )
-              else
-                DropdownButtonFormField<Category>(
-                  value: _selectedCategory,
-                  decoration:
-                      const InputDecoration(border: OutlineInputBorder()),
-                  items: categories
-                      .map((c) =>
-                          DropdownMenuItem(value: c, child: Text(c.name)))
-                      .toList(),
-                  onChanged: (value) =>
-                      setState(() => _selectedCategory = value),
-                ),
-              const SizedBox(height: 20),
-              const Text('Cuenta', style: AppTextStyles.subtitle),
-              const SizedBox(height: 8),
-              if (widget.accountViewModel.isLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (accounts.isEmpty)
-                Text(
-                  'No hay cuentas todavía.',
-                  style: AppTextStyles.body.copyWith(color: AppColors.error),
-                )
-              else
-                DropdownButtonFormField<Account>(
-                  value: _selectedAccount,
-                  decoration:
-                      const InputDecoration(border: OutlineInputBorder()),
-                  items: accounts
-                      .map((a) => DropdownMenuItem(
-                            value: a,
-                            child: Text('${a.name} (${a.currency})'),
-                          ))
-                      .toList(),
-                  onChanged: (value) =>
-                      setState(() => _selectedAccount = value),
-                ),
-              const SizedBox(height: 20),
-              const Text('Descripción (opcional)',
-                  style: AppTextStyles.subtitle),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  hintText: 'Ej: Mercadona',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text('Fecha', style: AppTextStyles.subtitle),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: _pickDate,
-                child: InputDecorator(
-                  decoration:
-                      const InputDecoration(border: OutlineInputBorder()),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${_selectedDate.day.toString().padLeft(2, '0')}/'
-                        '${_selectedDate.month.toString().padLeft(2, '0')}/'
-                        '${_selectedDate.year}',
-                        style: AppTextStyles.body,
-                      ),
-                      const Icon(Icons.calendar_today_rounded, size: 18),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor:
-                        _isIncome ? AppColors.success : AppColors.error,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  onPressed: widget.transactionViewModel.isSubmitting ||
-                          categories.isEmpty ||
-                          accounts.isEmpty
-                      ? null
-                      : _submit,
-                  child: widget.transactionViewModel.isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(_isIncome ? 'Guardar ingreso' : 'Guardar gasto'),
-                ),
-              ),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.authBackgroundTop,
+              AppColors.authBackgroundBottom,
             ],
+          ),
+        ),
+        child: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                const Text('Monto', style: _labelStyle),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _amountController,
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: _fieldDecoration.copyWith(hintText: '0.00'),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Ingresa un monto';
+                    }
+                    final parsed = double.tryParse(value.replaceAll(',', '.'));
+                    if (parsed == null || parsed <= 0) {
+                      return 'Monto inválido';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                const Text('Categoría', style: _labelStyle),
+                const SizedBox(height: 8),
+                if (widget.categoryViewModel.isLoading)
+                  const Center(
+                    child:
+                        CircularProgressIndicator(color: AppColors.authAccent),
+                  )
+                else if (categories.isEmpty)
+                  Text(
+                    _isIncome
+                        ? 'No hay categorías de ingreso todavía.'
+                        : 'No hay categorías de gasto todavía.',
+                    style: const TextStyle(color: AppColors.authExpense),
+                  )
+                else
+                  DropdownButtonFormField<Category>(
+                    value: _selectedCategory,
+                    dropdownColor: AppColors.authBackgroundBottom,
+                    style: const TextStyle(color: AppColors.authTextPrimary),
+                    decoration: _fieldDecoration,
+                    items: categories
+                        .map((c) =>
+                            DropdownMenuItem(value: c, child: Text(c.name)))
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedCategory = value),
+                  ),
+                const SizedBox(height: 20),
+                const Text('Cuenta', style: _labelStyle),
+                const SizedBox(height: 8),
+                if (widget.accountViewModel.isLoading)
+                  const Center(
+                    child:
+                        CircularProgressIndicator(color: AppColors.authAccent),
+                  )
+                else if (accounts.isEmpty)
+                  const Text(
+                    'No hay cuentas todavía.',
+                    style: TextStyle(color: AppColors.authExpense),
+                  )
+                else
+                  DropdownButtonFormField<Account>(
+                    value: _selectedAccount,
+                    dropdownColor: AppColors.authBackgroundBottom,
+                    style: const TextStyle(color: AppColors.authTextPrimary),
+                    decoration: _fieldDecoration,
+                    items: accounts
+                        .map((a) => DropdownMenuItem(
+                              value: a,
+                              child: Text('${a.name} (${a.currency})'),
+                            ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedAccount = value),
+                  ),
+                const SizedBox(height: 20),
+                const Text('Descripción (opcional)', style: _labelStyle),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _descriptionController,
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                  decoration:
+                      _fieldDecoration.copyWith(hintText: 'Ej: Mercadona'),
+                ),
+                const SizedBox(height: 20),
+                const Text('Fecha', style: _labelStyle),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: _pickDate,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InputDecorator(
+                    decoration: _fieldDecoration,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${_selectedDate.day.toString().padLeft(2, '0')}/'
+                          '${_selectedDate.month.toString().padLeft(2, '0')}/'
+                          '${_selectedDate.year}',
+                          style:
+                              const TextStyle(color: AppColors.authTextPrimary),
+                        ),
+                        const Icon(Icons.calendar_today_rounded,
+                            size: 18, color: AppColors.authTextSecondary),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _accentColor,
+                      foregroundColor: AppColors.authBackgroundBottom,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: widget.transactionViewModel.isSubmitting ||
+                            categories.isEmpty ||
+                            accounts.isEmpty
+                        ? null
+                        : _submit,
+                    child: widget.transactionViewModel.isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.authBackgroundBottom,
+                            ),
+                          )
+                        : Text(_isIncome ? 'Guardar ingreso' : 'Guardar gasto'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
