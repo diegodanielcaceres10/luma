@@ -17,4 +17,47 @@ class AccountService {
         .map((row) => Account.fromMap(row as Map<String, dynamic>))
         .toList();
   }
+
+  Future<void> create({
+    required String userId,
+    required String name,
+    required String currency,
+    required double balance,
+    String? color,
+    String? icon,
+  }) async {
+    await _client.from('accounts').insert({
+      'user_id': userId,
+      'name': name,
+      'currency': currency,
+      'balance': balance,
+      'color': color,
+      'icon': icon,
+    });
+  }
+
+  Future<void> update({
+    required String id,
+    required String name,
+    required String currency,
+    String? color,
+    String? icon,
+  }) async {
+    // El balance no se edita a mano desde acá: se mantiene a través de los
+    // movimientos registrados. Si en algún momento hace falta un ajuste
+    // manual de saldo, conviene resolverlo con una transacción de ajuste,
+    // no pisando el valor directamente.
+    await _client.from('accounts').update({
+      'name': name,
+      'currency': currency,
+      'color': color,
+      'icon': icon,
+    }).eq('id', id);
+  }
+
+  /// Borrado suave: desactiva la cuenta en lugar de eliminarla, para no
+  /// perder el historial de transacciones que la referencian.
+  Future<void> deactivate(String id) async {
+    await _client.from('accounts').update({'is_active': false}).eq('id', id);
+  }
 }

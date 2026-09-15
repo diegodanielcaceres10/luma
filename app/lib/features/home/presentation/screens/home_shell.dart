@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
+import '../../../accounts/presentation/screens/accounts_screen.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
@@ -81,6 +82,7 @@ class _HomeShellState extends State<HomeShell> {
         onSelect: _onTabTap,
         userId: widget.authViewModel.userId,
         categoryViewModel: widget.categoryViewModel,
+        accountViewModel: widget.accountViewModel,
       ),
       body: DecoratedBox(
         decoration: const BoxDecoration(
@@ -199,12 +201,14 @@ class _AppDrawer extends StatelessWidget {
   final ValueChanged<int> onSelect;
   final String? userId;
   final CategoryViewModel categoryViewModel;
+  final AccountViewModel accountViewModel;
 
   const _AppDrawer({
     required this.currentIndex,
     required this.onSelect,
     required this.userId,
     required this.categoryViewModel,
+    required this.accountViewModel,
   });
 
   @override
@@ -266,6 +270,35 @@ class _AppDrawer extends StatelessWidget {
             const SizedBox(height: 8),
             const Divider(height: 1, color: AppColors.authCardBorder),
             const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.account_balance_wallet_outlined,
+                  color: AppColors.authTextSecondary),
+              title: const Text(
+                'Cuentas',
+                style: TextStyle(
+                  color: AppColors.authTextSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+              onTap: userId == null
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => AccountsScreen(
+                            userId: userId!,
+                            accountViewModel: accountViewModel,
+                          ),
+                        ),
+                      );
+                    },
+            ),
             ListTile(
               leading: const Icon(Icons.sell_outlined,
                   color: AppColors.authTextSecondary),

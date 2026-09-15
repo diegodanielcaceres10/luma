@@ -8,10 +8,12 @@ class AccountViewModel extends ChangeNotifier {
   AccountViewModel(this._repository);
 
   bool _isLoading = false;
+  bool _isSubmitting = false;
   String? _errorMessage;
   List<Account> _accounts = [];
 
   bool get isLoading => _isLoading;
+  bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
   List<Account> get accounts => _accounts;
 
@@ -32,6 +34,63 @@ class AccountViewModel extends ChangeNotifier {
       _errorMessage = 'No se pudieron cargar las cuentas.';
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> createAccount({
+    required String userId,
+    required String name,
+    required String currency,
+    required double balance,
+    String? color,
+    String? icon,
+  }) async {
+    return _submit(() => _repository.create(
+          userId: userId,
+          name: name,
+          currency: currency,
+          balance: balance,
+          color: color,
+          icon: icon,
+        ));
+  }
+
+  Future<bool> updateAccount({
+    required String id,
+    required String name,
+    required String currency,
+    String? color,
+    String? icon,
+  }) async {
+    return _submit(() => _repository.update(
+          id: id,
+          name: name,
+          currency: currency,
+          color: color,
+          icon: icon,
+        ));
+  }
+
+  Future<bool> deleteAccount(String id) async {
+    return _submit(() => _repository.delete(id));
+  }
+
+  Future<bool> _submit(Future<void> Function() action) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await action();
+      await loadAccounts();
+      return true;
+    } catch (error) {
+      _errorMessage = 'No se pudo guardar la cuenta.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSubmitting = false;
       notifyListeners();
     }
   }
