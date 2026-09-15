@@ -72,10 +72,6 @@ class AccountViewModel extends ChangeNotifier {
         ));
   }
 
-  Future<bool> deleteAccount(String id) async {
-    return _submit(() => _repository.delete(id));
-  }
-
   Future<bool> _submit(Future<void> Function() action) async {
     _isSubmitting = true;
     _errorMessage = null;

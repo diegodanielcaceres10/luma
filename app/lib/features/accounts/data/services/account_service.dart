@@ -54,10 +54,4 @@ class AccountService {
       'icon': icon,
     }).eq('id', id);
   }
-
-  /// Borrado suave: desactiva la cuenta en lugar de eliminarla, para no
-  /// perder el historial de transacciones que la referencian.
-  Future<void> deactivate(String id) async {
-    await _client.from('accounts').update({'is_active': false}).eq('id', id);
-  }
 }

@@ -105,55 +105,6 @@ class _AccountFormScreenState extends State<AccountFormScreen> {
     }
   }
 
-  Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.authBackgroundBottom,
-        title: const Text('Eliminar cuenta',
-            style: TextStyle(color: AppColors.authTextPrimary)),
-        content: Text(
-          '¿Seguro que quieres eliminar "${widget.account!.name}"? '
-          'Las transacciones asociadas se conservan, pero la cuenta ya '
-          'no va a aparecer en tus listados.',
-          style: const TextStyle(color: AppColors.authTextSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar',
-                style: TextStyle(color: AppColors.authTextSecondary)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Eliminar',
-                style: TextStyle(color: AppColors.authExpense)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    final success =
-        await widget.accountViewModel.deleteAccount(widget.account!.id);
-
-    if (!mounted) return;
-
-    if (success) {
-      Navigator.of(context).pop();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.accountViewModel.errorMessage ??
-                'No se pudo eliminar la cuenta.',
-          ),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isSubmitting = widget.accountViewModel.isSubmitting;
@@ -171,14 +122,6 @@ class _AccountFormScreenState extends State<AccountFormScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        actions: [
-          if (_isEditing)
-            IconButton(
-              onPressed: isSubmitting ? null : _confirmDelete,
-              icon: const Icon(Icons.delete_outline_rounded,
-                  color: AppColors.authExpense),
-            ),
-        ],
       ),
       body: DecoratedBox(
         decoration: const BoxDecoration(

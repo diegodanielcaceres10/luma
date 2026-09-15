@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
-import '../../../accounts/presentation/screens/accounts_screen.dart';
+import '../../../accounts/presentation/screens/account_form_screen.dart';
+import '../../../accounts/presentation/screens/accounts_tab.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
@@ -21,6 +22,10 @@ const _navItems = [
   (Icons.bar_chart_rounded, 'Estadísticas'),
   (Icons.person_outline_rounded, 'Perfil'),
 ];
+
+/// Índice de la pestaña "Cuentas" dentro del IndexedStack. Solo se llega a
+/// ella desde el drawer, no tiene entrada en el bottom nav.
+const _accountsTabIndex = 4;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -55,6 +60,20 @@ class _HomeShellState extends State<HomeShell> {
     }
   }
 
+  void _openNewAccountForm(BuildContext context) {
+    final userId = widget.authViewModel.userId;
+    if (userId == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AccountFormScreen(
+          userId: userId,
+          accountViewModel: widget.accountViewModel,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = [
@@ -74,6 +93,10 @@ class _HomeShellState extends State<HomeShell> {
         currency: widget.accountViewModel.primaryCurrency,
       ),
       ProfileScreen(viewModel: widget.authViewModel),
+      AccountsTab(
+        userId: widget.authViewModel.userId ?? '',
+        accountViewModel: widget.accountViewModel,
+      ),
     ];
 
     return Scaffold(
@@ -82,7 +105,6 @@ class _HomeShellState extends State<HomeShell> {
         onSelect: _onTabTap,
         userId: widget.authViewModel.userId,
         categoryViewModel: widget.categoryViewModel,
-        accountViewModel: widget.accountViewModel,
       ),
       body: DecoratedBox(
         decoration: const BoxDecoration(
@@ -99,7 +121,7 @@ class _HomeShellState extends State<HomeShell> {
           bottom: false,
           child: Column(
             children: [
-              LumaHeader(trailing: _headerAction()),
+              LumaHeader(trailing: _headerAction(context)),
               Expanded(child: IndexedStack(index: _index, children: tabs)),
             ],
           ),
@@ -113,7 +135,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   /// Acción a la derecha del header, según la pestaña activa.
-  Widget? _headerAction() {
+  Widget? _headerAction(BuildContext context) {
     switch (_index) {
       case 0:
         return const IconButton(
@@ -125,6 +147,12 @@ class _HomeShellState extends State<HomeShell> {
         return const IconButton(
           onPressed: null,
           icon: Icon(Icons.settings_outlined),
+          color: AppColors.authTextPrimary,
+        );
+      case _accountsTabIndex:
+        return IconButton(
+          onPressed: () => _openNewAccountForm(context),
+          icon: const Icon(Icons.add_rounded),
           color: AppColors.authTextPrimary,
         );
       default:
@@ -201,14 +229,12 @@ class _AppDrawer extends StatelessWidget {
   final ValueChanged<int> onSelect;
   final String? userId;
   final CategoryViewModel categoryViewModel;
-  final AccountViewModel accountViewModel;
 
   const _AppDrawer({
     required this.currentIndex,
     required this.onSelect,
     required this.userId,
     required this.categoryViewModel,
-    required this.accountViewModel,
   });
 
   @override
@@ -271,15 +297,25 @@ class _AppDrawer extends StatelessWidget {
             const Divider(height: 1, color: AppColors.authCardBorder),
             const SizedBox(height: 8),
             ListTile(
-              leading: const Icon(Icons.account_balance_wallet_outlined,
-                  color: AppColors.authTextSecondary),
-              title: const Text(
+              leading: Icon(
+                Icons.account_balance_wallet_outlined,
+                color: currentIndex == _accountsTabIndex
+                    ? AppColors.authAccent
+                    : AppColors.authTextSecondary,
+              ),
+              title: Text(
                 'Cuentas',
                 style: TextStyle(
-                  color: AppColors.authTextSecondary,
-                  fontWeight: FontWeight.w500,
+                  color: currentIndex == _accountsTabIndex
+                      ? AppColors.authAccent
+                      : AppColors.authTextSecondary,
+                  fontWeight: currentIndex == _accountsTabIndex
+                      ? FontWeight.w700
+                      : FontWeight.w500,
                 ),
               ),
+              selected: currentIndex == _accountsTabIndex,
+              selectedTileColor: AppColors.authCardFill,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -289,14 +325,7 @@ class _AppDrawer extends StatelessWidget {
                   ? null
                   : () {
                       Navigator.of(context).pop();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AccountsScreen(
-                            userId: userId!,
-                            accountViewModel: accountViewModel,
-                          ),
-                        ),
-                      );
+                      onSelect(_accountsTabIndex);
                     },
             ),
             ListTile(

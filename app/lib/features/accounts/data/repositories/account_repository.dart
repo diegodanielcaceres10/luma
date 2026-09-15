@@ -43,8 +43,4 @@ class AccountRepository {
       icon: icon,
     );
   }
-
-  Future<void> delete(String id) {
-    return _service.deactivate(id);
-  }
 }
