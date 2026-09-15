@@ -18,7 +18,7 @@ class ProfileScreen extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 32,
-              backgroundColor: AppColors.authAccentDark.withOpacity(0.35),
+              backgroundColor: AppColors.authAccentDark.withValues(alpha: 0.35),
               child: Text(
                 viewModel.initials,
                 style: const TextStyle(
@@ -120,7 +120,9 @@ class _ProfileRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: AppTextStyles.authSubtitle.copyWith(fontSize: 13)),
+                    Text(label,
+                        style:
+                            AppTextStyles.authSubtitle.copyWith(fontSize: 13)),
                     const SizedBox(height: 2),
                     Text(
                       value,

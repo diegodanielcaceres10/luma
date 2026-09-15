@@ -229,7 +229,7 @@ class _CategoryRow extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: color.withOpacity(0.85),
+                  backgroundColor: color.withValues(alpha: 0.85),
                   child: Icon(iconFromName(category.icon),
                       color: Colors.white, size: 18),
                 ),

@@ -11,7 +11,7 @@ Color colorFromHex(String? hex, {Color fallback = Colors.grey}) {
 
 /// Convierte un Color de vuelta a hex ('#4F46E5'), para guardar en la DB.
 String colorToHex(Color color) {
-  return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+  return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
 }
 
 /// Catálogo fijo de íconos disponibles para categorías. Es la fuente única

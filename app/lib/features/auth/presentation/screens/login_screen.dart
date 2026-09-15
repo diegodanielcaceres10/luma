@@ -48,8 +48,8 @@ class LoginScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.authGlow.withOpacity(0.55),
-                        AppColors.authGlow.withOpacity(0),
+                        AppColors.authGlow.withValues(alpha: 0.55),
+                        AppColors.authGlow.withValues(alpha: 0),
                       ],
                     ),
                   ),

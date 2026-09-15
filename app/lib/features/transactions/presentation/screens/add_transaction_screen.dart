@@ -202,7 +202,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   )
                 else
                   DropdownButtonFormField<Category>(
-                    value: _selectedCategory,
+                    initialValue: _selectedCategory,
                     dropdownColor: AppColors.authBackgroundBottom,
                     style: const TextStyle(color: AppColors.authTextPrimary),
                     decoration: _fieldDecoration,
@@ -228,7 +228,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   )
                 else
                   DropdownButtonFormField<Account>(
-                    value: _selectedAccount,
+                    initialValue: _selectedAccount,
                     dropdownColor: AppColors.authBackgroundBottom,
                     style: const TextStyle(color: AppColors.authTextPrimary),
                     decoration: _fieldDecoration,

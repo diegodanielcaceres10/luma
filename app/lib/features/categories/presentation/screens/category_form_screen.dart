@@ -273,7 +273,7 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                         height: 44,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? accent.withOpacity(0.25)
+                              ? accent.withValues(alpha: 0.25)
                               : AppColors.authCardFill,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(

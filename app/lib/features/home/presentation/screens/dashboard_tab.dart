@@ -102,7 +102,7 @@ class _GreetingRow extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 26,
-          backgroundColor: AppColors.authAccentDark.withOpacity(0.35),
+          backgroundColor: AppColors.authAccentDark.withValues(alpha: 0.35),
           child: Text(
             initials,
             style: const TextStyle(
@@ -219,7 +219,7 @@ class _BalanceCard extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 18,
-                      backgroundColor: Colors.white.withOpacity(0.12),
+                      backgroundColor: Colors.white.withValues(alpha: 0.12),
                       child: const Icon(Icons.credit_card_rounded,
                           color: Colors.white, size: 18),
                     ),
@@ -249,7 +249,7 @@ class _BalanceCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.12),
+                        color: Colors.white.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: const Row(
@@ -285,8 +285,8 @@ class _BalanceCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      Colors.white.withOpacity(0.10),
-                      Colors.white.withOpacity(0),
+                      Colors.white.withValues(alpha: 0.10),
+                      Colors.white.withValues(alpha: 0),
                     ],
                   ),
                 ),
@@ -412,7 +412,7 @@ class _QuickActionCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: iconColor.withOpacity(0.85),
+                    backgroundColor: iconColor.withValues(alpha: 0.85),
                     child: Icon(icon, color: Colors.white, size: 18),
                   ),
                   const Spacer(),
@@ -487,7 +487,7 @@ class _RecentMovements extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: color.withOpacity(0.85),
+                backgroundColor: color.withValues(alpha: 0.85),
                 child: Icon(
                   m.isIncome
                       ? Icons.arrow_downward_rounded
