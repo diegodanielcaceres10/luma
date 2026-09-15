@@ -44,3 +44,6 @@ app.*.map.json
 
 # Env files
 .env
+
+# APKs exportados por scripts/build_apk.* (no se versionan)
+/dist/
