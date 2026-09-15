@@ -18,7 +18,7 @@ $AppDir = Split-Path -Parent $PSScriptRoot
 Set-Location $AppDir
 
 Write-Host "Compilando APK (debug)..." -ForegroundColor Cyan
-flutter build apk --debug
+flutter build apk --debug --android-skip-build-dependency-validation
 if ($LASTEXITCODE -ne 0) {
     throw "flutter build apk falló (exit code $LASTEXITCODE)"
 }
