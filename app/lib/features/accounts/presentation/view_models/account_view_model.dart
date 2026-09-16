@@ -17,11 +17,22 @@ class AccountViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   List<Account> get accounts => _accounts;
 
-  double get totalBalance =>
-      _accounts.fold(0, (sum, account) => sum + account.balance);
+  /// Cuentas activas — para elegir cuenta en una transacción nueva o para
+  /// el aviso de saldo inicial del mes. La lista completa (con inactivas)
+  /// se usa solo en la pantalla "Cuentas", donde se pueden reactivar.
+  List<Account> get activeAccounts =>
+      _accounts.where((account) => account.isActive).toList();
 
-  String get primaryCurrency =>
-      _accounts.isNotEmpty ? _accounts.first.currency : 'USD';
+  // Las inactivas quedan afuera del total: siguen visibles en la lista,
+  // pero ya no representan plata disponible.
+  double get totalBalance => _accounts
+      .where((account) => account.isActive)
+      .fold(0, (sum, account) => sum + account.balance);
+
+  //
+  // cuentas ya no tienen moneda propia (se removió para no mezclar
+  // cálculos), así que se usa un valor fijo hasta que exista esa config.
+  String get primaryCurrency => 'EUR';
 
   Future<void> loadAccounts() async {
     _isLoading = true;
@@ -41,35 +52,34 @@ class AccountViewModel extends ChangeNotifier {
   Future<bool> createAccount({
     required String userId,
     required String name,
-    required String currency,
     required double balance,
     String? color,
-    String? icon,
   }) async {
     return _submit(() => _repository.create(
           userId: userId,
           name: name,
-          currency: currency,
           balance: balance,
           color: color,
-          icon: icon,
         ));
   }
 
   Future<bool> updateAccount({
     required String id,
     required String name,
-    required String currency,
     String? color,
-    String? icon,
   }) async {
     return _submit(() => _repository.update(
           id: id,
           name: name,
-          currency: currency,
           color: color,
-          icon: icon,
         ));
+  }
+
+  /// Inactiva o reactiva una cuenta desde la lista.
+  Future<bool> toggleActive(String id, bool isActive) async {
+    return _submit(
+      () => _repository.setActive(id: id, isActive: isActive),
+    );
   }
 
   Future<bool> _submit(Future<void> Function() action) async {

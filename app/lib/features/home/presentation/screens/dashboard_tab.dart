@@ -60,7 +60,8 @@ class DashboardTab extends StatelessWidget {
           [accountViewModel, transactionViewModel, monthlyBalanceViewModel]),
       builder: (context, _) {
         final pendingAccounts = monthlyBalanceViewModel.checked
-            ? monthlyBalanceViewModel.pendingAccounts(accountViewModel.accounts)
+            ? monthlyBalanceViewModel
+                .pendingAccounts(accountViewModel.activeAccounts)
             : const <Account>[];
 
         return ListView(

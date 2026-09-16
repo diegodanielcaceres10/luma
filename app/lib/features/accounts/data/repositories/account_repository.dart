@@ -13,34 +13,30 @@ class AccountRepository {
   Future<void> create({
     required String userId,
     required String name,
-    required String currency,
     required double balance,
     String? color,
-    String? icon,
   }) {
     return _service.create(
       userId: userId,
       name: name,
-      currency: currency,
       balance: balance,
       color: color,
-      icon: icon,
     );
   }
 
   Future<void> update({
     required String id,
     required String name,
-    required String currency,
     String? color,
-    String? icon,
   }) {
     return _service.update(
       id: id,
       name: name,
-      currency: currency,
       color: color,
-      icon: icon,
     );
+  }
+
+  Future<void> setActive({required String id, required bool isActive}) {
+    return _service.setActive(id: id, isActive: isActive);
   }
 }

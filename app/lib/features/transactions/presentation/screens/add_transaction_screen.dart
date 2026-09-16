@@ -130,7 +130,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final categories = widget.categoryViewModel.byType(widget.type);
-    final accounts = widget.accountViewModel.accounts;
+    final accounts = widget.accountViewModel.activeAccounts;
 
     _selectedCategory ??= categories.isNotEmpty ? categories.first : null;
     _selectedAccount ??= accounts.isNotEmpty ? accounts.first : null;
@@ -233,10 +233,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     style: const TextStyle(color: AppColors.authTextPrimary),
                     decoration: _fieldDecoration,
                     items: accounts
-                        .map((a) => DropdownMenuItem(
-                              value: a,
-                              child: Text('${a.name} (${a.currency})'),
-                            ))
+                        .map((a) =>
+                            DropdownMenuItem(value: a, child: Text(a.name)))
                         .toList(),
                     onChanged: (value) =>
                         setState(() => _selectedAccount = value),

@@ -205,7 +205,7 @@ class _AccountBalanceField extends StatelessWidget {
               CircleAvatar(
                 radius: 16,
                 backgroundColor: color.withValues(alpha: 0.85),
-                child: Icon(accountIconFromName(account.icon),
+                child: const Icon(kDefaultAccountIcon,
                     color: Colors.white, size: 16),
               ),
               const SizedBox(width: 10),
@@ -217,13 +217,6 @@ class _AccountBalanceField extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color: AppColors.authTextPrimary,
                   ),
-                ),
-              ),
-              Text(
-                account.currency,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.authTextFooter,
                 ),
               ),
             ],

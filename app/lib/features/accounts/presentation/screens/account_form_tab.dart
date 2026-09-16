@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/utils/account_visuals.dart';
 import '../../../../core/utils/category_visuals.dart'
     show colorFromHex, kCategoryColors;
 import '../../data/models/account.dart';
@@ -39,9 +38,7 @@ class _AccountFormTabState extends State<AccountFormTab> {
   final _nameController = TextEditingController();
   final _balanceController = TextEditingController();
 
-  late String _currency;
   late String _selectedColor;
-  late String _selectedIcon;
 
   bool get _isEditing => widget.account != null;
 
@@ -69,9 +66,7 @@ class _AccountFormTabState extends State<AccountFormTab> {
     _nameController.text = account?.name ?? '';
     _balanceController.text =
         account != null ? account.balance.toStringAsFixed(2) : '0.00';
-    _currency = account?.currency ?? kAccountCurrencies.first;
     _selectedColor = account?.color ?? kCategoryColors.first;
-    _selectedIcon = account?.icon ?? kAccountIcons.keys.first;
   }
 
   @override
@@ -89,17 +84,13 @@ class _AccountFormTabState extends State<AccountFormTab> {
         ? await vm.updateAccount(
             id: widget.account!.id,
             name: _nameController.text.trim(),
-            currency: _currency,
             color: _selectedColor,
-            icon: _selectedIcon,
           )
         : await vm.createAccount(
             userId: widget.userId,
             name: _nameController.text.trim(),
-            currency: _currency,
             balance: double.parse(_balanceController.text.trim()),
             color: _selectedColor,
-            icon: _selectedIcon,
           );
 
     if (!mounted) return;
@@ -161,25 +152,6 @@ class _AccountFormTabState extends State<AccountFormTab> {
                   ? 'Ingresa un nombre'
                   : null,
             ),
-            const SizedBox(height: 20),
-            const Text('Moneda',
-                style: TextStyle(color: AppColors.authTextSecondary)),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _currency,
-              dropdownColor: AppColors.authBackgroundBottom,
-              style: const TextStyle(color: AppColors.authTextPrimary),
-              decoration: _fieldDecoration,
-              items: kAccountCurrencies
-                  .map((code) => DropdownMenuItem(
-                        value: code,
-                        child: Text(code),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) setState(() => _currency = value);
-              },
-            ),
             if (!_isEditing) ...[
               const SizedBox(height: 20),
               const Text('Saldo inicial',
@@ -224,39 +196,6 @@ class _AccountFormTabState extends State<AccountFormTab> {
                         ? const Icon(Icons.check_rounded,
                             color: Colors.white, size: 20)
                         : null,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-            const Text('Ícono',
-                style: TextStyle(color: AppColors.authTextSecondary)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: kAccountIcons.entries.map((entry) {
-                final isSelected = entry.key == _selectedIcon;
-                final accent = colorFromHex(_selectedColor);
-                return InkWell(
-                  onTap: () => setState(() => _selectedIcon = entry.key),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? accent.withValues(alpha: 0.25)
-                          : AppColors.authCardFill,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? accent : AppColors.authCardBorder,
-                      ),
-                    ),
-                    child: Icon(
-                      entry.value,
-                      color: isSelected ? accent : AppColors.authTextSecondary,
-                    ),
                   ),
                 );
               }).toList(),

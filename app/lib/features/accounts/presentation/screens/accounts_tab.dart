@@ -72,7 +72,10 @@ class AccountsTab extends StatelessWidget {
                       final account = accounts[i];
                       return _AccountRow(
                         account: account,
+                        currency: accountViewModel.primaryCurrency,
                         onTap: () => onOpenForm(account),
+                        onActiveChanged: (value) =>
+                            accountViewModel.toggleActive(account.id, value),
                         showDivider: i != accounts.length - 1,
                       );
                     }),
@@ -88,61 +91,89 @@ class AccountsTab extends StatelessWidget {
 
 class _AccountRow extends StatelessWidget {
   final Account account;
+  final String currency;
   final VoidCallback onTap;
+  final ValueChanged<bool> onActiveChanged;
   final bool showDivider;
 
   const _AccountRow({
     required this.account,
+    required this.currency,
     required this.onTap,
+    required this.onActiveChanged,
     required this.showDivider,
   });
 
   @override
   Widget build(BuildContext context) {
     final color = colorFromHex(account.color, fallback: AppColors.authAccent);
+    final isActive = account.isActive;
 
     return Column(
       children: [
-        InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: color.withValues(alpha: 0.85),
-                  child: Icon(accountIconFromName(account.icon),
-                      color: Colors.white, size: 18),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        account.name,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.authTextPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        formatCurrency(account.balance, account.currency),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.authTextSecondary,
-                        ),
-                      ),
-                    ],
+        Opacity(
+          opacity: isActive ? 1 : 0.5,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: color.withValues(alpha: 0.85),
+                    child: const Icon(kDefaultAccountIcon,
+                        color: Colors.white, size: 18),
                   ),
-                ),
-                const Icon(Icons.chevron_right_rounded,
-                    color: AppColors.authTextFooter),
-              ],
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          account.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.authTextPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          formatCurrency(account.balance, currency),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.authTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                isActive ? 'Activa' : 'Inactiva',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.authTextFooter,
+                ),
+              ),
+              Switch(
+                value: isActive,
+                activeTrackColor: AppColors.authAccent,
+                onChanged: onActiveChanged,
+              ),
+            ],
           ),
         ),
         if (showDivider)

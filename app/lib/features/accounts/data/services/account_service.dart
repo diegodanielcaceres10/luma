@@ -7,11 +7,9 @@ class AccountService {
   AccountService(this._client);
 
   Future<List<Account>> fetchAccounts() async {
-    final rows = await _client
-        .from('accounts')
-        .select()
-        .eq('is_active', true)
-        .order('created_at');
+    // Trae activas e inactivas: la lista de cuentas es donde se
+    // inactivan/reactivan, así que necesita ver ambos estados.
+    final rows = await _client.from('accounts').select().order('created_at');
 
     return (rows as List)
         .map((row) => Account.fromMap(row as Map<String, dynamic>))
@@ -21,20 +19,16 @@ class AccountService {
   Future<void> create({
     required String userId,
     required String name,
-    required String currency,
     required double balance,
     String? color,
-    String? icon,
   }) async {
     final inserted = await _client
         .from('accounts')
         .insert({
           'user_id': userId,
           'name': name,
-          'currency': currency,
           'balance': balance,
           'color': color,
-          'icon': icon,
         })
         .select('id')
         .single();
@@ -57,9 +51,7 @@ class AccountService {
   Future<void> update({
     required String id,
     required String name,
-    required String currency,
     String? color,
-    String? icon,
   }) async {
     // El balance no se edita a mano desde acá: se mantiene a través de los
     // movimientos registrados. Si en algún momento hace falta un ajuste
@@ -67,9 +59,15 @@ class AccountService {
     // no pisando el valor directamente.
     await _client.from('accounts').update({
       'name': name,
-      'currency': currency,
       'color': color,
-      'icon': icon,
     }).eq('id', id);
+  }
+
+  /// Activa o inactiva una cuenta desde la lista, sin pasar por el
+  /// formulario completo.
+  Future<void> setActive({required String id, required bool isActive}) async {
+    await _client
+        .from('accounts')
+        .update({'is_active': isActive}).eq('id', id);
   }
 }

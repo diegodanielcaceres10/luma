@@ -1,23 +1,13 @@
 import 'package:flutter/material.dart';
 
-/// Catálogo fijo de íconos disponibles para cuentas. Fuente única de verdad
-/// para el picker del formulario y el mapeo de `accounts.icon` -> IconData.
-const Map<String, IconData> kAccountIcons = {
-  'wallet': Icons.account_balance_wallet_rounded,
-  'bank': Icons.account_balance_rounded,
-  'cash': Icons.payments_rounded,
-  'card': Icons.credit_card_rounded,
-  'savings': Icons.savings_rounded,
-  'other': Icons.more_horiz_rounded,
-};
+/// Ícono único para todas las cuentas. Se removió el picker por cuenta
+/// (campo `accounts.icon` eliminado); si en el futuro hace falta
+/// diferenciarlas visualmente, se retoma acá.
+const IconData kDefaultAccountIcon = Icons.account_balance_wallet_rounded;
 
-/// Mapea el nombre de icono guardado en `accounts.icon` a un IconData.
-IconData accountIconFromName(String? name) {
-  if (name == null) return kAccountIcons['wallet']!;
-  return kAccountIcons[name] ?? kAccountIcons['wallet']!;
-}
-
-/// Monedas soportadas por el picker del formulario de cuentas.
+/// Monedas soportadas — hoy sin uso en el formulario de cuentas (se
+/// removió `accounts.currency`), se deja lista para cuando la moneda pase
+/// a ser una configuración a nivel usuario.
 const List<String> kAccountCurrencies = [
   'USD',
   'EUR',
