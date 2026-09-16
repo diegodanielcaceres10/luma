@@ -8,8 +8,6 @@ import '../../../accounts/presentation/screens/accounts_tab.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
-import '../../../budgets/presentation/screens/budget_form_tab.dart';
-import '../../../budgets/presentation/screens/budgets_tab.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/screens/categories_tab.dart';
 import '../../../categories/presentation/screens/category_form_tab.dart';
@@ -36,9 +34,7 @@ const _accountsTabIndex = 4;
 const _accountFormTabIndex = 5;
 const _categoriesTabIndex = 6;
 const _categoryFormTabIndex = 7;
-const _budgetsTabIndex = 8;
-const _budgetFormTabIndex = 9;
-const _monthlyBalanceTabIndex = 10;
+const _monthlyBalanceTabIndex = 8;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -72,10 +68,6 @@ class _HomeShellState extends State<HomeShell> {
   Category? _editingCategory;
   String _categoryInitialType = 'expense';
   int _categoryFormNonce = 0;
-
-  // Categoría presupuestada que se está editando; null = alta.
-  Category? _editingBudget;
-  int _budgetFormNonce = 0;
 
   // Cuentas pendientes de saldo inicial del mes, capturadas al abrir el
   // aviso desde el Dashboard.
@@ -128,21 +120,6 @@ class _HomeShellState extends State<HomeShell> {
     setState(() {
       _editingCategory = null;
       _index = _categoriesTabIndex;
-    });
-  }
-
-  void _openBudgetForm(Category? category) {
-    setState(() {
-      _editingBudget = category;
-      if (category == null) _budgetFormNonce++;
-      _index = _budgetFormTabIndex;
-    });
-  }
-
-  void _closeBudgetForm() {
-    setState(() {
-      _editingBudget = null;
-      _index = _budgetsTabIndex;
     });
   }
 
@@ -204,17 +181,6 @@ class _HomeShellState extends State<HomeShell> {
         category: _editingCategory,
         initialType: _categoryInitialType,
         onDone: _closeCategoryForm,
-      ),
-      BudgetsTab(
-        categoryViewModel: widget.categoryViewModel,
-        currency: widget.accountViewModel.primaryCurrency,
-        onEdit: (category) => _openBudgetForm(category),
-      ),
-      BudgetFormTab(
-        key: ValueKey(_editingBudget?.id ?? 'new-$_budgetFormNonce'),
-        categoryViewModel: widget.categoryViewModel,
-        category: _editingBudget,
-        onDone: _closeBudgetForm,
       ),
       MonthlyBalanceTab(
         key: ValueKey('monthly-balance-$_monthlyBalanceNonce'),
@@ -283,12 +249,6 @@ class _HomeShellState extends State<HomeShell> {
       case _categoriesTabIndex:
         return IconButton(
           onPressed: () => _openCategoryForm(null),
-          icon: const Icon(Icons.add_rounded),
-          color: AppColors.authTextPrimary,
-        );
-      case _budgetsTabIndex:
-        return IconButton(
-          onPressed: () => _openBudgetForm(null),
           icon: const Icon(Icons.add_rounded),
           color: AppColors.authTextPrimary,
         );
@@ -401,12 +361,10 @@ class _AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAccountsSection =
-        currentIndex == _accountsTabIndex || currentIndex == _accountFormTabIndex;
+    final isAccountsSection = currentIndex == _accountsTabIndex ||
+        currentIndex == _accountFormTabIndex;
     final isCategoriesSection = currentIndex == _categoriesTabIndex ||
         currentIndex == _categoryFormTabIndex;
-    final isBudgetsSection =
-        currentIndex == _budgetsTabIndex || currentIndex == _budgetFormTabIndex;
 
     void selectTab(int index) {
       Navigator.of(context).pop();
@@ -462,14 +420,6 @@ class _AppDrawer extends StatelessWidget {
               isSelected: isCategoriesSection,
               onTap:
                   userId == null ? null : () => selectTab(_categoriesTabIndex),
-            ),
-            // Presupuestos
-            _tile(
-              context,
-              icon: Icons.pie_chart_outline_rounded,
-              label: 'Presupuestos',
-              isSelected: isBudgetsSection,
-              onTap: userId == null ? null : () => selectTab(_budgetsTabIndex),
             ),
             // Movimientos, Estadísticas, Perfil
             ...List.generate(_navItems.length - 1, (i) {
