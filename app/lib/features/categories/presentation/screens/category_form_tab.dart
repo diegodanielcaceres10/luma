@@ -37,10 +37,12 @@ class CategoryFormTab extends StatefulWidget {
 class _CategoryFormTabState extends State<CategoryFormTab> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _budgetController = TextEditingController();
 
   late String _type;
   late String _selectedColor;
   late String _selectedIcon;
+  late bool _hasBudget;
 
   bool get _isEditing => widget.category != null;
 
@@ -69,11 +71,15 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     _type = category?.type ?? widget.initialType;
     _selectedColor = category?.color ?? kCategoryColors.first;
     _selectedIcon = category?.icon ?? kCategoryIcons.keys.first;
+    _hasBudget = category?.hasBudget ?? false;
+    _budgetController.text =
+        category != null ? (category.budgetAmount ?? 0).toStringAsFixed(2) : '';
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _budgetController.dispose();
     super.dispose();
   }
 
@@ -81,6 +87,12 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     if (!_formKey.currentState!.validate()) return;
 
     final vm = widget.categoryViewModel;
+    // El presupuesto solo aplica a gastos — si el tipo es 'income', se
+    // ignora aunque el switch haya quedado prendido de un cambio previo.
+    final effectiveHasBudget = _type == 'expense' && _hasBudget;
+    final effectiveBudgetAmount =
+        effectiveHasBudget ? double.parse(_budgetController.text.trim()) : null;
+
     final success = _isEditing
         ? await vm.updateCategory(
             id: widget.category!.id,
@@ -88,6 +100,8 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
             type: _type,
             color: _selectedColor,
             icon: _selectedIcon,
+            hasBudget: effectiveHasBudget,
+            budgetAmount: effectiveBudgetAmount,
           )
         : await vm.createCategory(
             userId: widget.userId,
@@ -95,6 +109,8 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
             type: _type,
             color: _selectedColor,
             icon: _selectedIcon,
+            hasBudget: effectiveHasBudget,
+            budgetAmount: effectiveBudgetAmount,
           );
 
     if (!mounted) return;
@@ -242,6 +258,43 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
                 );
               }).toList(),
             ),
+            if (_type == 'expense') ...[
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text('Presupuesto mensual',
+                        style: TextStyle(color: AppColors.authTextSecondary)),
+                  ),
+                  Switch(
+                    value: _hasBudget,
+                    activeThumbColor: AppColors.authAccent,
+                    onChanged: (value) => setState(() => _hasBudget = value),
+                  ),
+                ],
+              ),
+              if (_hasBudget) ...[
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _budgetController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                  decoration: _fieldDecoration.copyWith(
+                    hintText: '0.00',
+                    hintStyle: const TextStyle(color: AppColors.authTextFooter),
+                  ),
+                  validator: (value) {
+                    if (!_hasBudget) return null;
+                    final parsed = double.tryParse((value ?? '').trim());
+                    if (parsed == null || parsed <= 0) {
+                      return 'Ingresa un monto válido';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ],
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,

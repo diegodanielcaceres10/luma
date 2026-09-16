@@ -49,6 +49,8 @@ class CategoryViewModel extends ChangeNotifier {
     required String type,
     required String color,
     required String icon,
+    bool hasBudget = false,
+    double? budgetAmount,
   }) async {
     return _submit(() => _repository.create(
           userId: userId,
@@ -56,6 +58,8 @@ class CategoryViewModel extends ChangeNotifier {
           type: type,
           color: color,
           icon: icon,
+          hasBudget: hasBudget,
+          budgetAmount: budgetAmount,
         ));
   }
 
@@ -65,6 +69,8 @@ class CategoryViewModel extends ChangeNotifier {
     required String type,
     required String color,
     required String icon,
+    bool hasBudget = false,
+    double? budgetAmount,
   }) async {
     return _submit(() => _repository.update(
           id: id,
@@ -72,6 +78,8 @@ class CategoryViewModel extends ChangeNotifier {
           type: type,
           color: color,
           icon: icon,
+          hasBudget: hasBudget,
+          budgetAmount: budgetAmount,
         ));
   }
 

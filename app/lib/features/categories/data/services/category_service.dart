@@ -20,6 +20,8 @@ class CategoryService {
     required String type,
     required String color,
     required String icon,
+    bool hasBudget = false,
+    double? budgetAmount,
   }) async {
     await _client.from('categories').insert({
       'user_id': userId,
@@ -27,6 +29,8 @@ class CategoryService {
       'type': type,
       'color': color,
       'icon': icon,
+      'has_budget': hasBudget,
+      'budget_amount': hasBudget ? budgetAmount : null,
     });
   }
 
@@ -36,12 +40,16 @@ class CategoryService {
     required String type,
     required String color,
     required String icon,
+    bool hasBudget = false,
+    double? budgetAmount,
   }) async {
     await _client.from('categories').update({
       'name': name,
       'type': type,
       'color': color,
       'icon': icon,
+      'has_budget': hasBudget,
+      'budget_amount': hasBudget ? budgetAmount : null,
     }).eq('id', id);
   }
 

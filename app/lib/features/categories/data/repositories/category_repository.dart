@@ -16,6 +16,8 @@ class CategoryRepository {
     required String type,
     required String color,
     required String icon,
+    bool hasBudget = false,
+    double? budgetAmount,
   }) {
     return _service.create(
       userId: userId,
@@ -23,6 +25,8 @@ class CategoryRepository {
       type: type,
       color: color,
       icon: icon,
+      hasBudget: hasBudget,
+      budgetAmount: budgetAmount,
     );
   }
 
@@ -32,6 +36,8 @@ class CategoryRepository {
     required String type,
     required String color,
     required String icon,
+    bool hasBudget = false,
+    double? budgetAmount,
   }) {
     return _service.update(
       id: id,
@@ -39,6 +45,8 @@ class CategoryRepository {
       type: type,
       color: color,
       icon: icon,
+      hasBudget: hasBudget,
+      budgetAmount: budgetAmount,
     );
   }
 
