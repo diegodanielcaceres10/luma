@@ -7,26 +7,29 @@ import '../../../../core/utils/category_visuals.dart' show colorFromHex;
 import '../../../accounts/data/models/account.dart';
 import '../view_models/monthly_balance_view_model.dart';
 
-/// Pantalla para cargar a mano el saldo inicial del mes en curso de cada
-/// cuenta que todavía no lo tiene. Se llega acá desde el aviso en el
-/// card de balance del Dashboard.
-class MonthlyBalanceScreen extends StatefulWidget {
+/// Contenido de la pestaña "Saldos iniciales". No tiene Scaffold propio —
+/// vive dentro del Scaffold del HomeShell. Se llega acá desde el aviso en
+/// el card de balance del Dashboard, para cargar a mano el saldo inicial
+/// del mes en curso de cada cuenta que todavía no lo tiene.
+class MonthlyBalanceTab extends StatefulWidget {
   final String userId;
   final List<Account> pendingAccounts;
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
+  final VoidCallback onDone;
 
-  const MonthlyBalanceScreen({
+  const MonthlyBalanceTab({
     super.key,
     required this.userId,
     required this.pendingAccounts,
     required this.monthlyBalanceViewModel,
+    required this.onDone,
   });
 
   @override
-  State<MonthlyBalanceScreen> createState() => _MonthlyBalanceScreenState();
+  State<MonthlyBalanceTab> createState() => _MonthlyBalanceTabState();
 }
 
-class _MonthlyBalanceScreenState extends State<MonthlyBalanceScreen> {
+class _MonthlyBalanceTabState extends State<MonthlyBalanceTab> {
   final _formKey = GlobalKey<FormState>();
   late final Map<String, TextEditingController> _controllers;
 
@@ -81,7 +84,7 @@ class _MonthlyBalanceScreenState extends State<MonthlyBalanceScreen> {
     if (!mounted) return;
 
     if (allOk) {
-      Navigator.of(context).pop();
+      widget.onDone();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -97,81 +100,78 @@ class _MonthlyBalanceScreenState extends State<MonthlyBalanceScreen> {
     final now = DateTime.now();
     final monthLabel = _monthNames[now.month - 1];
 
-    return Scaffold(
-      backgroundColor: AppColors.authBackgroundBottom,
-      appBar: AppBar(
-        backgroundColor: AppColors.authBackgroundBottom,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.authTextPrimary),
-        title: const Text(
-          'Saldos iniciales',
-          style: TextStyle(
-            color: AppColors.authTextPrimary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.authBackgroundTop,
-              AppColors.authBackgroundBottom,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: ListenableBuilder(
-            listenable: vm,
-            builder: (context, _) {
-              return Form(
-                key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+    return SafeArea(
+      top: false,
+      child: ListenableBuilder(
+        listenable: vm,
+        builder: (context, _) {
+          return Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              children: [
+                Row(
                   children: [
-                    Text(
-                      'Completá el saldo con el que arrancó cada cuenta '
-                      'en $monthLabel de ${now.year}.',
-                      style: AppTextStyles.authSubtitle,
-                    ),
-                    const SizedBox(height: 20),
-                    for (final account in widget.pendingAccounts) ...[
-                      _AccountBalanceField(
-                        account: account,
-                        controller: _controllers[account.id]!,
+                    InkWell(
+                      onTap: widget.onDone,
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.arrow_back_rounded,
+                            color: AppColors.authTextPrimary),
                       ),
-                      const SizedBox(height: 16),
-                    ],
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.authAccent,
-                          foregroundColor: AppColors.authBackgroundBottom,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        onPressed: vm.isSubmitting ? null : _submit,
-                        child: vm.isSubmitting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.authBackgroundBottom,
-                                ),
-                              )
-                            : const Text('Guardar'),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Saldos iniciales',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.authTextPrimary,
                       ),
                     ),
                   ],
                 ),
-              );
-            },
-          ),
-        ),
+                const SizedBox(height: 20),
+                Text(
+                  'Completá el saldo con el que arrancó cada cuenta '
+                  'en $monthLabel de ${now.year}.',
+                  style: AppTextStyles.authSubtitle,
+                ),
+                const SizedBox(height: 20),
+                for (final account in widget.pendingAccounts) ...[
+                  _AccountBalanceField(
+                    account: account,
+                    controller: _controllers[account.id]!,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.authAccent,
+                      foregroundColor: AppColors.authBackgroundBottom,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: vm.isSubmitting ? null : _submit,
+                    child: vm.isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.authBackgroundBottom,
+                            ),
+                          )
+                        : const Text('Guardar'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

@@ -9,7 +9,6 @@ import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
-import '../../../monthly_balances/presentation/screens/monthly_balance_screen.dart';
 import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../transactions/data/models/transaction_entry.dart';
 import '../../../transactions/presentation/screens/add_transaction_screen.dart';
@@ -24,6 +23,7 @@ class DashboardTab extends StatelessWidget {
   final CategoryViewModel categoryViewModel;
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final VoidCallback? onSeeAllMovements;
+  final ValueChanged<List<Account>> onOpenMonthlyBalances;
 
   const DashboardTab({
     super.key,
@@ -32,6 +32,7 @@ class DashboardTab extends StatelessWidget {
     required this.transactionViewModel,
     required this.categoryViewModel,
     required this.monthlyBalanceViewModel,
+    required this.onOpenMonthlyBalances,
     this.onSeeAllMovements,
   });
 
@@ -47,21 +48,6 @@ class DashboardTab extends StatelessWidget {
           accountViewModel: accountViewModel,
           categoryViewModel: categoryViewModel,
           transactionViewModel: transactionViewModel,
-        ),
-      ),
-    );
-  }
-
-  void _openMonthlyBalances(BuildContext context, List<Account> pendingAccounts) {
-    final userId = authViewModel.userId;
-    if (userId == null) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => MonthlyBalanceScreen(
-          userId: userId,
-          pendingAccounts: pendingAccounts,
-          monthlyBalanceViewModel: monthlyBalanceViewModel,
         ),
       ),
     );
@@ -92,7 +78,7 @@ class DashboardTab extends StatelessWidget {
               pendingAccountsCount: pendingAccounts.length,
               onCompletePendingBalances: pendingAccounts.isEmpty
                   ? null
-                  : () => _openMonthlyBalances(context, pendingAccounts),
+                  : () => onOpenMonthlyBalances(pendingAccounts),
             ),
             const SizedBox(height: 28),
             const _SectionHeader(title: 'Acciones rápidas'),

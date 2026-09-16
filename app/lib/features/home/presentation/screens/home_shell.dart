@@ -16,6 +16,7 @@ import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/screens/categories_tab.dart';
 import '../../../categories/presentation/screens/category_form_tab.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../monthly_balances/presentation/screens/monthly_balance_tab.dart';
 import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../transactions/presentation/screens/movements_tab.dart';
 import '../../../transactions/presentation/screens/statistics_tab.dart';
@@ -39,6 +40,7 @@ const _categoriesTabIndex = 6;
 const _categoryFormTabIndex = 7;
 const _budgetsTabIndex = 8;
 const _budgetFormTabIndex = 9;
+const _monthlyBalanceTabIndex = 10;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -78,6 +80,11 @@ class _HomeShellState extends State<HomeShell> {
   // Presupuesto que se está editando; null = alta.
   Budget? _editingBudget;
   int _budgetFormNonce = 0;
+
+  // Cuentas pendientes de saldo inicial del mes, capturadas al abrir el
+  // aviso desde el Dashboard.
+  List<Account> _pendingMonthlyBalanceAccounts = [];
+  int _monthlyBalanceNonce = 0;
 
   void _onTabTap(int index) {
     setState(() => _index = index);
@@ -136,6 +143,21 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
+  void _openMonthlyBalanceForm(List<Account> pendingAccounts) {
+    setState(() {
+      _pendingMonthlyBalanceAccounts = pendingAccounts;
+      _monthlyBalanceNonce++;
+      _index = _monthlyBalanceTabIndex;
+    });
+  }
+
+  void _closeMonthlyBalanceForm() {
+    setState(() {
+      _pendingMonthlyBalanceAccounts = [];
+      _index = 0; // Vuelve a "Inicio", único lugar desde donde se abre.
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = [
@@ -146,6 +168,7 @@ class _HomeShellState extends State<HomeShell> {
         categoryViewModel: widget.categoryViewModel,
         monthlyBalanceViewModel: widget.monthlyBalanceViewModel,
         onSeeAllMovements: () => _onTabTap(1),
+        onOpenMonthlyBalances: _openMonthlyBalanceForm,
       ),
       MovementsTab(
         transactionViewModel: widget.transactionViewModel,
@@ -191,6 +214,13 @@ class _HomeShellState extends State<HomeShell> {
         categoryViewModel: widget.categoryViewModel,
         budget: _editingBudget,
         onDone: _closeBudgetForm,
+      ),
+      MonthlyBalanceTab(
+        key: ValueKey('monthly-balance-$_monthlyBalanceNonce'),
+        userId: widget.authViewModel.userId ?? '',
+        pendingAccounts: _pendingMonthlyBalanceAccounts,
+        monthlyBalanceViewModel: widget.monthlyBalanceViewModel,
+        onDone: _closeMonthlyBalanceForm,
       ),
     ];
 
