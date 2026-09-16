@@ -11,7 +11,6 @@ import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../transactions/data/models/transaction_entry.dart';
-import '../../../transactions/presentation/screens/add_transaction_screen.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 
 /// Contenido de la pestaña "Inicio". No tiene Scaffold propio — vive dentro
@@ -24,6 +23,7 @@ class DashboardTab extends StatelessWidget {
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final VoidCallback? onSeeAllMovements;
   final ValueChanged<List<Account>> onOpenMonthlyBalances;
+  final ValueChanged<String> onOpenAddTransaction;
 
   const DashboardTab({
     super.key,
@@ -33,25 +33,9 @@ class DashboardTab extends StatelessWidget {
     required this.categoryViewModel,
     required this.monthlyBalanceViewModel,
     required this.onOpenMonthlyBalances,
+    required this.onOpenAddTransaction,
     this.onSeeAllMovements,
   });
-
-  void _openAddTransaction(BuildContext context, String type) {
-    final userId = authViewModel.userId;
-    if (userId == null) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AddTransactionScreen(
-          type: type,
-          userId: userId,
-          accountViewModel: accountViewModel,
-          categoryViewModel: categoryViewModel,
-          transactionViewModel: transactionViewModel,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,8 +71,8 @@ class DashboardTab extends StatelessWidget {
             const _SectionHeader(title: 'Acciones rápidas'),
             const SizedBox(height: 12),
             _QuickActions(
-              onAddIncome: () => _openAddTransaction(context, 'income'),
-              onAddExpense: () => _openAddTransaction(context, 'expense'),
+              onAddIncome: () => onOpenAddTransaction('income'),
+              onAddExpense: () => onOpenAddTransaction('expense'),
             ),
             const SizedBox(height: 28),
             _SectionHeader(

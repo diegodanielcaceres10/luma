@@ -14,6 +14,7 @@ import '../../../categories/presentation/screens/category_form_tab.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../monthly_balances/presentation/screens/monthly_balance_tab.dart';
 import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
+import '../../../transactions/presentation/screens/add_transaction_tab.dart';
 import '../../../transactions/presentation/screens/movements_tab.dart';
 import '../../../transactions/presentation/screens/statistics_tab.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
@@ -35,6 +36,7 @@ const _accountFormTabIndex = 5;
 const _categoriesTabIndex = 6;
 const _categoryFormTabIndex = 7;
 const _monthlyBalanceTabIndex = 8;
+const _addTransactionTabIndex = 9;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -73,6 +75,11 @@ class _HomeShellState extends State<HomeShell> {
   // aviso desde el Dashboard.
   List<Account> _pendingMonthlyBalanceAccounts = [];
   int _monthlyBalanceNonce = 0;
+
+  // Tipo de transacción ('income' | 'expense') que se está creando, y un
+  // nonce para forzar un formulario limpio cada vez que se abre.
+  String _transactionType = 'expense';
+  int _addTransactionNonce = 0;
 
   void _onTabTap(int index) {
     setState(() => _index = index);
@@ -138,6 +145,20 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
+  void _openAddTransactionForm(String type) {
+    setState(() {
+      _transactionType = type;
+      _addTransactionNonce++;
+      _index = _addTransactionTabIndex;
+    });
+  }
+
+  void _closeAddTransactionForm() {
+    setState(() {
+      _index = 0; // Vuelve a "Inicio", único lugar desde donde se abre.
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = [
@@ -149,6 +170,7 @@ class _HomeShellState extends State<HomeShell> {
         monthlyBalanceViewModel: widget.monthlyBalanceViewModel,
         onSeeAllMovements: () => _onTabTap(1),
         onOpenMonthlyBalances: _openMonthlyBalanceForm,
+        onOpenAddTransaction: _openAddTransactionForm,
       ),
       MovementsTab(
         transactionViewModel: widget.transactionViewModel,
@@ -188,6 +210,15 @@ class _HomeShellState extends State<HomeShell> {
         pendingAccounts: _pendingMonthlyBalanceAccounts,
         monthlyBalanceViewModel: widget.monthlyBalanceViewModel,
         onDone: _closeMonthlyBalanceForm,
+      ),
+      AddTransactionTab(
+        key: ValueKey('add-transaction-$_addTransactionNonce'),
+        type: _transactionType,
+        userId: widget.authViewModel.userId ?? '',
+        accountViewModel: widget.accountViewModel,
+        categoryViewModel: widget.categoryViewModel,
+        transactionViewModel: widget.transactionViewModel,
+        onDone: _closeAddTransactionForm,
       ),
     ];
 
@@ -361,8 +392,8 @@ class _AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAccountsSection = currentIndex == _accountsTabIndex ||
-        currentIndex == _accountFormTabIndex;
+    final isAccountsSection =
+        currentIndex == _accountsTabIndex || currentIndex == _accountFormTabIndex;
     final isCategoriesSection = currentIndex == _categoriesTabIndex ||
         currentIndex == _categoryFormTabIndex;
 
