@@ -341,6 +341,33 @@ class _AppDrawer extends StatelessWidget {
     required this.userId,
   });
 
+  Widget _tile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback? onTap,
+  }) {
+    final color =
+        isSelected ? AppColors.authAccent : AppColors.authTextSecondary;
+
+    return ListTile(
+      leading: Icon(icon, color: color),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+      selected: isSelected,
+      selectedTileColor: AppColors.authCardFill,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+      onTap: onTap,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAccountsSection =
@@ -349,6 +376,11 @@ class _AppDrawer extends StatelessWidget {
         currentIndex == _categoryFormTabIndex;
     final isBudgetsSection =
         currentIndex == _budgetsTabIndex || currentIndex == _budgetFormTabIndex;
+
+    void selectTab(int index) {
+      Navigator.of(context).pop();
+      onSelect(index);
+    }
 
     return Drawer(
       backgroundColor: AppColors.authBackgroundBottom,
@@ -375,131 +407,51 @@ class _AppDrawer extends StatelessWidget {
             ),
             const Divider(height: 1, color: AppColors.authCardBorder),
             const SizedBox(height: 8),
-            ...List.generate(_navItems.length, (i) {
-              final item = _navItems[i];
-              final isSelected = i == currentIndex;
-              final color = isSelected
-                  ? AppColors.authAccent
-                  : AppColors.authTextSecondary;
-
-              return ListTile(
-                leading: Icon(item.$1, color: color),
-                title: Text(
-                  item.$2,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-                selected: isSelected,
-                selectedTileColor: AppColors.authCardFill,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  onSelect(i);
-                },
+            // Inicio
+            _tile(
+              context,
+              icon: _navItems[0].$1,
+              label: _navItems[0].$2,
+              isSelected: currentIndex == 0,
+              onTap: () => selectTab(0),
+            ),
+            // Cuentas
+            _tile(
+              context,
+              icon: Icons.account_balance_wallet_outlined,
+              label: 'Cuentas',
+              isSelected: isAccountsSection,
+              onTap: userId == null ? null : () => selectTab(_accountsTabIndex),
+            ),
+            // Categorías
+            _tile(
+              context,
+              icon: Icons.sell_outlined,
+              label: 'Categorías',
+              isSelected: isCategoriesSection,
+              onTap:
+                  userId == null ? null : () => selectTab(_categoriesTabIndex),
+            ),
+            // Presupuestos
+            _tile(
+              context,
+              icon: Icons.pie_chart_outline_rounded,
+              label: 'Presupuestos',
+              isSelected: isBudgetsSection,
+              onTap: userId == null ? null : () => selectTab(_budgetsTabIndex),
+            ),
+            // Movimientos, Estadísticas, Perfil
+            ...List.generate(_navItems.length - 1, (i) {
+              final index = i + 1;
+              final item = _navItems[index];
+              return _tile(
+                context,
+                icon: item.$1,
+                label: item.$2,
+                isSelected: currentIndex == index,
+                onTap: () => selectTab(index),
               );
             }),
-            const SizedBox(height: 8),
-            const Divider(height: 1, color: AppColors.authCardBorder),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: Icon(
-                Icons.account_balance_wallet_outlined,
-                color: isAccountsSection
-                    ? AppColors.authAccent
-                    : AppColors.authTextSecondary,
-              ),
-              title: Text(
-                'Cuentas',
-                style: TextStyle(
-                  color: isAccountsSection
-                      ? AppColors.authAccent
-                      : AppColors.authTextSecondary,
-                  fontWeight:
-                      isAccountsSection ? FontWeight.w700 : FontWeight.w500,
-                ),
-              ),
-              selected: isAccountsSection,
-              selectedTileColor: AppColors.authCardFill,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-              onTap: userId == null
-                  ? null
-                  : () {
-                      Navigator.of(context).pop();
-                      onSelect(_accountsTabIndex);
-                    },
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.sell_outlined,
-                color: isCategoriesSection
-                    ? AppColors.authAccent
-                    : AppColors.authTextSecondary,
-              ),
-              title: Text(
-                'Categorías',
-                style: TextStyle(
-                  color: isCategoriesSection
-                      ? AppColors.authAccent
-                      : AppColors.authTextSecondary,
-                  fontWeight:
-                      isCategoriesSection ? FontWeight.w700 : FontWeight.w500,
-                ),
-              ),
-              selected: isCategoriesSection,
-              selectedTileColor: AppColors.authCardFill,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-              onTap: userId == null
-                  ? null
-                  : () {
-                      Navigator.of(context).pop();
-                      onSelect(_categoriesTabIndex);
-                    },
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.pie_chart_outline_rounded,
-                color: isBudgetsSection
-                    ? AppColors.authAccent
-                    : AppColors.authTextSecondary,
-              ),
-              title: Text(
-                'Presupuestos',
-                style: TextStyle(
-                  color: isBudgetsSection
-                      ? AppColors.authAccent
-                      : AppColors.authTextSecondary,
-                  fontWeight:
-                      isBudgetsSection ? FontWeight.w700 : FontWeight.w500,
-                ),
-              ),
-              selected: isBudgetsSection,
-              selectedTileColor: AppColors.authCardFill,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-              onTap: userId == null
-                  ? null
-                  : () {
-                      Navigator.of(context).pop();
-                      onSelect(_budgetsTabIndex);
-                    },
-            ),
           ],
         ),
       ),
