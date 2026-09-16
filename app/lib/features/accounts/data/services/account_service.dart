@@ -26,13 +26,31 @@ class AccountService {
     String? color,
     String? icon,
   }) async {
-    await _client.from('accounts').insert({
+    final inserted = await _client
+        .from('accounts')
+        .insert({
+          'user_id': userId,
+          'name': name,
+          'currency': currency,
+          'balance': balance,
+          'color': color,
+          'icon': icon,
+        })
+        .select('id')
+        .single();
+
+    final accountId = inserted['id'] as String;
+    final now = DateTime.now();
+
+    // El saldo inicial cargado en el alta de la cuenta es, por definición,
+    // el saldo de apertura del mes en curso — se usa para no tener que
+    // pedírselo de nuevo al usuario la primera vez que abre esa cuenta.
+    await _client.from('monthly_account_balances').insert({
       'user_id': userId,
-      'name': name,
-      'currency': currency,
-      'balance': balance,
-      'color': color,
-      'icon': icon,
+      'account_id': accountId,
+      'month': now.month,
+      'year': now.year,
+      'opening_balance': balance,
     });
   }
 
