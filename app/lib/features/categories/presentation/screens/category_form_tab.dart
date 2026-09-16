@@ -108,54 +108,6 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     }
   }
 
-  Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.authBackgroundBottom,
-        title: const Text('Eliminar categoría',
-            style: TextStyle(color: AppColors.authTextPrimary)),
-        content: Text(
-          '¿Seguro que quieres eliminar "${widget.category!.name}"? '
-          'Las transacciones que la usaban van a quedar sin categoría.',
-          style: const TextStyle(color: AppColors.authTextSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar',
-                style: TextStyle(color: AppColors.authTextSecondary)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Eliminar',
-                style: TextStyle(color: AppColors.authExpense)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    final success =
-        await widget.categoryViewModel.deleteCategory(widget.category!.id);
-
-    if (!mounted) return;
-
-    if (success) {
-      widget.onDone();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.categoryViewModel.errorMessage ??
-                'No se pudo eliminar la categoría.',
-          ),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isSubmitting = widget.categoryViewModel.isSubmitting;
@@ -189,16 +141,6 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
                     ),
                   ),
                 ),
-                if (_isEditing)
-                  InkWell(
-                    onTap: isSubmitting ? null : _confirmDelete,
-                    borderRadius: BorderRadius.circular(20),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(Icons.delete_outline_rounded,
-                          color: AppColors.authExpense),
-                    ),
-                  ),
               ],
             ),
             const SizedBox(height: 20),

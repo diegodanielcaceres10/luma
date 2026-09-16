@@ -41,8 +41,4 @@ class CategoryRepository {
       icon: icon,
     );
   }
-
-  Future<void> delete(String id) {
-    return _service.delete(id);
-  }
 }

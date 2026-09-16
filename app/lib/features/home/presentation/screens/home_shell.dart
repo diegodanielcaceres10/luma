@@ -106,43 +106,6 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
-  /// Antes de dar de alta una categoría hace falta elegir si es de gasto o
-  /// de ingreso.
-  Future<void> _pickCategoryTypeAndCreate(BuildContext context) async {
-    final type = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: AppColors.authBackgroundBottom,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.remove_rounded,
-                  color: AppColors.authExpense),
-              title: const Text('Categoría de gasto',
-                  style: TextStyle(color: AppColors.authTextPrimary)),
-              onTap: () => Navigator.of(context).pop('expense'),
-            ),
-            ListTile(
-              leading:
-                  const Icon(Icons.add_rounded, color: AppColors.authIncome),
-              title: const Text('Categoría de ingreso',
-                  style: TextStyle(color: AppColors.authTextPrimary)),
-              onTap: () => Navigator.of(context).pop('income'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (type != null) {
-      _openCategoryForm(null, initialType: type);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final tabs = [
@@ -208,7 +171,7 @@ class _HomeShellState extends State<HomeShell> {
           bottom: false,
           child: Column(
             children: [
-              LumaHeader(trailing: _headerAction(context)),
+              LumaHeader(trailing: _headerAction()),
               Expanded(child: IndexedStack(index: _index, children: tabs)),
             ],
           ),
@@ -222,7 +185,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   /// Acción a la derecha del header, según la pestaña activa.
-  Widget? _headerAction(BuildContext context) {
+  Widget? _headerAction() {
     switch (_index) {
       case 0:
         return const IconButton(
@@ -244,7 +207,7 @@ class _HomeShellState extends State<HomeShell> {
         );
       case _categoriesTabIndex:
         return IconButton(
-          onPressed: () => _pickCategoryTypeAndCreate(context),
+          onPressed: () => _openCategoryForm(null),
           icon: const Icon(Icons.add_rounded),
           color: AppColors.authTextPrimary,
         );

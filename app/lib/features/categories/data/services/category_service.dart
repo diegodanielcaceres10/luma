@@ -44,8 +44,4 @@ class CategoryService {
       'icon': icon,
     }).eq('id', id);
   }
-
-  Future<void> delete(String id) async {
-    await _client.from('categories').delete().eq('id', id);
-  }
 }

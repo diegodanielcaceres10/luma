@@ -67,10 +67,6 @@ class CategoryViewModel extends ChangeNotifier {
         ));
   }
 
-  Future<bool> deleteCategory(String id) async {
-    return _submit(() => _repository.delete(id));
-  }
-
   Future<bool> _submit(Future<void> Function() action) async {
     _isSubmitting = true;
     _errorMessage = null;
