@@ -8,7 +8,9 @@ import '../../../accounts/presentation/screens/accounts_tab.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
-import '../../../categories/presentation/screens/categories_screen.dart';
+import '../../../categories/data/models/category.dart';
+import '../../../categories/presentation/screens/categories_tab.dart';
+import '../../../categories/presentation/screens/category_form_tab.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../transactions/presentation/screens/movements_tab.dart';
 import '../../../transactions/presentation/screens/statistics_tab.dart';
@@ -28,6 +30,8 @@ const _navItems = [
 /// sin entrada propia en el bottom nav.
 const _accountsTabIndex = 4;
 const _accountFormTabIndex = 5;
+const _categoriesTabIndex = 6;
+const _categoryFormTabIndex = 7;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -53,10 +57,12 @@ class _HomeShellState extends State<HomeShell> {
 
   // Cuenta que se está editando en la pestaña de formulario; null = alta.
   Account? _editingAccount;
-  // Se incrementa cada vez que se abre el formulario en modo alta, para
-  // forzar que el estado del formulario se reinicie aunque se abra dos
-  // veces seguidas sin pasar por edición en el medio.
-  int _formNonce = 0;
+  int _accountFormNonce = 0;
+
+  // Categoría que se está editando; null = alta.
+  Category? _editingCategory;
+  String _categoryInitialType = 'expense';
+  int _categoryFormNonce = 0;
 
   void _onTabTap(int index) {
     setState(() => _index = index);
@@ -72,7 +78,7 @@ class _HomeShellState extends State<HomeShell> {
   void _openAccountForm(Account? account) {
     setState(() {
       _editingAccount = account;
-      if (account == null) _formNonce++;
+      if (account == null) _accountFormNonce++;
       _index = _accountFormTabIndex;
     });
   }
@@ -82,6 +88,59 @@ class _HomeShellState extends State<HomeShell> {
       _editingAccount = null;
       _index = _accountsTabIndex;
     });
+  }
+
+  void _openCategoryForm(Category? category, {String initialType = 'expense'}) {
+    setState(() {
+      _editingCategory = category;
+      _categoryInitialType = initialType;
+      if (category == null) _categoryFormNonce++;
+      _index = _categoryFormTabIndex;
+    });
+  }
+
+  void _closeCategoryForm() {
+    setState(() {
+      _editingCategory = null;
+      _index = _categoriesTabIndex;
+    });
+  }
+
+  /// Antes de dar de alta una categoría hace falta elegir si es de gasto o
+  /// de ingreso.
+  Future<void> _pickCategoryTypeAndCreate(BuildContext context) async {
+    final type = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.authBackgroundBottom,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.remove_rounded,
+                  color: AppColors.authExpense),
+              title: const Text('Categoría de gasto',
+                  style: TextStyle(color: AppColors.authTextPrimary)),
+              onTap: () => Navigator.of(context).pop('expense'),
+            ),
+            ListTile(
+              leading:
+                  const Icon(Icons.add_rounded, color: AppColors.authIncome),
+              title: const Text('Categoría de ingreso',
+                  style: TextStyle(color: AppColors.authTextPrimary)),
+              onTap: () => Navigator.of(context).pop('income'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (type != null) {
+      _openCategoryForm(null, initialType: type);
+    }
   }
 
   @override
@@ -108,11 +167,23 @@ class _HomeShellState extends State<HomeShell> {
         onOpenForm: _openAccountForm,
       ),
       AccountFormTab(
-        key: ValueKey(_editingAccount?.id ?? 'new-$_formNonce'),
+        key: ValueKey(_editingAccount?.id ?? 'new-$_accountFormNonce'),
         userId: widget.authViewModel.userId ?? '',
         accountViewModel: widget.accountViewModel,
         account: _editingAccount,
         onDone: _closeAccountForm,
+      ),
+      CategoriesTab(
+        categoryViewModel: widget.categoryViewModel,
+        onEdit: (category) => _openCategoryForm(category),
+      ),
+      CategoryFormTab(
+        key: ValueKey(_editingCategory?.id ?? 'new-$_categoryFormNonce'),
+        userId: widget.authViewModel.userId ?? '',
+        categoryViewModel: widget.categoryViewModel,
+        category: _editingCategory,
+        initialType: _categoryInitialType,
+        onDone: _closeCategoryForm,
       ),
     ];
 
@@ -121,7 +192,6 @@ class _HomeShellState extends State<HomeShell> {
         currentIndex: _index,
         onSelect: _onTabTap,
         userId: widget.authViewModel.userId,
-        categoryViewModel: widget.categoryViewModel,
       ),
       body: DecoratedBox(
         decoration: const BoxDecoration(
@@ -138,7 +208,7 @@ class _HomeShellState extends State<HomeShell> {
           bottom: false,
           child: Column(
             children: [
-              LumaHeader(trailing: _headerAction()),
+              LumaHeader(trailing: _headerAction(context)),
               Expanded(child: IndexedStack(index: _index, children: tabs)),
             ],
           ),
@@ -152,7 +222,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   /// Acción a la derecha del header, según la pestaña activa.
-  Widget? _headerAction() {
+  Widget? _headerAction(BuildContext context) {
     switch (_index) {
       case 0:
         return const IconButton(
@@ -169,6 +239,12 @@ class _HomeShellState extends State<HomeShell> {
       case _accountsTabIndex:
         return IconButton(
           onPressed: () => _openAccountForm(null),
+          icon: const Icon(Icons.add_rounded),
+          color: AppColors.authTextPrimary,
+        );
+      case _categoriesTabIndex:
+        return IconButton(
+          onPressed: () => _pickCategoryTypeAndCreate(context),
           icon: const Icon(Icons.add_rounded),
           color: AppColors.authTextPrimary,
         );
@@ -245,19 +321,19 @@ class _AppDrawer extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onSelect;
   final String? userId;
-  final CategoryViewModel categoryViewModel;
 
   const _AppDrawer({
     required this.currentIndex,
     required this.onSelect,
     required this.userId,
-    required this.categoryViewModel,
   });
 
   @override
   Widget build(BuildContext context) {
     final isAccountsSection =
         currentIndex == _accountsTabIndex || currentIndex == _accountFormTabIndex;
+    final isCategoriesSection = currentIndex == _categoriesTabIndex ||
+        currentIndex == _categoryFormTabIndex;
 
     return Drawer(
       backgroundColor: AppColors.authBackgroundBottom,
@@ -348,15 +424,24 @@ class _AppDrawer extends StatelessWidget {
                     },
             ),
             ListTile(
-              leading: const Icon(Icons.sell_outlined,
-                  color: AppColors.authTextSecondary),
-              title: const Text(
+              leading: Icon(
+                Icons.sell_outlined,
+                color: isCategoriesSection
+                    ? AppColors.authAccent
+                    : AppColors.authTextSecondary,
+              ),
+              title: Text(
                 'Categorías',
                 style: TextStyle(
-                  color: AppColors.authTextSecondary,
-                  fontWeight: FontWeight.w500,
+                  color: isCategoriesSection
+                      ? AppColors.authAccent
+                      : AppColors.authTextSecondary,
+                  fontWeight:
+                      isCategoriesSection ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
+              selected: isCategoriesSection,
+              selectedTileColor: AppColors.authCardFill,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -366,14 +451,7 @@ class _AppDrawer extends StatelessWidget {
                   ? null
                   : () {
                       Navigator.of(context).pop();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => CategoriesScreen(
-                            userId: userId!,
-                            categoryViewModel: categoryViewModel,
-                          ),
-                        ),
-                      );
+                      onSelect(_categoriesTabIndex);
                     },
             ),
           ],
