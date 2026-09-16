@@ -8,6 +8,9 @@ import '../../../../core/utils/currency_format.dart';
 import '../../data/models/transaction_entry.dart';
 import '../view_models/transaction_view_model.dart';
 
+/// Contenido de la pestaña "Movimientos". No tiene Scaffold propio — vive
+/// dentro del Scaffold del HomeShell, que es quien pone el header y el
+/// bottomNavigationBar.
 class MovementsTab extends StatelessWidget {
   final TransactionViewModel transactionViewModel;
   final String currency;
@@ -41,19 +44,23 @@ class MovementsTab extends StatelessWidget {
           final vm = transactionViewModel;
 
           if (vm.isLoadingAll && vm.allTransactions.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.authAccent),
+            );
           }
 
           if (vm.allTransactions.isEmpty) {
             return RefreshIndicator(
               onRefresh: vm.loadAllTransactions,
+              color: AppColors.authAccent,
+              backgroundColor: AppColors.authBackgroundTop,
               child: ListView(
                 children: const [
                   SizedBox(height: 120),
                   Center(
                     child: Text(
                       'Todavía no hay movimientos.',
-                      style: AppTextStyles.subtitle,
+                      style: AppTextStyles.authSubtitle,
                     ),
                   ),
                 ],
@@ -65,36 +72,46 @@ class MovementsTab extends StatelessWidget {
 
           return RefreshIndicator(
             onRefresh: vm.loadAllTransactions,
+            color: AppColors.authAccent,
+            backgroundColor: AppColors.authBackgroundTop,
             child: ListView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
-                const Text('Movimientos', style: AppTextStyles.title),
-                const SizedBox(height: 20),
+                const Text(
+                  'Movimientos',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.authTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 for (final entry in grouped.entries) ...[
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8, top: 8),
                     child: Text(
                       _capitalize(entry.key),
-                      style: AppTextStyles.body.copyWith(
+                      style: const TextStyle(
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textMuted,
+                        color: AppColors.authTextSecondary,
                       ),
                     ),
                   ),
-                  Container(
+                  DecoratedBox(
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border),
+                      color: AppColors.authCardFill,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.authCardBorder),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
-                      children: entry.value
-                          .map((m) => _MovementRow(
-                                movement: m,
-                                currency: currency,
-                              ))
-                          .toList(),
+                      children: List.generate(entry.value.length, (i) {
+                        return _MovementRow(
+                          movement: entry.value[i],
+                          currency: currency,
+                          showDivider: i != entry.value.length - 1,
+                        );
+                      }),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -114,59 +131,80 @@ class MovementsTab extends StatelessWidget {
 class _MovementRow extends StatelessWidget {
   final TransactionEntry movement;
   final String currency;
+  final bool showDivider;
 
-  const _MovementRow({required this.movement, required this.currency});
+  const _MovementRow({
+    required this.movement,
+    required this.currency,
+    required this.showDivider,
+  });
 
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('d MMM. yyyy', 'es');
     final color = movement.isIncome
-        ? AppColors.success
-        : colorFromHex(movement.category.color, fallback: AppColors.primary);
+        ? AppColors.authIncome
+        : colorFromHex(movement.category.color, fallback: AppColors.authAccent);
     final sign = movement.isIncome ? '+' : '-';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: color.withValues(alpha: 0.15),
-            child: Icon(
-              movement.isIncome
-                  ? Icons.arrow_downward_rounded
-                  : iconFromName(movement.category.icon),
-              color: color,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  movement.description?.isNotEmpty == true
-                      ? movement.description!
-                      : movement.category.name,
-                  style: AppTextStyles.body,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: color.withValues(alpha: 0.85),
+                child: Icon(
+                  movement.isIncome
+                      ? Icons.arrow_downward_rounded
+                      : iconFromName(movement.category.icon),
+                  color: Colors.white,
+                  size: 18,
                 ),
-                Text(
-                  '${movement.category.name} · ${dateFormat.format(movement.date)}',
-                  style: AppTextStyles.subtitle.copyWith(fontSize: 12),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      movement.description?.isNotEmpty == true
+                          ? movement.description!
+                          : movement.category.name,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.authTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${movement.category.name} · ${dateFormat.format(movement.date)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.authTextSecondary,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Text(
+                '$sign${formatCurrency(movement.amount, currency)}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color:
+                      movement.isIncome ? AppColors.authIncome : AppColors.authExpense,
+                ),
+              ),
+            ],
           ),
-          Text(
-            '$sign${formatCurrency(movement.amount, currency)}',
-            style: AppTextStyles.body.copyWith(
-              color: movement.isIncome ? AppColors.success : AppColors.error,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+        ),
+        if (showDivider)
+          const Divider(height: 1, color: AppColors.authCardBorder),
+      ],
     );
   }
 }
