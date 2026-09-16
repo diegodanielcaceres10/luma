@@ -20,6 +20,14 @@ class CategoryViewModel extends ChangeNotifier {
   List<Category> byType(String type) =>
       _categories.where((c) => c.type == type).toList();
 
+  /// Categorías de gasto con presupuesto asignado — reemplaza a la vieja
+  /// tabla `budgets`.
+  List<Category> get budgetedCategories =>
+      _categories.where((c) => c.type == 'expense' && c.hasBudget).toList();
+
+  Set<String> get budgetedCategoryIds =>
+      budgetedCategories.map((c) => c.id).toSet();
+
   Future<void> loadCategories() async {
     _isLoading = true;
     _errorMessage = null;
@@ -64,6 +72,27 @@ class CategoryViewModel extends ChangeNotifier {
           type: type,
           color: color,
           icon: icon,
+        ));
+  }
+
+  /// Asigna o edita el presupuesto de una categoría de gasto existente.
+  Future<bool> setCategoryBudget({
+    required String categoryId,
+    required double amount,
+  }) async {
+    return _submit(() => _repository.updateBudget(
+          id: categoryId,
+          hasBudget: true,
+          budgetAmount: amount,
+        ));
+  }
+
+  /// Quita el presupuesto de una categoría, sin borrar la categoría.
+  Future<bool> clearCategoryBudget(String categoryId) async {
+    return _submit(() => _repository.updateBudget(
+          id: categoryId,
+          hasBudget: false,
+          budgetAmount: null,
         ));
   }
 

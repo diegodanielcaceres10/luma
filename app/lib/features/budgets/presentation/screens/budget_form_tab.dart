@@ -3,30 +3,29 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
-import '../../data/models/budget.dart';
-import '../view_models/budget_view_model.dart';
 
 /// Contenido de la pestaña "Nuevo presupuesto" / "Editar presupuesto". No
 /// tiene Scaffold propio — vive dentro del Scaffold del HomeShell.
 ///
 /// Solo se pueden presupuestar categorías de gasto, y cada categoría admite
-/// un único presupuesto (restricción unique(user_id, category_id) en la
-/// tabla). El picker excluye categorías ya presupuestadas, salvo la que
-/// corresponde a este presupuesto cuando se está editando.
+/// un único presupuesto (es un dato de la propia categoría: `has_budget` +
+/// `budget_amount`). El picker excluye categorías ya presupuestadas.
+///
+/// Si [category] viene nulo, es alta: se elige a qué categoría sin
+/// presupuesto asignarle uno. Si viene con valor, es edición — la
+/// categoría queda fija (para reasignarla hay que quitar el presupuesto y
+/// crearlo de nuevo en la otra categoría) y solo se edita el monto, con la
+/// opción de quitar el presupuesto.
 class BudgetFormTab extends StatefulWidget {
-  final String userId;
-  final BudgetViewModel budgetViewModel;
   final CategoryViewModel categoryViewModel;
-  final Budget? budget;
+  final Category? category;
   final VoidCallback onDone;
 
   const BudgetFormTab({
     super.key,
-    required this.userId,
-    required this.budgetViewModel,
     required this.categoryViewModel,
     required this.onDone,
-    this.budget,
+    this.category,
   });
 
   @override
@@ -39,7 +38,7 @@ class _BudgetFormTabState extends State<BudgetFormTab> {
 
   String? _selectedCategoryId;
 
-  bool get _isEditing => widget.budget != null;
+  bool get _isEditing => widget.category != null;
 
   static const _fieldDecoration = InputDecoration(
     filled: true,
@@ -61,10 +60,10 @@ class _BudgetFormTabState extends State<BudgetFormTab> {
   @override
   void initState() {
     super.initState();
-    final budget = widget.budget;
+    final category = widget.category;
     _amountController.text =
-        budget != null ? budget.amount.toStringAsFixed(2) : '';
-    _selectedCategoryId = budget?.categoryId;
+        category != null ? (category.budgetAmount ?? 0).toStringAsFixed(2) : '';
+    _selectedCategoryId = category?.id;
   }
 
   @override
@@ -73,12 +72,12 @@ class _BudgetFormTabState extends State<BudgetFormTab> {
     super.dispose();
   }
 
+  /// Categorías de gasto sin presupuesto todavía (para el alta).
   List<Category> get _availableCategories {
-    final budgeted = widget.budgetViewModel.budgetedCategoryIds;
+    final budgeted = widget.categoryViewModel.budgetedCategoryIds;
     return widget.categoryViewModel
         .byType('expense')
-        .where((c) =>
-            !budgeted.contains(c.id) || c.id == widget.budget?.categoryId)
+        .where((c) => !budgeted.contains(c.id))
         .toList();
   }
 
@@ -87,19 +86,12 @@ class _BudgetFormTabState extends State<BudgetFormTab> {
     final categoryId = _selectedCategoryId;
     if (categoryId == null) return;
 
-    final vm = widget.budgetViewModel;
+    final vm = widget.categoryViewModel;
     final amount = double.parse(_amountController.text.trim());
-    final success = _isEditing
-        ? await vm.updateBudget(
-            id: widget.budget!.id,
-            categoryId: categoryId,
-            amount: amount,
-          )
-        : await vm.createBudget(
-            userId: widget.userId,
-            categoryId: categoryId,
-            amount: amount,
-          );
+    final success = await vm.setCategoryBudget(
+      categoryId: categoryId,
+      amount: amount,
+    );
 
     if (!mounted) return;
 
@@ -112,9 +104,29 @@ class _BudgetFormTabState extends State<BudgetFormTab> {
     }
   }
 
+  Future<void> _removeBudget() async {
+    final category = widget.category;
+    if (category == null) return;
+
+    final vm = widget.categoryViewModel;
+    final success = await vm.clearCategoryBudget(category.id);
+
+    if (!mounted) return;
+
+    if (success) {
+      widget.onDone();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text(vm.errorMessage ?? 'No se pudo quitar el presupuesto.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isSubmitting = widget.budgetViewModel.isSubmitting;
+    final isSubmitting = widget.categoryViewModel.isSubmitting;
     final categories = _availableCategories;
 
     return SafeArea(
@@ -150,7 +162,24 @@ class _BudgetFormTabState extends State<BudgetFormTab> {
             const Text('Categoría',
                 style: TextStyle(color: AppColors.authTextSecondary)),
             const SizedBox(height: 8),
-            if (categories.isEmpty && _selectedCategoryId == null)
+            if (_isEditing)
+              // La categoría queda fija en edición: reasignar implica
+              // quitar el presupuesto y crearlo de nuevo en otra.
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.authCardFill,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.authCardBorder),
+                ),
+                child: Text(
+                  widget.category!.name,
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                ),
+              )
+            else if (categories.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
                 child: Text(
@@ -216,6 +245,20 @@ class _BudgetFormTabState extends State<BudgetFormTab> {
                         _isEditing ? 'Guardar cambios' : 'Crear presupuesto'),
               ),
             ),
+            if (_isEditing) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: isSubmitting ? null : _removeBudget,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.authExpense,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Quitar presupuesto'),
+                ),
+              ),
+            ],
           ],
         ),
       ),

@@ -41,4 +41,16 @@ class CategoryRepository {
       icon: icon,
     );
   }
+
+  Future<void> updateBudget({
+    required String id,
+    required bool hasBudget,
+    double? budgetAmount,
+  }) {
+    return _service.updateBudget(
+      id: id,
+      hasBudget: hasBudget,
+      budgetAmount: budgetAmount,
+    );
+  }
 }

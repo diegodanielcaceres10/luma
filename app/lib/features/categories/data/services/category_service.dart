@@ -44,4 +44,19 @@ class CategoryService {
       'icon': icon,
     }).eq('id', id);
   }
+
+  /// Asigna, edita o quita el presupuesto de una categoría sin tocar el
+  /// resto de sus campos (nombre, tipo, color, ícono). Reemplaza a la
+  /// vieja tabla `budgets`: ahora el presupuesto es un dato de la propia
+  /// categoría (`has_budget` + `budget_amount`).
+  Future<void> updateBudget({
+    required String id,
+    required bool hasBudget,
+    double? budgetAmount,
+  }) async {
+    await _client.from('categories').update({
+      'has_budget': hasBudget,
+      'budget_amount': budgetAmount,
+    }).eq('id', id);
+  }
 }

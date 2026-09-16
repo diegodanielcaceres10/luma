@@ -4,20 +4,24 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
-import '../../data/models/budget.dart';
-import '../view_models/budget_view_model.dart';
+import '../../../categories/data/models/category.dart';
+import '../../../categories/presentation/view_models/category_view_model.dart';
 
 /// Contenido de la pestaña "Presupuestos". No tiene Scaffold propio — vive
 /// dentro del Scaffold del HomeShell, que es quien pone el header (con el
 /// botón "+" para crear) y el bottomNavigationBar.
+///
+/// El presupuesto ya no vive en una tabla separada: es un dato de la propia
+/// categoría (`has_budget` + `budget_amount`). Esta pestaña es un filtro
+/// sobre [CategoryViewModel.budgetedCategories].
 class BudgetsTab extends StatelessWidget {
-  final BudgetViewModel budgetViewModel;
+  final CategoryViewModel categoryViewModel;
   final String currency;
-  final ValueChanged<Budget> onEdit;
+  final ValueChanged<Category> onEdit;
 
   const BudgetsTab({
     super.key,
-    required this.budgetViewModel,
+    required this.categoryViewModel,
     required this.currency,
     required this.onEdit,
   });
@@ -27,15 +31,16 @@ class BudgetsTab extends StatelessWidget {
     return SafeArea(
       top: false,
       child: ListenableBuilder(
-        listenable: budgetViewModel,
+        listenable: categoryViewModel,
         builder: (context, _) {
-          if (budgetViewModel.isLoading && budgetViewModel.budgets.isEmpty) {
+          if (categoryViewModel.isLoading &&
+              categoryViewModel.categories.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.authAccent),
             );
           }
 
-          final budgets = budgetViewModel.budgets;
+          final budgets = categoryViewModel.budgetedCategories;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -67,11 +72,11 @@ class BudgetsTab extends StatelessWidget {
                   ),
                   child: Column(
                     children: List.generate(budgets.length, (i) {
-                      final budget = budgets[i];
+                      final category = budgets[i];
                       return _BudgetRow(
-                        budget: budget,
+                        category: category,
                         currency: currency,
-                        onTap: () => onEdit(budget),
+                        onTap: () => onEdit(category),
                         showDivider: i != budgets.length - 1,
                       );
                     }),
@@ -86,13 +91,13 @@ class BudgetsTab extends StatelessWidget {
 }
 
 class _BudgetRow extends StatelessWidget {
-  final Budget budget;
+  final Category category;
   final String currency;
   final VoidCallback onTap;
   final bool showDivider;
 
   const _BudgetRow({
-    required this.budget,
+    required this.category,
     required this.currency,
     required this.onTap,
     required this.showDivider,
@@ -100,8 +105,7 @@ class _BudgetRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        colorFromHex(budget.categoryColor, fallback: AppColors.authAccent);
+    final color = colorFromHex(category.color, fallback: AppColors.authAccent);
 
     return Column(
       children: [
@@ -114,13 +118,13 @@ class _BudgetRow extends StatelessWidget {
                 CircleAvatar(
                   radius: 18,
                   backgroundColor: color.withValues(alpha: 0.85),
-                  child: Icon(iconFromName(budget.categoryIcon),
+                  child: Icon(iconFromName(category.icon),
                       color: Colors.white, size: 18),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(
-                    budget.categoryName,
+                    category.name,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -129,7 +133,7 @@ class _BudgetRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  formatCurrency(budget.amount, currency),
+                  formatCurrency(category.budgetAmount ?? 0, currency),
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

@@ -8,10 +8,8 @@ import '../../../accounts/presentation/screens/accounts_tab.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
-import '../../../budgets/data/models/budget.dart';
 import '../../../budgets/presentation/screens/budget_form_tab.dart';
 import '../../../budgets/presentation/screens/budgets_tab.dart';
-import '../../../budgets/presentation/view_models/budget_view_model.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/screens/categories_tab.dart';
 import '../../../categories/presentation/screens/category_form_tab.dart';
@@ -47,7 +45,6 @@ class HomeShell extends StatefulWidget {
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
   final CategoryViewModel categoryViewModel;
-  final BudgetViewModel budgetViewModel;
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
 
   const HomeShell({
@@ -56,7 +53,6 @@ class HomeShell extends StatefulWidget {
     required this.accountViewModel,
     required this.transactionViewModel,
     required this.categoryViewModel,
-    required this.budgetViewModel,
     required this.monthlyBalanceViewModel,
   });
 
@@ -77,8 +73,8 @@ class _HomeShellState extends State<HomeShell> {
   String _categoryInitialType = 'expense';
   int _categoryFormNonce = 0;
 
-  // Presupuesto que se está editando; null = alta.
-  Budget? _editingBudget;
+  // Categoría presupuestada que se está editando; null = alta.
+  Category? _editingBudget;
   int _budgetFormNonce = 0;
 
   // Cuentas pendientes de saldo inicial del mes, capturadas al abrir el
@@ -135,10 +131,10 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
-  void _openBudgetForm(Budget? budget) {
+  void _openBudgetForm(Category? category) {
     setState(() {
-      _editingBudget = budget;
-      if (budget == null) _budgetFormNonce++;
+      _editingBudget = category;
+      if (category == null) _budgetFormNonce++;
       _index = _budgetFormTabIndex;
     });
   }
@@ -210,16 +206,14 @@ class _HomeShellState extends State<HomeShell> {
         onDone: _closeCategoryForm,
       ),
       BudgetsTab(
-        budgetViewModel: widget.budgetViewModel,
+        categoryViewModel: widget.categoryViewModel,
         currency: widget.accountViewModel.primaryCurrency,
-        onEdit: (budget) => _openBudgetForm(budget),
+        onEdit: (category) => _openBudgetForm(category),
       ),
       BudgetFormTab(
         key: ValueKey(_editingBudget?.id ?? 'new-$_budgetFormNonce'),
-        userId: widget.authViewModel.userId ?? '',
-        budgetViewModel: widget.budgetViewModel,
         categoryViewModel: widget.categoryViewModel,
-        budget: _editingBudget,
+        category: _editingBudget,
         onDone: _closeBudgetForm,
       ),
       MonthlyBalanceTab(
