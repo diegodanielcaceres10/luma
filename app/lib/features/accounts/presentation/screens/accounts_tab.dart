@@ -42,27 +42,13 @@ class AccountsTab extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Cuentas',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.authTextPrimary,
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () => onOpenForm(null),
-                    borderRadius: BorderRadius.circular(20),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(Icons.add_circle_rounded,
-                          color: AppColors.authAccent, size: 26),
-                    ),
-                  ),
-                ],
+              const Text(
+                'Cuentas',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.authTextPrimary,
+                ),
               ),
               const SizedBox(height: 16),
               if (accounts.isEmpty)
