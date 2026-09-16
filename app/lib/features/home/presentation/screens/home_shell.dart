@@ -8,6 +8,10 @@ import '../../../accounts/presentation/screens/accounts_tab.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
+import '../../../budgets/data/models/budget.dart';
+import '../../../budgets/presentation/screens/budget_form_tab.dart';
+import '../../../budgets/presentation/screens/budgets_tab.dart';
+import '../../../budgets/presentation/view_models/budget_view_model.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/screens/categories_tab.dart';
 import '../../../categories/presentation/screens/category_form_tab.dart';
@@ -32,12 +36,15 @@ const _accountsTabIndex = 4;
 const _accountFormTabIndex = 5;
 const _categoriesTabIndex = 6;
 const _categoryFormTabIndex = 7;
+const _budgetsTabIndex = 8;
+const _budgetFormTabIndex = 9;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
   final CategoryViewModel categoryViewModel;
+  final BudgetViewModel budgetViewModel;
 
   const HomeShell({
     super.key,
@@ -45,6 +52,7 @@ class HomeShell extends StatefulWidget {
     required this.accountViewModel,
     required this.transactionViewModel,
     required this.categoryViewModel,
+    required this.budgetViewModel,
   });
 
   @override
@@ -63,6 +71,10 @@ class _HomeShellState extends State<HomeShell> {
   Category? _editingCategory;
   String _categoryInitialType = 'expense';
   int _categoryFormNonce = 0;
+
+  // Presupuesto que se está editando; null = alta.
+  Budget? _editingBudget;
+  int _budgetFormNonce = 0;
 
   void _onTabTap(int index) {
     setState(() => _index = index);
@@ -103,6 +115,21 @@ class _HomeShellState extends State<HomeShell> {
     setState(() {
       _editingCategory = null;
       _index = _categoriesTabIndex;
+    });
+  }
+
+  void _openBudgetForm(Budget? budget) {
+    setState(() {
+      _editingBudget = budget;
+      if (budget == null) _budgetFormNonce++;
+      _index = _budgetFormTabIndex;
+    });
+  }
+
+  void _closeBudgetForm() {
+    setState(() {
+      _editingBudget = null;
+      _index = _budgetsTabIndex;
     });
   }
 
@@ -147,6 +174,19 @@ class _HomeShellState extends State<HomeShell> {
         category: _editingCategory,
         initialType: _categoryInitialType,
         onDone: _closeCategoryForm,
+      ),
+      BudgetsTab(
+        budgetViewModel: widget.budgetViewModel,
+        currency: widget.accountViewModel.primaryCurrency,
+        onEdit: (budget) => _openBudgetForm(budget),
+      ),
+      BudgetFormTab(
+        key: ValueKey(_editingBudget?.id ?? 'new-$_budgetFormNonce'),
+        userId: widget.authViewModel.userId ?? '',
+        budgetViewModel: widget.budgetViewModel,
+        categoryViewModel: widget.categoryViewModel,
+        budget: _editingBudget,
+        onDone: _closeBudgetForm,
       ),
     ];
 
@@ -208,6 +248,12 @@ class _HomeShellState extends State<HomeShell> {
       case _categoriesTabIndex:
         return IconButton(
           onPressed: () => _openCategoryForm(null),
+          icon: const Icon(Icons.add_rounded),
+          color: AppColors.authTextPrimary,
+        );
+      case _budgetsTabIndex:
+        return IconButton(
+          onPressed: () => _openBudgetForm(null),
           icon: const Icon(Icons.add_rounded),
           color: AppColors.authTextPrimary,
         );
@@ -297,6 +343,8 @@ class _AppDrawer extends StatelessWidget {
         currentIndex == _accountsTabIndex || currentIndex == _accountFormTabIndex;
     final isCategoriesSection = currentIndex == _categoriesTabIndex ||
         currentIndex == _categoryFormTabIndex;
+    final isBudgetsSection =
+        currentIndex == _budgetsTabIndex || currentIndex == _budgetFormTabIndex;
 
     return Drawer(
       backgroundColor: AppColors.authBackgroundBottom,
@@ -415,6 +463,37 @@ class _AppDrawer extends StatelessWidget {
                   : () {
                       Navigator.of(context).pop();
                       onSelect(_categoriesTabIndex);
+                    },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.pie_chart_outline_rounded,
+                color: isBudgetsSection
+                    ? AppColors.authAccent
+                    : AppColors.authTextSecondary,
+              ),
+              title: Text(
+                'Presupuestos',
+                style: TextStyle(
+                  color: isBudgetsSection
+                      ? AppColors.authAccent
+                      : AppColors.authTextSecondary,
+                  fontWeight:
+                      isBudgetsSection ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+              selected: isBudgetsSection,
+              selectedTileColor: AppColors.authCardFill,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+              onTap: userId == null
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                      onSelect(_budgetsTabIndex);
                     },
             ),
           ],
