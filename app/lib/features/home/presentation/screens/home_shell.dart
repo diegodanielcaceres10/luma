@@ -16,6 +16,7 @@ import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/screens/categories_tab.dart';
 import '../../../categories/presentation/screens/category_form_tab.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../transactions/presentation/screens/movements_tab.dart';
 import '../../../transactions/presentation/screens/statistics_tab.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
@@ -45,6 +46,7 @@ class HomeShell extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
   final CategoryViewModel categoryViewModel;
   final BudgetViewModel budgetViewModel;
+  final MonthlyBalanceViewModel monthlyBalanceViewModel;
 
   const HomeShell({
     super.key,
@@ -53,6 +55,7 @@ class HomeShell extends StatefulWidget {
     required this.transactionViewModel,
     required this.categoryViewModel,
     required this.budgetViewModel,
+    required this.monthlyBalanceViewModel,
   });
 
   @override
@@ -141,6 +144,7 @@ class _HomeShellState extends State<HomeShell> {
         accountViewModel: widget.accountViewModel,
         transactionViewModel: widget.transactionViewModel,
         categoryViewModel: widget.categoryViewModel,
+        monthlyBalanceViewModel: widget.monthlyBalanceViewModel,
         onSeeAllMovements: () => _onTabTap(1),
       ),
       MovementsTab(

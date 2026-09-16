@@ -5,9 +5,12 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../monthly_balances/presentation/screens/monthly_balance_screen.dart';
+import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../transactions/data/models/transaction_entry.dart';
 import '../../../transactions/presentation/screens/add_transaction_screen.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
@@ -19,6 +22,7 @@ class DashboardTab extends StatelessWidget {
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
   final CategoryViewModel categoryViewModel;
+  final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final VoidCallback? onSeeAllMovements;
 
   const DashboardTab({
@@ -27,6 +31,7 @@ class DashboardTab extends StatelessWidget {
     required this.accountViewModel,
     required this.transactionViewModel,
     required this.categoryViewModel,
+    required this.monthlyBalanceViewModel,
     this.onSeeAllMovements,
   });
 
@@ -47,11 +52,31 @@ class DashboardTab extends StatelessWidget {
     );
   }
 
+  void _openMonthlyBalances(BuildContext context, List<Account> pendingAccounts) {
+    final userId = authViewModel.userId;
+    if (userId == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MonthlyBalanceScreen(
+          userId: userId,
+          pendingAccounts: pendingAccounts,
+          monthlyBalanceViewModel: monthlyBalanceViewModel,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([accountViewModel, transactionViewModel]),
+      listenable: Listenable.merge(
+          [accountViewModel, transactionViewModel, monthlyBalanceViewModel]),
       builder: (context, _) {
+        final pendingAccounts = monthlyBalanceViewModel.checked
+            ? monthlyBalanceViewModel.pendingAccounts(accountViewModel.accounts)
+            : const <Account>[];
+
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
@@ -64,6 +89,10 @@ class DashboardTab extends StatelessWidget {
               isLoading: accountViewModel.isLoading,
               total: accountViewModel.totalBalance,
               currency: accountViewModel.primaryCurrency,
+              pendingAccountsCount: pendingAccounts.length,
+              onCompletePendingBalances: pendingAccounts.isEmpty
+                  ? null
+                  : () => _openMonthlyBalances(context, pendingAccounts),
             ),
             const SizedBox(height: 28),
             const _SectionHeader(title: 'Acciones rápidas'),
@@ -138,11 +167,15 @@ class _BalanceCard extends StatelessWidget {
   final bool isLoading;
   final double total;
   final String currency;
+  final int pendingAccountsCount;
+  final VoidCallback? onCompletePendingBalances;
 
   const _BalanceCard({
     required this.isLoading,
     required this.total,
     required this.currency,
+    this.pendingAccountsCount = 0,
+    this.onCompletePendingBalances,
   });
 
   @override
@@ -160,112 +193,164 @@ class _BalanceCard extends StatelessWidget {
           ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.calendar_today_rounded,
-                    color: Colors.white70, size: 16),
-                SizedBox(width: 8),
-                Text(
-                  'Balance general del mes',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            isLoading
-                ? const SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+                const Row(
+                  children: [
+                    Icon(Icons.calendar_today_rounded,
+                        color: Colors.white70, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Balance general del mes',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
-                  )
-                : Text(
-                    formatCurrency(total, currency),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-            const SizedBox(height: 8),
-            const Row(
-              children: [
-                Icon(Icons.arrow_upward_rounded,
-                    color: AppColors.authAccent, size: 16),
-                SizedBox(width: 4),
-                Text(
-                  '+12% vs. mes anterior',
-                  style: TextStyle(
-                    color: AppColors.authAccent,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white24, height: 1),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.white.withValues(alpha: 0.12),
-                  child: const Icon(Icons.credit_card_rounded,
-                      color: Colors.white, size: 18),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Total pendiente de pagar',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        '\$ 320,00',
-                        style: TextStyle(
+                const SizedBox(height: 10),
+                isLoading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
                           color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        formatCurrency(total, currency),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 30,
                           fontWeight: FontWeight.w700,
-                          fontSize: 15,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Ver detalles',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                const SizedBox(height: 8),
+                const Row(
+                  children: [
+                    Icon(Icons.arrow_upward_rounded,
+                        color: AppColors.authAccent, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      '+12% vs. mes anterior',
+                      style: TextStyle(
+                        color: AppColors.authAccent,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
                       ),
-                      Icon(Icons.chevron_right_rounded,
-                          color: Colors.white, size: 16),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white24, height: 1),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.white.withValues(alpha: 0.12),
+                      child: const Icon(Icons.credit_card_rounded,
+                          color: Colors.white, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Total pendiente de pagar',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            '\$ 320,00',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Ver detalles',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Icon(Icons.chevron_right_rounded,
+                              color: Colors.white, size: 16),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (pendingAccountsCount > 0) ...[
+                  const SizedBox(height: 16),
+                  const Divider(color: Colors.white24, height: 1),
+                  const SizedBox(height: 16),
+                  _PendingBalancesAlert(
+                    count: pendingAccountsCount,
+                    onTap: onCompletePendingBalances,
+                  ),
+                ],
               ],
             ),
-          ],
-        ),
+          ),
+    );
+  }
+}
+
+class _PendingBalancesAlert extends StatelessWidget {
+  final int count;
+  final VoidCallback? onTap;
+
+  const _PendingBalancesAlert({required this.count, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count == 1
+        ? 'Falta cargar el saldo inicial de 1 cuenta este mes'
+        : 'Faltan cargar los saldos iniciales de $count cuentas este mes';
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded,
+              color: Color(0xFFFBBF24), size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ),
+          const Text(
+            'Completar',
+            style: TextStyle(
+              color: Color(0xFFFBBF24),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded,
+              color: Color(0xFFFBBF24), size: 16),
+        ],
       ),
     );
   }
