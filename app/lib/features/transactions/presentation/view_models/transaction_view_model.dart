@@ -42,6 +42,18 @@ class TransactionViewModel extends ChangeNotifier {
       .where((t) => t.type == 'expense')
       .fold(0, (sum, t) => sum + t.amount);
 
+  double get totalIncome => _transactions
+      .where((t) => t.type == 'income')
+      .fold(0, (sum, t) => sum + t.amount);
+
+  /// Ingresos - gastos del mes en curso. Puede ser negativo. No se
+  /// persiste: se recalcula siempre a partir de los movimientos cargados
+  /// con loadCurrentMonth(). Para meses ya cerrados, este mismo valor
+  /// puede reconstruirse como la diferencia entre el saldo inicial de ese
+  /// mes y el del mes siguiente (monthly_account_balances), sin necesidad
+  /// de volver a sumar transacciones una por una.
+  double get netResult => totalIncome - totalExpenses;
+
   List<CategoryTotal> get categoryBreakdown {
     final expenses = _transactions.where((t) => t.type == 'expense');
     final Map<String, double> totals = {};

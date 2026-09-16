@@ -75,6 +75,8 @@ class DashboardTab extends StatelessWidget {
               isLoading: accountViewModel.isLoading,
               total: accountViewModel.totalBalance,
               currency: accountViewModel.primaryCurrency,
+              netResult: transactionViewModel.netResult,
+              isLoadingNetResult: transactionViewModel.isLoading,
               pendingAccountsCount: pendingAccounts.length,
               onCompletePendingBalances: pendingAccounts.isEmpty
                   ? null
@@ -153,6 +155,8 @@ class _BalanceCard extends StatelessWidget {
   final bool isLoading;
   final double total;
   final String currency;
+  final double netResult;
+  final bool isLoadingNetResult;
   final int pendingAccountsCount;
   final VoidCallback? onCompletePendingBalances;
 
@@ -160,6 +164,8 @@ class _BalanceCard extends StatelessWidget {
     required this.isLoading,
     required this.total,
     required this.currency,
+    required this.netResult,
+    required this.isLoadingNetResult,
     this.pendingAccountsCount = 0,
     this.onCompletePendingBalances,
   });
@@ -211,79 +217,41 @@ class _BalanceCard extends StatelessWidget {
                         ),
                       ),
                 const SizedBox(height: 8),
-                const Row(
-                  children: [
-                    Icon(Icons.arrow_upward_rounded,
-                        color: AppColors.authAccent, size: 16),
-                    SizedBox(width: 4),
-                    Text(
-                      '+12% vs. mes anterior',
-                      style: TextStyle(
-                        color: AppColors.authAccent,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Divider(color: Colors.white24, height: 1),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Colors.white.withValues(alpha: 0.12),
-                      child: const Icon(Icons.credit_card_rounded,
-                          color: Colors.white, size: 18),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                isLoadingNetResult
+                    ? const SizedBox(
+                        height: 14,
+                        width: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white70,
+                        ),
+                      )
+                    : Row(
                         children: [
-                          Text(
-                            'Total pendiente de pagar',
-                            style:
-                                TextStyle(color: Colors.white70, fontSize: 12),
+                          Icon(
+                            netResult >= 0
+                                ? Icons.arrow_upward_rounded
+                                : Icons.arrow_downward_rounded,
+                            color: netResult >= 0
+                                ? AppColors.authAccent
+                                : AppColors.authExpense,
+                            size: 16,
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(width: 4),
                           Text(
-                            '\$ 320,00',
+                            '${netResult >= 0 ? '+' : ''}'
+                            '${formatCurrency(netResult, currency)} este mes '
+                            '(ingresos - gastos)',
                             style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Ver detalles',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
+                              color: netResult >= 0
+                                  ? AppColors.authAccent
+                                  : AppColors.authExpense,
                               fontWeight: FontWeight.w600,
+                              fontSize: 13,
                             ),
                           ),
-                          Icon(Icons.chevron_right_rounded,
-                              color: Colors.white, size: 16),
                         ],
                       ),
-                    ),
-                  ],
-                ),
                 if (pendingAccountsCount > 0) ...[
                   const SizedBox(height: 16),
                   const Divider(color: Colors.white24, height: 1),
