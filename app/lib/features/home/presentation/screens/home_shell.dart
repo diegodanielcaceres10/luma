@@ -110,6 +110,13 @@ class _HomeShellState extends State<HomeShell> {
       _editingAccount = null;
       _index = _accountsTabIndex;
     });
+
+    // Alta, edición o incluso cancelación pueden haber cambiado la lista
+    // de cuentas (una cuenta nueva ya trae su registro en
+    // monthly_account_balances desde el alta, pero la foto en memoria de
+    // MonthlyBalanceViewModel quedaría desactualizada si no la
+    // refrescamos acá).
+    widget.monthlyBalanceViewModel.checkCurrentMonth();
   }
 
   void _openCategoryForm(Category? category, {String initialType = 'expense'}) {
