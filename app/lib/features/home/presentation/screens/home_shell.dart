@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
-import '../../../accounts/presentation/screens/account_form_screen.dart';
+import '../../../accounts/data/models/account.dart';
+import '../../../accounts/presentation/screens/account_form_tab.dart';
 import '../../../accounts/presentation/screens/accounts_tab.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
@@ -23,9 +24,10 @@ const _navItems = [
   (Icons.person_outline_rounded, 'Perfil'),
 ];
 
-/// Índice de la pestaña "Cuentas" dentro del IndexedStack. Solo se llega a
-/// ella desde el drawer, no tiene entrada en el bottom nav.
+/// Pestañas a las que solo se llega desde el drawer o desde otra pestaña,
+/// sin entrada propia en el bottom nav.
 const _accountsTabIndex = 4;
+const _accountFormTabIndex = 5;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -49,6 +51,13 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   bool _movementsLoaded = false;
 
+  // Cuenta que se está editando en la pestaña de formulario; null = alta.
+  Account? _editingAccount;
+  // Se incrementa cada vez que se abre el formulario en modo alta, para
+  // forzar que el estado del formulario se reinicie aunque se abra dos
+  // veces seguidas sin pasar por edición en el medio.
+  int _formNonce = 0;
+
   void _onTabTap(int index) {
     setState(() => _index = index);
 
@@ -60,18 +69,19 @@ class _HomeShellState extends State<HomeShell> {
     }
   }
 
-  void _openNewAccountForm(BuildContext context) {
-    final userId = widget.authViewModel.userId;
-    if (userId == null) return;
+  void _openAccountForm(Account? account) {
+    setState(() {
+      _editingAccount = account;
+      if (account == null) _formNonce++;
+      _index = _accountFormTabIndex;
+    });
+  }
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AccountFormScreen(
-          userId: userId,
-          accountViewModel: widget.accountViewModel,
-        ),
-      ),
-    );
+  void _closeAccountForm() {
+    setState(() {
+      _editingAccount = null;
+      _index = _accountsTabIndex;
+    });
   }
 
   @override
@@ -94,8 +104,15 @@ class _HomeShellState extends State<HomeShell> {
       ),
       ProfileScreen(viewModel: widget.authViewModel),
       AccountsTab(
+        accountViewModel: widget.accountViewModel,
+        onOpenForm: _openAccountForm,
+      ),
+      AccountFormTab(
+        key: ValueKey(_editingAccount?.id ?? 'new-$_formNonce'),
         userId: widget.authViewModel.userId ?? '',
         accountViewModel: widget.accountViewModel,
+        account: _editingAccount,
+        onDone: _closeAccountForm,
       ),
     ];
 
@@ -121,7 +138,7 @@ class _HomeShellState extends State<HomeShell> {
           bottom: false,
           child: Column(
             children: [
-              LumaHeader(trailing: _headerAction(context)),
+              LumaHeader(trailing: _headerAction()),
               Expanded(child: IndexedStack(index: _index, children: tabs)),
             ],
           ),
@@ -135,7 +152,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   /// Acción a la derecha del header, según la pestaña activa.
-  Widget? _headerAction(BuildContext context) {
+  Widget? _headerAction() {
     switch (_index) {
       case 0:
         return const IconButton(
@@ -151,7 +168,7 @@ class _HomeShellState extends State<HomeShell> {
         );
       case _accountsTabIndex:
         return IconButton(
-          onPressed: () => _openNewAccountForm(context),
+          onPressed: () => _openAccountForm(null),
           icon: const Icon(Icons.add_rounded),
           color: AppColors.authTextPrimary,
         );
@@ -239,6 +256,9 @@ class _AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAccountsSection =
+        currentIndex == _accountsTabIndex || currentIndex == _accountFormTabIndex;
+
     return Drawer(
       backgroundColor: AppColors.authBackgroundBottom,
       child: SafeArea(
@@ -299,22 +319,21 @@ class _AppDrawer extends StatelessWidget {
             ListTile(
               leading: Icon(
                 Icons.account_balance_wallet_outlined,
-                color: currentIndex == _accountsTabIndex
+                color: isAccountsSection
                     ? AppColors.authAccent
                     : AppColors.authTextSecondary,
               ),
               title: Text(
                 'Cuentas',
                 style: TextStyle(
-                  color: currentIndex == _accountsTabIndex
+                  color: isAccountsSection
                       ? AppColors.authAccent
                       : AppColors.authTextSecondary,
-                  fontWeight: currentIndex == _accountsTabIndex
-                      ? FontWeight.w700
-                      : FontWeight.w500,
+                  fontWeight:
+                      isAccountsSection ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
-              selected: currentIndex == _accountsTabIndex,
+              selected: isAccountsSection,
               selectedTileColor: AppColors.authCardFill,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

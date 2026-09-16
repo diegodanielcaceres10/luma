@@ -7,32 +7,22 @@ import '../../../../core/utils/category_visuals.dart' show colorFromHex;
 import '../../../../core/utils/currency_format.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
-import 'account_form_screen.dart';
 
 /// Contenido de la pestaña "Cuentas". No tiene Scaffold propio — vive dentro
 /// del Scaffold del HomeShell, que es quien pone el header y el
 /// bottomNavigationBar.
 class AccountsTab extends StatelessWidget {
-  final String userId;
   final AccountViewModel accountViewModel;
+
+  /// Pide al HomeShell que muestre la pestaña de formulario. `null` = alta
+  /// nueva; con valor = edición de esa cuenta.
+  final ValueChanged<Account?> onOpenForm;
 
   const AccountsTab({
     super.key,
-    required this.userId,
     required this.accountViewModel,
+    required this.onOpenForm,
   });
-
-  void _openForm(BuildContext context, {Account? account}) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AccountFormScreen(
-          userId: userId,
-          accountViewModel: accountViewModel,
-          account: account,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +54,7 @@ class AccountsTab extends StatelessWidget {
                     ),
                   ),
                   InkWell(
-                    onTap: () => _openForm(context),
+                    onTap: () => onOpenForm(null),
                     borderRadius: BorderRadius.circular(20),
                     child: const Padding(
                       padding: EdgeInsets.all(4),
@@ -96,7 +86,7 @@ class AccountsTab extends StatelessWidget {
                       final account = accounts[i];
                       return _AccountRow(
                         account: account,
-                        onTap: () => _openForm(context, account: account),
+                        onTap: () => onOpenForm(account),
                         showDivider: i != accounts.length - 1,
                       );
                     }),
