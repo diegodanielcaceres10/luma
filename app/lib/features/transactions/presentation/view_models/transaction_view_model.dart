@@ -26,11 +26,17 @@ class TransactionViewModel extends ChangeNotifier {
   List<TransactionEntry> _transactions = [];
   List<TransactionEntry> _allTransactions = [];
   bool _hasLoadedAll = false;
+  String? _lastCreatedTransactionId;
 
   bool get isLoading => _isLoading;
   bool get isLoadingAll => _isLoadingAll;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
+
+  /// Id de la última transacción creada con éxito por [createTransaction].
+  /// Lo necesita, por ejemplo, el pago de una factura para vincularla a
+  /// la transacción recién creada.
+  String? get lastCreatedTransactionId => _lastCreatedTransactionId;
 
   /// Historial completo (no limitado al mes actual), para la pestaña
   /// Movimientos. Hay que llamar loadAllTransactions() antes de leerlo.
@@ -122,10 +128,11 @@ class TransactionViewModel extends ChangeNotifier {
   }) async {
     _isSubmitting = true;
     _errorMessage = null;
+    _lastCreatedTransactionId = null;
     notifyListeners();
 
     try {
-      await _repository.create(
+      _lastCreatedTransactionId = await _repository.create(
         userId: userId,
         accountId: accountId,
         categoryId: categoryId,

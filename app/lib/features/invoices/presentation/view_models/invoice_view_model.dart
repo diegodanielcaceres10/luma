@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../transactions/data/repositories/transaction_repository.dart';
+import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import '../../data/models/invoice.dart';
 import '../../data/repositories/invoice_repository.dart';
 
@@ -8,9 +8,9 @@ enum InvoiceSubmitError { duplicate, generic }
 
 class InvoiceViewModel extends ChangeNotifier {
   final InvoiceRepository _repository;
-  final TransactionRepository _transactionRepository;
+  final TransactionViewModel _transactionViewModel;
 
-  InvoiceViewModel(this._repository, this._transactionRepository);
+  InvoiceViewModel(this._repository, this._transactionViewModel);
 
   bool _isLoading = false;
   bool _isSubmitting = false;
@@ -120,6 +120,12 @@ class InvoiceViewModel extends ChangeNotifier {
   /// factura) y marca la factura como pagada apuntando a esa
   /// transacción. Una factura ya pagada o cancelada no llega a mostrar
   /// esta acción — la protege además el constraint de la tabla.
+  ///
+  /// La transacción se crea a través de [TransactionViewModel] (y no
+  /// directo contra el repositorio) para que recargue sus propias listas
+  /// — de lo contrario el Dashboard y Movimientos, que leen de esa misma
+  /// instancia, no se enteran del gasto nuevo hasta la próxima recarga
+  /// manual.
   Future<bool> payInvoice({
     required Invoice invoice,
     required String userId,
@@ -133,7 +139,7 @@ class InvoiceViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final transactionId = await _transactionRepository.create(
+      final created = await _transactionViewModel.createTransaction(
         userId: userId,
         accountId: accountId,
         categoryId: categoryId,
@@ -142,6 +148,14 @@ class InvoiceViewModel extends ChangeNotifier {
         description: description,
         date: DateTime.now(),
       );
+      final transactionId = _transactionViewModel.lastCreatedTransactionId;
+      if (!created || transactionId == null) {
+        _errorMessage = _transactionViewModel.errorMessage ??
+            'No se pudo registrar el pago.';
+        notifyListeners();
+        return false;
+      }
+
       await _repository.markPaid(
         id: invoice.id,
         transactionId: transactionId,
