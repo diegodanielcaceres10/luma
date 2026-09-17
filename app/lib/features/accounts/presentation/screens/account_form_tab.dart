@@ -243,6 +243,10 @@ class _AccountFormTabState extends State<AccountFormTab> {
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.authAccent,
                         foregroundColor: AppColors.authBackgroundBottom,
+                        disabledBackgroundColor:
+                            AppColors.authAccent.withValues(alpha: 0.6),
+                        disabledForegroundColor:
+                            AppColors.authBackgroundBottom.withValues(alpha: 0.6),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       onPressed: isSubmitting ? null : _submit,
