@@ -15,6 +15,9 @@ import '../features/home/presentation/screens/home_shell.dart';
 import '../features/monthly_balances/data/repositories/monthly_balance_repository.dart';
 import '../features/monthly_balances/data/services/monthly_balance_service.dart';
 import '../features/monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
+import '../features/services/data/repositories/service_repository.dart';
+import '../features/services/data/services/service_service.dart';
+import '../features/services/presentation/view_models/service_view_model.dart';
 import '../features/transactions/data/repositories/transaction_repository.dart';
 import '../features/transactions/data/services/transaction_service.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
@@ -33,6 +36,7 @@ class _LumaAppState extends State<LumaApp> {
   late final TransactionViewModel _transactionViewModel;
   late final CategoryViewModel _categoryViewModel;
   late final MonthlyBalanceViewModel _monthlyBalanceViewModel;
+  late final ServiceViewModel _serviceViewModel;
 
   @override
   void initState() {
@@ -56,6 +60,9 @@ class _LumaAppState extends State<LumaApp> {
         MonthlyBalanceRepository(MonthlyBalanceService(client));
     _monthlyBalanceViewModel = MonthlyBalanceViewModel(monthlyBalanceRepository);
 
+    final serviceRepository = ServiceRepository(ServiceService(client));
+    _serviceViewModel = ServiceViewModel(serviceRepository);
+
     _authViewModel.addListener(_onAuthChanged);
     if (_authViewModel.isAuthenticated) {
       _loadUserData();
@@ -73,6 +80,7 @@ class _LumaAppState extends State<LumaApp> {
     _transactionViewModel.loadCurrentMonth();
     _categoryViewModel.loadCategories();
     _monthlyBalanceViewModel.checkCurrentMonth();
+    _serviceViewModel.loadServices();
   }
 
   @override
@@ -83,6 +91,7 @@ class _LumaAppState extends State<LumaApp> {
     _transactionViewModel.dispose();
     _categoryViewModel.dispose();
     _monthlyBalanceViewModel.dispose();
+    _serviceViewModel.dispose();
     super.dispose();
   }
 
@@ -102,6 +111,7 @@ class _LumaAppState extends State<LumaApp> {
                   transactionViewModel: _transactionViewModel,
                   categoryViewModel: _categoryViewModel,
                   monthlyBalanceViewModel: _monthlyBalanceViewModel,
+                  serviceViewModel: _serviceViewModel,
                 )
               : LoginScreen(viewModel: _authViewModel);
         },

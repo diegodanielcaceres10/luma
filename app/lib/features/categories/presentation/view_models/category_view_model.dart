@@ -20,6 +20,16 @@ class CategoryViewModel extends ChangeNotifier {
   List<Category> byType(String type) =>
       _categories.where((c) => c.type == type).toList();
 
+  /// Busca una categoría por id — útil para features que solo guardan el
+  /// `category_id` (ej. servicios) y necesitan mostrar nombre/color/ícono.
+  Category? categoryById(String? id) {
+    if (id == null) return null;
+    for (final category in _categories) {
+      if (category.id == id) return category;
+    }
+    return null;
+  }
+
   /// Categorías de gasto con presupuesto asignado — reemplaza a la vieja
   /// tabla `budgets`.
   List<Category> get budgetedCategories =>

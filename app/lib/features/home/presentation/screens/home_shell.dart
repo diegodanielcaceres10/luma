@@ -14,6 +14,10 @@ import '../../../categories/presentation/screens/category_form_tab.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../monthly_balances/presentation/screens/monthly_balance_tab.dart';
 import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
+import '../../../services/data/models/service.dart';
+import '../../../services/presentation/screens/service_form_tab.dart';
+import '../../../services/presentation/screens/services_tab.dart';
+import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../../transactions/presentation/screens/add_transaction_tab.dart';
 import '../../../transactions/presentation/screens/movements_tab.dart';
 import '../../../transactions/presentation/screens/statistics_tab.dart';
@@ -37,6 +41,8 @@ const _categoriesTabIndex = 6;
 const _categoryFormTabIndex = 7;
 const _monthlyBalanceTabIndex = 8;
 const _addTransactionTabIndex = 9;
+const _servicesTabIndex = 10;
+const _serviceFormTabIndex = 11;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -44,6 +50,7 @@ class HomeShell extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
   final CategoryViewModel categoryViewModel;
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
+  final ServiceViewModel serviceViewModel;
 
   const HomeShell({
     super.key,
@@ -52,6 +59,7 @@ class HomeShell extends StatefulWidget {
     required this.transactionViewModel,
     required this.categoryViewModel,
     required this.monthlyBalanceViewModel,
+    required this.serviceViewModel,
   });
 
   @override
@@ -80,6 +88,10 @@ class _HomeShellState extends State<HomeShell> {
   // nonce para forzar un formulario limpio cada vez que se abre.
   String _transactionType = 'expense';
   int _addTransactionNonce = 0;
+
+  // Servicio que se está editando; null = alta.
+  Service? _editingService;
+  int _serviceFormNonce = 0;
 
   void _onTabTap(int index) {
     setState(() => _index = index);
@@ -159,6 +171,21 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
+  void _openServiceForm(Service? service) {
+    setState(() {
+      _editingService = service;
+      if (service == null) _serviceFormNonce++;
+      _index = _serviceFormTabIndex;
+    });
+  }
+
+  void _closeServiceForm() {
+    setState(() {
+      _editingService = null;
+      _index = _servicesTabIndex;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = [
@@ -220,6 +247,19 @@ class _HomeShellState extends State<HomeShell> {
         transactionViewModel: widget.transactionViewModel,
         onDone: _closeAddTransactionForm,
       ),
+      ServicesTab(
+        serviceViewModel: widget.serviceViewModel,
+        categoryViewModel: widget.categoryViewModel,
+        onEdit: (service) => _openServiceForm(service),
+      ),
+      ServiceFormTab(
+        key: ValueKey(_editingService?.id ?? 'new-$_serviceFormNonce'),
+        userId: widget.authViewModel.userId ?? '',
+        serviceViewModel: widget.serviceViewModel,
+        categoryViewModel: widget.categoryViewModel,
+        service: _editingService,
+        onDone: _closeServiceForm,
+      ),
     ];
 
     return Scaffold(
@@ -280,6 +320,12 @@ class _HomeShellState extends State<HomeShell> {
       case _categoriesTabIndex:
         return IconButton(
           onPressed: () => _openCategoryForm(null),
+          icon: const Icon(Icons.add_rounded),
+          color: AppColors.authTextPrimary,
+        );
+      case _servicesTabIndex:
+        return IconButton(
+          onPressed: () => _openServiceForm(null),
           icon: const Icon(Icons.add_rounded),
           color: AppColors.authTextPrimary,
         );
@@ -396,6 +442,8 @@ class _AppDrawer extends StatelessWidget {
         currentIndex == _accountsTabIndex || currentIndex == _accountFormTabIndex;
     final isCategoriesSection = currentIndex == _categoriesTabIndex ||
         currentIndex == _categoryFormTabIndex;
+    final isServicesSection =
+        currentIndex == _servicesTabIndex || currentIndex == _serviceFormTabIndex;
 
     void selectTab(int index) {
       Navigator.of(context).pop();
@@ -451,6 +499,15 @@ class _AppDrawer extends StatelessWidget {
               isSelected: isCategoriesSection,
               onTap:
                   userId == null ? null : () => selectTab(_categoriesTabIndex),
+            ),
+            // Servicios
+            _tile(
+              context,
+              icon: Icons.receipt_long_outlined,
+              label: 'Servicios',
+              isSelected: isServicesSection,
+              onTap:
+                  userId == null ? null : () => selectTab(_servicesTabIndex),
             ),
             // Movimientos, Estadísticas, Perfil
             ...List.generate(_navItems.length - 1, (i) {
