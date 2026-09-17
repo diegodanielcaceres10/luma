@@ -29,37 +29,11 @@ class LoginScreen extends StatelessWidget {
           child: Scaffold(
             body: Stack(
               children: [
-                // Background gradient.
-                const Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.authBackgroundTop,
-                          AppColors.authBackgroundBottom,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                // Decorative glow, top-right corner.
-                Positioned(
-                  top: -120,
-                  right: -100,
-                  child: Container(
-                    width: 320,
-                    height: 320,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppColors.authGlow.withValues(alpha: 0.55),
-                          AppColors.authGlow.withValues(alpha: 0),
-                        ],
-                      ),
-                    ),
+                // Background image.
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/login_bg.png',
+                    fit: BoxFit.cover,
                   ),
                 ),
                 SafeArea(

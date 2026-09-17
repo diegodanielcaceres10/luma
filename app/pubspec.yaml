@@ -27,5 +27,6 @@ flutter:
     - .env
     - assets/logo.png
     - assets/images/balance_card_bg.png
+    - assets/images/login_bg.png
 
   uses-material-design: true
