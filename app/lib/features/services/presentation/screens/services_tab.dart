@@ -166,29 +166,26 @@ class _ServiceRow extends StatelessWidget {
                       ],
                     ),
                   ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Switch(
+                        value: isActive,
+                        activeTrackColor: AppColors.authAccent,
+                        onChanged: onActiveChanged,
+                      ),
+                      Text(
+                        isActive ? 'Activo' : 'Inactivo',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.authTextFooter,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(
-                isActive ? 'Activo' : 'Inactivo',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.authTextFooter,
-                ),
-              ),
-              Switch(
-                value: isActive,
-                activeTrackColor: AppColors.authAccent,
-                onChanged: onActiveChanged,
-              ),
-            ],
           ),
         ),
         if (showDivider)
