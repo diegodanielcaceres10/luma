@@ -27,4 +27,8 @@ class InvoiceRepository {
       dueDate: dueDate,
     );
   }
+
+  Future<void> cancel(String id) {
+    return _service.cancel(id: id);
+  }
 }

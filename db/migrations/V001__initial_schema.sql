@@ -63,8 +63,11 @@ create table invoices (
   paid            boolean not null default false,
   paid_at         timestamptz,
   transaction_id  uuid references transactions(id) on delete set null,
+  cancelled       boolean not null default false,
+  cancelled_at    timestamptz,
   created_at      timestamptz not null default now(),
-  unique (service_id, month, year)
+  unique (service_id, month, year),
+  check (not (paid and cancelled))
 );
 
 -- ─── monthly_account_balances ─────────────────────────────

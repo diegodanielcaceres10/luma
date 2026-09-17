@@ -14,9 +14,10 @@ import '../view_models/invoice_view_model.dart';
 /// dentro del Scaffold del HomeShell, que es quien pone el header (con el
 /// botón "+" para crear) y el bottomNavigationBar.
 ///
-/// Por ahora solo se pueden crear facturas — el pago (marcarla como
-/// pagada, asociarla a una transacción) se agrega en una etapa futura, así
-/// que esta lista es de solo lectura: sin activar/inactivar ni edición.
+/// Además de crear facturas, desde acá se puede cancelar una factura
+/// pendiente — cerrar su flujo sin pasar por un pago. El pago en sí
+/// (marcarla como pagada, asociarla a una transacción) se agrega en una
+/// etapa futura.
 class InvoicesTab extends StatelessWidget {
   final InvoiceViewModel invoiceViewModel;
   final ServiceViewModel serviceViewModel;
@@ -43,6 +44,42 @@ class InvoicesTab extends StatelessWidget {
     'noviembre',
     'diciembre',
   ];
+
+  Future<void> _confirmCancel(BuildContext context, Invoice invoice) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('¿Cancelar factura?'),
+        content: const Text(
+          'La factura quedará marcada como cancelada. Esta acción no se '
+          'puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Volver'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Cancelar factura'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final ok = await invoiceViewModel.cancelInvoice(invoice.id);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            invoiceViewModel.errorMessage ?? 'No se pudo cancelar la factura.',
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +138,8 @@ class InvoicesTab extends StatelessWidget {
                             categoryViewModel.categoryById(service?.categoryId),
                         monthLabel: _monthNames[invoice.month - 1],
                         showDivider: i != invoices.length - 1,
+                        isCancelling: invoiceViewModel.isCancelling(invoice.id),
+                        onCancel: () => _confirmCancel(context, invoice),
                       );
                     }),
                   ),
@@ -119,6 +158,8 @@ class _InvoiceRow extends StatelessWidget {
   final Category? category;
   final String monthLabel;
   final bool showDivider;
+  final bool isCancelling;
+  final VoidCallback onCancel;
 
   const _InvoiceRow({
     required this.invoice,
@@ -126,15 +167,25 @@ class _InvoiceRow extends StatelessWidget {
     required this.category,
     required this.monthLabel,
     required this.showDivider,
+    required this.isCancelling,
+    required this.onCancel,
   });
 
   @override
   Widget build(BuildContext context) {
     final color =
         colorFromHex(category?.color, fallback: AppColors.authAccent);
-    // "Pagada" solo puede pasar cuando exista el flujo de pago; por ahora
-    // toda factura nueva queda en `paid = false`.
-    final badgeColor = invoice.paid ? AppColors.authIncome : AppColors.authExpense;
+
+    final badgeColor = invoice.cancelled
+        ? AppColors.authTextFooter
+        : invoice.paid
+            ? AppColors.authIncome
+            : AppColors.authExpense;
+    final badgeLabel = invoice.cancelled
+        ? 'Cancelada'
+        : invoice.paid
+            ? 'Pagada'
+            : 'Pendiente';
 
     final dueDate = invoice.dueDate;
     final subtitleParts = <String>[
@@ -147,65 +198,92 @@ class _InvoiceRow extends StatelessWidget {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: color.withValues(alpha: 0.85),
-                child: Icon(
-                  category != null
-                      ? iconFromName(category!.icon)
-                      : Icons.receipt_long_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      serviceName,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.authTextPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitleParts.join(' · '),
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.authTextSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  invoice.paid ? 'Pagada' : 'Pendiente',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: badgeColor,
+        Opacity(
+          opacity: invoice.cancelled ? 0.5 : 1,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: color.withValues(alpha: 0.85),
+                  child: Icon(
+                    category != null
+                        ? iconFromName(category!.icon)
+                        : Icons.receipt_long_rounded,
+                    color: Colors.white,
+                    size: 18,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        serviceName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.authTextPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitleParts.join(' · '),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.authTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: badgeColor,
+                    ),
+                  ),
+                ),
+                if (invoice.isPending) ...[
+                  const SizedBox(width: 4),
+                  isCancelling
+                      ? const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.authTextSecondary,
+                            ),
+                          ),
+                        )
+                      : IconButton(
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: AppColors.authTextSecondary,
+                          ),
+                          tooltip: 'Cancelar factura',
+                          onPressed: onCancel,
+                        ),
+                ],
+              ],
+            ),
           ),
         ),
         if (showDivider)

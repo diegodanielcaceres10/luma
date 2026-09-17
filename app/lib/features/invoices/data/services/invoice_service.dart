@@ -42,4 +42,13 @@ class InvoiceService {
               '${dueDate.day.toString().padLeft(2, '0')}',
     });
   }
+
+  /// Cierra el flujo de una factura pendiente sin pagarla. El constraint
+  /// de la tabla impide cancelar una factura ya pagada.
+  Future<void> cancel({required String id}) async {
+    await _client.from('invoices').update({
+      'cancelled': true,
+      'cancelled_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', id);
+  }
 }

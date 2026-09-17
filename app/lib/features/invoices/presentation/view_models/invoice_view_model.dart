@@ -15,12 +15,15 @@ class InvoiceViewModel extends ChangeNotifier {
   String? _errorMessage;
   InvoiceSubmitError? _submitError;
   List<Invoice> _invoices = [];
+  final Set<String> _cancellingIds = {};
 
   bool get isLoading => _isLoading;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
   InvoiceSubmitError? get submitError => _submitError;
   List<Invoice> get invoices => _invoices;
+
+  bool isCancelling(String invoiceId) => _cancellingIds.contains(invoiceId);
 
   Future<void> loadInvoices() async {
     _isLoading = true;
@@ -81,6 +84,28 @@ class InvoiceViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cierra el flujo de una factura pendiente desde la lista, sin pasar
+  /// por el formulario. Una factura ya pagada no llega a mostrar esta
+  /// acción — la protege además el constraint de la tabla.
+  Future<bool> cancelInvoice(String invoiceId) async {
+    _cancellingIds.add(invoiceId);
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.cancel(invoiceId);
+      await loadInvoices();
+      return true;
+    } catch (_) {
+      _errorMessage = 'No se pudo cancelar la factura.';
+      notifyListeners();
+      return false;
+    } finally {
+      _cancellingIds.remove(invoiceId);
       notifyListeners();
     }
   }
