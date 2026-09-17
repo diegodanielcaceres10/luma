@@ -116,6 +116,17 @@ class _HomeShellState extends State<HomeShell> {
     }
   }
 
+  // TODO: reemplazar por la navegación real una vez que exista la
+  // screen de transferencias entre cuentas. Por ahora el acceso rápido
+  // ya está en el Dashboard, pero todavía no tiene a dónde ir.
+  void _goToTransfers() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Transferencias entre cuentas — muy pronto.'),
+      ),
+    );
+  }
+
   void _openAccountForm(Account? account) {
     setState(() {
       _editingAccount = account;
@@ -226,6 +237,7 @@ class _HomeShellState extends State<HomeShell> {
         onOpenAddTransaction: _openAddTransactionForm,
         onGoToAccounts: () => _openAccountForm(null),
         onGoToInvoices: () => _onTabTap(_invoicesTabIndex),
+        onGoToTransfers: _goToTransfers,
       ),
       MovementsTab(
         transactionViewModel: widget.transactionViewModel,

@@ -28,6 +28,7 @@ class DashboardTab extends StatelessWidget {
   final ValueChanged<String> onOpenAddTransaction;
   final VoidCallback onGoToAccounts;
   final VoidCallback onGoToInvoices;
+  final VoidCallback onGoToTransfers;
 
   const DashboardTab({
     super.key,
@@ -41,6 +42,7 @@ class DashboardTab extends StatelessWidget {
     required this.onOpenAddTransaction,
     required this.onGoToAccounts,
     required this.onGoToInvoices,
+    required this.onGoToTransfers,
     this.onSeeAllMovements,
   });
 
@@ -101,6 +103,7 @@ class DashboardTab extends StatelessWidget {
               onAddIncome: () => onOpenAddTransaction('income'),
               onAddExpense: () => onOpenAddTransaction('expense'),
               onGoToInvoices: onGoToInvoices,
+              onGoToTransfers: onGoToTransfers,
               pendingInvoicesCount: invoiceViewModel.pendingCount,
             ),
             const SizedBox(height: 28),
@@ -436,12 +439,14 @@ class _QuickActions extends StatelessWidget {
   final VoidCallback onAddIncome;
   final VoidCallback onAddExpense;
   final VoidCallback onGoToInvoices;
+  final VoidCallback onGoToTransfers;
   final int pendingInvoicesCount;
 
   const _QuickActions({
     required this.onAddIncome,
     required this.onAddExpense,
     required this.onGoToInvoices,
+    required this.onGoToTransfers,
     this.pendingInvoicesCount = 0,
   });
 
@@ -481,6 +486,15 @@ class _QuickActions extends StatelessWidget {
               ? '$pendingInvoicesCount pendiente${pendingInvoicesCount == 1 ? '' : 's'} este mes'
               : 'Revisá el estado de tus facturas',
           onTap: onGoToInvoices,
+          isFullWidth: true,
+        ),
+        const SizedBox(height: 12),
+        _QuickActionCard(
+          icon: Icons.swap_horiz_rounded,
+          iconColor: AppColors.authAccent,
+          title: 'Transferencias entre cuentas',
+          subtitle: 'Movés dinero de una cuenta a otra',
+          onTap: onGoToTransfers,
           isFullWidth: true,
         ),
       ],
