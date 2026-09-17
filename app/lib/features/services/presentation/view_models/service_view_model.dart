@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/service.dart';
 import '../../data/repositories/service_repository.dart';
+
+enum ServiceSubmitError { duplicate, generic }
 
 class ServiceViewModel extends ChangeNotifier {
   final ServiceRepository _repository;
@@ -10,11 +13,13 @@ class ServiceViewModel extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSubmitting = false;
   String? _errorMessage;
+  ServiceSubmitError? _submitError;
   List<Service> _services = [];
 
   bool get isLoading => _isLoading;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
+  ServiceSubmitError? get submitError => _submitError;
   List<Service> get services => _services;
 
   /// Servicios activos — para elegir servicio al generar una factura del
@@ -80,13 +85,25 @@ class ServiceViewModel extends ChangeNotifier {
   Future<bool> _submit(Future<void> Function() action) async {
     _isSubmitting = true;
     _errorMessage = null;
+    _submitError = null;
     notifyListeners();
 
     try {
       await action();
       await loadServices();
       return true;
-    } catch (error) {
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        _submitError = ServiceSubmitError.duplicate;
+        _errorMessage = 'Ya existe un servicio con ese nombre.';
+      } else {
+        _submitError = ServiceSubmitError.generic;
+        _errorMessage = 'No se pudo guardar el servicio.';
+      }
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _submitError = ServiceSubmitError.generic;
       _errorMessage = 'No se pudo guardar el servicio.';
       notifyListeners();
       return false;
