@@ -124,118 +124,135 @@ class _AccountFormTabState extends State<AccountFormTab> {
       top: false,
       child: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        child: Column(
           children: [
-            Row(
-              children: [
-                InkWell(
-                  onTap: isSubmitting ? null : widget.onDone,
-                  borderRadius: BorderRadius.circular(20),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(Icons.arrow_back_rounded,
-                        color: AppColors.authTextPrimary),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _isEditing ? 'Editar cuenta' : 'Nueva cuenta',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.authTextPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            const Text('Nombre',
-                style: TextStyle(color: AppColors.authTextSecondary)),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _nameController,
-              enabled: !isSubmitting,
-              style: const TextStyle(color: AppColors.authTextPrimary),
-              decoration: _fieldDecoration.copyWith(
-                hintText: 'Ej: Cuenta corriente',
-                hintStyle: const TextStyle(color: AppColors.authTextFooter),
+            // Thin progress bar across the top while saving.
+            if (isSubmitting)
+              const LinearProgressIndicator(
+                backgroundColor: AppColors.authCardBorder,
+                color: AppColors.authAccent,
+                minHeight: 3,
               ),
-              validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Ingresa un nombre'
-                  : null,
-            ),
-            if (!_isEditing) ...[
-              const SizedBox(height: 20),
-              const Text('Saldo inicial',
-                  style: TextStyle(color: AppColors.authTextSecondary)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _balanceController,
-                enabled: !isSubmitting,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(color: AppColors.authTextPrimary),
-                decoration: _fieldDecoration.copyWith(hintText: '0.00'),
-                validator: (value) {
-                  final parsed = double.tryParse((value ?? '').trim());
-                  return parsed == null ? 'Ingresa un monto válido' : null;
-                },
-              ),
-            ],
-            const SizedBox(height: 20),
-            const Text('Color',
-                style: TextStyle(color: AppColors.authTextSecondary)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: kCategoryColors.map((hex) {
-                final isSelected = hex == _selectedColor;
-                return InkWell(
-                  onTap: isSubmitting
-                      ? null
-                      : () => setState(() => _selectedColor = hex),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: colorFromHex(hex),
-                      shape: BoxShape.circle,
-                      border: isSelected
-                          ? Border.all(
-                              color: AppColors.authTextPrimary, width: 2)
-                          : null,
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: [
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: isSubmitting ? null : widget.onDone,
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(Icons.arrow_back_rounded,
+                              color: AppColors.authTextPrimary),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _isEditing ? 'Editar cuenta' : 'Nueva cuenta',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.authTextPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Nombre',
+                      style: TextStyle(color: AppColors.authTextSecondary)),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _nameController,
+                    enabled: !isSubmitting,
+                    style: const TextStyle(color: AppColors.authTextPrimary),
+                    decoration: _fieldDecoration.copyWith(
+                      hintText: 'Ej: Cuenta corriente',
+                      hintStyle:
+                          const TextStyle(color: AppColors.authTextFooter),
                     ),
-                    child: isSelected
-                        ? const Icon(Icons.check_rounded,
-                            color: Colors.white, size: 20)
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Ingresa un nombre'
                         : null,
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.authAccent,
-                  foregroundColor: AppColors.authBackgroundBottom,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                onPressed: isSubmitting ? null : _submit,
-                child: isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.authBackgroundBottom,
+                  if (!_isEditing) ...[
+                    const SizedBox(height: 20),
+                    const Text('Saldo inicial',
+                        style: TextStyle(color: AppColors.authTextSecondary)),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _balanceController,
+                      enabled: !isSubmitting,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: AppColors.authTextPrimary),
+                      decoration: _fieldDecoration.copyWith(hintText: '0.00'),
+                      validator: (value) {
+                        final parsed = double.tryParse((value ?? '').trim());
+                        return parsed == null
+                            ? 'Ingresa un monto válido'
+                            : null;
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  const Text('Color',
+                      style: TextStyle(color: AppColors.authTextSecondary)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: kCategoryColors.map((hex) {
+                      final isSelected = hex == _selectedColor;
+                      return InkWell(
+                        onTap: isSubmitting
+                            ? null
+                            : () => setState(() => _selectedColor = hex),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: colorFromHex(hex),
+                            shape: BoxShape.circle,
+                            border: isSelected
+                                ? Border.all(
+                                    color: AppColors.authTextPrimary, width: 2)
+                                : null,
+                          ),
+                          child: isSelected
+                              ? const Icon(Icons.check_rounded,
+                                  color: Colors.white, size: 20)
+                              : null,
                         ),
-                      )
-                    : Text(_isEditing ? 'Guardar cambios' : 'Crear cuenta'),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.authAccent,
+                        foregroundColor: AppColors.authBackgroundBottom,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onPressed: isSubmitting ? null : _submit,
+                      child: isSubmitting
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.authBackgroundBottom,
+                              ),
+                            )
+                          : Text(
+                              _isEditing ? 'Guardar cambios' : 'Crear cuenta'),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
