@@ -21,7 +21,8 @@ create table categories (
   icon           text,
   has_budget     boolean not null default false,
   budget_amount  numeric(12, 2),
-  created_at     timestamptz not null default now()
+  created_at     timestamptz not null default now(),
+  unique (user_id, name)
 );
 
 -- ─── transactions ────────────────────────────────────────
