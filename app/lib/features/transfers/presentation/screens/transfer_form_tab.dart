@@ -9,10 +9,10 @@ import '../../../transactions/presentation/view_models/transaction_view_model.da
 /// Scaffold propio — vive dentro del Scaffold del HomeShell, que es quien
 /// pone el header y el bottomNavigationBar.
 ///
-/// Al guardar, se crean dos transacciones tipo 'transfer' (sin
-/// categoría): una en la cuenta de origen y otra en la de destino, ambas
-/// con el mismo monto y fecha de hoy. La fecha no es editable a
-/// propósito — no se pidió ese campo para esta entrega.
+/// Al guardar, se crean dos transacciones sin categoría: un 'expense'
+/// en la cuenta de origen y un 'income' en la de destino, ambas con el
+/// mismo monto y fecha de hoy. La fecha no es editable a propósito — no
+/// se pidió ese campo para esta entrega.
 class TransferFormTab extends StatefulWidget {
   final String? userId;
   final AccountViewModel accountViewModel;

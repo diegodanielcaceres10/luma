@@ -26,7 +26,7 @@ class TransactionCategory {
 
 class TransactionEntry {
   final String id;
-  final String type; // income | expense | transfer
+  final String type; // income | expense
   final double amount;
   final String? description;
   final DateTime date;

@@ -156,11 +156,12 @@ class TransactionViewModel extends ChangeNotifier {
     }
   }
 
-  /// Registra una transferencia entre cuentas como dos transacciones tipo
-  /// 'transfer' (sin categoría): una en la cuenta de origen y otra en la
-  /// de destino, ambas con el mismo monto. No hay un campo que las
-  /// vincule entre sí — [originDescription] y [destinationDescription]
-  /// sirven para poder distinguirlas luego en el listado de movimientos.
+  /// Registra una transferencia entre cuentas como dos transacciones sin
+  /// categoría: un 'expense' en la cuenta de origen y un 'income' en la
+  /// de destino, con el mismo monto. No hay un tercer tipo para
+  /// transferencias a propósito — se tratan igual que cualquier otro
+  /// movimiento, así que también entran en totalIncome/totalExpenses,
+  /// netResult y categoryBreakdown (agrupadas como "Sin categoría").
   ///
   /// Nota: igual que con [createTransaction], esto no actualiza
   /// accounts.balance — esa columna no se recalcula desde ningún lado
@@ -185,7 +186,7 @@ class TransactionViewModel extends ChangeNotifier {
       await _repository.create(
         userId: userId,
         accountId: originAccountId,
-        type: 'transfer',
+        type: 'expense',
         amount: amount,
         description: originDescription,
         date: date,
@@ -193,7 +194,7 @@ class TransactionViewModel extends ChangeNotifier {
       await _repository.create(
         userId: userId,
         accountId: destinationAccountId,
-        type: 'transfer',
+        type: 'income',
         amount: amount,
         description: destinationDescription,
         date: date,
