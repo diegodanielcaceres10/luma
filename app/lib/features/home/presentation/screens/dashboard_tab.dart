@@ -24,6 +24,7 @@ class DashboardTab extends StatelessWidget {
   final VoidCallback? onSeeAllMovements;
   final ValueChanged<List<Account>> onOpenMonthlyBalances;
   final ValueChanged<String> onOpenAddTransaction;
+  final VoidCallback onGoToAccounts;
 
   const DashboardTab({
     super.key,
@@ -34,6 +35,7 @@ class DashboardTab extends StatelessWidget {
     required this.monthlyBalanceViewModel,
     required this.onOpenMonthlyBalances,
     required this.onOpenAddTransaction,
+    required this.onGoToAccounts,
     this.onSeeAllMovements,
   });
 
@@ -47,6 +49,22 @@ class DashboardTab extends StatelessWidget {
             ? monthlyBalanceViewModel
                 .pendingAccounts(accountViewModel.activeAccounts)
             : const <Account>[];
+
+        // No active accounts — guide the user to create one.
+        if (!accountViewModel.isLoading &&
+            accountViewModel.activeAccounts.isEmpty) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: [
+              _GreetingRow(
+                initials: authViewModel.initials,
+                firstName: authViewModel.displayName.split(' ').first,
+              ),
+              const SizedBox(height: 40),
+              _NoAccountsCard(onGoToAccounts: onGoToAccounts),
+            ],
+          );
+        }
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -88,6 +106,74 @@ class DashboardTab extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _NoAccountsCard extends StatelessWidget {
+  final VoidCallback onGoToAccounts;
+
+  const _NoAccountsCard({required this.onGoToAccounts});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.authCardBorder),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.authAccent.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.account_balance_wallet_rounded,
+              color: AppColors.authAccent,
+              size: 40,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Creá tu primera cuenta',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.authTextPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Para empezar a registrar tus movimientos\nnecesitás al menos una cuenta activa.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.authTextSecondary,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.authAccent,
+                foregroundColor: AppColors.authBackgroundBottom,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: onGoToAccounts,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Crear cuenta'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

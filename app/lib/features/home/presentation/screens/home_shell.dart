@@ -12,6 +12,9 @@ import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/screens/categories_tab.dart';
 import '../../../categories/presentation/screens/category_form_tab.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../invoices/presentation/screens/invoice_form_tab.dart';
+import '../../../invoices/presentation/screens/invoices_tab.dart';
+import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../monthly_balances/presentation/screens/monthly_balance_tab.dart';
 import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../services/data/models/service.dart';
@@ -43,6 +46,8 @@ const _monthlyBalanceTabIndex = 8;
 const _addTransactionTabIndex = 9;
 const _servicesTabIndex = 10;
 const _serviceFormTabIndex = 11;
+const _invoicesTabIndex = 12;
+const _invoiceFormTabIndex = 13;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -51,6 +56,7 @@ class HomeShell extends StatefulWidget {
   final CategoryViewModel categoryViewModel;
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final ServiceViewModel serviceViewModel;
+  final InvoiceViewModel invoiceViewModel;
 
   const HomeShell({
     super.key,
@@ -60,6 +66,7 @@ class HomeShell extends StatefulWidget {
     required this.categoryViewModel,
     required this.monthlyBalanceViewModel,
     required this.serviceViewModel,
+    required this.invoiceViewModel,
   });
 
   @override
@@ -92,6 +99,11 @@ class _HomeShellState extends State<HomeShell> {
   // Servicio que se está editando; null = alta.
   Service? _editingService;
   int _serviceFormNonce = 0;
+
+  // Facturas: por ahora solo se crean, así que el form no tiene
+  // "editingInvoice" — el nonce alcanza para forzar un formulario limpio
+  // cada vez que se abre.
+  int _invoiceFormNonce = 0;
 
   void _onTabTap(int index) {
     setState(() => _index = index);
@@ -186,6 +198,19 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
+  void _openInvoiceForm() {
+    setState(() {
+      _invoiceFormNonce++;
+      _index = _invoiceFormTabIndex;
+    });
+  }
+
+  void _closeInvoiceForm() {
+    setState(() {
+      _index = _invoicesTabIndex;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = [
@@ -198,6 +223,7 @@ class _HomeShellState extends State<HomeShell> {
         onSeeAllMovements: () => _onTabTap(1),
         onOpenMonthlyBalances: _openMonthlyBalanceForm,
         onOpenAddTransaction: _openAddTransactionForm,
+        onGoToAccounts: () => _openAccountForm(null),
       ),
       MovementsTab(
         transactionViewModel: widget.transactionViewModel,
@@ -259,6 +285,18 @@ class _HomeShellState extends State<HomeShell> {
         categoryViewModel: widget.categoryViewModel,
         service: _editingService,
         onDone: _closeServiceForm,
+      ),
+      InvoicesTab(
+        invoiceViewModel: widget.invoiceViewModel,
+        serviceViewModel: widget.serviceViewModel,
+        categoryViewModel: widget.categoryViewModel,
+      ),
+      InvoiceFormTab(
+        key: ValueKey('invoice-form-$_invoiceFormNonce'),
+        userId: widget.authViewModel.userId ?? '',
+        invoiceViewModel: widget.invoiceViewModel,
+        serviceViewModel: widget.serviceViewModel,
+        onDone: _closeInvoiceForm,
       ),
     ];
 
@@ -326,6 +364,12 @@ class _HomeShellState extends State<HomeShell> {
       case _servicesTabIndex:
         return IconButton(
           onPressed: () => _openServiceForm(null),
+          icon: const Icon(Icons.add_rounded),
+          color: AppColors.authTextPrimary,
+        );
+      case _invoicesTabIndex:
+        return IconButton(
+          onPressed: _openInvoiceForm,
           icon: const Icon(Icons.add_rounded),
           color: AppColors.authTextPrimary,
         );
@@ -438,12 +482,14 @@ class _AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAccountsSection =
-        currentIndex == _accountsTabIndex || currentIndex == _accountFormTabIndex;
+    final isAccountsSection = currentIndex == _accountsTabIndex ||
+        currentIndex == _accountFormTabIndex;
     final isCategoriesSection = currentIndex == _categoriesTabIndex ||
         currentIndex == _categoryFormTabIndex;
-    final isServicesSection =
-        currentIndex == _servicesTabIndex || currentIndex == _serviceFormTabIndex;
+    final isServicesSection = currentIndex == _servicesTabIndex ||
+        currentIndex == _serviceFormTabIndex;
+    final isInvoicesSection = currentIndex == _invoicesTabIndex ||
+        currentIndex == _invoiceFormTabIndex;
 
     void selectTab(int index) {
       Navigator.of(context).pop();
@@ -506,8 +552,15 @@ class _AppDrawer extends StatelessWidget {
               icon: Icons.receipt_long_outlined,
               label: 'Servicios',
               isSelected: isServicesSection,
-              onTap:
-                  userId == null ? null : () => selectTab(_servicesTabIndex),
+              onTap: userId == null ? null : () => selectTab(_servicesTabIndex),
+            ),
+            // Facturas
+            _tile(
+              context,
+              icon: Icons.request_page_outlined,
+              label: 'Facturas',
+              isSelected: isInvoicesSection,
+              onTap: userId == null ? null : () => selectTab(_invoicesTabIndex),
             ),
             // Movimientos, Estadísticas, Perfil
             ...List.generate(_navItems.length - 1, (i) {

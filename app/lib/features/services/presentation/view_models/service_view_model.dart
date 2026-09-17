@@ -28,6 +28,16 @@ class ServiceViewModel extends ChangeNotifier {
   List<Service> get activeServices =>
       _services.where((service) => service.isActive).toList();
 
+  /// Busca un servicio por id — útil para features que solo guardan el
+  /// `service_id` (ej. facturas) y necesitan mostrar su nombre.
+  Service? serviceById(String? id) {
+    if (id == null) return null;
+    for (final service in _services) {
+      if (service.id == id) return service;
+    }
+    return null;
+  }
+
   Future<void> loadServices() async {
     _isLoading = true;
     _errorMessage = null;
