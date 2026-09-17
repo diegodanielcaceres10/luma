@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../transactions/data/repositories/transaction_repository.dart';
 import '../../data/models/invoice.dart';
 import '../../data/repositories/invoice_repository.dart';
 
@@ -7,8 +8,9 @@ enum InvoiceSubmitError { duplicate, generic }
 
 class InvoiceViewModel extends ChangeNotifier {
   final InvoiceRepository _repository;
+  final TransactionRepository _transactionRepository;
 
-  InvoiceViewModel(this._repository);
+  InvoiceViewModel(this._repository, this._transactionRepository);
 
   bool _isLoading = false;
   bool _isSubmitting = false;
@@ -16,6 +18,7 @@ class InvoiceViewModel extends ChangeNotifier {
   InvoiceSubmitError? _submitError;
   List<Invoice> _invoices = [];
   final Set<String> _cancellingIds = {};
+  final Set<String> _payingIds = {};
 
   bool get isLoading => _isLoading;
   bool get isSubmitting => _isSubmitting;
@@ -24,6 +27,7 @@ class InvoiceViewModel extends ChangeNotifier {
   List<Invoice> get invoices => _invoices;
 
   bool isCancelling(String invoiceId) => _cancellingIds.contains(invoiceId);
+  bool isPaying(String invoiceId) => _payingIds.contains(invoiceId);
 
   Future<void> loadInvoices() async {
     _isLoading = true;
@@ -106,6 +110,50 @@ class InvoiceViewModel extends ChangeNotifier {
       return false;
     } finally {
       _cancellingIds.remove(invoiceId);
+      notifyListeners();
+    }
+  }
+
+  /// Registra el pago de una factura pendiente: crea la transacción de
+  /// gasto vinculada a la categoría del servicio (con el monto que se
+  /// haya confirmado, que puede diferir del importe original de la
+  /// factura) y marca la factura como pagada apuntando a esa
+  /// transacción. Una factura ya pagada o cancelada no llega a mostrar
+  /// esta acción — la protege además el constraint de la tabla.
+  Future<bool> payInvoice({
+    required Invoice invoice,
+    required String userId,
+    required String accountId,
+    required String categoryId,
+    required double amount,
+    String? description,
+  }) async {
+    _payingIds.add(invoice.id);
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final transactionId = await _transactionRepository.create(
+        userId: userId,
+        accountId: accountId,
+        categoryId: categoryId,
+        type: 'expense',
+        amount: amount,
+        description: description,
+        date: DateTime.now(),
+      );
+      await _repository.markPaid(
+        id: invoice.id,
+        transactionId: transactionId,
+      );
+      await loadInvoices();
+      return true;
+    } catch (_) {
+      _errorMessage = 'No se pudo registrar el pago.';
+      notifyListeners();
+      return false;
+    } finally {
+      _payingIds.remove(invoice.id);
       notifyListeners();
     }
   }

@@ -31,4 +31,8 @@ class InvoiceRepository {
   Future<void> cancel(String id) {
     return _service.cancel(id: id);
   }
+
+  Future<void> markPaid({required String id, required String transactionId}) {
+    return _service.markPaid(id: id, transactionId: transactionId);
+  }
 }

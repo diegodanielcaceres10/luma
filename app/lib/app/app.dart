@@ -68,7 +68,7 @@ class _LumaAppState extends State<LumaApp> {
     _serviceViewModel = ServiceViewModel(serviceRepository);
 
     final invoiceRepository = InvoiceRepository(InvoiceService(client));
-    _invoiceViewModel = InvoiceViewModel(invoiceRepository);
+    _invoiceViewModel = InvoiceViewModel(invoiceRepository, transactionRepository);
 
     _authViewModel.addListener(_onAuthChanged);
     if (_authViewModel.isAuthenticated) {

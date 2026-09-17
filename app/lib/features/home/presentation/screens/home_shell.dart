@@ -287,9 +287,11 @@ class _HomeShellState extends State<HomeShell> {
         onDone: _closeServiceForm,
       ),
       InvoicesTab(
+        userId: widget.authViewModel.userId ?? '',
         invoiceViewModel: widget.invoiceViewModel,
         serviceViewModel: widget.serviceViewModel,
         categoryViewModel: widget.categoryViewModel,
+        accountViewModel: widget.accountViewModel,
       ),
       InvoiceFormTab(
         key: ValueKey('invoice-form-$_invoiceFormNonce'),

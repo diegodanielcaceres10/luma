@@ -14,7 +14,7 @@ class TransactionRepository {
     return _service.fetchAll();
   }
 
-  Future<void> create({
+  Future<String> create({
     required String userId,
     required String accountId,
     required String categoryId,

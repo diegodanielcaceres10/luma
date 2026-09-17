@@ -51,4 +51,17 @@ class InvoiceService {
       'cancelled_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', id);
   }
+
+  /// Registra el pago de una factura pendiente, vinculándola a la
+  /// transacción de gasto que se creó para ese pago.
+  Future<void> markPaid({
+    required String id,
+    required String transactionId,
+  }) async {
+    await _client.from('invoices').update({
+      'paid': true,
+      'paid_at': DateTime.now().toUtc().toIso8601String(),
+      'transaction_id': transactionId,
+    }).eq('id', id);
+  }
 }

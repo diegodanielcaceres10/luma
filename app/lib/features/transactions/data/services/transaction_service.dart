@@ -39,7 +39,9 @@ class TransactionService {
         .toList();
   }
 
-  Future<void> createTransaction({
+  /// Crea una transacción y devuelve el id de la fila creada — lo
+  /// necesita, por ejemplo, el pago de una factura para vincularla.
+  Future<String> createTransaction({
     required String userId,
     required String accountId,
     required String categoryId,
@@ -48,15 +50,21 @@ class TransactionService {
     String? description,
     required DateTime date,
   }) async {
-    await _client.from('transactions').insert({
-      'user_id': userId,
-      'account_id': accountId,
-      'category_id': categoryId,
-      'type': type,
-      'amount': amount,
-      'description': description,
-      'date': _formatDate(date),
-    });
+    final row = await _client
+        .from('transactions')
+        .insert({
+          'user_id': userId,
+          'account_id': accountId,
+          'category_id': categoryId,
+          'type': type,
+          'amount': amount,
+          'description': description,
+          'date': _formatDate(date),
+        })
+        .select('id')
+        .single();
+
+    return row['id'] as String;
   }
 
   String _formatDate(DateTime date) {

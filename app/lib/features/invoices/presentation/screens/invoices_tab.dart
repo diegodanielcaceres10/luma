@@ -4,6 +4,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../accounts/data/models/account.dart';
+import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -15,19 +17,23 @@ import '../view_models/invoice_view_model.dart';
 /// botón "+" para crear) y el bottomNavigationBar.
 ///
 /// Además de crear facturas, desde acá se puede cancelar una factura
-/// pendiente — cerrar su flujo sin pasar por un pago. El pago en sí
-/// (marcarla como pagada, asociarla a una transacción) se agrega en una
-/// etapa futura.
+/// pendiente (cerrar su flujo sin pagarla) o registrar su pago: eso crea
+/// la transacción de gasto vinculada a la categoría del servicio, con
+/// posibilidad de ajustar el monto antes de confirmar.
 class InvoicesTab extends StatelessWidget {
+  final String userId;
   final InvoiceViewModel invoiceViewModel;
   final ServiceViewModel serviceViewModel;
   final CategoryViewModel categoryViewModel;
+  final AccountViewModel accountViewModel;
 
   const InvoicesTab({
     super.key,
+    required this.userId,
     required this.invoiceViewModel,
     required this.serviceViewModel,
     required this.categoryViewModel,
+    required this.accountViewModel,
   });
 
   static const _monthNames = [
@@ -81,13 +87,68 @@ class InvoicesTab extends StatelessWidget {
     }
   }
 
+  Future<void> _payInvoice(
+    BuildContext context, {
+    required Invoice invoice,
+    required String serviceName,
+    required Category? category,
+  }) async {
+    if (category == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'El servicio no tiene categoría o fue eliminado; no se puede '
+            'registrar el pago.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final accounts = accountViewModel.activeAccounts;
+    final result = await showDialog<_PayInvoiceResult>(
+      context: context,
+      builder: (_) => _PayInvoiceDialog(
+        invoice: invoice,
+        serviceName: serviceName,
+        category: category,
+        accounts: accounts,
+      ),
+    );
+
+    if (result == null) return;
+
+    final ok = await invoiceViewModel.payInvoice(
+      invoice: invoice,
+      userId: userId,
+      accountId: result.accountId,
+      categoryId: category.id,
+      amount: result.amount,
+      description: 'Factura · $serviceName',
+    );
+
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            invoiceViewModel.errorMessage ?? 'No se pudo registrar el pago.',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
       child: ListenableBuilder(
-        listenable: Listenable.merge(
-            [invoiceViewModel, serviceViewModel, categoryViewModel]),
+        listenable: Listenable.merge([
+          invoiceViewModel,
+          serviceViewModel,
+          categoryViewModel,
+          accountViewModel,
+        ]),
         builder: (context, _) {
           if (invoiceViewModel.isLoading &&
               invoiceViewModel.invoices.isEmpty) {
@@ -131,15 +192,25 @@ class InvoicesTab extends StatelessWidget {
                       final invoice = invoices[i];
                       final service =
                           serviceViewModel.serviceById(invoice.serviceId);
+                      final serviceName =
+                          service?.name ?? 'Servicio eliminado';
+                      final category =
+                          categoryViewModel.categoryById(service?.categoryId);
                       return _InvoiceRow(
                         invoice: invoice,
-                        serviceName: service?.name ?? 'Servicio eliminado',
-                        category:
-                            categoryViewModel.categoryById(service?.categoryId),
+                        serviceName: serviceName,
+                        category: category,
                         monthLabel: _monthNames[invoice.month - 1],
                         showDivider: i != invoices.length - 1,
                         isCancelling: invoiceViewModel.isCancelling(invoice.id),
+                        isPaying: invoiceViewModel.isPaying(invoice.id),
                         onCancel: () => _confirmCancel(context, invoice),
+                        onPay: () => _payInvoice(
+                          context,
+                          invoice: invoice,
+                          serviceName: serviceName,
+                          category: category,
+                        ),
                       );
                     }),
                   ),
@@ -159,7 +230,9 @@ class _InvoiceRow extends StatelessWidget {
   final String monthLabel;
   final bool showDivider;
   final bool isCancelling;
+  final bool isPaying;
   final VoidCallback onCancel;
+  final VoidCallback onPay;
 
   const _InvoiceRow({
     required this.invoice,
@@ -168,7 +241,9 @@ class _InvoiceRow extends StatelessWidget {
     required this.monthLabel,
     required this.showDivider,
     required this.isCancelling,
+    required this.isPaying,
     required this.onCancel,
+    required this.onPay,
   });
 
   @override
@@ -195,6 +270,8 @@ class _InvoiceRow extends StatelessWidget {
         'vence el ${dueDate.day.toString().padLeft(2, '0')}/'
             '${dueDate.month.toString().padLeft(2, '0')}',
     ];
+
+    final isBusy = isCancelling || isPaying;
 
     return Column(
       children: [
@@ -260,19 +337,31 @@ class _InvoiceRow extends StatelessWidget {
                 ),
                 if (invoice.isPending) ...[
                   const SizedBox(width: 4),
-                  isCancelling
-                      ? const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.authTextSecondary,
-                            ),
+                  if (isBusy)
+                    const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.authTextSecondary,
+                        ),
+                      ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 18,
+                            color: AppColors.authIncome,
                           ),
-                        )
-                      : IconButton(
+                          tooltip: 'Registrar pago',
+                          onPressed: onPay,
+                        ),
+                        IconButton(
                           icon: const Icon(
                             Icons.close_rounded,
                             size: 18,
@@ -281,6 +370,8 @@ class _InvoiceRow extends StatelessWidget {
                           tooltip: 'Cancelar factura',
                           onPressed: onCancel,
                         ),
+                      ],
+                    ),
                 ],
               ],
             ),
@@ -288,6 +379,158 @@ class _InvoiceRow extends StatelessWidget {
         ),
         if (showDivider)
           const Divider(height: 1, color: AppColors.authCardBorder),
+      ],
+    );
+  }
+}
+
+class _PayInvoiceResult {
+  final double amount;
+  final String accountId;
+
+  const _PayInvoiceResult({required this.amount, required this.accountId});
+}
+
+/// Diálogo de pago de una factura. El monto viene precargado con el
+/// importe de la factura pero es editable — puede confirmarse un valor
+/// distinto (ej. si el importe real varió respecto al aproximado). La
+/// categoría se muestra fija: viene del servicio y no se puede cambiar
+/// acá, así que la transacción de gasto siempre queda bien clasificada.
+class _PayInvoiceDialog extends StatefulWidget {
+  final Invoice invoice;
+  final String serviceName;
+  final Category category;
+  final List<Account> accounts;
+
+  const _PayInvoiceDialog({
+    required this.invoice,
+    required this.serviceName,
+    required this.category,
+    required this.accounts,
+  });
+
+  @override
+  State<_PayInvoiceDialog> createState() => _PayInvoiceDialogState();
+}
+
+class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
+  late final TextEditingController _amountController;
+  Account? _selectedAccount;
+  String? _amountError;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(
+      text: widget.invoice.amount.toStringAsFixed(2),
+    );
+    _selectedAccount =
+        widget.accounts.isNotEmpty ? widget.accounts.first : null;
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final amount =
+        double.tryParse(_amountController.text.trim().replaceAll(',', '.'));
+    if (amount == null || amount <= 0) {
+      setState(() => _amountError = 'Ingresá un monto válido');
+      return;
+    }
+    if (_selectedAccount == null) return;
+
+    Navigator.of(context).pop(
+      _PayInvoiceResult(amount: amount, accountId: _selectedAccount!.id),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accounts = widget.accounts;
+    final color = colorFromHex(widget.category.color,
+        fallback: AppColors.authAccent);
+
+    return AlertDialog(
+      title: const Text('Registrar pago'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: color.withValues(alpha: 0.85),
+                  child: Icon(
+                    iconFromName(widget.category.icon),
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${widget.serviceName} · ${widget.category.name}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Text('Monto a pagar'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _amountController,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                prefixText: '€ ',
+                errorText: _amountError,
+              ),
+              onChanged: (_) {
+                if (_amountError != null) {
+                  setState(() => _amountError = null);
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+            const Text('Cuenta con la que se paga'),
+            const SizedBox(height: 8),
+            if (accounts.isEmpty)
+              const Text(
+                'No hay cuentas activas — creá una antes de registrar el '
+                'pago.',
+                style: TextStyle(color: AppColors.authExpense),
+              )
+            else
+              DropdownButtonFormField<Account>(
+                initialValue: _selectedAccount,
+                decoration: const InputDecoration(border: OutlineInputBorder()),
+                items: accounts
+                    .map((a) =>
+                        DropdownMenuItem(value: a, child: Text(a.name)))
+                    .toList(),
+                onChanged: (value) => setState(() => _selectedAccount = value),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Volver'),
+        ),
+        FilledButton(
+          onPressed: accounts.isEmpty ? null : _confirm,
+          child: const Text('Confirmar pago'),
+        ),
       ],
     );
   }
