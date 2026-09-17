@@ -66,7 +66,7 @@ class _AccountFormTabState extends State<AccountFormTab> {
     final account = widget.account;
     _nameController.text = account?.name ?? '';
     _balanceController.text =
-        account != null ? account.balance.toStringAsFixed(2) : '0.00';
+        account != null ? account.balance.toStringAsFixed(2) : '';
     _selectedColor = account?.color ?? kCategoryColors.first;
     // Re-build whenever isSubmitting or errorMessage changes.
     widget.accountViewModel.addListener(_onViewModelChanged);
@@ -245,8 +245,8 @@ class _AccountFormTabState extends State<AccountFormTab> {
                         foregroundColor: AppColors.authBackgroundBottom,
                         disabledBackgroundColor:
                             AppColors.authAccent.withValues(alpha: 0.6),
-                        disabledForegroundColor:
-                            AppColors.authBackgroundBottom.withValues(alpha: 0.6),
+                        disabledForegroundColor: AppColors.authBackgroundBottom
+                            .withValues(alpha: 0.6),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       onPressed: isSubmitting ? null : _submit,
