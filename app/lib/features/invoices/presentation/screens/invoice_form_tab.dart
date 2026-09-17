@@ -211,9 +211,15 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
                       initialValue: _selectedServiceId,
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
-                      decoration: _fieldDecoration.copyWith(
-                        hintText: 'Seleccioná un servicio',
+                      // DropdownButtonFormField no pinta su placeholder
+                      // desde decoration.hintText/hintStyle — lo hace a
+                      // través de este parámetro. Por eso el color se
+                      // fija acá y no en la decoration.
+                      hint: const Text(
+                        'Seleccioná un servicio',
+                        style: TextStyle(color: AppColors.authTextSecondary),
                       ),
+                      decoration: _fieldDecoration,
                       items: services
                           .map(
                             (Service s) => DropdownMenuItem<String?>(

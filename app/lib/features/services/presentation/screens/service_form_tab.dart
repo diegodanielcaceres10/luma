@@ -189,9 +189,15 @@ class _ServiceFormTabState extends State<ServiceFormTab> {
                       initialValue: _selectedCategoryId,
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
-                      decoration: _fieldDecoration.copyWith(
-                        hintText: 'Seleccioná una categoría',
+                      // DropdownButtonFormField no pinta su placeholder
+                      // desde decoration.hintText/hintStyle — lo hace a
+                      // través de este parámetro. Por eso el color se
+                      // fija acá y no en la decoration.
+                      hint: const Text(
+                        'Seleccioná una categoría',
+                        style: TextStyle(color: AppColors.authTextSecondary),
                       ),
+                      decoration: _fieldDecoration,
                       items: expenseCategories
                           .map(
                             (Category c) => DropdownMenuItem<String?>(
