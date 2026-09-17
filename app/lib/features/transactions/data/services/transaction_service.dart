@@ -12,7 +12,9 @@ class TransactionService {
 
     final rows = await _client
         .from('transactions')
-        .select('*, categories(id, name, color, icon)')
+        .select(
+          '*, categories(id, name, color, icon), accounts(id, name, color)',
+        )
         .gte('date', _formatDate(start))
         .lt('date', _formatDate(end))
         .order('date', ascending: false)
@@ -29,7 +31,9 @@ class TransactionService {
   Future<List<TransactionEntry>> fetchAll({int limit = 200}) async {
     final rows = await _client
         .from('transactions')
-        .select('*, categories(id, name, color, icon)')
+        .select(
+          '*, categories(id, name, color, icon), accounts(id, name, color)',
+        )
         .order('date', ascending: false)
         .order('created_at', ascending: false)
         .limit(limit);

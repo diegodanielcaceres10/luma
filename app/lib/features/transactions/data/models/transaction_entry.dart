@@ -24,6 +24,29 @@ class TransactionCategory {
   }
 }
 
+class TransactionAccount {
+  final String? id;
+  final String name;
+  final String? color;
+
+  const TransactionAccount({
+    this.id,
+    required this.name,
+    this.color,
+  });
+
+  factory TransactionAccount.fromMap(Map<String, dynamic>? map) {
+    if (map == null) {
+      return const TransactionAccount(name: 'Sin cuenta');
+    }
+    return TransactionAccount(
+      id: map['id'] as String?,
+      name: map['name'] as String? ?? 'Sin cuenta',
+      color: map['color'] as String?,
+    );
+  }
+}
+
 class TransactionEntry {
   final String id;
   final String type; // income | expense
@@ -31,6 +54,7 @@ class TransactionEntry {
   final String? description;
   final DateTime date;
   final TransactionCategory category;
+  final TransactionAccount account;
 
   const TransactionEntry({
     required this.id,
@@ -39,6 +63,7 @@ class TransactionEntry {
     this.description,
     required this.date,
     required this.category,
+    required this.account,
   });
 
   bool get isIncome => type == 'income';
@@ -52,6 +77,9 @@ class TransactionEntry {
       date: DateTime.parse(map['date'] as String),
       category: TransactionCategory.fromMap(
         map['categories'] as Map<String, dynamic>?,
+      ),
+      account: TransactionAccount.fromMap(
+        map['accounts'] as Map<String, dynamic>?,
       ),
     );
   }

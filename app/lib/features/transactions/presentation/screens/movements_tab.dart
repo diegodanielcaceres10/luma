@@ -10,6 +10,8 @@ import '../view_models/transaction_view_model.dart';
 
 enum _TypeFilter { all, income, expense }
 
+enum _DateRangeFilter { all, thisMonth, last3Months, thisYear }
+
 /// Contenido de la pestaña "Movimientos". No tiene Scaffold propio — vive
 /// dentro del Scaffold del HomeShell, que es quien pone el header y el
 /// bottomNavigationBar.
@@ -29,10 +31,12 @@ class MovementsTab extends StatefulWidget {
 
 class _MovementsTabState extends State<MovementsTab> {
   _TypeFilter _typeFilter = _TypeFilter.all;
+  _DateRangeFilter _dateRange = _DateRangeFilter.all;
 
-  // null = "todas las categorías". Guarda category.id si existe, si no
-  // category.name — mismo criterio que categoryBreakdown en el ViewModel.
+  // null = "todas". Guardan category.id/account.id si existen, si no el
+  // nombre — mismo criterio que categoryBreakdown en el ViewModel.
   String? _categoryKey;
+  String? _accountKey;
 
   Map<String, List<TransactionEntry>> _groupByMonth(
       List<TransactionEntry> transactions) {
@@ -58,16 +62,50 @@ class _MovementsTabState extends State<MovementsTab> {
     }
   }
 
-  String _categoryKeyOf(TransactionEntry t) => t.category.id ?? t.category.name;
+  bool _matchesDateRange(TransactionEntry t) {
+    final now = DateTime.now();
+    switch (_dateRange) {
+      case _DateRangeFilter.all:
+        return true;
+      case _DateRangeFilter.thisMonth:
+        return t.date.year == now.year && t.date.month == now.month;
+      case _DateRangeFilter.last3Months:
+        // DateTime normaliza meses fuera de rango (mes 0 -> diciembre del
+        // año anterior), así que esto funciona bien también en enero/feb.
+        final start = DateTime(now.year, now.month - 2, 1);
+        return !t.date.isBefore(start);
+      case _DateRangeFilter.thisYear:
+        return t.date.year == now.year;
+    }
+  }
+
+  String _categoryKeyOf(TransactionEntry t) =>
+      t.category.id ?? t.category.name;
+
+  String _accountKeyOf(TransactionEntry t) =>
+      t.account.id ?? t.account.name;
 
   /// Categorías presentes en [typeFiltered] — solo se muestran chips de
-  /// categorías que tengan al menos un movimiento bajo el filtro de tipo
-  /// actual, para no ofrecer filtros que siempre van a dar vacío.
+  /// categorías que tengan al menos un movimiento bajo los filtros de
+  /// tipo/fecha actuales, para no ofrecer filtros que siempre van a dar
+  /// vacío.
   List<TransactionCategory> _visibleCategories(
       List<TransactionEntry> typeFiltered) {
     final Map<String, TransactionCategory> byKey = {};
     for (final t in typeFiltered) {
       byKey[_categoryKeyOf(t)] = t.category;
+    }
+    final list = byKey.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    return list;
+  }
+
+  /// Igual que [_visibleCategories], pero para cuentas.
+  List<TransactionAccount> _visibleAccounts(
+      List<TransactionEntry> typeFiltered) {
+    final Map<String, TransactionAccount> byKey = {};
+    for (final t in typeFiltered) {
+      byKey[_accountKeyOf(t)] = t.account;
     }
     final list = byKey.values.toList()
       ..sort((a, b) => a.name.compareTo(b.name));
@@ -108,27 +146,46 @@ class _MovementsTabState extends State<MovementsTab> {
             );
           }
 
-          final typeFiltered = vm.allTransactions.where(_matchesType).toList();
+          final dateFiltered =
+              vm.allTransactions.where(_matchesDateRange).toList();
+          final typeFiltered = dateFiltered.where(_matchesType).toList();
           final categories = _visibleCategories(typeFiltered);
+          final accounts = _visibleAccounts(typeFiltered);
 
-          // Si la categoría elegida quedó fuera de las visibles bajo el
-          // tipo actual (p. ej. cambiaste a "Ingresos" con una categoría de
-          // gasto seleccionada), la ignoramos para este build sin tocar el
-          // estado — así no queda una lista vacía sin que se note por qué.
-          final effectiveCategoryKey = _categoryKey != null &&
-                  categories.any((c) => _keyOf(c) == _categoryKey)
-              ? _categoryKey
-              : null;
+          // Si la categoría/cuenta elegida quedó fuera de las visibles bajo
+          // los filtros actuales (p. ej. cambiaste a "Ingresos" con una
+          // categoría de gasto seleccionada), la ignoramos para este build
+          // sin tocar el estado — así no queda una lista vacía sin que se
+          // note por qué, y el chip vuelve a aparecer resaltado si volvés
+          // al filtro anterior.
+          final effectiveCategoryKey =
+              _categoryKey != null &&
+                      categories.any((c) => _categoryModelKey(c) == _categoryKey)
+                  ? _categoryKey
+                  : null;
+          final effectiveAccountKey =
+              _accountKey != null &&
+                      accounts.any((a) => _accountModelKey(a) == _accountKey)
+                  ? _accountKey
+                  : null;
 
-          final filtered = effectiveCategoryKey == null
-              ? typeFiltered
-              : typeFiltered
-                  .where((t) => _categoryKeyOf(t) == effectiveCategoryKey)
-                  .toList();
+          var filtered = typeFiltered;
+          if (effectiveCategoryKey != null) {
+            filtered = filtered
+                .where((t) => _categoryKeyOf(t) == effectiveCategoryKey)
+                .toList();
+          }
+          if (effectiveAccountKey != null) {
+            filtered = filtered
+                .where((t) => _accountKeyOf(t) == effectiveAccountKey)
+                .toList();
+          }
 
           final grouped = _groupByMonth(filtered);
-          final hasActiveFilters =
-              _typeFilter != _TypeFilter.all || effectiveCategoryKey != null;
+          final hasActiveFilters = _typeFilter != _TypeFilter.all ||
+              _dateRange != _DateRangeFilter.all ||
+              effectiveCategoryKey != null ||
+              effectiveAccountKey != null;
 
           return RefreshIndicator(
             onRefresh: vm.loadAllTransactions,
@@ -148,17 +205,45 @@ class _MovementsTabState extends State<MovementsTab> {
                 const SizedBox(height: 16),
                 _TypeFilterRow(
                   value: _typeFilter,
-                  onChanged: (value) {
-                    setState(() {
-                      _typeFilter = value;
-                      _categoryKey = null;
-                    });
-                  },
+                  onChanged: (value) => setState(() => _typeFilter = value),
                 ),
+                const SizedBox(height: 12),
+                const _FilterSectionLabel('Período'),
+                const SizedBox(height: 6),
+                _DateRangeFilterRow(
+                  value: _dateRange,
+                  onChanged: (value) => setState(() => _dateRange = value),
+                ),
+                if (accounts.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const _FilterSectionLabel('Cuenta'),
+                  const SizedBox(height: 6),
+                  _ChipFilterRow(
+                    items: accounts
+                        .map((a) => (
+                              key: _accountModelKey(a),
+                              label: a.name,
+                              color: colorFromHex(a.color,
+                                  fallback: AppColors.authTextSecondary),
+                            ))
+                        .toList(),
+                    selectedKey: effectiveAccountKey,
+                    onSelect: (key) => setState(() => _accountKey = key),
+                  ),
+                ],
                 if (categories.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _CategoryFilterRow(
-                    categories: categories,
+                  const SizedBox(height: 12),
+                  const _FilterSectionLabel('Categoría'),
+                  const SizedBox(height: 6),
+                  _ChipFilterRow(
+                    items: categories
+                        .map((c) => (
+                              key: _categoryModelKey(c),
+                              label: c.name,
+                              color: colorFromHex(c.color,
+                                  fallback: AppColors.authAccent),
+                            ))
+                        .toList(),
                     selectedKey: effectiveCategoryKey,
                     onSelect: (key) => setState(() => _categoryKey = key),
                   ),
@@ -169,7 +254,9 @@ class _MovementsTabState extends State<MovementsTab> {
                     onClear: hasActiveFilters
                         ? () => setState(() {
                               _typeFilter = _TypeFilter.all;
+                              _dateRange = _DateRangeFilter.all;
                               _categoryKey = null;
+                              _accountKey = null;
                             })
                         : null,
                   )
@@ -212,10 +299,33 @@ class _MovementsTabState extends State<MovementsTab> {
     );
   }
 
-  String _keyOf(TransactionCategory c) => c.id ?? c.name;
+  String _categoryModelKey(TransactionCategory c) => c.id ?? c.name;
+
+  String _accountModelKey(TransactionAccount a) => a.id ?? a.name;
 
   String _capitalize(String text) =>
       text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
+}
+
+/// Etiqueta chica sobre cada fila de chips (Período / Cuenta / Categoría),
+/// para que se entienda qué filtra cada una sin agregar otro control.
+class _FilterSectionLabel extends StatelessWidget {
+  final String label;
+
+  const _FilterSectionLabel(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.4,
+        color: AppColors.authTextFooter,
+      ),
+    );
+  }
 }
 
 /// Filtro rápido por tipo: Todos / Ingresos / Gastos, estilo segmented
@@ -277,15 +387,54 @@ class _TypeFilterRow extends StatelessWidget {
   }
 }
 
-/// Filtro rápido por categoría: chips horizontales, una por categoría con
-/// movimientos bajo el filtro de tipo actual, más "Todas" para soltarlo.
-class _CategoryFilterRow extends StatelessWidget {
-  final List<TransactionCategory> categories;
+/// Filtro rápido por rango de fechas: Todo / Este mes / Últimos 3 meses /
+/// Este año. Chips horizontales, sin punto de color (no representan una
+/// entidad con color propio como categoría/cuenta).
+class _DateRangeFilterRow extends StatelessWidget {
+  final _DateRangeFilter value;
+  final ValueChanged<_DateRangeFilter> onChanged;
+
+  const _DateRangeFilterRow({required this.value, required this.onChanged});
+
+  static const _options = [
+    (_DateRangeFilter.all, 'Todo'),
+    (_DateRangeFilter.thisMonth, 'Este mes'),
+    (_DateRangeFilter.last3Months, 'Últimos 3 meses'),
+    (_DateRangeFilter.thisYear, 'Este año'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _options.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final option = _options[index];
+          return _PlainChip(
+            label: option.$2,
+            isSelected: option.$1 == value,
+            onTap: () => onChanged(option.$1),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Filtro rápido por categoría o cuenta: chips horizontales, una por cada
+/// valor con movimientos bajo los demás filtros activos, más "Todas" para
+/// soltarlo. Genérica para no duplicar la misma fila para cuenta y
+/// categoría.
+class _ChipFilterRow extends StatelessWidget {
+  final List<({String key, String label, Color color})> items;
   final String? selectedKey;
   final ValueChanged<String?> onSelect;
 
-  const _CategoryFilterRow({
-    required this.categories,
+  const _ChipFilterRow({
+    required this.items,
     required this.selectedKey,
     required this.onSelect,
   });
@@ -296,24 +445,23 @@ class _CategoryFilterRow extends StatelessWidget {
       height: 34,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: categories.length + 1,
+        itemCount: items.length + 1,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           if (index == 0) {
-            return _CategoryChip(
+            return _ColorChip(
               label: 'Todas',
               color: AppColors.authTextSecondary,
               isSelected: selectedKey == null,
               onTap: () => onSelect(null),
             );
           }
-          final category = categories[index - 1];
-          final key = category.id ?? category.name;
-          return _CategoryChip(
-            label: category.name,
-            color: colorFromHex(category.color, fallback: AppColors.authAccent),
-            isSelected: selectedKey == key,
-            onTap: () => onSelect(key),
+          final item = items[index - 1];
+          return _ColorChip(
+            label: item.label,
+            color: item.color,
+            isSelected: selectedKey == item.key,
+            onTap: () => onSelect(item.key),
           );
         },
       ),
@@ -321,13 +469,57 @@ class _CategoryFilterRow extends StatelessWidget {
   }
 }
 
-class _CategoryChip extends StatelessWidget {
+/// Chip simple (sin punto de color), para el filtro de período.
+class _PlainChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _PlainChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.authAccent.withValues(alpha: 0.18)
+              : AppColors.authCardFill,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: isSelected ? AppColors.authAccent : AppColors.authCardBorder,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected
+                ? AppColors.authTextPrimary
+                : AppColors.authTextSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Chip con punto de color, para el filtro de categoría o cuenta.
+class _ColorChip extends StatelessWidget {
   final String label;
   final Color color;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _CategoryChip({
+  const _ColorChip({
     required this.label,
     required this.color,
     required this.isSelected,
@@ -479,9 +671,8 @@ class _MovementRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: movement.isIncome
-                      ? AppColors.authIncome
-                      : AppColors.authExpense,
+                  color:
+                      movement.isIncome ? AppColors.authIncome : AppColors.authExpense,
                 ),
               ),
             ],
