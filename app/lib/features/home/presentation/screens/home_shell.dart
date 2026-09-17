@@ -230,6 +230,43 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
+  /// Qué hacer cuando el usuario presiona "atrás" (botón físico/gesto en
+  /// Android, botón atrás del navegador en Web) estando en una pestaña que
+  /// no es "Inicio". En vez de dejar que el sistema cierre la app o
+  /// navegue fuera de ella, volvemos a la pantalla lógica anterior,
+  /// reutilizando las mismas funciones que ya usan los botones "cancelar"
+  /// de cada formulario.
+  void _handleBackNavigation() {
+    switch (_index) {
+      case _accountFormTabIndex:
+        _closeAccountForm();
+        break;
+      case _categoryFormTabIndex:
+        _closeCategoryForm();
+        break;
+      case _monthlyBalanceTabIndex:
+        _closeMonthlyBalanceForm();
+        break;
+      case _addTransactionTabIndex:
+        _closeAddTransactionForm();
+        break;
+      case _serviceFormTabIndex:
+        _closeServiceForm();
+        break;
+      case _invoiceFormTabIndex:
+        _closeInvoiceForm();
+        break;
+      case _transferFormTabIndex:
+        _closeTransferForm();
+        break;
+      default:
+        // Pestañas de primer nivel (Movimientos, Estadísticas, Perfil) y
+        // listados a los que solo se llega desde el drawer (Cuentas,
+        // Categorías, Servicios, Facturas): "atrás" vuelve a Inicio.
+        setState(() => _index = 0);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = [
@@ -331,36 +368,48 @@ class _HomeShellState extends State<HomeShell> {
       ),
     ];
 
-    return Scaffold(
-      drawer: _AppDrawer(
-        currentIndex: _index,
-        onSelect: _onTabTap,
-        userId: widget.authViewModel.userId,
-      ),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.authBackgroundTop,
-              AppColors.authBackgroundBottom,
-            ],
+    return PopScope(
+      // Solo dejamos que el sistema haga "pop" real (cerrar la app en
+      // Android, navegar atrás en el browser) cuando estamos en "Inicio".
+      // En cualquier otra pestaña, lo interceptamos y resolvemos nosotros
+      // a qué pantalla lógica volver.
+      canPop: _index == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _handleBackNavigation();
+        }
+      },
+      child: Scaffold(
+        drawer: _AppDrawer(
+          currentIndex: _index,
+          onSelect: _onTabTap,
+          userId: widget.authViewModel.userId,
+        ),
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.authBackgroundTop,
+                AppColors.authBackgroundBottom,
+              ],
+            ),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                LumaHeader(trailing: _headerAction()),
+                Expanded(child: IndexedStack(index: _index, children: tabs)),
+              ],
+            ),
           ),
         ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              LumaHeader(trailing: _headerAction()),
-              Expanded(child: IndexedStack(index: _index, children: tabs)),
-            ],
-          ),
+        bottomNavigationBar: _BottomNav(
+          currentIndex: _index,
+          onTap: _onTabTap,
         ),
-      ),
-      bottomNavigationBar: _BottomNav(
-        currentIndex: _index,
-        onTap: _onTabTap,
       ),
     );
   }
