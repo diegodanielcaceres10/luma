@@ -68,10 +68,17 @@ class _AccountFormTabState extends State<AccountFormTab> {
     _balanceController.text =
         account != null ? account.balance.toStringAsFixed(2) : '0.00';
     _selectedColor = account?.color ?? kCategoryColors.first;
+    // Re-build whenever isSubmitting or errorMessage changes.
+    widget.accountViewModel.addListener(_onViewModelChanged);
+  }
+
+  void _onViewModelChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    widget.accountViewModel.removeListener(_onViewModelChanged);
     _nameController.dispose();
     _balanceController.dispose();
     super.dispose();
