@@ -7,7 +7,8 @@ create table accounts (
   color       text,
   icon        text,
   is_active   boolean not null default true,
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  unique (user_id, name)
 );
 
 -- ─── categories ─────────────────────────────────────────

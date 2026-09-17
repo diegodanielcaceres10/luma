@@ -4,7 +4,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart'
     show colorFromHex, kCategoryColors;
 import '../../data/models/account.dart';
-import '../view_models/account_view_model.dart';
+import '../view_models/account_view_model.dart'
+    show AccountSubmitError, AccountViewModel;
 
 /// Contenido de la pestaña "Nueva cuenta" / "Editar cuenta". No tiene
 /// Scaffold propio — vive dentro del Scaffold del HomeShell, que es quien
@@ -98,8 +99,19 @@ class _AccountFormTabState extends State<AccountFormTab> {
     if (success) {
       widget.onDone();
     } else {
+      final isDuplicate = vm.submitError == AccountSubmitError.duplicate;
+      if (isDuplicate) {
+        // Highlight the name field so the user knows what to change.
+        _formKey.currentState!.validate();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.errorMessage ?? 'No se pudo guardar.')),
+        SnackBar(
+          content: Text(
+            isDuplicate
+                ? 'Ya existe una cuenta con ese nombre.'
+                : 'Ocurrió un error al guardar. Intentá de nuevo.',
+          ),
+        ),
       );
     }
   }
@@ -118,7 +130,7 @@ class _AccountFormTabState extends State<AccountFormTab> {
             Row(
               children: [
                 InkWell(
-                  onTap: widget.onDone,
+                  onTap: isSubmitting ? null : widget.onDone,
                   borderRadius: BorderRadius.circular(20),
                   child: const Padding(
                     padding: EdgeInsets.all(4),
@@ -143,6 +155,7 @@ class _AccountFormTabState extends State<AccountFormTab> {
             const SizedBox(height: 8),
             TextFormField(
               controller: _nameController,
+              enabled: !isSubmitting,
               style: const TextStyle(color: AppColors.authTextPrimary),
               decoration: _fieldDecoration.copyWith(
                 hintText: 'Ej: Cuenta corriente',
@@ -159,6 +172,7 @@ class _AccountFormTabState extends State<AccountFormTab> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _balanceController,
+                enabled: !isSubmitting,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 style: const TextStyle(color: AppColors.authTextPrimary),
@@ -179,7 +193,9 @@ class _AccountFormTabState extends State<AccountFormTab> {
               children: kCategoryColors.map((hex) {
                 final isSelected = hex == _selectedColor;
                 return InkWell(
-                  onTap: () => setState(() => _selectedColor = hex),
+                  onTap: isSubmitting
+                      ? null
+                      : () => setState(() => _selectedColor = hex),
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     width: 40,

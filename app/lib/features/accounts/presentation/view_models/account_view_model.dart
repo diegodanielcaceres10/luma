@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/account.dart';
 import '../../data/repositories/account_repository.dart';
+
+enum AccountSubmitError { duplicate, generic }
 
 class AccountViewModel extends ChangeNotifier {
   final AccountRepository _repository;
@@ -10,11 +13,13 @@ class AccountViewModel extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSubmitting = false;
   String? _errorMessage;
+  AccountSubmitError? _submitError;
   List<Account> _accounts = [];
 
   bool get isLoading => _isLoading;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
+  AccountSubmitError? get submitError => _submitError;
   List<Account> get accounts => _accounts;
 
   /// Cuentas activas — para elegir cuenta en una transacción nueva o para
@@ -85,13 +90,26 @@ class AccountViewModel extends ChangeNotifier {
   Future<bool> _submit(Future<void> Function() action) async {
     _isSubmitting = true;
     _errorMessage = null;
+    _submitError = null;
     notifyListeners();
 
     try {
       await action();
       await loadAccounts();
       return true;
-    } catch (error) {
+    } on PostgrestException catch (e) {
+      // Unique constraint violation: code 23505 covers duplicate key errors.
+      if (e.code == '23505') {
+        _submitError = AccountSubmitError.duplicate;
+        _errorMessage = 'Ya existe una cuenta con ese nombre.';
+      } else {
+        _submitError = AccountSubmitError.generic;
+        _errorMessage = 'No se pudo guardar la cuenta.';
+      }
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _submitError = AccountSubmitError.generic;
       _errorMessage = 'No se pudo guardar la cuenta.';
       notifyListeners();
       return false;
