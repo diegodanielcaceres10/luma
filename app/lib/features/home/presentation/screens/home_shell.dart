@@ -324,7 +324,9 @@ class _HomeShellState extends State<HomeShell> {
       ),
       TransferFormTab(
         key: ValueKey('transfer-form-$_transferFormNonce'),
+        userId: widget.authViewModel.userId,
         accountViewModel: widget.accountViewModel,
+        transactionViewModel: widget.transactionViewModel,
         onDone: _closeTransferForm,
       ),
     ];

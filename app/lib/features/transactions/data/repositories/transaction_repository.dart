@@ -17,7 +17,7 @@ class TransactionRepository {
   Future<String> create({
     required String userId,
     required String accountId,
-    required String categoryId,
+    String? categoryId,
     required String type,
     required double amount,
     String? description,

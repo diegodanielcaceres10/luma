@@ -41,10 +41,13 @@ class TransactionService {
 
   /// Crea una transacción y devuelve el id de la fila creada — lo
   /// necesita, por ejemplo, el pago de una factura para vincularla.
+  /// [categoryId] es nulo para transacciones de tipo 'transfer': una
+  /// transferencia entre cuentas no pertenece a ninguna categoría de
+  /// ingreso/gasto.
   Future<String> createTransaction({
     required String userId,
     required String accountId,
-    required String categoryId,
+    String? categoryId,
     required String type,
     required double amount,
     String? description,

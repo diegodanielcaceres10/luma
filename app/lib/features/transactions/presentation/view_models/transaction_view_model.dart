@@ -120,7 +120,7 @@ class TransactionViewModel extends ChangeNotifier {
   Future<bool> createTransaction({
     required String userId,
     required String accountId,
-    required String categoryId,
+    String? categoryId,
     required String type,
     required double amount,
     String? description,
@@ -148,6 +148,63 @@ class TransactionViewModel extends ChangeNotifier {
       return true;
     } catch (error) {
       _errorMessage = 'No se pudo guardar la transacción.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Registra una transferencia entre cuentas como dos transacciones tipo
+  /// 'transfer' (sin categoría): una en la cuenta de origen y otra en la
+  /// de destino, ambas con el mismo monto. No hay un campo que las
+  /// vincule entre sí — [originDescription] y [destinationDescription]
+  /// sirven para poder distinguirlas luego en el listado de movimientos.
+  ///
+  /// Nota: igual que con [createTransaction], esto no actualiza
+  /// accounts.balance — esa columna no se recalcula desde ningún lado
+  /// del código todavía, para ingresos/gastos tampoco.
+  ///
+  /// Devuelve true si ambas transacciones se crearon correctamente.
+  Future<bool> createTransfer({
+    required String userId,
+    required String originAccountId,
+    required String destinationAccountId,
+    required double amount,
+    required DateTime date,
+    String? originDescription,
+    String? destinationDescription,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    _lastCreatedTransactionId = null;
+    notifyListeners();
+
+    try {
+      await _repository.create(
+        userId: userId,
+        accountId: originAccountId,
+        type: 'transfer',
+        amount: amount,
+        description: originDescription,
+        date: date,
+      );
+      await _repository.create(
+        userId: userId,
+        accountId: destinationAccountId,
+        type: 'transfer',
+        amount: amount,
+        description: destinationDescription,
+        date: date,
+      );
+      await loadCurrentMonth();
+      if (_hasLoadedAll) {
+        await loadAllTransactions();
+      }
+      return true;
+    } catch (error) {
+      _errorMessage = 'No se pudo guardar la transferencia.';
       notifyListeners();
       return false;
     } finally {
