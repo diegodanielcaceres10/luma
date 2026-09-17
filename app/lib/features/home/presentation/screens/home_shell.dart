@@ -25,6 +25,7 @@ import '../../../transactions/presentation/screens/add_transaction_tab.dart';
 import '../../../transactions/presentation/screens/movements_tab.dart';
 import '../../../transactions/presentation/screens/statistics_tab.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
+import '../../../transfers/presentation/screens/transfer_form_tab.dart';
 import '../widgets/luma_header.dart';
 import 'dashboard_tab.dart';
 
@@ -48,6 +49,7 @@ const _servicesTabIndex = 10;
 const _serviceFormTabIndex = 11;
 const _invoicesTabIndex = 12;
 const _invoiceFormTabIndex = 13;
+const _transferFormTabIndex = 14;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -105,6 +107,10 @@ class _HomeShellState extends State<HomeShell> {
   // cada vez que se abre.
   int _invoiceFormNonce = 0;
 
+  // Transferencias: todavía no se guardan, pero el nonce ya deja el
+  // formulario listo para cuando se agregue el guardado.
+  int _transferFormNonce = 0;
+
   void _onTabTap(int index) {
     setState(() => _index = index);
 
@@ -116,15 +122,17 @@ class _HomeShellState extends State<HomeShell> {
     }
   }
 
-  // TODO: reemplazar por la navegación real una vez que exista la
-  // screen de transferencias entre cuentas. Por ahora el acceso rápido
-  // ya está en el Dashboard, pero todavía no tiene a dónde ir.
-  void _goToTransfers() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Transferencias entre cuentas — muy pronto.'),
-      ),
-    );
+  void _openTransferForm() {
+    setState(() {
+      _transferFormNonce++;
+      _index = _transferFormTabIndex;
+    });
+  }
+
+  void _closeTransferForm() {
+    setState(() {
+      _index = 0; // Vuelve a "Inicio", único lugar desde donde se abre.
+    });
   }
 
   void _openAccountForm(Account? account) {
@@ -237,7 +245,7 @@ class _HomeShellState extends State<HomeShell> {
         onOpenAddTransaction: _openAddTransactionForm,
         onGoToAccounts: () => _openAccountForm(null),
         onGoToInvoices: () => _onTabTap(_invoicesTabIndex),
-        onGoToTransfers: _goToTransfers,
+        onGoToTransfers: _openTransferForm,
       ),
       MovementsTab(
         transactionViewModel: widget.transactionViewModel,
@@ -313,6 +321,11 @@ class _HomeShellState extends State<HomeShell> {
         invoiceViewModel: widget.invoiceViewModel,
         serviceViewModel: widget.serviceViewModel,
         onDone: _closeInvoiceForm,
+      ),
+      TransferFormTab(
+        key: ValueKey('transfer-form-$_transferFormNonce'),
+        accountViewModel: widget.accountViewModel,
+        onDone: _closeTransferForm,
       ),
     ];
 
