@@ -220,10 +220,12 @@ class _HomeShellState extends State<HomeShell> {
         transactionViewModel: widget.transactionViewModel,
         categoryViewModel: widget.categoryViewModel,
         monthlyBalanceViewModel: widget.monthlyBalanceViewModel,
+        invoiceViewModel: widget.invoiceViewModel,
         onSeeAllMovements: () => _onTabTap(1),
         onOpenMonthlyBalances: _openMonthlyBalanceForm,
         onOpenAddTransaction: _openAddTransactionForm,
         onGoToAccounts: () => _openAccountForm(null),
+        onGoToInvoices: () => _onTabTap(_invoicesTabIndex),
       ),
       MovementsTab(
         transactionViewModel: widget.transactionViewModel,

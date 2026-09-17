@@ -9,6 +9,7 @@ import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../transactions/data/models/transaction_entry.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
@@ -21,10 +22,12 @@ class DashboardTab extends StatelessWidget {
   final TransactionViewModel transactionViewModel;
   final CategoryViewModel categoryViewModel;
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
+  final InvoiceViewModel invoiceViewModel;
   final VoidCallback? onSeeAllMovements;
   final ValueChanged<List<Account>> onOpenMonthlyBalances;
   final ValueChanged<String> onOpenAddTransaction;
   final VoidCallback onGoToAccounts;
+  final VoidCallback onGoToInvoices;
 
   const DashboardTab({
     super.key,
@@ -33,17 +36,23 @@ class DashboardTab extends StatelessWidget {
     required this.transactionViewModel,
     required this.categoryViewModel,
     required this.monthlyBalanceViewModel,
+    required this.invoiceViewModel,
     required this.onOpenMonthlyBalances,
     required this.onOpenAddTransaction,
     required this.onGoToAccounts,
+    required this.onGoToInvoices,
     this.onSeeAllMovements,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge(
-          [accountViewModel, transactionViewModel, monthlyBalanceViewModel]),
+      listenable: Listenable.merge([
+        accountViewModel,
+        transactionViewModel,
+        monthlyBalanceViewModel,
+        invoiceViewModel,
+      ]),
       builder: (context, _) {
         final pendingAccounts = monthlyBalanceViewModel.checked
             ? monthlyBalanceViewModel
@@ -91,6 +100,8 @@ class DashboardTab extends StatelessWidget {
             _QuickActions(
               onAddIncome: () => onOpenAddTransaction('income'),
               onAddExpense: () => onOpenAddTransaction('expense'),
+              onGoToInvoices: onGoToInvoices,
+              pendingInvoicesCount: invoiceViewModel.pendingCount,
             ),
             const SizedBox(height: 28),
             _SectionHeader(
@@ -424,34 +435,53 @@ class _SectionHeader extends StatelessWidget {
 class _QuickActions extends StatelessWidget {
   final VoidCallback onAddIncome;
   final VoidCallback onAddExpense;
+  final VoidCallback onGoToInvoices;
+  final int pendingInvoicesCount;
 
   const _QuickActions({
     required this.onAddIncome,
     required this.onAddExpense,
+    required this.onGoToInvoices,
+    this.pendingInvoicesCount = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _QuickActionCard(
-            icon: Icons.arrow_downward_rounded,
-            iconColor: AppColors.authIncome,
-            title: 'Agregar ingreso',
-            subtitle: 'Sumá dinero a tu cuenta',
-            onTap: onAddIncome,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.arrow_downward_rounded,
+                iconColor: AppColors.authIncome,
+                title: 'Agregar ingreso',
+                subtitle: 'Sumá dinero a tu cuenta',
+                onTap: onAddIncome,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _QuickActionCard(
+                icon: Icons.arrow_upward_rounded,
+                iconColor: AppColors.authExpense,
+                title: 'Agregar gasto',
+                subtitle: 'Registrá un nuevo gasto',
+                onTap: onAddExpense,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _QuickActionCard(
-            icon: Icons.arrow_upward_rounded,
-            iconColor: AppColors.authExpense,
-            title: 'Agregar gasto',
-            subtitle: 'Registrá un nuevo gasto',
-            onTap: onAddExpense,
-          ),
+        const SizedBox(height: 12),
+        _QuickActionCard(
+          icon: Icons.request_page_outlined,
+          iconColor: AppColors.authAccent,
+          title: 'Facturas por pagar',
+          subtitle: pendingInvoicesCount > 0
+              ? '$pendingInvoicesCount pendiente${pendingInvoicesCount == 1 ? '' : 's'} este mes'
+              : 'Revisá el estado de tus facturas',
+          onTap: onGoToInvoices,
+          isFullWidth: true,
         ),
       ],
     );
@@ -464,6 +494,7 @@ class _QuickActionCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final bool isFullWidth;
 
   const _QuickActionCard({
     required this.icon,
@@ -471,56 +502,94 @@ class _QuickActionCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.isFullWidth = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final card = Material(
       color: AppColors.authCardFill,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
+          width: isFullWidth ? double.infinity : null,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppColors.authCardBorder),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: iconColor.withValues(alpha: 0.85),
-                    child: Icon(icon, color: Colors.white, size: 18),
-                  ),
-                  const Spacer(),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.authTextFooter, size: 18),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
+          child: isFullWidth
+              ? Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: iconColor.withValues(alpha: 0.85),
+                      child: Icon(icon, color: Colors.white, size: 18),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.authTextPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style:
+                                AppTextStyles.authSubtitle.copyWith(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded,
+                        color: AppColors.authTextFooter, size: 18),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: iconColor.withValues(alpha: 0.85),
+                          child: Icon(icon, color: Colors.white, size: 18),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.chevron_right_rounded,
+                            color: AppColors.authTextFooter, size: 18),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.authTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: AppTextStyles.authSubtitle.copyWith(fontSize: 12),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: AppTextStyles.authSubtitle.copyWith(fontSize: 12),
-              ),
-            ],
-          ),
         ),
       ),
     );
+
+    return card;
   }
 }
 

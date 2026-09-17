@@ -26,6 +26,10 @@ class InvoiceViewModel extends ChangeNotifier {
   InvoiceSubmitError? get submitError => _submitError;
   List<Invoice> get invoices => _invoices;
 
+  /// Cantidad de facturas pendientes (ni pagadas ni canceladas). Se usa,
+  /// por ejemplo, como badge en el acceso rápido del Dashboard.
+  int get pendingCount => _invoices.where((i) => i.isPending).length;
+
   bool isCancelling(String invoiceId) => _cancellingIds.contains(invoiceId);
   bool isPaying(String invoiceId) => _payingIds.contains(invoiceId);
 
