@@ -211,74 +211,82 @@ class _AccountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isActive = account.isActive;
 
+    // No se puede combinar un Border con colores distintos por lado (el
+    // acento a la izquierda, el borde tenue en el resto) con borderRadius
+    // — Flutter lo exige uniforme. En su lugar, la franja de color va como
+    // un Container aparte dentro del Row, y el redondeo lo da el ClipRRect
+    // que envuelve toda la tarjeta.
     return Opacity(
       opacity: isActive ? 1 : 0.5,
-      child: InkWell(
-        onTap: onTap,
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.authCardFill,
-            borderRadius: BorderRadius.circular(16),
-            border: Border(
-              top: const BorderSide(color: AppColors.authCardBorder),
-              right: const BorderSide(color: AppColors.authCardBorder),
-              bottom: const BorderSide(color: AppColors.authCardBorder),
-              left: BorderSide(color: color, width: 3),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
+        child: InkWell(
+          onTap: onTap,
+          child: DecoratedBox(
+            decoration: const BoxDecoration(color: AppColors.authCardFill),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 3, color: color),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(icon, color: color, size: 18),
+                            ),
+                            const Spacer(),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.authTextFooter,
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          account.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.authTextPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isActive ? 'Cuenta activa' : 'Cuenta inactiva',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.authTextSecondary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          formatCurrency(account.balance, currency),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.authTextPrimary,
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Icon(icon, color: color, size: 18),
                   ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.authTextFooter,
-                    size: 18,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                account.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.authTextPrimary,
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                isActive ? 'Cuenta activa' : 'Cuenta inactiva',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.authTextSecondary,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                formatCurrency(account.balance, currency),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
