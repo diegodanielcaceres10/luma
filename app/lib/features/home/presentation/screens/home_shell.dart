@@ -6,6 +6,7 @@ import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/screens/account_form_tab.dart';
 import '../../../accounts/presentation/screens/accounts_overview_tab.dart';
 import '../../../accounts/presentation/screens/accounts_tab.dart';
+import '../../../accounts/presentation/screens/update_balance_tab.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
@@ -52,6 +53,7 @@ const _invoicesTabIndex = 12;
 const _invoiceFormTabIndex = 13;
 const _transferFormTabIndex = 14;
 const _accountsOverviewTabIndex = 15;
+const _updateBalanceTabIndex = 16;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -90,6 +92,11 @@ class _HomeShellState extends State<HomeShell> {
   // Dashboard), según desde dónde se abrió. Si se abre desde cualquier otro
   // lado (ej. el aviso "no tenés cuentas" del Dashboard), cae a la lista.
   int _accountFormReturnIndex = _accountsTabIndex;
+
+  // Cuenta cuyo saldo se está actualizando desde la nueva pantalla
+  // "Actualizar saldo" (ícono de sincronización en cada tarjeta de
+  // AccountsOverviewTab); null hasta que se abre por primera vez.
+  Account? _updatingBalanceAccount;
 
   // Categoría que se está editando; null = alta.
   Category? _editingCategory;
@@ -157,6 +164,23 @@ class _HomeShellState extends State<HomeShell> {
   // _handleBackNavigation.
   void _openAccountsOverview() {
     setState(() => _index = _accountsOverviewTabIndex);
+  }
+
+  // Pantalla "Actualizar saldo", a la que se llega desde el ícono de
+  // sincronización de cada tarjeta en AccountsOverviewTab. Siempre vuelve
+  // a esa vista, único lugar desde donde se abre.
+  void _openUpdateBalance(Account account) {
+    setState(() {
+      _updatingBalanceAccount = account;
+      _index = _updateBalanceTabIndex;
+    });
+  }
+
+  void _closeUpdateBalance() {
+    setState(() {
+      _updatingBalanceAccount = null;
+      _index = _accountsOverviewTabIndex;
+    });
   }
 
   void _openAccountForm(Account? account) {
@@ -295,6 +319,9 @@ class _HomeShellState extends State<HomeShell> {
       case _transferFormTabIndex:
         _closeTransferForm();
         break;
+      case _updateBalanceTabIndex:
+        _closeUpdateBalance();
+        break;
       default:
         // Pestañas de primer nivel (Movimientos, Estadísticas, Perfil) y
         // listados a los que solo se llega desde el drawer (Cuentas,
@@ -408,6 +435,12 @@ class _HomeShellState extends State<HomeShell> {
       AccountsOverviewTab(
         accountViewModel: widget.accountViewModel,
         onOpenForm: _openAccountForm,
+        onOpenUpdateBalance: _openUpdateBalance,
+      ),
+      UpdateBalanceTab(
+        key: ValueKey('update-balance-${_updatingBalanceAccount?.id}'),
+        account: _updatingBalanceAccount,
+        onDone: _closeUpdateBalance,
       ),
     ];
 
@@ -608,7 +641,8 @@ class _AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final isAccountsSection = currentIndex == _accountsTabIndex ||
         currentIndex == _accountFormTabIndex ||
-        currentIndex == _accountsOverviewTabIndex;
+        currentIndex == _accountsOverviewTabIndex ||
+        currentIndex == _updateBalanceTabIndex;
     final isCategoriesSection = currentIndex == _categoriesTabIndex ||
         currentIndex == _categoryFormTabIndex;
     final isServicesSection = currentIndex == _servicesTabIndex ||

@@ -33,10 +33,15 @@ class AccountsOverviewTab extends StatelessWidget {
   /// [AccountsTab.onOpenForm].
   final ValueChanged<Account?> onOpenForm;
 
+  /// Pide al HomeShell que abra la nueva pantalla de actualización rápida
+  /// de saldo para esta cuenta (distinta del formulario de edición).
+  final ValueChanged<Account> onOpenUpdateBalance;
+
   const AccountsOverviewTab({
     super.key,
     required this.accountViewModel,
     required this.onOpenForm,
+    required this.onOpenUpdateBalance,
   });
 
   @override
@@ -104,6 +109,7 @@ class AccountsOverviewTab extends StatelessWidget {
                         ),
                         icon: _kAccountIcons[i % _kAccountIcons.length],
                         onTap: () => onOpenForm(account),
+                        onUpdateBalance: () => onOpenUpdateBalance(account),
                       );
                     }),
                     _AddAccountCard(onTap: () => onOpenForm(null)),
@@ -198,6 +204,7 @@ class _AccountCard extends StatelessWidget {
   final Color color;
   final IconData icon;
   final VoidCallback onTap;
+  final VoidCallback onUpdateBalance;
 
   const _AccountCard({
     required this.account,
@@ -205,6 +212,7 @@ class _AccountCard extends StatelessWidget {
     required this.color,
     required this.icon,
     required this.onTap,
+    required this.onUpdateBalance,
   });
 
   @override
@@ -246,10 +254,20 @@ class _AccountCard extends StatelessWidget {
                               child: Icon(icon, color: color, size: 18),
                             ),
                             const Spacer(),
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              color: AppColors.authTextFooter,
-                              size: 18,
+                            // Ícono de actualización de saldo (no de
+                            // edición): abre una pantalla nueva, aparte,
+                            // pensada solo para cargar el saldo actual.
+                            IconButton(
+                              onPressed: onUpdateBalance,
+                              icon: Icon(Icons.sync_alt_rounded,
+                                  color: color, size: 18),
+                              tooltip: 'Actualizar saldo',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 28,
+                                minHeight: 28,
+                              ),
+                              visualDensity: VisualDensity.compact,
                             ),
                           ],
                         ),
