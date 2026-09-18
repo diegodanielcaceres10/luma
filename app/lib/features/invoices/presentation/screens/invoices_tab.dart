@@ -29,6 +29,13 @@ class InvoicesTab extends StatefulWidget {
   final CategoryViewModel categoryViewModel;
   final AccountViewModel accountViewModel;
 
+  /// Si es true, la pestaña arranca con el filtro "Pendientes" ya
+  /// aplicado (ej. al entrar desde la quick action "Facturas por pagar"
+  /// del Dashboard). Solo se lee una vez, al crear el State — para que
+  /// tenga efecto en una pestaña ya montada hace falta forzar un nuevo
+  /// State (ver el nonce en HomeShell).
+  final bool initialPendingFilter;
+
   const InvoicesTab({
     super.key,
     required this.userId,
@@ -36,6 +43,7 @@ class InvoicesTab extends StatefulWidget {
     required this.serviceViewModel,
     required this.categoryViewModel,
     required this.accountViewModel,
+    this.initialPendingFilter = false,
   });
 
   @override
@@ -43,7 +51,14 @@ class InvoicesTab extends StatefulWidget {
 }
 
 class _InvoicesTabState extends State<InvoicesTab> {
-  _StatusFilter _statusFilter = _StatusFilter.all;
+  late _StatusFilter _statusFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _statusFilter =
+        widget.initialPendingFilter ? _StatusFilter.pending : _StatusFilter.all;
+  }
 
   static const _monthNames = [
     'enero',
@@ -223,9 +238,10 @@ class _InvoicesTabState extends State<InvoicesTab> {
                   child: Column(
                     children: List.generate(invoices.length, (i) {
                       final invoice = invoices[i];
-                      final service = widget.serviceViewModel
-                          .serviceById(invoice.serviceId);
-                      final serviceName = service?.name ?? 'Servicio eliminado';
+                      final service =
+                          widget.serviceViewModel.serviceById(invoice.serviceId);
+                      final serviceName =
+                          service?.name ?? 'Servicio eliminado';
                       final category = widget.categoryViewModel
                           .categoryById(service?.categoryId);
                       return _InvoiceRow(
@@ -289,9 +305,8 @@ class _StatusFilterRow extends StatelessWidget {
                   : AppColors.authCardFill,
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: isSelected
-                    ? AppColors.authAccent
-                    : AppColors.authCardBorder,
+                color:
+                    isSelected ? AppColors.authAccent : AppColors.authCardBorder,
               ),
             ),
             child: Text(
@@ -336,7 +351,8 @@ class _InvoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = colorFromHex(category?.color, fallback: AppColors.authAccent);
+    final color =
+        colorFromHex(category?.color, fallback: AppColors.authAccent);
 
     final badgeColor = invoice.cancelled
         ? AppColors.authTextFooter
@@ -538,8 +554,8 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
   @override
   Widget build(BuildContext context) {
     final accounts = widget.accounts;
-    final color =
-        colorFromHex(widget.category.color, fallback: AppColors.authAccent);
+    final color = colorFromHex(widget.category.color,
+        fallback: AppColors.authAccent);
 
     return AlertDialog(
       title: const Text('Registrar pago'),
@@ -601,7 +617,8 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
                 initialValue: _selectedAccount,
                 decoration: const InputDecoration(border: OutlineInputBorder()),
                 items: accounts
-                    .map((a) => DropdownMenuItem(value: a, child: Text(a.name)))
+                    .map((a) =>
+                        DropdownMenuItem(value: a, child: Text(a.name)))
                     .toList(),
                 onChanged: (value) => setState(() => _selectedAccount = value),
               ),

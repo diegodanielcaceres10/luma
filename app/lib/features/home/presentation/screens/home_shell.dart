@@ -107,6 +107,14 @@ class _HomeShellState extends State<HomeShell> {
   // cada vez que se abre.
   int _invoiceFormNonce = 0;
 
+  // Al entrar a Facturas desde la quick action "Facturas por pagar" del
+  // Dashboard, forzamos un InvoicesTab nuevo (via key con este nonce) que
+  // arranca con el filtro "Pendientes" aplicado — la pestaña normal
+  // (drawer/bottom nav) no lo toca y conserva el filtro que el usuario
+  // tenía elegido.
+  int _invoicesNonce = 0;
+  bool _invoicesInitialPendingFilter = false;
+
   // Transferencias: todavía no se guardan, pero el nonce ya deja el
   // formulario listo para cuando se agregue el guardado.
   int _transferFormNonce = 0;
@@ -230,6 +238,14 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
+  void _goToPendingInvoices() {
+    setState(() {
+      _invoicesNonce++;
+      _invoicesInitialPendingFilter = true;
+      _index = _invoicesTabIndex;
+    });
+  }
+
   /// Qué hacer cuando el usuario presiona "atrás" (botón físico/gesto en
   /// Android, botón atrás del navegador en Web) estando en una pestaña que
   /// no es "Inicio". En vez de dejar que el sistema cierre la app o
@@ -281,7 +297,7 @@ class _HomeShellState extends State<HomeShell> {
         onOpenMonthlyBalances: _openMonthlyBalanceForm,
         onOpenAddTransaction: _openAddTransactionForm,
         onGoToAccounts: () => _openAccountForm(null),
-        onGoToInvoices: () => _onTabTap(_invoicesTabIndex),
+        onGoToInvoices: _goToPendingInvoices,
         onGoToTransfers: _openTransferForm,
       ),
       MovementsTab(
@@ -346,11 +362,13 @@ class _HomeShellState extends State<HomeShell> {
         onDone: _closeServiceForm,
       ),
       InvoicesTab(
+        key: ValueKey('invoices-$_invoicesNonce'),
         userId: widget.authViewModel.userId ?? '',
         invoiceViewModel: widget.invoiceViewModel,
         serviceViewModel: widget.serviceViewModel,
         categoryViewModel: widget.categoryViewModel,
         accountViewModel: widget.accountViewModel,
+        initialPendingFilter: _invoicesInitialPendingFilter,
       ),
       InvoiceFormTab(
         key: ValueKey('invoice-form-$_invoiceFormNonce'),
