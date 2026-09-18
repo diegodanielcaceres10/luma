@@ -440,6 +440,7 @@ class _HomeShellState extends State<HomeShell> {
       UpdateBalanceTab(
         key: ValueKey('update-balance-${_updatingBalanceAccount?.id}'),
         account: _updatingBalanceAccount,
+        accountViewModel: widget.accountViewModel,
         onDone: _closeUpdateBalance,
       ),
     ];
