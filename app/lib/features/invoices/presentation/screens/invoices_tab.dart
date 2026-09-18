@@ -572,6 +572,24 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
     );
   }
 
+  static const _fieldDecoration = InputDecoration(
+    filled: true,
+    fillColor: AppColors.authCardFill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authCardBorder),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authCardBorder),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authAccent),
+    ),
+    hintStyle: TextStyle(color: AppColors.authTextFooter),
+  );
+
   @override
   Widget build(BuildContext context) {
     final accounts = widget.accounts;
@@ -579,7 +597,19 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
         colorFromHex(widget.category.color, fallback: AppColors.authAccent);
 
     return AlertDialog(
-      title: const Text('Registrar pago'),
+      backgroundColor: AppColors.authBackgroundTop,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.authCardBorder),
+      ),
+      title: const Text(
+        'Registrar pago',
+        style: TextStyle(
+          color: AppColors.authTextPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -600,23 +630,31 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
                 Expanded(
                   child: Text(
                     '${widget.serviceName} · ${widget.category.name}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.authTextPrimary,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            const Text('Monto a pagar'),
+            const Text(
+              'Monto a pagar',
+              style: TextStyle(color: AppColors.authTextSecondary),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _amountController,
               autofocus: true,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
+              style: const TextStyle(color: AppColors.authTextPrimary),
+              decoration: _fieldDecoration.copyWith(
                 prefixText: '€ ',
+                prefixStyle: const TextStyle(color: AppColors.authTextPrimary),
                 errorText: _amountError,
+                errorStyle: const TextStyle(color: AppColors.authExpense),
               ),
               onChanged: (_) {
                 if (_amountError != null) {
@@ -625,7 +663,10 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
               },
             ),
             const SizedBox(height: 20),
-            const Text('Cuenta con la que se paga'),
+            const Text(
+              'Cuenta con la que se paga',
+              style: TextStyle(color: AppColors.authTextSecondary),
+            ),
             const SizedBox(height: 8),
             if (accounts.isEmpty)
               const Text(
@@ -636,7 +677,9 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
             else
               DropdownButtonFormField<Account>(
                 initialValue: _selectedAccount,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
+                dropdownColor: AppColors.authBackgroundBottom,
+                style: const TextStyle(color: AppColors.authTextPrimary),
+                decoration: _fieldDecoration,
                 items: accounts
                     .map((a) => DropdownMenuItem(value: a, child: Text(a.name)))
                     .toList(),
@@ -648,9 +691,20 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Volver'),
+          child: const Text(
+            'Volver',
+            style: TextStyle(color: AppColors.authTextSecondary),
+          ),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.authAccent,
+            foregroundColor: AppColors.authBackgroundBottom,
+            disabledBackgroundColor:
+                AppColors.authAccent.withValues(alpha: 0.6),
+            disabledForegroundColor:
+                AppColors.authBackgroundBottom.withValues(alpha: 0.6),
+          ),
           onPressed: accounts.isEmpty ? null : _confirm,
           child: const Text('Confirmar pago'),
         ),
