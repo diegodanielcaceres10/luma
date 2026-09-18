@@ -1,3 +1,5 @@
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart'
+    as emoji_picker;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // `show` porque el paquete también exporta `colorFromHex` / `colorToHex`, que
@@ -149,13 +151,91 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
       ),
       builder: (_) => _CustomColorSheet(
         initialColor: colorFromHex(_selectedColor),
-        icon: iconFromName(_selectedIcon),
+        icon: _selectedIcon,
       ),
     );
 
     if (picked != null && mounted) {
       setState(() => _selectedColor = picked);
     }
+  }
+
+  /// Abre el selector de emojis. Si el usuario elige uno, queda como
+  /// `_selectedIcon` (el emoji tal cual, en `categories.icon`).
+  Future<void> _openEmojiPicker() async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AppColors.authBackgroundBottom,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => const _EmojiPickerSheet(),
+    );
+
+    if (picked != null && mounted) {
+      setState(() => _selectedIcon = picked);
+    }
+  }
+
+  /// Casilla cuadrada de la fila de íconos. [childBuilder] recibe el color
+  /// que corresponde al contenido (acento si está seleccionada).
+  Widget _buildIconTile({
+    required bool isSelected,
+    required VoidCallback? onTap,
+    required Widget Function(Color contentColor) childBuilder,
+  }) {
+    final accent = colorFromHex(_selectedColor);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? accent.withValues(alpha: 0.25)
+              : AppColors.authCardFill,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? accent : AppColors.authCardBorder,
+          ),
+        ),
+        child: Center(
+          child: childBuilder(
+            isSelected ? accent : AppColors.authTextSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Botón al final de la fila de íconos: abre el selector de emojis.
+  Widget _buildAddEmojiButton({required VoidCallback? onTap}) {
+    return Tooltip(
+      message: 'Emoji',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.authAccent.withValues(alpha: 0.6),
+              width: 1.5,
+            ),
+          ),
+          child: const Icon(
+            Icons.emoji_emotions_outlined,
+            color: AppColors.authAccent,
+            size: 22,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildColorDot({required String hex, required VoidCallback? onTap}) {
@@ -333,37 +413,29 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
                   Wrap(
                     spacing: 12,
                     runSpacing: 12,
-                    children: kCategoryIcons.entries.map((entry) {
-                      final isSelected = entry.key == _selectedIcon;
-                      final accent = colorFromHex(_selectedColor);
-                      return InkWell(
-                        onTap: isSubmitting
-                            ? null
-                            : () => setState(() => _selectedIcon = entry.key),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? accent.withValues(alpha: 0.25)
-                                : AppColors.authCardFill,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isSelected
-                                  ? accent
-                                  : AppColors.authCardBorder,
-                            ),
-                          ),
-                          child: Icon(
-                            entry.value,
-                            color: isSelected
-                                ? accent
-                                : AppColors.authTextSecondary,
-                          ),
+                    children: [
+                      for (final entry in kCategoryIcons.entries)
+                        _buildIconTile(
+                          isSelected: entry.key == _selectedIcon,
+                          onTap: isSubmitting
+                              ? null
+                              : () => setState(() => _selectedIcon = entry.key),
+                          childBuilder: (color) =>
+                              Icon(entry.value, color: color),
                         ),
-                      );
-                    }).toList(),
+                      // Emoji ya elegido: se muestra seleccionado y, al
+                      // tocarlo, reabre el selector para cambiarlo.
+                      if (isEmojiIcon(_selectedIcon))
+                        _buildIconTile(
+                          isSelected: true,
+                          onTap: isSubmitting ? null : _openEmojiPicker,
+                          childBuilder: (_) =>
+                              CategoryGlyph(icon: _selectedIcon, size: 24),
+                        ),
+                      _buildAddEmojiButton(
+                        onTap: isSubmitting ? null : _openEmojiPicker,
+                      ),
+                    ],
                   ),
                   if (_type == 'expense') ...[
                     const SizedBox(height: 20),
@@ -453,8 +525,9 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
 class _CustomColorSheet extends StatefulWidget {
   final Color initialColor;
 
-  /// Ícono actualmente elegido en el formulario, solo para la vista previa.
-  final IconData icon;
+  /// Valor de `categories.icon` elegido en el formulario (clave Material o
+  /// emoji), solo para la vista previa.
+  final String? icon;
 
   const _CustomColorSheet({required this.initialColor, required this.icon});
 
@@ -595,7 +668,11 @@ class _CustomColorSheetState extends State<_CustomColorSheet> {
                     color: color,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(widget.icon, color: previewIconColor, size: 22),
+                  child: CategoryGlyph(
+                    icon: widget.icon,
+                    color: previewIconColor,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -677,6 +754,114 @@ class _CustomColorSheetState extends State<_CustomColorSheet> {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet con el selector de emojis (paquete `emoji_picker_flutter`):
+/// categorías, búsqueda y recientes. Devuelve el emoji elegido, o `null` si
+/// se cierra sin elegir.
+class _EmojiPickerSheet extends StatelessWidget {
+  const _EmojiPickerSheet();
+
+  static const double _pickerHeight = 320;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        // Deja lugar al teclado cuando se usa la búsqueda del selector.
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.authCardBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Elige un emoji',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.authTextPrimary,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: _pickerHeight,
+              child: emoji_picker.EmojiPicker(
+                onEmojiSelected: (_, emoji) =>
+                    Navigator.pop(context, emoji.emoji),
+                config: const emoji_picker.Config(
+                  height: _pickerHeight,
+                  locale: Locale('es'),
+                  emojiViewConfig: emoji_picker.EmojiViewConfig(
+                    columns: 8,
+                    emojiSizeMax: 30,
+                    backgroundColor: AppColors.authBackgroundBottom,
+                    loadingIndicator: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.authAccent,
+                      ),
+                    ),
+                    noRecents: Text(
+                      'Todavía no hay emojis recientes',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.authTextSecondary,
+                      ),
+                    ),
+                  ),
+                  categoryViewConfig: emoji_picker.CategoryViewConfig(
+                    // Arranca en "Caras" y no en "Recientes", que al principio
+                    // está vacía.
+                    initCategory: emoji_picker.Category.SMILEYS,
+                    backgroundColor: AppColors.authBackgroundBottom,
+                    indicatorColor: AppColors.authAccent,
+                    iconColor: AppColors.authTextSecondary,
+                    iconColorSelected: AppColors.authAccent,
+                    dividerColor: AppColors.authCardBorder,
+                  ),
+                  bottomActionBarConfig: emoji_picker.BottomActionBarConfig(
+                    // Solo la búsqueda: no hay texto que borrar.
+                    showBackspaceButton: false,
+                    backgroundColor: AppColors.authBackgroundBottom,
+                    buttonColor: AppColors.authAccentDark,
+                    buttonIconColor: AppColors.authTextPrimary,
+                  ),
+                  searchViewConfig: emoji_picker.SearchViewConfig(
+                    backgroundColor: AppColors.authBackgroundBottom,
+                    buttonIconColor: AppColors.authTextSecondary,
+                    hintText: 'Buscar',
+                    hintTextStyle: TextStyle(color: AppColors.authTextFooter),
+                    inputTextStyle: TextStyle(color: AppColors.authTextPrimary),
+                  ),
+                  skinToneConfig: emoji_picker.SkinToneConfig(
+                    dialogBackgroundColor: AppColors.authBackgroundTop,
+                    indicatorColor: AppColors.authTextSecondary,
+                  ),
+                ),
+              ),
             ),
           ],
         ),

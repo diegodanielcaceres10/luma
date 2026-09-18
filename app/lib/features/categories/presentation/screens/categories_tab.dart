@@ -150,9 +150,10 @@ class _CategoryRow extends StatelessWidget {
                   radius: 18,
                   backgroundColor: colorFromHex(category.color,
                           fallback: AppColors.authAccent)
-                      .withValues(alpha: 0.85),
-                  child: Icon(iconFromName(category.icon),
-                      color: Colors.white, size: 18),
+                      .withValues(
+                          alpha: categoryIconBackgroundAlpha(category.icon)),
+                  child: CategoryGlyph(
+                      icon: category.icon, color: Colors.white, size: 18),
                 ),
                 const SizedBox(width: 14),
                 Expanded(

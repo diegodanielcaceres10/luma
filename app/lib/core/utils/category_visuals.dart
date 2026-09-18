@@ -50,6 +50,65 @@ IconData iconFromName(String? name) {
   return kCategoryIcons[resolved] ?? kCategoryIcons['other']!;
 }
 
+/// Las claves de ícono Material ('food', 'home'…) son texto ASCII simple; un
+/// emoji nunca lo es. Así se distingue qué guarda `categories.icon` sin
+/// necesidad de una columna nueva ni de una migración.
+final RegExp _iconKeyPattern = RegExp(r'^[A-Za-z0-9_\- ]+$');
+
+/// `true` si lo guardado en `categories.icon` es un emoji y no una clave del
+/// catálogo [kCategoryIcons]. Un valor nulo, vacío o una clave desconocida
+/// siguen resolviéndose como ícono Material (ver [iconFromName]).
+bool isEmojiIcon(String? value) {
+  if (value == null || value.isEmpty) return false;
+  return !_iconKeyPattern.hasMatch(value);
+}
+
+/// Opacidad del círculo de fondo de una categoría. Un ícono Material va en
+/// blanco sobre el color casi sólido ([solid]); un emoji ya trae sus propios
+/// colores, así que va sobre un tinte suave del color de la categoría.
+double categoryIconBackgroundAlpha(String? icon, {double solid = 0.85}) {
+  return isEmojiIcon(icon) ? 0.25 : solid;
+}
+
+/// Dibuja el ícono de una categoría, sea un ícono Material del catálogo o
+/// un emoji. [color] solo aplica a los íconos Material: los emojis conservan sus
+/// colores originales.
+class CategoryGlyph extends StatelessWidget {
+  /// Valor de `categories.icon`.
+  final String? icon;
+  final double size;
+  final Color? color;
+
+  const CategoryGlyph({
+    super.key,
+    required this.icon,
+    required this.size,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final value = icon;
+    if (value != null && isEmojiIcon(value)) {
+      // El glifo de un emoji suele salir un poco más ancho que su fontSize,
+      // y varía según la plataforma: FittedBox lo encaja en size × size.
+      return SizedBox.square(
+        dimension: size,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            maxLines: 1,
+            textScaler: TextScaler.noScaling,
+            style: TextStyle(fontSize: size, height: 1),
+          ),
+        ),
+      );
+    }
+    return Icon(iconFromName(icon), size: size, color: color);
+  }
+}
+
 /// Paleta fija de colores para el picker de categorías. Elegidos para verse
 /// bien tanto sobre fondo oscuro (chips propios) como en textos/íconos
 /// sobre las cards con fondo authCardFill.

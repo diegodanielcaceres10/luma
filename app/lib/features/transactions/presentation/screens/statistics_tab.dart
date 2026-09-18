@@ -696,7 +696,6 @@ class _CategoryLegendRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final color =
         colorFromHex(category.category.color, fallback: AppColors.authAccent);
-    final icon = iconFromName(category.category.icon);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
@@ -708,7 +707,11 @@ class _CategoryLegendRow extends StatelessWidget {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
-          Icon(icon, size: 14, color: color),
+          CategoryGlyph(
+            icon: category.category.icon,
+            size: 14,
+            color: color,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
