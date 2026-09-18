@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../view_models/transaction_view_model.dart';
 
@@ -151,15 +154,27 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 border: Border.all(color: AppColors.authCardBorder),
               ),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Column(
-                  children: breakdown
-                      .map((c) => _CategoryBar(
-                            category: c,
-                            currency: widget.currency,
-                          ))
-                      .toList(),
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _CategoryDonutChart(
+                      breakdown: breakdown,
+                      total: vm.totalExpenses,
+                      currency: widget.currency,
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Column(
+                        children: breakdown
+                            .map((c) => _CategoryLegendRow(
+                                  category: c,
+                                  currency: widget.currency,
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -560,63 +575,172 @@ String _monthLabel(DateTime date) {
   return formatted[0].toUpperCase() + formatted.substring(1);
 }
 
-class _CategoryBar extends StatelessWidget {
-  final CategoryTotal category;
+/// Gráfico de dona con el total de gastos en el centro. Cada segmento usa
+/// el color propio de la categoría (category.color en la DB), igual que
+/// el puntito de color de cada fila de la leyenda.
+class _CategoryDonutChart extends StatelessWidget {
+  final List<CategoryTotal> breakdown;
+  final double total;
   final String currency;
 
-  const _CategoryBar({required this.category, required this.currency});
+  const _CategoryDonutChart({
+    required this.breakdown,
+    required this.total,
+    required this.currency,
+  });
 
   @override
   Widget build(BuildContext context) {
-    const color = AppColors.authAccent;
+    const size = 128.0;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: const Size(size, size),
+            painter: _DonutChartPainter(breakdown: breakdown),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(28),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Total gastos',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.authTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    formatCurrency(total, currency),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.authTextPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Dibuja los segmentos de la dona a partir de [CategoryTotal.percent].
+/// No usa ninguna librería de gráficos — el proyecto no tenía ninguna
+/// como dependencia todavía.
+class _DonutChartPainter extends CustomPainter {
+  final List<CategoryTotal> breakdown;
+  final double strokeWidth;
+
+  _DonutChartPainter({required this.breakdown}) : strokeWidth = 15;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide - strokeWidth) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    // Fondo de la dona, por si los porcentajes no suman 100% justo
+    // (redondeo) y queda un resto sin cubrir.
+    final backgroundPaint = Paint()
+      ..color = AppColors.authBackgroundTop
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawArc(rect, 0, 2 * pi, false, backgroundPaint);
+
+    double startAngle = -pi / 2;
+    for (final item in breakdown) {
+      if (item.percent <= 0) continue;
+
+      final sweepAngle = (item.percent / 100) * 2 * pi;
+      final paint = Paint()
+        ..color =
+            colorFromHex(item.category.color, fallback: AppColors.authAccent)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt;
+
+      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
+      startAngle += sweepAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutChartPainter oldDelegate) {
+    return oldDelegate.breakdown != breakdown;
+  }
+}
+
+/// Fila de la leyenda: punto de color + ícono + nombre + monto + %, todos
+/// tomados de la misma categoría que pinta su segmento en la dona.
+class _CategoryLegendRow extends StatelessWidget {
+  final CategoryTotal category;
+  final String currency;
+
+  const _CategoryLegendRow({required this.category, required this.currency});
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        colorFromHex(category.category.color, fallback: AppColors.authAccent);
+    final icon = iconFromName(category.category.icon);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  category.category.name,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.authTextPrimary,
-                  ),
-                ),
-              ),
-              Text(
-                formatCurrency(category.amount, currency),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.authTextPrimary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 36,
-                child: Text(
-                  '${category.percent.toStringAsFixed(0)}%',
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.authTextSecondary,
-                  ),
-                ),
-              ),
-            ],
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: (category.percent / 100).clamp(0, 1),
-              minHeight: 6,
-              backgroundColor: AppColors.authBackgroundTop,
-              valueColor: const AlwaysStoppedAnimation(color),
+          const SizedBox(width: 8),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              category.category.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            formatCurrency(category.amount, currency),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.authTextPrimary,
+            ),
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 28,
+            child: Text(
+              '${category.percent.toStringAsFixed(0)}%',
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.authTextSecondary,
+              ),
             ),
           ),
         ],
