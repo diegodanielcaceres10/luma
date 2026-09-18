@@ -33,12 +33,11 @@ const _kAccountIcons = [
 /// quien pone el header (menú + marca Luma + campana) y el
 /// bottomNavigationBar.
 ///
-/// Entrega 3: además del header, el campo del nuevo saldo y el cálculo en
-/// vivo de la diferencia, se agrega el título de la sección de movimientos
-/// y el botón "Agregar movimiento" del prototipo — todavía sin acción. La
-/// lista de movimientos, los totales y el botón "Guardar y actualizar
-/// saldo" quedan para una próxima entrega — hoy no se envía nada a la
-/// cuenta.
+/// Entrega 4: agrega el popup de "Agregar movimiento" que abre el botón de
+/// la Entrega 3 — por ahora solo título, "Cancelar" y "Guardar", todavía
+/// sin campos ni guardado real. La lista de movimientos, los totales y el
+/// botón "Guardar y actualizar saldo" quedan para una próxima entrega — hoy
+/// no se envía nada a la cuenta.
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` porque,
   /// igual que en [AccountFormTab], el HomeShell mantiene esta pestaña
@@ -128,6 +127,49 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   int _accountIndex(Account account) {
     final index = widget.accountViewModel.accounts.indexOf(account);
     return index < 0 ? 0 : index;
+  }
+
+  /// Popup que abre el botón "Agregar movimiento". Por ahora solo título,
+  /// "Cancelar" y "Guardar" — sin campos ni guardado real; ambos botones
+  /// se limitan a cerrar el popup. Mismo estilo que los diálogos de
+  /// [InvoicesTab] (fondo, borde y colores de los botones).
+  Future<void> _showAddMovementDialog(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.authBackgroundTop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        title: const Text(
+          'Agregar movimiento',
+          style: TextStyle(
+            color: AppColors.authTextPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.authTextSecondary),
+            ),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.authAccent,
+              foregroundColor: AppColors.authBackgroundBottom,
+            ),
+            // Todavía no guarda nada: solo cierra el popup.
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
   }
 
   InputDecoration _amountDecoration(String currencySymbol) {
@@ -257,9 +299,7 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
               ),
               const SizedBox(height: 24),
               _MovementsSectionHeader(
-                // Sin acción todavía: la lista de movimientos y su alta
-                // quedan para una próxima entrega.
-                onAddMovement: () {},
+                onAddMovement: () => _showAddMovementDialog(context),
               ),
             ],
           ],
@@ -328,8 +368,8 @@ class _AccountHeader extends StatelessWidget {
 /// Título de la sección "Movimientos para justificar la diferencia" y el
 /// botón "Agregar movimiento" del prototipo, en la misma fila.
 ///
-/// [onAddMovement] todavía no hace nada en esta entrega: el alta de
-/// movimientos (y la lista que los muestra) se implementa más adelante.
+/// [onAddMovement] abre el popup de alta de movimiento (Entrega 4); el
+/// popup en sí todavía no tiene campos ni guarda nada.
 class _MovementsSectionHeader extends StatelessWidget {
   final VoidCallback onAddMovement;
 
