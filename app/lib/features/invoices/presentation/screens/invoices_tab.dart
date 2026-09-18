@@ -12,6 +12,8 @@ import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../data/models/invoice.dart';
 import '../view_models/invoice_view_model.dart';
 
+enum _StatusFilter { all, pending, paid, cancelled }
+
 /// Contenido de la pestaña "Facturas". No tiene Scaffold propio — vive
 /// dentro del Scaffold del HomeShell, que es quien pone el header (con el
 /// botón "+" para crear) y el bottomNavigationBar.
@@ -20,7 +22,7 @@ import '../view_models/invoice_view_model.dart';
 /// pendiente (cerrar su flujo sin pagarla) o registrar su pago: eso crea
 /// la transacción de gasto vinculada a la categoría del servicio, con
 /// posibilidad de ajustar el monto antes de confirmar.
-class InvoicesTab extends StatelessWidget {
+class InvoicesTab extends StatefulWidget {
   final String userId;
   final InvoiceViewModel invoiceViewModel;
   final ServiceViewModel serviceViewModel;
@@ -36,6 +38,13 @@ class InvoicesTab extends StatelessWidget {
     required this.accountViewModel,
   });
 
+  @override
+  State<InvoicesTab> createState() => _InvoicesTabState();
+}
+
+class _InvoicesTabState extends State<InvoicesTab> {
+  _StatusFilter _statusFilter = _StatusFilter.all;
+
   static const _monthNames = [
     'enero',
     'febrero',
@@ -50,6 +59,19 @@ class InvoicesTab extends StatelessWidget {
     'noviembre',
     'diciembre',
   ];
+
+  bool _matchesStatus(Invoice invoice) {
+    switch (_statusFilter) {
+      case _StatusFilter.all:
+        return true;
+      case _StatusFilter.pending:
+        return invoice.isPending;
+      case _StatusFilter.paid:
+        return invoice.paid;
+      case _StatusFilter.cancelled:
+        return invoice.cancelled;
+    }
+  }
 
   Future<void> _confirmCancel(BuildContext context, Invoice invoice) async {
     final confirmed = await showDialog<bool>(
@@ -75,12 +97,13 @@ class InvoicesTab extends StatelessWidget {
 
     if (confirmed != true) return;
 
-    final ok = await invoiceViewModel.cancelInvoice(invoice.id);
+    final ok = await widget.invoiceViewModel.cancelInvoice(invoice.id);
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            invoiceViewModel.errorMessage ?? 'No se pudo cancelar la factura.',
+            widget.invoiceViewModel.errorMessage ??
+                'No se pudo cancelar la factura.',
           ),
         ),
       );
@@ -105,7 +128,7 @@ class InvoicesTab extends StatelessWidget {
       return;
     }
 
-    final accounts = accountViewModel.activeAccounts;
+    final accounts = widget.accountViewModel.activeAccounts;
     final result = await showDialog<_PayInvoiceResult>(
       context: context,
       builder: (_) => _PayInvoiceDialog(
@@ -118,9 +141,9 @@ class InvoicesTab extends StatelessWidget {
 
     if (result == null) return;
 
-    final ok = await invoiceViewModel.payInvoice(
+    final ok = await widget.invoiceViewModel.payInvoice(
       invoice: invoice,
-      userId: userId,
+      userId: widget.userId,
       accountId: result.accountId,
       categoryId: category.id,
       amount: result.amount,
@@ -131,7 +154,8 @@ class InvoicesTab extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            invoiceViewModel.errorMessage ?? 'No se pudo registrar el pago.',
+            widget.invoiceViewModel.errorMessage ??
+                'No se pudo registrar el pago.',
           ),
         ),
       );
@@ -144,20 +168,21 @@ class InvoicesTab extends StatelessWidget {
       top: false,
       child: ListenableBuilder(
         listenable: Listenable.merge([
-          invoiceViewModel,
-          serviceViewModel,
-          categoryViewModel,
-          accountViewModel,
+          widget.invoiceViewModel,
+          widget.serviceViewModel,
+          widget.categoryViewModel,
+          widget.accountViewModel,
         ]),
         builder: (context, _) {
-          if (invoiceViewModel.isLoading &&
-              invoiceViewModel.invoices.isEmpty) {
+          if (widget.invoiceViewModel.isLoading &&
+              widget.invoiceViewModel.invoices.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.authAccent),
             );
           }
 
-          final invoices = invoiceViewModel.invoices;
+          final allInvoices = widget.invoiceViewModel.invoices;
+          final invoices = allInvoices.where(_matchesStatus).toList();
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -171,11 +196,19 @@ class InvoicesTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              _StatusFilterRow(
+                value: _statusFilter,
+                onChanged: (value) => setState(() => _statusFilter = value),
+              ),
+              const SizedBox(height: 16),
               if (invoices.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
+                Padding(
+                  padding: const EdgeInsets.only(top: 40),
                   child: Text(
-                    'Todavía no hay facturas.\nTocá + para crear la primera.',
+                    allInvoices.isEmpty
+                        ? 'Todavía no hay facturas.\nTocá + para crear la '
+                            'primera.'
+                        : 'No hay facturas con este filtro.',
                     textAlign: TextAlign.center,
                     style: AppTextStyles.authSubtitle,
                   ),
@@ -190,20 +223,20 @@ class InvoicesTab extends StatelessWidget {
                   child: Column(
                     children: List.generate(invoices.length, (i) {
                       final invoice = invoices[i];
-                      final service =
-                          serviceViewModel.serviceById(invoice.serviceId);
-                      final serviceName =
-                          service?.name ?? 'Servicio eliminado';
-                      final category =
-                          categoryViewModel.categoryById(service?.categoryId);
+                      final service = widget.serviceViewModel
+                          .serviceById(invoice.serviceId);
+                      final serviceName = service?.name ?? 'Servicio eliminado';
+                      final category = widget.categoryViewModel
+                          .categoryById(service?.categoryId);
                       return _InvoiceRow(
                         invoice: invoice,
                         serviceName: serviceName,
                         category: category,
                         monthLabel: _monthNames[invoice.month - 1],
                         showDivider: i != invoices.length - 1,
-                        isCancelling: invoiceViewModel.isCancelling(invoice.id),
-                        isPaying: invoiceViewModel.isPaying(invoice.id),
+                        isCancelling:
+                            widget.invoiceViewModel.isCancelling(invoice.id),
+                        isPaying: widget.invoiceViewModel.isPaying(invoice.id),
                         onCancel: () => _confirmCancel(context, invoice),
                         onPay: () => _payInvoice(
                           context,
@@ -219,6 +252,61 @@ class InvoicesTab extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// Filtro rápido por estado de la factura: Todas / Pendientes / Pagadas /
+/// Canceladas. Chips que fluyen horizontalmente y saltan de línea al
+/// llegar al borde (Wrap), mismo criterio que los filtros de Movimientos.
+class _StatusFilterRow extends StatelessWidget {
+  final _StatusFilter value;
+  final ValueChanged<_StatusFilter> onChanged;
+
+  const _StatusFilterRow({required this.value, required this.onChanged});
+
+  static const _options = [
+    (_StatusFilter.all, 'Todas'),
+    (_StatusFilter.pending, 'Pendientes'),
+    (_StatusFilter.paid, 'Pagadas'),
+    (_StatusFilter.cancelled, 'Canceladas'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _options.map((option) {
+        final isSelected = option.$1 == value;
+        return GestureDetector(
+          onTap: () => onChanged(option.$1),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.authAccent.withValues(alpha: 0.18)
+                  : AppColors.authCardFill,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.authAccent
+                    : AppColors.authCardBorder,
+              ),
+            ),
+            child: Text(
+              option.$2,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? AppColors.authTextPrimary
+                    : AppColors.authTextSecondary,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
@@ -248,8 +336,7 @@ class _InvoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        colorFromHex(category?.color, fallback: AppColors.authAccent);
+    final color = colorFromHex(category?.color, fallback: AppColors.authAccent);
 
     final badgeColor = invoice.cancelled
         ? AppColors.authTextFooter
@@ -451,8 +538,8 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
   @override
   Widget build(BuildContext context) {
     final accounts = widget.accounts;
-    final color = colorFromHex(widget.category.color,
-        fallback: AppColors.authAccent);
+    final color =
+        colorFromHex(widget.category.color, fallback: AppColors.authAccent);
 
     return AlertDialog(
       title: const Text('Registrar pago'),
@@ -514,8 +601,7 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
                 initialValue: _selectedAccount,
                 decoration: const InputDecoration(border: OutlineInputBorder()),
                 items: accounts
-                    .map((a) =>
-                        DropdownMenuItem(value: a, child: Text(a.name)))
+                    .map((a) => DropdownMenuItem(value: a, child: Text(a.name)))
                     .toList(),
                 onChanged: (value) => setState(() => _selectedAccount = value),
               ),
