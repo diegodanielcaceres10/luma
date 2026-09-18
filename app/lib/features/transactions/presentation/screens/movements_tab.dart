@@ -31,7 +31,7 @@ class MovementsTab extends StatefulWidget {
 
 class _MovementsTabState extends State<MovementsTab> {
   _TypeFilter _typeFilter = _TypeFilter.all;
-  _DateRangeFilter _dateRange = _DateRangeFilter.thisMonth;
+  _DateRangeFilter _dateRange = _DateRangeFilter.all;
 
   // null = "todas". Guardan category.id/account.id si existen, si no el
   // nombre — mismo criterio que categoryBreakdown en el ViewModel.
@@ -257,7 +257,7 @@ class _MovementsTabState extends State<MovementsTab> {
                     onClear: hasActiveFilters
                         ? () => setState(() {
                               _typeFilter = _TypeFilter.all;
-                              _dateRange = _DateRangeFilter.thisMonth;
+                              _dateRange = _DateRangeFilter.all;
                               _categoryKey = null;
                               _accountKey = null;
                             })
@@ -390,10 +390,11 @@ class _TypeFilterRow extends StatelessWidget {
   }
 }
 
-/// Filtro rápido por rango de fechas: Hoy / Esta semana / Últimos 7 días /
-/// Últimos 15 días / Este mes / Todo. Chips horizontales, sin punto de
-/// color (no representan una entidad con color propio como
-/// categoría/cuenta).
+/// Filtro rápido por rango de fechas: Todo / Hoy / Esta semana / Últimos 7
+/// días / Últimos 15 días / Este mes. Se muestran en varias líneas (Wrap)
+/// para que todas las opciones queden visibles sin scroll horizontal.
+/// Chips sin punto de color (no representan una entidad con color propio
+/// como categoría/cuenta).
 class _DateRangeFilterRow extends StatelessWidget {
   final _DateRangeFilter value;
   final ValueChanged<_DateRangeFilter> onChanged;
@@ -401,39 +402,34 @@ class _DateRangeFilterRow extends StatelessWidget {
   const _DateRangeFilterRow({required this.value, required this.onChanged});
 
   static const _options = [
+    (_DateRangeFilter.all, 'Todo'),
     (_DateRangeFilter.today, 'Hoy'),
     (_DateRangeFilter.thisWeek, 'Esta semana'),
     (_DateRangeFilter.last7Days, 'Últimos 7 días'),
     (_DateRangeFilter.last15Days, 'Últimos 15 días'),
     (_DateRangeFilter.thisMonth, 'Este mes'),
-    (_DateRangeFilter.all, 'Todo'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 34,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _options.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final option = _options[index];
-          return _PlainChip(
-            label: option.$2,
-            isSelected: option.$1 == value,
-            onTap: () => onChanged(option.$1),
-          );
-        },
-      ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _options.map((option) {
+        return _PlainChip(
+          label: option.$2,
+          isSelected: option.$1 == value,
+          onTap: () => onChanged(option.$1),
+        );
+      }).toList(),
     );
   }
 }
 
-/// Filtro rápido por categoría o cuenta: chips horizontales, una por cada
-/// valor con movimientos bajo los demás filtros activos, más "Todas" para
-/// soltarlo. Genérica para no duplicar la misma fila para cuenta y
-/// categoría.
+/// Filtro rápido por categoría o cuenta: chips que fluyen horizontalmente
+/// y saltan de línea al llegar al borde (Wrap), una por cada valor con
+/// movimientos bajo los demás filtros activos, más "Todas" para soltarlo.
+/// Genérica para no duplicar la misma fila para cuenta y categoría.
 class _ChipFilterRow extends StatelessWidget {
   final List<({String key, String label, Color color})> items;
   final String? selectedKey;
@@ -447,30 +443,24 @@ class _ChipFilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 34,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: items.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return _ColorChip(
-              label: 'Todas',
-              color: AppColors.authTextSecondary,
-              isSelected: selectedKey == null,
-              onTap: () => onSelect(null),
-            );
-          }
-          final item = items[index - 1];
-          return _ColorChip(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _ColorChip(
+          label: 'Todas',
+          color: AppColors.authTextSecondary,
+          isSelected: selectedKey == null,
+          onTap: () => onSelect(null),
+        ),
+        for (final item in items)
+          _ColorChip(
             label: item.label,
             color: item.color,
             isSelected: selectedKey == item.key,
             onTap: () => onSelect(item.key),
-          );
-        },
-      ),
+          ),
+      ],
     );
   }
 }
