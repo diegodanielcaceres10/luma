@@ -31,7 +31,7 @@ class MovementsTab extends StatefulWidget {
 
 class _MovementsTabState extends State<MovementsTab> {
   _TypeFilter _typeFilter = _TypeFilter.all;
-  _DateRangeFilter _dateRange = _DateRangeFilter.all;
+  _DateRangeFilter _dateRange = _DateRangeFilter.thisMonth;
 
   // null = "todas". Guardan category.id/account.id si existen, si no el
   // nombre — mismo criterio que categoryBreakdown en el ViewModel.
@@ -79,11 +79,9 @@ class _MovementsTabState extends State<MovementsTab> {
     }
   }
 
-  String _categoryKeyOf(TransactionEntry t) =>
-      t.category.id ?? t.category.name;
+  String _categoryKeyOf(TransactionEntry t) => t.category.id ?? t.category.name;
 
-  String _accountKeyOf(TransactionEntry t) =>
-      t.account.id ?? t.account.name;
+  String _accountKeyOf(TransactionEntry t) => t.account.id ?? t.account.name;
 
   /// Categorías presentes en [typeFiltered] — solo se muestran chips de
   /// categorías que tengan al menos un movimiento bajo los filtros de
@@ -158,16 +156,14 @@ class _MovementsTabState extends State<MovementsTab> {
           // sin tocar el estado — así no queda una lista vacía sin que se
           // note por qué, y el chip vuelve a aparecer resaltado si volvés
           // al filtro anterior.
-          final effectiveCategoryKey =
-              _categoryKey != null &&
-                      categories.any((c) => _categoryModelKey(c) == _categoryKey)
-                  ? _categoryKey
-                  : null;
-          final effectiveAccountKey =
-              _accountKey != null &&
-                      accounts.any((a) => _accountModelKey(a) == _accountKey)
-                  ? _accountKey
-                  : null;
+          final effectiveCategoryKey = _categoryKey != null &&
+                  categories.any((c) => _categoryModelKey(c) == _categoryKey)
+              ? _categoryKey
+              : null;
+          final effectiveAccountKey = _accountKey != null &&
+                  accounts.any((a) => _accountModelKey(a) == _accountKey)
+              ? _accountKey
+              : null;
 
           var filtered = typeFiltered;
           if (effectiveCategoryKey != null) {
@@ -671,8 +667,9 @@ class _MovementRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color:
-                      movement.isIncome ? AppColors.authIncome : AppColors.authExpense,
+                  color: movement.isIncome
+                      ? AppColors.authIncome
+                      : AppColors.authExpense,
                 ),
               ),
             ],
