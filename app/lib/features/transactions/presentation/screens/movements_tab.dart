@@ -10,7 +10,7 @@ import '../view_models/transaction_view_model.dart';
 
 enum _TypeFilter { all, income, expense }
 
-enum _DateRangeFilter { all, thisMonth, last3Months, thisYear }
+enum _DateRangeFilter { today, thisWeek, last7Days, last15Days, thisMonth, all }
 
 /// Contenido de la pestaña "Movimientos". No tiene Scaffold propio — vive
 /// dentro del Scaffold del HomeShell, que es quien pone el header y el
@@ -64,18 +64,25 @@ class _MovementsTabState extends State<MovementsTab> {
 
   bool _matchesDateRange(TransactionEntry t) {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final txDate = DateTime(t.date.year, t.date.month, t.date.day);
     switch (_dateRange) {
       case _DateRangeFilter.all:
         return true;
+      case _DateRangeFilter.today:
+        return txDate == today;
+      case _DateRangeFilter.thisWeek:
+        // Semana de lunes a domingo.
+        final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
+        return !txDate.isBefore(startOfWeek) && !txDate.isAfter(today);
+      case _DateRangeFilter.last7Days:
+        final start = today.subtract(const Duration(days: 6));
+        return !txDate.isBefore(start) && !txDate.isAfter(today);
+      case _DateRangeFilter.last15Days:
+        final start = today.subtract(const Duration(days: 14));
+        return !txDate.isBefore(start) && !txDate.isAfter(today);
       case _DateRangeFilter.thisMonth:
         return t.date.year == now.year && t.date.month == now.month;
-      case _DateRangeFilter.last3Months:
-        // DateTime normaliza meses fuera de rango (mes 0 -> diciembre del
-        // año anterior), así que esto funciona bien también en enero/feb.
-        final start = DateTime(now.year, now.month - 2, 1);
-        return !t.date.isBefore(start);
-      case _DateRangeFilter.thisYear:
-        return t.date.year == now.year;
     }
   }
 
@@ -250,7 +257,7 @@ class _MovementsTabState extends State<MovementsTab> {
                     onClear: hasActiveFilters
                         ? () => setState(() {
                               _typeFilter = _TypeFilter.all;
-                              _dateRange = _DateRangeFilter.all;
+                              _dateRange = _DateRangeFilter.thisMonth;
                               _categoryKey = null;
                               _accountKey = null;
                             })
@@ -383,9 +390,10 @@ class _TypeFilterRow extends StatelessWidget {
   }
 }
 
-/// Filtro rápido por rango de fechas: Todo / Este mes / Últimos 3 meses /
-/// Este año. Chips horizontales, sin punto de color (no representan una
-/// entidad con color propio como categoría/cuenta).
+/// Filtro rápido por rango de fechas: Hoy / Esta semana / Últimos 7 días /
+/// Últimos 15 días / Este mes / Todo. Chips horizontales, sin punto de
+/// color (no representan una entidad con color propio como
+/// categoría/cuenta).
 class _DateRangeFilterRow extends StatelessWidget {
   final _DateRangeFilter value;
   final ValueChanged<_DateRangeFilter> onChanged;
@@ -393,10 +401,12 @@ class _DateRangeFilterRow extends StatelessWidget {
   const _DateRangeFilterRow({required this.value, required this.onChanged});
 
   static const _options = [
-    (_DateRangeFilter.all, 'Todo'),
+    (_DateRangeFilter.today, 'Hoy'),
+    (_DateRangeFilter.thisWeek, 'Esta semana'),
+    (_DateRangeFilter.last7Days, 'Últimos 7 días'),
+    (_DateRangeFilter.last15Days, 'Últimos 15 días'),
     (_DateRangeFilter.thisMonth, 'Este mes'),
-    (_DateRangeFilter.last3Months, 'Últimos 3 meses'),
-    (_DateRangeFilter.thisYear, 'Este año'),
+    (_DateRangeFilter.all, 'Todo'),
   ];
 
   @override
