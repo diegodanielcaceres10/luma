@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../view_models/transaction_view_model.dart';
 
@@ -98,8 +97,7 @@ class _CategoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        colorFromHex(category.category.color, fallback: AppColors.authAccent);
+    const color = AppColors.authAccent;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -111,8 +109,8 @@ class _CategoryBar extends StatelessWidget {
               CircleAvatar(
                 radius: 14,
                 backgroundColor: color.withValues(alpha: 0.85),
-                child: Icon(
-                  iconFromName(category.category.icon),
+                child: const Icon(
+                  Icons.more_horiz_rounded,
                   color: Colors.white,
                   size: 14,
                 ),
@@ -157,7 +155,7 @@ class _CategoryBar extends StatelessWidget {
               value: (category.percent / 100).clamp(0, 1),
               minHeight: 6,
               backgroundColor: AppColors.authBackgroundTop,
-              valueColor: AlwaysStoppedAnimation(color),
+              valueColor: const AlwaysStoppedAnimation(color),
             ),
           ),
         ],
