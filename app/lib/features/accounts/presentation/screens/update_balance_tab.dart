@@ -599,10 +599,11 @@ class _MovementListTile extends StatelessWidget {
 }
 
 /// Movimiento cargado desde el popup "Agregar movimiento" mientras se
-/// termina de justificar la diferencia de saldo. Entrega 5: vive solo en
-/// memoria (ver [_UpdateBalanceTabState._pendingMovements]) — todavía no
-/// se persiste en la base ni se muestra en una lista; eso queda para una
-/// próxima entrega, que reutilizará esta misma clase.
+/// termina de justificar la diferencia de saldo. [amount] ya viene con
+/// signo (negativo si [category] es de gasto, positivo si es de ingreso)
+/// — ver [_AddMovementDialogState._save]. Vive solo en memoria (ver
+/// [_UpdateBalanceTabState._pendingMovements]) — todavía no se persiste en
+/// la base.
 class PendingMovement {
   final double amount;
   final Category category;
@@ -623,10 +624,11 @@ class PendingMovement {
 /// que se descartan al cerrar el popup, sin interferir con el formulario
 /// del saldo nuevo que queda atrás.
 ///
-/// No filtra las categorías por tipo (ingreso/gasto): el movimiento puede
-/// ir en cualquier sentido según si el saldo real quedó por arriba o por
-/// abajo del que tiene la app, así que se listan todas mezcladas,
-/// diferenciadas por ícono y color.
+/// El campo "Monto" solo pide la magnitud (siempre positiva): el signo
+/// final lo decide el tipo de la categoría elegida (gasto resta, ingreso
+/// suma — ver [_AddMovementDialogState._save]), así que no filtra las
+/// categorías por tipo: se listan todas mezcladas, diferenciadas por
+/// ícono y color.
 class _AddMovementDialog extends StatefulWidget {
   final CategoryViewModel categoryViewModel;
   final void Function(PendingMovement movement) onSave;
@@ -709,10 +711,16 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) return;
 
-    final amount = double.parse(_amountController.text.replaceAll(',', '.'));
+    final rawAmount = double.parse(_amountController.text.replaceAll(',', '.'));
+    // El signo lo pone la categoría, no el usuario: si es de gasto resta
+    // del saldo, si es de ingreso suma. El campo "Monto" solo pide la
+    // magnitud (siempre positiva).
+    final signedAmount =
+        _selectedCategory!.type == 'expense' ? -rawAmount : rawAmount;
+
     widget.onSave(
       PendingMovement(
-        amount: amount,
+        amount: signedAmount,
         category: _selectedCategory!,
         description: _descriptionController.text.trim().isEmpty
             ? null
@@ -756,13 +764,12 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                 autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
-                  signed: true,
                 ),
-                // Admite "-" al inicio: un movimiento puede ser un gasto
-                // que reduce el saldo, igual que el campo de saldo nuevo.
+                // Solo magnitud, sin "-": el signo final lo pone el tipo
+                // de la categoría elegida (ver [_save]).
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(
-                    RegExp(r'^-?\d*[.,]?\d{0,2}'),
+                    RegExp(r'^\d*[.,]?\d{0,2}'),
                   ),
                 ],
                 style: const TextStyle(color: AppColors.authTextPrimary),
@@ -771,7 +778,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                   final text = (value ?? '').trim().replaceAll(',', '.');
                   if (text.isEmpty) return 'Ingresa un monto';
                   final parsed = double.tryParse(text);
-                  if (parsed == null || parsed == 0) {
+                  if (parsed == null || parsed <= 0) {
                     return 'Monto inválido';
                   }
                   return null;
