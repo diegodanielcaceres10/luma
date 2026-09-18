@@ -22,4 +22,15 @@ class Account {
       isActive: map['is_active'] as bool,
     );
   }
+
+  // Igualdad por id: sin esto, cada recarga de la lista de cuentas trae
+  // instancias nuevas y cualquier selección previa (ej. en un
+  // DropdownButtonFormField) deja de coincidir por identidad, aunque sea
+  // "la misma" cuenta — eso es lo que rompía el Dropdown en
+  // AddTransactionTab tras refrescar el saldo.
+  @override
+  bool operator ==(Object other) => other is Account && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
