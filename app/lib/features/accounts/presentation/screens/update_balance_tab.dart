@@ -8,6 +8,7 @@ import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
@@ -58,6 +59,15 @@ const _kAccountIcons = [
 /// ya no bloquea el botón: esa parte se guardará como un ingreso o gasto
 /// sin categoría (mensaje que muestra la propia tarjeta). El botón
 /// todavía no persiste nada — ver [_UpdateBalanceTabState._saveAndUpdateBalance].
+///
+/// Entrega 8: el botón "Guardar y actualizar saldo" ya persiste de
+/// verdad. Cada movimiento de [_UpdateBalanceTabState._pendingMovements]
+/// se inserta como una transacción real (`create_transaction`, el mismo
+/// RPC que usa [AddTransactionTab]), con `type`/`amount` derivados del
+/// signo que ya tenía el movimiento; si queda una parte de la diferencia
+/// sin cubrir, se agrega una transacción más sin categoría (ingreso o
+/// gasto no declarado). El propio RPC actualiza `accounts.balance` en la
+/// misma operación — acá no se hace ningún update aparte sobre la cuenta.
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` porque,
   /// igual que en [AccountFormTab], el HomeShell mantiene esta pestaña
@@ -66,14 +76,24 @@ class UpdateBalanceTab extends StatefulWidget {
   final Account? account;
 
   /// Se usa para leer [AccountViewModel.primaryCurrency] (formato de los
-  /// montos) y la posición de la cuenta en la lista (ícono y color del
-  /// header); esta entrega todavía no registra nada a través de él.
+  /// montos), la posición de la cuenta en la lista (ícono y color del
+  /// header) y, tras guardar, recargar la lista para que el nuevo saldo
+  /// (ya actualizado por el RPC) se vea en pantalla.
   final AccountViewModel accountViewModel;
 
   /// Categorías disponibles para el selector del popup "Agregar
   /// movimiento" (tanto de ingreso como de gasto: el movimiento puede ir
   /// en cualquier sentido según la diferencia a justificar).
   final CategoryViewModel categoryViewModel;
+
+  /// Crea cada movimiento (y el ajuste no declarado, si hace falta) como
+  /// una transacción real al presionar "Guardar y actualizar saldo".
+  final TransactionViewModel transactionViewModel;
+
+  /// Igual que en [AddTransactionTab]: puede venir `null` si todavía no
+  /// cargó la sesión; en ese caso se manda como cadena vacía al crear las
+  /// transacciones (la policy de RLS de todos modos las rechazaría).
+  final String? userId;
 
   /// Vuelve a la vista general de "Cuentas", de donde siempre se abre
   /// esta pantalla.
@@ -84,6 +104,8 @@ class UpdateBalanceTab extends StatefulWidget {
     required this.account,
     required this.accountViewModel,
     required this.categoryViewModel,
+    required this.transactionViewModel,
+    required this.userId,
     required this.onDone,
   });
 
@@ -100,6 +122,11 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   /// los use para actualizar el saldo; por ahora no se renderizan ni se
   /// envían a la base.
   final List<PendingMovement> _pendingMovements = [];
+
+  /// true mientras [_saveAndUpdateBalance] está insertando transacciones.
+  /// Deshabilita el botón (con spinner), "Agregar movimiento" y el tacho
+  /// de cada fila, para no dejar mutar la lista a mitad de un guardado.
+  bool _isSaving = false;
 
   void _addPendingMovement(PendingMovement movement) {
     setState(() => _pendingMovements.add(movement));
@@ -195,15 +222,88 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     return index < 0 ? 0 : index;
   }
 
-  /// Acción del botón "Guardar y actualizar saldo". Entrega 7: agrega el
-  /// footer (total + estado de la diferencia) y habilita el botón — pero
-  /// todavía no persiste nada: ni los movimientos cargados, ni el
-  /// ingreso/gasto no declarado para la parte sin justificar, ni el nuevo
-  /// saldo de la cuenta. Eso (crear las transacciones reales y actualizar
-  /// `account.balance` en la base) queda para una próxima entrega; por
-  /// ahora solo vuelve a la vista de Cuentas.
-  void _saveAndUpdateBalance() {
-    widget.onDone();
+  /// Acción del botón "Guardar y actualizar saldo". Entrega 8: inserta
+  /// cada movimiento de [_pendingMovements] como una transacción real
+  /// (`create_transaction`) y, si queda una parte de la diferencia sin
+  /// cubrir, una transacción más sin categoría para esa parte. El RPC ya
+  /// actualiza `accounts.balance` con cada insert — acá no se hace ningún
+  /// update aparte sobre la cuenta.
+  ///
+  /// Se insertan de a una, en orden, para poder distinguir cuáles quedan
+  /// guardadas si una falla a mitad de camino: esas se sacan de
+  /// [_pendingMovements] antes de mostrar el error, para no duplicarlas
+  /// si el usuario reintenta.
+  Future<void> _saveAndUpdateBalance() async {
+    final account = widget.account;
+    final remainder = _unjustifiedRemainder;
+    if (account == null || remainder == null || _isSaving) return;
+
+    setState(() => _isSaving = true);
+
+    final userId = widget.userId ?? '';
+    final saved = <PendingMovement>[];
+
+    try {
+      for (final movement in _pendingMovements) {
+        final success = await widget.transactionViewModel.createTransaction(
+          userId: userId,
+          accountId: account.id,
+          categoryId: movement.category.id,
+          type: movement.category.type,
+          amount: movement.amount.abs(),
+          description: movement.description,
+          date: movement.date,
+        );
+        if (!success) {
+          throw Exception(
+            widget.transactionViewModel.errorMessage ??
+                'No se pudo guardar un movimiento.',
+          );
+        }
+        saved.add(movement);
+      }
+
+      if (remainder.abs() >= _kRemainderEpsilon) {
+        final success = await widget.transactionViewModel.createTransaction(
+          userId: userId,
+          accountId: account.id,
+          categoryId: null,
+          type: remainder > 0 ? 'income' : 'expense',
+          amount: remainder.abs(),
+          description: 'Ajuste no declarado al actualizar el saldo',
+          date: DateTime.now(),
+        );
+        if (!success) {
+          throw Exception(
+            widget.transactionViewModel.errorMessage ??
+                'No se pudo guardar el ajuste no declarado.',
+          );
+        }
+      }
+
+      // El saldo ya quedó actualizado en la base (cada create_transaction
+      // lo hizo); recargamos la lista de cuentas para que se vea acá.
+      await widget.accountViewModel.loadAccounts();
+      if (!mounted) return;
+
+      setState(() {
+        _pendingMovements.clear();
+        _newBalanceController.clear();
+      });
+      widget.onDone();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _pendingMovements.removeWhere(saved.contains);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   /// Popup que abre el botón "Agregar movimiento". Entrega 5: ya tiene los
@@ -280,118 +380,145 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
       top: false,
       child: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        child: Column(
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: InkWell(
-                onTap: widget.onDone,
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.all(4),
-                  child: Icon(Icons.arrow_back_rounded,
-                      color: AppColors.authTextPrimary),
-                ),
+            // Barra de progreso fina arriba mientras se guardan las
+            // transacciones — mismo criterio que usa AddTransactionTab.
+            if (_isSaving)
+              const LinearProgressIndicator(
+                backgroundColor: AppColors.authCardBorder,
+                color: AppColors.authAccent,
+                minHeight: 3,
               ),
-            ),
-            if (account != null) ...[
-              const SizedBox(height: 8),
-              _AccountHeader(
-                account: account,
-                color: colorFromHex(
-                  kCategoryColors[
-                      _accountIndex(account) % kCategoryColors.length],
-                ),
-                icon: _kAccountIcons[
-                    _accountIndex(account) % _kAccountIcons.length],
-              ),
-            ],
-            const SizedBox(height: 20),
-            const Text('Actualizar saldo', style: AppTextStyles.authTitle),
-            const SizedBox(height: 8),
-            const Text(
-              'Ingresa el nuevo saldo de tu cuenta y agrega los movimientos '
-              'que justifiquen la diferencia.',
-              style: AppTextStyles.authSubtitle,
-            ),
-            if (account != null) ...[
-              const SizedBox(height: 24),
-              _BalanceCard(
-                previousBalance: account.balance,
-                currency: currency,
-                difference: _difference,
-                amountField: TextFormField(
-                  controller: _newBalanceController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                    signed: true,
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InkWell(
+                      onTap: _isSaving ? null : widget.onDone,
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.arrow_back_rounded,
+                            color: AppColors.authTextPrimary),
+                      ),
+                    ),
                   ),
-                  // Hasta 2 decimales, coma o punto, y un "-" opcional al
-                  // inicio (una cuenta puede estar en descubierto).
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'^-?\d*[.,]?\d{0,2}'),
+                  if (account != null) ...[
+                    const SizedBox(height: 8),
+                    _AccountHeader(
+                      account: account,
+                      color: colorFromHex(
+                        kCategoryColors[
+                            _accountIndex(account) % kCategoryColors.length],
+                      ),
+                      icon: _kAccountIcons[
+                          _accountIndex(account) % _kAccountIcons.length],
                     ),
                   ],
-                  cursorColor: AppColors.authAccent,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.authTextPrimary,
+                  const SizedBox(height: 20),
+                  const Text('Actualizar saldo', style: AppTextStyles.authTitle),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Ingresa el nuevo saldo de tu cuenta y agrega los movimientos '
+                    'que justifiquen la diferencia.',
+                    style: AppTextStyles.authSubtitle,
                   ),
-                  decoration: _amountDecoration(currencySymbol),
-                  validator: (value) => _parseAmount(value) == null
-                      ? 'Ingresa un monto válido'
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 24),
-              _MovementsSectionHeader(
-                onAddMovement: () => _showAddMovementDialog(context),
-              ),
-              if (_pendingMovements.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                _MovementsList(
-                  movements: _pendingMovements,
-                  currency: currency,
-                  onDelete: _removePendingMovement,
-                ),
-              ],
-              const SizedBox(height: 20),
-              _MovementsSummaryCard(
-                total: _pendingMovementsTotal,
-                remainder: _unjustifiedRemainder,
-                currency: currency,
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.authAccent,
-                    foregroundColor: AppColors.authBackgroundBottom,
-                    disabledBackgroundColor:
-                        AppColors.authAccent.withValues(alpha: 0.4),
-                    disabledForegroundColor:
-                        AppColors.authBackgroundBottom.withValues(alpha: 0.6),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                  if (account != null) ...[
+                    const SizedBox(height: 24),
+                    _BalanceCard(
+                      previousBalance: account.balance,
+                      currency: currency,
+                      difference: _difference,
+                      amountField: TextFormField(
+                        controller: _newBalanceController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        // Hasta 2 decimales, coma o punto, y un "-" opcional al
+                        // inicio (una cuenta puede estar en descubierto).
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^-?\d*[.,]?\d{0,2}'),
+                          ),
+                        ],
+                        cursorColor: AppColors.authAccent,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.authTextPrimary,
+                        ),
+                        decoration: _amountDecoration(currencySymbol),
+                        validator: (value) => _parseAmount(value) == null
+                            ? 'Ingresa un monto válido'
+                            : null,
+                      ),
                     ),
-                  ),
-                  // Habilitado en cuanto hay un saldo nuevo válido — que
-                  // los movimientos no cubran toda la diferencia ya NO lo
-                  // bloquea (ver [_MovementsSummaryCard]): lo que falte se
-                  // guarda como ingreso/gasto no declarado, sin categoría.
-                  onPressed: _difference == null ? null : _saveAndUpdateBalance,
-                  child: const Text(
-                    'Guardar y actualizar saldo',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
+                    const SizedBox(height: 24),
+                    _MovementsSectionHeader(
+                      onAddMovement: () => _showAddMovementDialog(context),
+                      enabled: !_isSaving,
+                    ),
+                    if (_pendingMovements.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _MovementsList(
+                        movements: _pendingMovements,
+                        currency: currency,
+                        onDelete: _removePendingMovement,
+                        enabled: !_isSaving,
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    _MovementsSummaryCard(
+                      total: _pendingMovementsTotal,
+                      remainder: _unjustifiedRemainder,
+                      currency: currency,
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.authAccent,
+                          foregroundColor: AppColors.authBackgroundBottom,
+                          disabledBackgroundColor:
+                              AppColors.authAccent.withValues(alpha: 0.4),
+                          disabledForegroundColor: AppColors.authBackgroundBottom
+                              .withValues(alpha: 0.6),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        // Habilitado en cuanto hay un saldo nuevo válido — que
+                        // los movimientos no cubran toda la diferencia ya NO lo
+                        // bloquea (ver [_MovementsSummaryCard]): lo que falte se
+                        // guarda como ingreso/gasto no declarado, sin categoría.
+                        onPressed: _difference == null || _isSaving
+                            ? null
+                            : _saveAndUpdateBalance,
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.authBackgroundBottom,
+                                ),
+                              )
+                            : const Text(
+                                'Guardar y actualizar saldo',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -463,7 +590,15 @@ class _AccountHeader extends StatelessWidget {
 class _MovementsSectionHeader extends StatelessWidget {
   final VoidCallback onAddMovement;
 
-  const _MovementsSectionHeader({required this.onAddMovement});
+  /// false mientras se está guardando ([_UpdateBalanceTabState._isSaving]):
+  /// deshabilita el botón para no agregar movimientos a mitad de un
+  /// guardado.
+  final bool enabled;
+
+  const _MovementsSectionHeader({
+    required this.onAddMovement,
+    this.enabled = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -482,7 +617,7 @@ class _MovementsSectionHeader extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         OutlinedButton.icon(
-          onPressed: onAddMovement,
+          onPressed: enabled ? onAddMovement : null,
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.authAccent,
             side: const BorderSide(color: AppColors.authAccent),
@@ -527,6 +662,13 @@ String _formatMovementDate(DateTime date) {
   return '${date.day} $month ${date.year}';
 }
 
+/// Umbral bajo el cual una diferencia se considera "cero" — evita falsos
+/// "no coincide"/"falta guardar un ajuste" por restos de redondeo de
+/// centavos. Se comparte entre [_MovementsSummaryCard] (qué mensaje
+/// mostrar) y [_UpdateBalanceTabState._saveAndUpdateBalance] (si hace
+/// falta crear la transacción de ajuste no declarado).
+const _kRemainderEpsilon = 0.005;
+
 /// Lista de movimientos ya cargados desde el popup "Agregar movimiento",
 /// dentro de una sola tarjeta con separadores entre filas — igual que en
 /// el prototipo. Entrega 6: solo el listado; el total y el botón "Guardar
@@ -536,10 +678,16 @@ class _MovementsList extends StatelessWidget {
   final String currency;
   final void Function(PendingMovement movement) onDelete;
 
+  /// false mientras se está guardando ([_UpdateBalanceTabState._isSaving]):
+  /// deshabilita el tacho de cada fila para no mutar la lista a mitad de
+  /// un guardado.
+  final bool enabled;
+
   const _MovementsList({
     required this.movements,
     required this.currency,
     required this.onDelete,
+    this.enabled = true,
   });
 
   @override
@@ -557,7 +705,7 @@ class _MovementsList extends StatelessWidget {
             _MovementListTile(
               movement: movements[i],
               currency: currency,
-              onDelete: () => onDelete(movements[i]),
+              onDelete: enabled ? () => onDelete(movements[i]) : null,
             ),
             if (i < movements.length - 1)
               const Divider(color: AppColors.authCardBorder, height: 1),
@@ -575,7 +723,9 @@ class _MovementsList extends StatelessWidget {
 class _MovementListTile extends StatelessWidget {
   final PendingMovement movement;
   final String currency;
-  final VoidCallback onDelete;
+
+  /// `null` deshabilita el botón de tacho (mientras se está guardando).
+  final VoidCallback? onDelete;
 
   const _MovementListTile({
     required this.movement,
@@ -601,8 +751,7 @@ class _MovementListTile extends StatelessWidget {
           Container(
             width: 44,
             height: 44,
-            decoration:
-                BoxDecoration(color: categoryColor, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: categoryColor, shape: BoxShape.circle),
             child: Icon(
               iconFromName(movement.category.icon),
               color: AppColors.authTextPrimary,
@@ -695,7 +844,7 @@ class _MovementsSummaryCard extends StatelessWidget {
 
   /// Umbral bajo el cual se considera "sin diferencia" — evita falsos
   /// "no coincide" por restos de redondeo de centavos.
-  static const _epsilon = 0.005;
+  static const _epsilon = _kRemainderEpsilon;
 
   @override
   Widget build(BuildContext context) {
@@ -953,7 +1102,8 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) return;
 
-    final rawAmount = double.parse(_amountController.text.replaceAll(',', '.'));
+    final rawAmount =
+        double.parse(_amountController.text.replaceAll(',', '.'));
     // El signo lo pone la categoría, no el usuario: si es de gasto resta
     // del saldo, si es de ingreso suma. El campo "Monto" solo pide la
     // magnitud (siempre positiva).
@@ -1067,8 +1217,8 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                               ),
                               const SizedBox(width: 8),
                               Flexible(
-                                child: Text(c.name,
-                                    overflow: TextOverflow.ellipsis),
+                                child:
+                                    Text(c.name, overflow: TextOverflow.ellipsis),
                               ),
                             ],
                           ),

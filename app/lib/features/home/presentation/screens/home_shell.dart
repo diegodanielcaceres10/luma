@@ -442,6 +442,8 @@ class _HomeShellState extends State<HomeShell> {
         account: _updatingBalanceAccount,
         accountViewModel: widget.accountViewModel,
         categoryViewModel: widget.categoryViewModel,
+        transactionViewModel: widget.transactionViewModel,
+        userId: widget.authViewModel.userId,
         onDone: _closeUpdateBalance,
       ),
     ];
