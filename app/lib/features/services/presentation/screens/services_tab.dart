@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -31,8 +30,7 @@ class ServicesTab extends StatelessWidget {
       child: ListenableBuilder(
         listenable: Listenable.merge([serviceViewModel, categoryViewModel]),
         builder: (context, _) {
-          if (serviceViewModel.isLoading &&
-              serviceViewModel.services.isEmpty) {
+          if (serviceViewModel.isLoading && serviceViewModel.services.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.authAccent),
             );
@@ -108,8 +106,7 @@ class _ServiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        colorFromHex(category?.color, fallback: AppColors.authAccent);
+    const color = AppColors.authAccent;
     final isActive = service.isActive;
 
     final subtitleParts = <String>[
@@ -125,17 +122,14 @@ class _ServiceRow extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: color.withValues(alpha: 0.85),
-                    child: Icon(
-                      category != null
-                          ? iconFromName(category!.icon)
-                          : Icons.receipt_long_rounded,
+                    child: const Icon(
+                      Icons.receipt_long_rounded,
                       color: Colors.white,
                       size: 18,
                     ),

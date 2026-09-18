@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
@@ -270,85 +269,85 @@ class _BalanceCard extends StatelessWidget {
           ),
         ),
         child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
               children: [
-                const Row(
-                  children: [
-                    Icon(Icons.calendar_today_rounded,
-                        color: Colors.white70, size: 16),
-                    SizedBox(width: 8),
-                    Text(
-                      'Balance general del mes',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                  ],
+                Icon(Icons.calendar_today_rounded,
+                    color: Colors.white70, size: 16),
+                SizedBox(width: 8),
+                Text(
+                  'Balance general del mes',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
-                const SizedBox(height: 10),
-                isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        formatCurrency(total, currency),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 30,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                const SizedBox(height: 8),
-                isLoadingNetResult
-                    ? const SizedBox(
-                        height: 14,
-                        width: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white70,
-                        ),
-                      )
-                    : Row(
-                        children: [
-                          Icon(
-                            netResult >= 0
-                                ? Icons.arrow_upward_rounded
-                                : Icons.arrow_downward_rounded,
-                            color: netResult >= 0
-                                ? AppColors.authAccent
-                                : AppColors.authExpense,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${netResult >= 0 ? '+' : ''}'
-                            '${formatCurrency(netResult, currency)} este mes '
-                            '(ingresos - gastos)',
-                            style: TextStyle(
-                              color: netResult >= 0
-                                  ? AppColors.authAccent
-                                  : AppColors.authExpense,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                if (pendingAccountsCount > 0) ...[
-                  const SizedBox(height: 16),
-                  const Divider(color: Colors.white24, height: 1),
-                  const SizedBox(height: 16),
-                  _PendingBalancesAlert(
-                    count: pendingAccountsCount,
-                    onTap: onCompletePendingBalances,
-                  ),
-                ],
               ],
             ),
-          ),
+            const SizedBox(height: 10),
+            isLoading
+                ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    formatCurrency(total, currency),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+            const SizedBox(height: 8),
+            isLoadingNetResult
+                ? const SizedBox(
+                    height: 14,
+                    width: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white70,
+                    ),
+                  )
+                : Row(
+                    children: [
+                      Icon(
+                        netResult >= 0
+                            ? Icons.arrow_upward_rounded
+                            : Icons.arrow_downward_rounded,
+                        color: netResult >= 0
+                            ? AppColors.authAccent
+                            : AppColors.authExpense,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${netResult >= 0 ? '+' : ''}'
+                        '${formatCurrency(netResult, currency)} este mes '
+                        '(ingresos - gastos)',
+                        style: TextStyle(
+                          color: netResult >= 0
+                              ? AppColors.authAccent
+                              : AppColors.authExpense,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+            if (pendingAccountsCount > 0) ...[
+              const SizedBox(height: 16),
+              const Divider(color: Colors.white24, height: 1),
+              const SizedBox(height: 16),
+              _PendingBalancesAlert(
+                count: pendingAccountsCount,
+                onTap: onCompletePendingBalances,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -558,8 +557,8 @@ class _QuickActionCard extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             subtitle,
-                            style:
-                                AppTextStyles.authSubtitle.copyWith(fontSize: 12),
+                            style: AppTextStyles.authSubtitle
+                                .copyWith(fontSize: 12),
                           ),
                         ],
                       ),
@@ -641,9 +640,7 @@ class _RecentMovements extends StatelessWidget {
 
     return Column(
       children: movements.map((m) {
-        final color = m.isIncome
-            ? AppColors.authIncome
-            : colorFromHex(m.category.color, fallback: AppColors.authExpense);
+        final color = m.isIncome ? AppColors.authIncome : AppColors.authExpense;
         final sign = m.isIncome ? '+' : '-';
 
         return Padding(
@@ -656,7 +653,7 @@ class _RecentMovements extends StatelessWidget {
                 child: Icon(
                   m.isIncome
                       ? Icons.arrow_downward_rounded
-                      : iconFromName(m.category.icon),
+                      : Icons.arrow_upward_rounded,
                   color: Colors.white,
                   size: 18,
                 ),

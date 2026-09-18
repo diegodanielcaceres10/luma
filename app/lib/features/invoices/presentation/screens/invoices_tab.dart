@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
@@ -373,7 +372,7 @@ class _InvoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = colorFromHex(category?.color, fallback: AppColors.authAccent);
+    const color = AppColors.authAccent;
 
     final badgeColor = invoice.cancelled
         ? AppColors.authTextFooter
@@ -408,10 +407,8 @@ class _InvoiceRow extends StatelessWidget {
                 CircleAvatar(
                   radius: 18,
                   backgroundColor: color.withValues(alpha: 0.85),
-                  child: Icon(
-                    category != null
-                        ? iconFromName(category!.icon)
-                        : Icons.receipt_long_rounded,
+                  child: const Icon(
+                    Icons.receipt_long_rounded,
                     color: Colors.white,
                     size: 18,
                   ),
@@ -593,8 +590,7 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
   @override
   Widget build(BuildContext context) {
     final accounts = widget.accounts;
-    final color =
-        colorFromHex(widget.category.color, fallback: AppColors.authAccent);
+    const color = AppColors.authAccent;
 
     return AlertDialog(
       backgroundColor: AppColors.authBackgroundTop,
@@ -620,8 +616,8 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
                 CircleAvatar(
                   radius: 14,
                   backgroundColor: color.withValues(alpha: 0.85),
-                  child: Icon(
-                    iconFromName(widget.category.icon),
+                  child: const Icon(
+                    Icons.receipt_long_rounded,
                     color: Colors.white,
                     size: 14,
                   ),
