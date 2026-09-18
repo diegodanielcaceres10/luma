@@ -24,6 +24,7 @@ class TransactionViewModel extends ChangeNotifier {
   bool _isSubmitting = false;
   String? _errorMessage;
   List<TransactionEntry> _transactions = [];
+  List<TransactionEntry> _previousMonthTransactions = [];
   List<TransactionEntry> _allTransactions = [];
   bool _hasLoadedAll = false;
   String? _lastCreatedTransactionId;
@@ -60,6 +61,38 @@ class TransactionViewModel extends ChangeNotifier {
   /// de volver a sumar transacciones una por una.
   double get netResult => totalIncome - totalExpenses;
 
+  /// Mismos totales que arriba pero del mes calendario anterior, cargados
+  /// junto con el mes en curso en loadCurrentMonth(). Solo existen para
+  /// alimentar las comparaciones "vs. mes anterior" de Estadísticas.
+  double get previousMonthIncome => _previousMonthTransactions
+      .where((t) => t.type == 'income')
+      .fold(0, (sum, t) => sum + t.amount);
+
+  double get previousMonthExpenses => _previousMonthTransactions
+      .where((t) => t.type == 'expense')
+      .fold(0, (sum, t) => sum + t.amount);
+
+  double get previousMonthNetResult =>
+      previousMonthIncome - previousMonthExpenses;
+
+  /// % de cambio vs. mes anterior. null cuando no hay base contra la que
+  /// comparar (mes anterior en 0, p. ej. una cuenta recién creada) — se
+  /// devuelve null en vez de 0% para no insinuar "sin cambios" cuando en
+  /// realidad no hay dato previo.
+  double? get incomeChangePercent =>
+      _percentChange(previousMonthIncome, totalIncome);
+
+  double? get expenseChangePercent =>
+      _percentChange(previousMonthExpenses, totalExpenses);
+
+  double? get netResultChangePercent =>
+      _percentChange(previousMonthNetResult, netResult);
+
+  double? _percentChange(double previous, double current) {
+    if (previous == 0) return null;
+    return ((current - previous) / previous.abs()) * 100;
+  }
+
   List<CategoryTotal> get categoryBreakdown {
     final expenses = _transactions.where((t) => t.type == 'expense');
     final Map<String, double> totals = {};
@@ -90,7 +123,14 @@ class TransactionViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _transactions = await _repository.getForMonth(DateTime.now());
+      final now = DateTime.now();
+      final previousMonth = DateTime(now.year, now.month - 1);
+      final results = await Future.wait([
+        _repository.getForMonth(now),
+        _repository.getForMonth(previousMonth),
+      ]);
+      _transactions = results[0];
+      _previousMonthTransactions = results[1];
     } catch (error) {
       _errorMessage = 'No se pudieron cargar los movimientos.';
     } finally {
