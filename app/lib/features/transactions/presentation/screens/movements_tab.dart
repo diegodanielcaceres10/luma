@@ -483,7 +483,6 @@ class _PlainChip extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.authAccent.withValues(alpha: 0.18)
