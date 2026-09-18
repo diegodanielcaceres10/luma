@@ -13,7 +13,7 @@ class TransactionService {
     final rows = await _client
         .from('transactions')
         .select(
-          '*, categories(id, name, color, icon), accounts(id, name, color)',
+          '*, categories(id, name, color, icon), accounts(id, name)',
         )
         .gte('date', _formatDate(start))
         .lt('date', _formatDate(end))
@@ -32,7 +32,7 @@ class TransactionService {
     final rows = await _client
         .from('transactions')
         .select(
-          '*, categories(id, name, color, icon), accounts(id, name, color)',
+          '*, categories(id, name, color, icon), accounts(id, name)',
         )
         .order('date', ascending: false)
         .order('created_at', ascending: false)

@@ -85,6 +85,12 @@ class _HomeShellState extends State<HomeShell> {
   Account? _editingAccount;
   int _accountFormNonce = 0;
 
+  // A qué pestaña volver al cerrar el formulario de cuenta: la vieja lista
+  // (drawer) o la nueva vista general (ícono de gerenciamiento del
+  // Dashboard), según desde dónde se abrió. Si se abre desde cualquier otro
+  // lado (ej. el aviso "no tenés cuentas" del Dashboard), cae a la lista.
+  int _accountFormReturnIndex = _accountsTabIndex;
+
   // Categoría que se está editando; null = alta.
   Category? _editingCategory;
   String _categoryInitialType = 'expense';
@@ -157,6 +163,10 @@ class _HomeShellState extends State<HomeShell> {
     setState(() {
       _editingAccount = account;
       if (account == null) _accountFormNonce++;
+      _accountFormReturnIndex =
+          (_index == _accountsTabIndex || _index == _accountsOverviewTabIndex)
+              ? _index
+              : _accountsTabIndex;
       _index = _accountFormTabIndex;
     });
   }
@@ -164,7 +174,7 @@ class _HomeShellState extends State<HomeShell> {
   void _closeAccountForm() {
     setState(() {
       _editingAccount = null;
-      _index = _accountsTabIndex;
+      _index = _accountFormReturnIndex;
     });
 
     // Alta, edición o incluso cancelación pueden haber cambiado la lista
@@ -395,7 +405,10 @@ class _HomeShellState extends State<HomeShell> {
         transactionViewModel: widget.transactionViewModel,
         onDone: _closeTransferForm,
       ),
-      const AccountsOverviewTab(),
+      AccountsOverviewTab(
+        accountViewModel: widget.accountViewModel,
+        onOpenForm: _openAccountForm,
+      ),
     ];
 
     return PopScope(
@@ -594,7 +607,8 @@ class _AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAccountsSection = currentIndex == _accountsTabIndex ||
-        currentIndex == _accountFormTabIndex;
+        currentIndex == _accountFormTabIndex ||
+        currentIndex == _accountsOverviewTabIndex;
     final isCategoriesSection = currentIndex == _categoriesTabIndex ||
         currentIndex == _categoryFormTabIndex;
     final isServicesSection = currentIndex == _servicesTabIndex ||
