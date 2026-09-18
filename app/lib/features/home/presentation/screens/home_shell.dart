@@ -441,6 +441,7 @@ class _HomeShellState extends State<HomeShell> {
         key: ValueKey('update-balance-${_updatingBalanceAccount?.id}'),
         account: _updatingBalanceAccount,
         accountViewModel: widget.accountViewModel,
+        categoryViewModel: widget.categoryViewModel,
         onDone: _closeUpdateBalance,
       ),
     ];

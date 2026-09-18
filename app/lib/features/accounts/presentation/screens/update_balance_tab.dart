@@ -6,6 +6,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../categories/data/models/category.dart';
+import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
@@ -38,6 +40,11 @@ const _kAccountIcons = [
 /// sin campos ni guardado real. La lista de movimientos, los totales y el
 /// botón "Guardar y actualizar saldo" quedan para una próxima entrega — hoy
 /// no se envía nada a la cuenta.
+///
+/// Entrega 5: el popup ahora tiene los campos para cargar un movimiento
+/// (Monto, Categoría, Descripción y Fecha). Al tocar "Guardar" se valida y
+/// se agrega a [_UpdateBalanceTabState._pendingMovements], solo en memoria
+/// — todavía no hay lista visible ni se persiste nada en la base.
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` porque,
   /// igual que en [AccountFormTab], el HomeShell mantiene esta pestaña
@@ -50,6 +57,11 @@ class UpdateBalanceTab extends StatefulWidget {
   /// header); esta entrega todavía no registra nada a través de él.
   final AccountViewModel accountViewModel;
 
+  /// Categorías disponibles para el selector del popup "Agregar
+  /// movimiento" (tanto de ingreso como de gasto: el movimiento puede ir
+  /// en cualquier sentido según la diferencia a justificar).
+  final CategoryViewModel categoryViewModel;
+
   /// Vuelve a la vista general de "Cuentas", de donde siempre se abre
   /// esta pantalla.
   final VoidCallback onDone;
@@ -58,6 +70,7 @@ class UpdateBalanceTab extends StatefulWidget {
     super.key,
     required this.account,
     required this.accountViewModel,
+    required this.categoryViewModel,
     required this.onDone,
   });
 
@@ -68,6 +81,16 @@ class UpdateBalanceTab extends StatefulWidget {
 class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   final _formKey = GlobalKey<FormState>();
   final _newBalanceController = TextEditingController();
+
+  /// Movimientos cargados desde el popup, solo en memoria. Entrega 5: se
+  /// guardan acá para una próxima entrega que los muestre en una lista y
+  /// los use para actualizar el saldo; por ahora no se renderizan ni se
+  /// envían a la base.
+  final List<PendingMovement> _pendingMovements = [];
+
+  void _addPendingMovement(PendingMovement movement) {
+    setState(() => _pendingMovements.add(movement));
+  }
 
   @override
   void initState() {
@@ -129,45 +152,17 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     return index < 0 ? 0 : index;
   }
 
-  /// Popup que abre el botón "Agregar movimiento". Por ahora solo título,
-  /// "Cancelar" y "Guardar" — sin campos ni guardado real; ambos botones
-  /// se limitan a cerrar el popup. Mismo estilo que los diálogos de
-  /// [InvoicesTab] (fondo, borde y colores de los botones).
+  /// Popup que abre el botón "Agregar movimiento". Entrega 5: ya tiene los
+  /// campos (Monto, Categoría, Descripción y Fecha) delegados a
+  /// [_AddMovementDialog]; al guardar, el movimiento se agrega a
+  /// [_pendingMovements] y el popup se cierra solo. Todavía no hay lista
+  /// visible ni se persiste nada en la base.
   Future<void> _showAddMovementDialog(BuildContext context) {
     return showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.authBackgroundTop,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.authCardBorder),
-        ),
-        title: const Text(
-          'Agregar movimiento',
-          style: TextStyle(
-            color: AppColors.authTextPrimary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: AppColors.authTextSecondary),
-            ),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.authAccent,
-              foregroundColor: AppColors.authBackgroundBottom,
-            ),
-            // Todavía no guarda nada: solo cierra el popup.
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Guardar'),
-          ),
-        ],
+      builder: (dialogContext) => _AddMovementDialog(
+        categoryViewModel: widget.categoryViewModel,
+        onSave: _addPendingMovement,
       ),
     );
   }
@@ -407,6 +402,299 @@ class _MovementsSectionHeader extends StatelessWidget {
             'Agregar movimiento',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Movimiento cargado desde el popup "Agregar movimiento" mientras se
+/// termina de justificar la diferencia de saldo. Entrega 5: vive solo en
+/// memoria (ver [_UpdateBalanceTabState._pendingMovements]) — todavía no
+/// se persiste en la base ni se muestra en una lista; eso queda para una
+/// próxima entrega, que reutilizará esta misma clase.
+class PendingMovement {
+  final double amount;
+  final Category category;
+  final String? description;
+  final DateTime date;
+
+  const PendingMovement({
+    required this.amount,
+    required this.category,
+    required this.date,
+    this.description,
+  });
+}
+
+/// Contenido del popup "Agregar movimiento": Monto, Categoría, Descripción
+/// (opcional) y Fecha. Es un `StatefulWidget` propio (en vez de vivir en
+/// [_UpdateBalanceTabState]) porque necesita su propio `Form` y controllers
+/// que se descartan al cerrar el popup, sin interferir con el formulario
+/// del saldo nuevo que queda atrás.
+///
+/// No filtra las categorías por tipo (ingreso/gasto): el movimiento puede
+/// ir en cualquier sentido según si el saldo real quedó por arriba o por
+/// abajo del que tiene la app, así que se listan todas mezcladas,
+/// diferenciadas por ícono y color.
+class _AddMovementDialog extends StatefulWidget {
+  final CategoryViewModel categoryViewModel;
+  final void Function(PendingMovement movement) onSave;
+
+  const _AddMovementDialog({
+    required this.categoryViewModel,
+    required this.onSave,
+  });
+
+  @override
+  State<_AddMovementDialog> createState() => _AddMovementDialogState();
+}
+
+class _AddMovementDialogState extends State<_AddMovementDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _amountController = TextEditingController();
+  final _descriptionController = TextEditingController();
+
+  Category? _selectedCategory;
+  DateTime _selectedDate = DateTime.now();
+
+  static const _labelStyle = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    color: AppColors.authTextSecondary,
+  );
+
+  static const _fieldDecoration = InputDecoration(
+    isDense: true,
+    filled: true,
+    fillColor: AppColors.authCardFill,
+    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    hintStyle: TextStyle(color: AppColors.authTextFooter),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authCardBorder),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authCardBorder),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authAccent),
+    ),
+  );
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  /// Mismo rango de fechas que usa [AddTransactionTab]: hasta hoy, sin
+  /// límite hacia atrás salvo el año 2020 (arranque razonable para no
+  /// scrollear de más en el picker).
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.authAccent,
+            onPrimary: AppColors.authBackgroundBottom,
+            surface: AppColors.authBackgroundBottom,
+            onSurface: AppColors.authTextPrimary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _selectedDate = picked);
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategory == null) return;
+
+    final amount = double.parse(_amountController.text.replaceAll(',', '.'));
+    widget.onSave(
+      PendingMovement(
+        amount: amount,
+        category: _selectedCategory!,
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        date: _selectedDate,
+      ),
+    );
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = widget.categoryViewModel.categories;
+    _selectedCategory ??= categories.isNotEmpty ? categories.first : null;
+
+    return AlertDialog(
+      backgroundColor: AppColors.authBackgroundTop,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.authCardBorder),
+      ),
+      title: const Text(
+        'Agregar movimiento',
+        style: TextStyle(
+          color: AppColors.authTextPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Monto', style: _labelStyle),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _amountController,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                  signed: true,
+                ),
+                // Admite "-" al inicio: un movimiento puede ser un gasto
+                // que reduce el saldo, igual que el campo de saldo nuevo.
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r'^-?\d*[.,]?\d{0,2}'),
+                  ),
+                ],
+                style: const TextStyle(color: AppColors.authTextPrimary),
+                decoration: _fieldDecoration.copyWith(hintText: '0,00'),
+                validator: (value) {
+                  final text = (value ?? '').trim().replaceAll(',', '.');
+                  if (text.isEmpty) return 'Ingresa un monto';
+                  final parsed = double.tryParse(text);
+                  if (parsed == null || parsed == 0) {
+                    return 'Monto inválido';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text('Categoría', style: _labelStyle),
+              const SizedBox(height: 6),
+              if (widget.categoryViewModel.isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.authAccent,
+                    ),
+                  ),
+                )
+              else if (categories.isEmpty)
+                const Text(
+                  'No hay categorías todavía.',
+                  style: TextStyle(
+                    color: AppColors.authExpense,
+                    fontSize: 13,
+                  ),
+                )
+              else
+                DropdownButtonFormField<Category>(
+                  initialValue: _selectedCategory,
+                  isExpanded: true,
+                  dropdownColor: AppColors.authBackgroundBottom,
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                  decoration: _fieldDecoration,
+                  items: categories
+                      .map(
+                        (c) => DropdownMenuItem(
+                          value: c,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                iconFromName(c.icon),
+                                size: 16,
+                                color: colorFromHex(c.color),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child:
+                                    Text(c.name, overflow: TextOverflow.ellipsis),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) =>
+                      setState(() => _selectedCategory = value),
+                ),
+              const SizedBox(height: 16),
+              const Text('Descripción (opcional)', style: _labelStyle),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _descriptionController,
+                style: const TextStyle(color: AppColors.authTextPrimary),
+                decoration: _fieldDecoration.copyWith(
+                  hintText: 'Ej: Retiro en efectivo',
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Fecha', style: _labelStyle),
+              const SizedBox(height: 6),
+              InkWell(
+                onTap: _pickDate,
+                borderRadius: BorderRadius.circular(14),
+                child: InputDecorator(
+                  decoration: _fieldDecoration,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${_selectedDate.day.toString().padLeft(2, '0')}/'
+                        '${_selectedDate.month.toString().padLeft(2, '0')}/'
+                        '${_selectedDate.year}',
+                        style:
+                            const TextStyle(color: AppColors.authTextPrimary),
+                      ),
+                      const Icon(
+                        Icons.calendar_today_rounded,
+                        size: 18,
+                        color: AppColors.authTextSecondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(
+            'Cancelar',
+            style: TextStyle(color: AppColors.authTextSecondary),
+          ),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.authAccent,
+            foregroundColor: AppColors.authBackgroundBottom,
+          ),
+          onPressed: categories.isEmpty ? null : _save,
+          child: const Text('Guardar'),
         ),
       ],
     );
