@@ -51,6 +51,13 @@ const _kAccountIcons = [
 /// signo y un botón para quitarlo — todo sobre [_pendingMovements], en
 /// memoria. El total y el botón "Guardar y actualizar saldo" del
 /// prototipo quedan para una próxima entrega.
+///
+/// Entrega 7: agrega el footer final — [_MovementsSummaryCard] con el
+/// total de movimientos y el estado de la diferencia, y el botón
+/// "Guardar y actualizar saldo". Que el total no cubra toda la diferencia
+/// ya no bloquea el botón: esa parte se guardará como un ingreso o gasto
+/// sin categoría (mensaje que muestra la propia tarjeta). El botón
+/// todavía no persiste nada — ver [_UpdateBalanceTabState._saveAndUpdateBalance].
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` porque,
   /// igual que en [AccountFormTab], el HomeShell mantiene esta pestaña
@@ -158,11 +165,45 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     return cents / 100;
   }
 
+  /// Suma de los movimientos cargados (ya con signo — ver [PendingMovement]).
+  /// Redondeada a centavos, mismo motivo que en [_difference].
+  double get _pendingMovementsTotal {
+    final cents = _pendingMovements.fold<int>(
+      0,
+      (sum, movement) => sum + (movement.amount * 100).round(),
+    );
+    return cents / 100;
+  }
+
+  /// Parte de la diferencia que los movimientos cargados no cubren.
+  /// `null` mientras no haya una diferencia calculable (ver [_difference]).
+  /// Positivo: falta un ingreso; negativo: falta un gasto; cero (o muy
+  /// cerca, por redondeo de centavos): los movimientos ya la justifican
+  /// por completo.
+  double? get _unjustifiedRemainder {
+    final diff = _difference;
+    if (diff == null) return null;
+
+    final cents = ((diff - _pendingMovementsTotal) * 100).round();
+    return cents / 100;
+  }
+
   /// Posición de la cuenta en la lista, para reutilizar el mismo ícono y
   /// color que tiene su tarjeta en la vista general.
   int _accountIndex(Account account) {
     final index = widget.accountViewModel.accounts.indexOf(account);
     return index < 0 ? 0 : index;
+  }
+
+  /// Acción del botón "Guardar y actualizar saldo". Entrega 7: agrega el
+  /// footer (total + estado de la diferencia) y habilita el botón — pero
+  /// todavía no persiste nada: ni los movimientos cargados, ni el
+  /// ingreso/gasto no declarado para la parte sin justificar, ni el nuevo
+  /// saldo de la cuenta. Eso (crear las transacciones reales y actualizar
+  /// `account.balance` en la base) queda para una próxima entrega; por
+  /// ahora solo vuelve a la vista de Cuentas.
+  void _saveAndUpdateBalance() {
+    widget.onDone();
   }
 
   /// Popup que abre el botón "Agregar movimiento". Entrega 5: ya tiene los
@@ -317,6 +358,39 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
                   onDelete: _removePendingMovement,
                 ),
               ],
+              const SizedBox(height: 20),
+              _MovementsSummaryCard(
+                total: _pendingMovementsTotal,
+                remainder: _unjustifiedRemainder,
+                currency: currency,
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.authAccent,
+                    foregroundColor: AppColors.authBackgroundBottom,
+                    disabledBackgroundColor:
+                        AppColors.authAccent.withValues(alpha: 0.4),
+                    disabledForegroundColor:
+                        AppColors.authBackgroundBottom.withValues(alpha: 0.6),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  // Habilitado en cuanto hay un saldo nuevo válido — que
+                  // los movimientos no cubran toda la diferencia ya NO lo
+                  // bloquea (ver [_MovementsSummaryCard]): lo que falte se
+                  // guarda como ingreso/gasto no declarado, sin categoría.
+                  onPressed: _difference == null ? null : _saveAndUpdateBalance,
+                  child: const Text(
+                    'Guardar y actualizar saldo',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
             ],
           ],
         ),
@@ -591,6 +665,174 @@ class _MovementListTile extends StatelessWidget {
             ),
             tooltip: 'Quitar',
             visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Footer con el total de los movimientos cargados y el estado de la
+/// diferencia, en el mismo estilo de dos columnas separadas por una línea
+/// que usa [_DifferenceBox]. Que [remainder] no sea cero (o casi, por
+/// redondeo) ya no bloquea el botón "Guardar y actualizar saldo" — solo
+/// cambia el mensaje, para avisar que esa parte se va a guardar como un
+/// ingreso o gasto sin categoría.
+class _MovementsSummaryCard extends StatelessWidget {
+  final double total;
+
+  /// Parte de la diferencia sin cubrir por los movimientos. `null`
+  /// mientras no haya un saldo nuevo válido (ver
+  /// [_UpdateBalanceTabState._unjustifiedRemainder]).
+  final double? remainder;
+  final String currency;
+
+  const _MovementsSummaryCard({
+    required this.total,
+    required this.remainder,
+    required this.currency,
+  });
+
+  /// Umbral bajo el cual se considera "sin diferencia" — evita falsos
+  /// "no coincide" por restos de redondeo de centavos.
+  static const _epsilon = 0.005;
+
+  @override
+  Widget build(BuildContext context) {
+    final rem = remainder;
+
+    final Color tone;
+    final IconData icon;
+    final String title;
+    final String message;
+
+    if (rem == null) {
+      tone = AppColors.authTextSecondary;
+      icon = Icons.info_outline_rounded;
+      title = 'Falta el saldo nuevo';
+      message = 'Ingresa el nuevo saldo para calcular la diferencia.';
+    } else if (rem.abs() < _epsilon) {
+      tone = AppColors.authAccent;
+      icon = Icons.check_rounded;
+      title = 'Coincide con la diferencia';
+      message = 'El saldo se actualiza correctamente.';
+    } else if (rem > 0) {
+      tone = AppColors.authIncome;
+      icon = Icons.priority_high_rounded;
+      title = 'Diferencia sin justificar';
+      message = 'Se guardará como ingreso no declarado, sin categoría, '
+          'por ${formatCurrency(rem, currency)}.';
+    } else {
+      tone = AppColors.authExpense;
+      icon = Icons.priority_high_rounded;
+      title = 'Diferencia sin justificar';
+      message = 'Se guardará como gasto no declarado, sin categoría, '
+          'por ${formatCurrency(rem.abs(), currency)}.';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.authCardBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.authAccent.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.calculate_rounded,
+                    color: AppColors.authAccent,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Total de movimientos',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.authTextSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          formatCurrency(total, currency),
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.authTextPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 52,
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            color: AppColors.authCardBorder,
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: tone.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: tone, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: tone,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        message,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 1.3,
+                          color: AppColors.authTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
