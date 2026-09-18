@@ -33,11 +33,12 @@ const _kAccountIcons = [
 /// quien pone el header (menú + marca Luma + campana) y el
 /// bottomNavigationBar.
 ///
-/// Entrega 2: header de la cuenta, campo del nuevo saldo y cálculo en vivo
-/// de la diferencia contra el saldo anterior, según el prototipo. Los pasos
-/// siguientes (lista de movimientos que justifican la diferencia, totales y
-/// el botón "Guardar y actualizar saldo") quedan para una próxima entrega —
-/// hoy no se envía nada a la cuenta.
+/// Entrega 3: además del header, el campo del nuevo saldo y el cálculo en
+/// vivo de la diferencia, se agrega el título de la sección de movimientos
+/// y el botón "Agregar movimiento" del prototipo — todavía sin acción. La
+/// lista de movimientos, los totales y el botón "Guardar y actualizar
+/// saldo" quedan para una próxima entrega — hoy no se envía nada a la
+/// cuenta.
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` porque,
   /// igual que en [AccountFormTab], el HomeShell mantiene esta pestaña
@@ -254,6 +255,12 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
                       : null,
                 ),
               ),
+              const SizedBox(height: 24),
+              _MovementsSectionHeader(
+                // Sin acción todavía: la lista de movimientos y su alta
+                // quedan para una próxima entrega.
+                onAddMovement: () {},
+              ),
             ],
           ],
         ),
@@ -311,6 +318,54 @@ class _AccountHeader extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Título de la sección "Movimientos para justificar la diferencia" y el
+/// botón "Agregar movimiento" del prototipo, en la misma fila.
+///
+/// [onAddMovement] todavía no hace nada en esta entrega: el alta de
+/// movimientos (y la lista que los muestra) se implementa más adelante.
+class _MovementsSectionHeader extends StatelessWidget {
+  final VoidCallback onAddMovement;
+
+  const _MovementsSectionHeader({required this.onAddMovement});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const Expanded(
+          child: Text(
+            'Movimientos para justificar la diferencia',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.authTextPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        OutlinedButton.icon(
+          onPressed: onAddMovement,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.authAccent,
+            side: const BorderSide(color: AppColors.authAccent),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            visualDensity: VisualDensity.compact,
+          ),
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text(
+            'Agregar movimiento',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ),
       ],
