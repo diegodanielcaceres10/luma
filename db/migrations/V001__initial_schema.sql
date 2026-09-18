@@ -81,24 +81,12 @@ create table monthly_account_balances (
   unique (account_id, month, year)
 );
 
--- ─── monthly_budgets (instancia concreta por mes) ─────────
-create table monthly_budgets (
-  id           uuid primary key default gen_random_uuid(),
-  user_id      uuid not null references auth.users(id) on delete cascade,
-  category_id  uuid not null references categories(id) on delete cascade,
-  amount       numeric(12, 2) not null check (amount > 0),
-  month        integer not null check (month between 1 and 12),
-  year         integer not null check (year >= 2000),
-  unique (user_id, category_id, month, year)
-);
-
 -- ─── RLS (Row Level Security) ────────────────────────────
 alter table accounts enable row level security;
 alter table categories enable row level security;
 alter table transactions enable row level security;
 alter table services enable row level security;
 alter table invoices enable row level security;
-alter table monthly_budgets enable row level security;
 alter table monthly_account_balances enable row level security;
 
 create policy "users manage own accounts"
@@ -115,9 +103,6 @@ create policy "users manage own services"
 
 create policy "users manage own invoices"
   on invoices for all using (auth.uid() = user_id);
-
-create policy "users manage own monthly budgets"
-  on monthly_budgets for all using (auth.uid() = user_id);
 
 create policy "users manage own monthly account balances"
   on monthly_account_balances for all using (auth.uid() = user_id);
