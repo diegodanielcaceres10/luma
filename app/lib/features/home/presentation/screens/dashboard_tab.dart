@@ -291,8 +291,8 @@ class _BalanceCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   child: const Padding(
                     padding: EdgeInsets.all(4),
-                    child: Icon(Icons.manage_accounts_rounded,
-                        color: Colors.white70, size: 20),
+                    child:
+                        Icon(Icons.settings, color: Colors.white70, size: 30),
                   ),
                 ),
               ],

@@ -259,8 +259,7 @@ class _AccountCard extends StatelessWidget {
                             // pensada solo para cargar el saldo actual.
                             IconButton(
                               onPressed: onUpdateBalance,
-                              icon: Icon(Icons.sync_alt_rounded,
-                                  color: color, size: 18),
+                              icon: Icon(Icons.loop, color: color, size: 25),
                               tooltip: 'Actualizar saldo',
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(
