@@ -29,6 +29,22 @@ class TransactionViewModel extends ChangeNotifier {
   bool _hasLoadedAll = false;
   String? _lastCreatedTransactionId;
 
+  // Mes que muestra Estadísticas. `null` = el mes en curso, que ya vive en
+  // _transactions / _previousMonthTransactions (y se mantiene al día solo,
+  // porque loadCurrentMonth() se llama tras cada movimiento nuevo). Un mes
+  // distinto se carga aparte en las dos listas de abajo, para no pisar el
+  // mes en curso que usan el Dashboard y "Movimientos recientes".
+  DateTime? _statisticsMonth;
+  List<TransactionEntry> _statisticsTransactions = [];
+  List<TransactionEntry> _statisticsPreviousTransactions = [];
+  bool _isLoadingStatistics = false;
+  String? _statisticsErrorMessage;
+
+  // Identifica la carga de mes más reciente: si el usuario cambia de mes
+  // varias veces seguidas, una respuesta vieja que llega tarde no debe
+  // pisar los datos del mes que quedó elegido.
+  int _statisticsRequestId = 0;
+
   bool get isLoading => _isLoading;
   bool get isLoadingAll => _isLoadingAll;
   bool get isSubmitting => _isSubmitting;
@@ -45,13 +61,9 @@ class TransactionViewModel extends ChangeNotifier {
 
   List<TransactionEntry> get recentMovements => _transactions.take(4).toList();
 
-  double get totalExpenses => _transactions
-      .where((t) => t.type == 'expense')
-      .fold(0, (sum, t) => sum + t.amount);
+  double get totalExpenses => _sumByType(_transactions, 'expense');
 
-  double get totalIncome => _transactions
-      .where((t) => t.type == 'income')
-      .fold(0, (sum, t) => sum + t.amount);
+  double get totalIncome => _sumByType(_transactions, 'income');
 
   /// Ingresos - gastos del mes en curso. Puede ser negativo. No se
   /// persiste: se recalcula siempre a partir de los movimientos cargados
@@ -64,13 +76,11 @@ class TransactionViewModel extends ChangeNotifier {
   /// Mismos totales que arriba pero del mes calendario anterior, cargados
   /// junto con el mes en curso en loadCurrentMonth(). Solo existen para
   /// alimentar las comparaciones "vs. mes anterior" de Estadísticas.
-  double get previousMonthIncome => _previousMonthTransactions
-      .where((t) => t.type == 'income')
-      .fold(0, (sum, t) => sum + t.amount);
+  double get previousMonthIncome =>
+      _sumByType(_previousMonthTransactions, 'income');
 
-  double get previousMonthExpenses => _previousMonthTransactions
-      .where((t) => t.type == 'expense')
-      .fold(0, (sum, t) => sum + t.amount);
+  double get previousMonthExpenses =>
+      _sumByType(_previousMonthTransactions, 'expense');
 
   double get previousMonthNetResult =>
       previousMonthIncome - previousMonthExpenses;
@@ -93,8 +103,17 @@ class TransactionViewModel extends ChangeNotifier {
     return ((current - previous) / previous.abs()) * 100;
   }
 
-  List<CategoryTotal> get categoryBreakdown {
-    final expenses = _transactions.where((t) => t.type == 'expense');
+  List<CategoryTotal> get categoryBreakdown => _breakdownOf(_transactions);
+
+  static double _sumByType(List<TransactionEntry> entries, String type) {
+    return entries
+        .where((t) => t.type == type)
+        .fold<double>(0, (sum, t) => sum + t.amount);
+  }
+
+  /// Gastos agrupados por categoría (mayor a menor), con su % del total.
+  static List<CategoryTotal> _breakdownOf(List<TransactionEntry> entries) {
+    final expenses = entries.where((t) => t.type == 'expense');
     final Map<String, double> totals = {};
     final Map<String, TransactionCategory> categories = {};
 
@@ -104,7 +123,7 @@ class TransactionViewModel extends ChangeNotifier {
       categories[key] = t.category;
     }
 
-    final total = totalExpenses;
+    final total = _sumByType(entries, 'expense');
     final list = totals.entries.map((e) {
       return CategoryTotal(
         category: categories[e.key]!,
@@ -115,6 +134,137 @@ class TransactionViewModel extends ChangeNotifier {
 
     list.sort((a, b) => b.amount.compareTo(a.amount));
     return list;
+  }
+
+  // ── Estadísticas (mes elegido en el selector) ──────────────────────
+  //
+  // Mismos cálculos que los getters del mes en curso, pero sobre el mes que
+  // esté elegido en Estadísticas (que puede ser cualquiera de los últimos
+  // 12). Los comparativos "vs. mes anterior" son contra el mes previo al
+  // elegido.
+
+  /// `true` si Estadísticas está mostrando el mes en curso.
+  bool get isStatisticsCurrentMonth {
+    final month = _statisticsMonth;
+    if (month == null) return true;
+    final now = DateTime.now();
+    return month.year == now.year && month.month == now.month;
+  }
+
+  /// Mes (día 1) que muestra Estadísticas.
+  DateTime get statisticsMonth {
+    if (isStatisticsCurrentMonth) {
+      final now = DateTime.now();
+      return DateTime(now.year, now.month);
+    }
+    return _statisticsMonth!;
+  }
+
+  /// `true` mientras se carga el mes elegido en Estadísticas.
+  bool get isStatisticsLoading =>
+      isStatisticsCurrentMonth ? _isLoading : _isLoadingStatistics;
+
+  /// Error al cargar un mes anterior en Estadísticas, o `null`. Para el mes
+  /// en curso no se informa acá: sigue el comportamiento de
+  /// [loadCurrentMonth].
+  String? get statisticsErrorMessage =>
+      isStatisticsCurrentMonth ? null : _statisticsErrorMessage;
+
+  List<TransactionEntry> get _statisticsEntries =>
+      isStatisticsCurrentMonth ? _transactions : _statisticsTransactions;
+
+  List<TransactionEntry> get _statisticsPreviousEntries =>
+      isStatisticsCurrentMonth
+          ? _previousMonthTransactions
+          : _statisticsPreviousTransactions;
+
+  double get statisticsIncome => _sumByType(_statisticsEntries, 'income');
+
+  double get statisticsExpenses => _sumByType(_statisticsEntries, 'expense');
+
+  double get statisticsNetResult => statisticsIncome - statisticsExpenses;
+
+  double? get statisticsIncomeChangePercent => _percentChange(
+        _sumByType(_statisticsPreviousEntries, 'income'),
+        statisticsIncome,
+      );
+
+  double? get statisticsExpenseChangePercent => _percentChange(
+        _sumByType(_statisticsPreviousEntries, 'expense'),
+        statisticsExpenses,
+      );
+
+  double? get statisticsNetResultChangePercent {
+    final previousNet = _sumByType(_statisticsPreviousEntries, 'income') -
+        _sumByType(_statisticsPreviousEntries, 'expense');
+    return _percentChange(previousNet, statisticsNetResult);
+  }
+
+  List<CategoryTotal> get statisticsCategoryBreakdown =>
+      _breakdownOf(_statisticsEntries);
+
+  /// Cambia el mes que muestra Estadísticas y carga sus datos (más los del
+  /// mes previo, para los comparativos). Elegir el mes en curso no consulta
+  /// nada: ya está cargado en [loadCurrentMonth].
+  Future<void> loadStatisticsMonth(DateTime month) async {
+    final target = DateTime(month.year, month.month);
+
+    // Mismo mes que ya se ve, sin error que reintentar: nada que hacer.
+    if (target == statisticsMonth &&
+        _statisticsErrorMessage == null &&
+        !_isLoadingStatistics) {
+      return;
+    }
+
+    final requestId = ++_statisticsRequestId;
+    _statisticsErrorMessage = null;
+    _statisticsTransactions = [];
+    _statisticsPreviousTransactions = [];
+
+    final now = DateTime.now();
+    if (target.year == now.year && target.month == now.month) {
+      _statisticsMonth = null;
+      _isLoadingStatistics = false;
+      notifyListeners();
+      return;
+    }
+
+    _statisticsMonth = target;
+    _isLoadingStatistics = true;
+    notifyListeners();
+
+    await _fetchStatisticsMonth(target, requestId);
+  }
+
+  /// Vuelve a pedir el mes de Estadísticas si no es el en curso, sin vaciar
+  /// lo que se ve mientras tanto. Se usa tras crear movimientos, que pueden
+  /// tener fecha en ese mes.
+  Future<void> _refreshStatisticsMonth() async {
+    final month = _statisticsMonth;
+    if (month == null || isStatisticsCurrentMonth) return;
+    await _fetchStatisticsMonth(month, ++_statisticsRequestId);
+  }
+
+  Future<void> _fetchStatisticsMonth(DateTime month, int requestId) async {
+    try {
+      final results = await Future.wait([
+        _repository.getForMonth(month),
+        _repository.getForMonth(DateTime(month.year, month.month - 1)),
+      ]);
+      if (requestId != _statisticsRequestId) return;
+      _statisticsTransactions = results[0];
+      _statisticsPreviousTransactions = results[1];
+      _statisticsErrorMessage = null;
+    } catch (error) {
+      if (requestId != _statisticsRequestId) return;
+      _statisticsErrorMessage =
+          'No se pudieron cargar las estadísticas de ese mes.';
+    } finally {
+      if (requestId == _statisticsRequestId) {
+        _isLoadingStatistics = false;
+        notifyListeners();
+      }
+    }
   }
 
   Future<void> loadCurrentMonth() async {
@@ -182,6 +332,7 @@ class TransactionViewModel extends ChangeNotifier {
         date: date,
       );
       await loadCurrentMonth();
+      await _refreshStatisticsMonth();
       if (_hasLoadedAll) {
         await loadAllTransactions();
       }
@@ -242,6 +393,7 @@ class TransactionViewModel extends ChangeNotifier {
         date: date,
       );
       await loadCurrentMonth();
+      await _refreshStatisticsMonth();
       if (_hasLoadedAll) {
         await loadAllTransactions();
       }

@@ -24,32 +24,24 @@ class StatisticsTab extends StatefulWidget {
 }
 
 class _StatisticsTabState extends State<StatisticsTab> {
-  // Mes que se muestra en el selector del header. Por ahora solo cambia el
-  // label: todavía no dispara una recarga de datos de ese mes puntual (el
-  // resto del cuerpo sigue mostrando el mes en curso, que es lo único que
-  // carga TransactionViewModel.loadCurrentMonth()). Se conecta con datos
-  // reales en una próxima entrega.
-  late DateTime _selectedMonth;
-
-  @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    _selectedMonth = DateTime(now.year, now.month);
-  }
-
   Future<void> _pickMonth() async {
+    final vm = widget.transactionViewModel;
+
     final picked = await showModalBottomSheet<DateTime>(
       context: context,
       backgroundColor: AppColors.authBackgroundBottom,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => _MonthPickerSheet(selectedMonth: _selectedMonth),
+      builder: (context) =>
+          _MonthPickerSheet(selectedMonth: vm.statisticsMonth),
     );
 
+    // El mes elegido vive en el TransactionViewModel (no en este State):
+    // desde ahí se cargan los datos de ese mes y el ListenableBuilder de
+    // abajo repinta todo el cuerpo cuando llegan.
     if (picked != null && mounted) {
-      setState(() => _selectedMonth = picked);
+      vm.loadStatisticsMonth(picked);
     }
   }
 
@@ -59,13 +51,20 @@ class _StatisticsTabState extends State<StatisticsTab> {
       listenable: widget.transactionViewModel,
       builder: (context, _) {
         final vm = widget.transactionViewModel;
+        final month = vm.statisticsMonth;
+        final isCurrentMonth = vm.isStatisticsCurrentMonth;
+        // 'Septiembre 2025' -> 'septiembre 2025', para usarlo dentro de una
+        // frase ("gastados en septiembre 2025").
+        final monthInSentence = _monthLabel(month).toLowerCase();
 
         final header = _StatisticsHeader(
-          selectedMonth: _selectedMonth,
+          selectedMonth: month,
           onTapMonthSelector: _pickMonth,
         );
 
-        if (vm.isLoading && vm.categoryBreakdown.isEmpty) {
+        final breakdown = vm.statisticsCategoryBreakdown;
+
+        if (vm.isStatisticsLoading && breakdown.isEmpty) {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
@@ -80,7 +79,37 @@ class _StatisticsTabState extends State<StatisticsTab> {
           );
         }
 
-        final breakdown = vm.categoryBreakdown;
+        final errorMessage = vm.statisticsErrorMessage;
+        if (errorMessage != null && breakdown.isEmpty) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: [
+              header,
+              Padding(
+                padding: const EdgeInsets.only(top: 60),
+                child: Column(
+                  children: [
+                    Text(
+                      errorMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.authTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.authAccent,
+                      ),
+                      onPressed: () => vm.loadStatisticsMonth(month),
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
 
         if (breakdown.isEmpty) {
           return ListView(
@@ -89,20 +118,23 @@ class _StatisticsTabState extends State<StatisticsTab> {
               header,
               const SizedBox(height: 20),
               _SummaryCardsRow(
-                income: vm.totalIncome,
-                expenses: vm.totalExpenses,
-                netResult: vm.netResult,
-                incomeChangePercent: vm.incomeChangePercent,
-                expenseChangePercent: vm.expenseChangePercent,
-                netChangePercent: vm.netResultChangePercent,
+                income: vm.statisticsIncome,
+                expenses: vm.statisticsExpenses,
+                netResult: vm.statisticsNetResult,
+                incomeChangePercent: vm.statisticsIncomeChangePercent,
+                expenseChangePercent: vm.statisticsExpenseChangePercent,
+                netChangePercent: vm.statisticsNetResultChangePercent,
                 currency: widget.currency,
               ),
-              const Padding(
-                padding: EdgeInsets.only(top: 40),
+              Padding(
+                padding: const EdgeInsets.only(top: 40),
                 child: Center(
                   child: Text(
-                    'Todavía no hay gastos este mes.',
-                    style: TextStyle(color: AppColors.authTextSecondary),
+                    isCurrentMonth
+                        ? 'Todavía no hay gastos este mes.'
+                        : 'No hay gastos registrados en $monthInSentence.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.authTextSecondary),
                   ),
                 ),
               ),
@@ -116,12 +148,12 @@ class _StatisticsTabState extends State<StatisticsTab> {
             header,
             const SizedBox(height: 20),
             _SummaryCardsRow(
-              income: vm.totalIncome,
-              expenses: vm.totalExpenses,
-              netResult: vm.netResult,
-              incomeChangePercent: vm.incomeChangePercent,
-              expenseChangePercent: vm.expenseChangePercent,
-              netChangePercent: vm.netResultChangePercent,
+              income: vm.statisticsIncome,
+              expenses: vm.statisticsExpenses,
+              netResult: vm.statisticsNetResult,
+              incomeChangePercent: vm.statisticsIncomeChangePercent,
+              expenseChangePercent: vm.statisticsExpenseChangePercent,
+              netChangePercent: vm.statisticsNetResultChangePercent,
               currency: widget.currency,
             ),
             const SizedBox(height: 24),
@@ -135,16 +167,21 @@ class _StatisticsTabState extends State<StatisticsTab> {
             ),
             const SizedBox(height: 4),
             Text(
-              formatCurrency(vm.totalExpenses, widget.currency),
+              formatCurrency(vm.statisticsExpenses, widget.currency),
               style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
                 color: AppColors.authTextPrimary,
               ),
             ),
-            const Text(
-              'gastados este mes',
-              style: TextStyle(fontSize: 12, color: AppColors.authTextFooter),
+            Text(
+              isCurrentMonth
+                  ? 'gastados este mes'
+                  : 'gastados en $monthInSentence',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.authTextFooter,
+              ),
             ),
             const SizedBox(height: 20),
             DecoratedBox(
@@ -160,7 +197,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
                   children: [
                     _CategoryDonutChart(
                       breakdown: breakdown,
-                      total: vm.totalExpenses,
+                      total: vm.statisticsExpenses,
                       currency: widget.currency,
                     ),
                     const SizedBox(width: 18),
