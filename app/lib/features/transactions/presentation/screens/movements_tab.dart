@@ -243,8 +243,7 @@ class _MovementsTabState extends State<MovementsTab> {
                         .map((c) => (
                               key: _categoryModelKey(c),
                               label: c.name,
-                              color: colorFromHex(c.color,
-                                  fallback: AppColors.authAccent),
+                              color: AppColors.authAccent,
                             ))
                         .toList(),
                     selectedKey: effectiveCategoryKey,
@@ -613,9 +612,8 @@ class _MovementRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('d MMM. yyyy', 'es');
-    final color = movement.isIncome
-        ? AppColors.authIncome
-        : colorFromHex(movement.category.color, fallback: AppColors.authAccent);
+    final color =
+        movement.isIncome ? AppColors.authIncome : AppColors.authAccent;
     final sign = movement.isIncome ? '+' : '-';
 
     return Column(
@@ -630,7 +628,7 @@ class _MovementRow extends StatelessWidget {
                 child: Icon(
                   movement.isIncome
                       ? Icons.arrow_downward_rounded
-                      : iconFromName(movement.category.icon),
+                      : Icons.more_horiz_rounded,
                   color: Colors.white,
                   size: 18,
                 ),

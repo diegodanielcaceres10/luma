@@ -106,16 +106,6 @@ class _CategoryBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 14,
-                backgroundColor: color.withValues(alpha: 0.85),
-                child: const Icon(
-                  Icons.more_horiz_rounded,
-                  color: Colors.white,
-                  size: 14,
-                ),
-              ),
-              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   category.category.name,
