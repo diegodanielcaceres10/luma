@@ -45,6 +45,12 @@ const _kAccountIcons = [
 /// (Monto, Categoría, Descripción y Fecha). Al tocar "Guardar" se valida y
 /// se agrega a [_UpdateBalanceTabState._pendingMovements], solo en memoria
 /// — todavía no hay lista visible ni se persiste nada en la base.
+///
+/// Entrega 6: agrega el listado de movimientos cargados (bajo "Agregar
+/// movimiento"), con la fila categoría/descripción/fecha, el monto con
+/// signo y un botón para quitarlo — todo sobre [_pendingMovements], en
+/// memoria. El total y el botón "Guardar y actualizar saldo" del
+/// prototipo quedan para una próxima entrega.
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` porque,
   /// igual que en [AccountFormTab], el HomeShell mantiene esta pestaña
@@ -90,6 +96,13 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
 
   void _addPendingMovement(PendingMovement movement) {
     setState(() => _pendingMovements.add(movement));
+  }
+
+  /// Saca un movimiento de la lista en memoria (botón de tacho en cada
+  /// fila). Entrega 6: solo quita el ítem de [_pendingMovements] — no hay
+  /// nada que deshacer en la base porque todavía no se persiste nada.
+  void _removePendingMovement(PendingMovement movement) {
+    setState(() => _pendingMovements.remove(movement));
   }
 
   @override
@@ -296,6 +309,14 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
               _MovementsSectionHeader(
                 onAddMovement: () => _showAddMovementDialog(context),
               ),
+              if (_pendingMovements.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _MovementsList(
+                  movements: _pendingMovements,
+                  currency: currency,
+                  onDelete: _removePendingMovement,
+                ),
+              ],
             ],
           ],
         ),
@@ -404,6 +425,175 @@ class _MovementsSectionHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Abreviaturas de mes en español (3 letras, sin punto), para mostrar la
+/// fecha de cada movimiento igual que en el prototipo ("12 sep 2025").
+/// [DateFormat] de `intl` agrega un punto ("sept.") con el locale 'es', así
+/// que se arma a mano en vez de depender de eso.
+const _kMonthAbbreviations = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+];
+
+String _formatMovementDate(DateTime date) {
+  final month = _kMonthAbbreviations[date.month - 1];
+  return '${date.day} $month ${date.year}';
+}
+
+/// Lista de movimientos ya cargados desde el popup "Agregar movimiento",
+/// dentro de una sola tarjeta con separadores entre filas — igual que en
+/// el prototipo. Entrega 6: solo el listado; el total y el botón "Guardar
+/// y actualizar saldo" del prototipo quedan para una próxima entrega.
+class _MovementsList extends StatelessWidget {
+  final List<PendingMovement> movements;
+  final String currency;
+  final void Function(PendingMovement movement) onDelete;
+
+  const _MovementsList({
+    required this.movements,
+    required this.currency,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.authCardBorder),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < movements.length; i++) ...[
+            _MovementListTile(
+              movement: movements[i],
+              currency: currency,
+              onDelete: () => onDelete(movements[i]),
+            ),
+            if (i < movements.length - 1)
+              const Divider(color: AppColors.authCardBorder, height: 1),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Una fila de [_MovementsList]: círculo con el color/ícono de la
+/// categoría, categoría + descripción + fecha, monto con signo (mismo
+/// criterio de color que [_DifferenceBox]: verde si suma, rojo si resta) y
+/// el botón para sacarlo de la lista.
+class _MovementListTile extends StatelessWidget {
+  final PendingMovement movement;
+  final String currency;
+  final VoidCallback onDelete;
+
+  const _MovementListTile({
+    required this.movement,
+    required this.currency,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final categoryColor = colorFromHex(movement.category.color);
+    final amount = movement.amount;
+    final amountText = amount > 0
+        ? '+${formatCurrency(amount, currency)}'
+        : formatCurrency(amount, currency);
+    final amountColor =
+        amount > 0 ? AppColors.authIncome : AppColors.authExpense;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration:
+                BoxDecoration(color: categoryColor, shape: BoxShape.circle),
+            child: Icon(
+              iconFromName(movement.category.icon),
+              color: AppColors.authTextPrimary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  movement.category.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.authTextPrimary,
+                  ),
+                ),
+                if (movement.description != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    movement.description!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.authTextSecondary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 2),
+                Text(
+                  _formatMovementDate(movement.date),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.authTextSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            amountText,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: amountColor,
+            ),
+          ),
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              size: 20,
+              color: AppColors.authTextSecondary,
+            ),
+            tooltip: 'Quitar',
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -628,8 +818,8 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                               ),
                               const SizedBox(width: 8),
                               Flexible(
-                                child:
-                                    Text(c.name, overflow: TextOverflow.ellipsis),
+                                child: Text(c.name,
+                                    overflow: TextOverflow.ellipsis),
                               ),
                             ],
                           ),
