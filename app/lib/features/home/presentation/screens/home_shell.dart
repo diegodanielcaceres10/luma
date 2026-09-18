@@ -4,6 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/screens/account_form_tab.dart';
+import '../../../accounts/presentation/screens/accounts_overview_tab.dart';
 import '../../../accounts/presentation/screens/accounts_tab.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
@@ -50,6 +51,7 @@ const _serviceFormTabIndex = 11;
 const _invoicesTabIndex = 12;
 const _invoiceFormTabIndex = 13;
 const _transferFormTabIndex = 14;
+const _accountsOverviewTabIndex = 15;
 
 class HomeShell extends StatefulWidget {
   final AuthViewModel authViewModel;
@@ -141,6 +143,14 @@ class _HomeShellState extends State<HomeShell> {
     setState(() {
       _index = 0; // Vuelve a "Inicio", único lugar desde donde se abre.
     });
+  }
+
+  // Vista general de "Cuentas" (prototipo), a la que se llega desde el
+  // ícono de gerenciamiento en la BalanceCard del Dashboard. Al no tener
+  // formulario propio, "atrás" vuelve a "Inicio" por el caso default de
+  // _handleBackNavigation.
+  void _openAccountsOverview() {
+    setState(() => _index = _accountsOverviewTabIndex);
   }
 
   void _openAccountForm(Account? account) {
@@ -297,6 +307,7 @@ class _HomeShellState extends State<HomeShell> {
         onOpenMonthlyBalances: _openMonthlyBalanceForm,
         onOpenAddTransaction: _openAddTransactionForm,
         onGoToAccounts: () => _openAccountForm(null),
+        onManageAccounts: _openAccountsOverview,
         onGoToInvoices: _goToPendingInvoices,
         onGoToTransfers: _openTransferForm,
       ),
@@ -384,6 +395,7 @@ class _HomeShellState extends State<HomeShell> {
         transactionViewModel: widget.transactionViewModel,
         onDone: _closeTransferForm,
       ),
+      const AccountsOverviewTab(),
     ];
 
     return PopScope(
@@ -436,6 +448,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget? _headerAction() {
     switch (_index) {
       case 0:
+      case _accountsOverviewTabIndex:
         return const IconButton(
           onPressed: null,
           icon: Icon(Icons.notifications_none_rounded),

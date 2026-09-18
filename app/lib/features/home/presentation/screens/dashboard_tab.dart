@@ -26,6 +26,7 @@ class DashboardTab extends StatelessWidget {
   final ValueChanged<List<Account>> onOpenMonthlyBalances;
   final ValueChanged<String> onOpenAddTransaction;
   final VoidCallback onGoToAccounts;
+  final VoidCallback onManageAccounts;
   final VoidCallback onGoToInvoices;
   final VoidCallback onGoToTransfers;
 
@@ -40,6 +41,7 @@ class DashboardTab extends StatelessWidget {
     required this.onOpenMonthlyBalances,
     required this.onOpenAddTransaction,
     required this.onGoToAccounts,
+    required this.onManageAccounts,
     required this.onGoToInvoices,
     required this.onGoToTransfers,
     this.onSeeAllMovements,
@@ -94,6 +96,7 @@ class DashboardTab extends StatelessWidget {
               onCompletePendingBalances: pendingAccounts.isEmpty
                   ? null
                   : () => onOpenMonthlyBalances(pendingAccounts),
+              onManageAccounts: onManageAccounts,
             ),
             const SizedBox(height: 28),
             const _SectionHeader(title: 'Acciones rápidas'),
@@ -243,6 +246,7 @@ class _BalanceCard extends StatelessWidget {
   final bool isLoadingNetResult;
   final int pendingAccountsCount;
   final VoidCallback? onCompletePendingBalances;
+  final VoidCallback onManageAccounts;
 
   const _BalanceCard({
     required this.isLoading,
@@ -250,6 +254,7 @@ class _BalanceCard extends StatelessWidget {
     required this.currency,
     required this.netResult,
     required this.isLoadingNetResult,
+    required this.onManageAccounts,
     this.pendingAccountsCount = 0,
     this.onCompletePendingBalances,
   });
@@ -271,14 +276,24 @@ class _BalanceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.calendar_today_rounded,
+                const Icon(Icons.calendar_today_rounded,
                     color: Colors.white70, size: 16),
-                SizedBox(width: 8),
-                Text(
+                const SizedBox(width: 8),
+                const Text(
                   'Balance general del mes',
                   style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const Spacer(),
+                InkWell(
+                  onTap: onManageAccounts,
+                  borderRadius: BorderRadius.circular(20),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(Icons.manage_accounts_rounded,
+                        color: Colors.white70, size: 20),
+                  ),
                 ),
               ],
             ),
