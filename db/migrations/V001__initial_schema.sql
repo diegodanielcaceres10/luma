@@ -4,8 +4,6 @@ create table accounts (
   user_id     uuid not null references auth.users(id) on delete cascade,
   name        text not null,
   balance     numeric(12, 2) not null default 0,
-  color       text,
-  icon        text,
   is_active   boolean not null default true,
   created_at  timestamptz not null default now(),
   unique (user_id, name)

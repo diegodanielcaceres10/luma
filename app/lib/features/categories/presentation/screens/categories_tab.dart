@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/category_visuals.dart';
 import '../../data/models/category.dart';
 import '../view_models/category_view_model.dart';
 
@@ -145,6 +146,15 @@ class _CategoryRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: colorFromHex(category.color,
+                          fallback: AppColors.authAccent)
+                      .withValues(alpha: 0.85),
+                  child: Icon(iconFromName(category.icon),
+                      color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Text(
                     category.name,

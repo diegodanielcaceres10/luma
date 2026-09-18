@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/account_visuals.dart';
-import '../../../../core/utils/category_visuals.dart' show colorFromHex;
 import '../../../../core/utils/currency_format.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
@@ -106,7 +104,6 @@ class _AccountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = colorFromHex(account.color, fallback: AppColors.authAccent);
     final isActive = account.isActive;
 
     return Column(
@@ -116,17 +113,9 @@ class _AccountRow extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: color.withValues(alpha: 0.85),
-                    child: const Icon(kDefaultAccountIcon,
-                        color: Colors.white, size: 18),
-                  ),
-                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

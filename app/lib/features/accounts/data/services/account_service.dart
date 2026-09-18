@@ -20,7 +20,6 @@ class AccountService {
     required String userId,
     required String name,
     required double balance,
-    String? color,
   }) async {
     final inserted = await _client
         .from('accounts')
@@ -28,7 +27,6 @@ class AccountService {
           'user_id': userId,
           'name': name,
           'balance': balance,
-          'color': color,
         })
         .select('id')
         .single();
@@ -51,7 +49,6 @@ class AccountService {
   Future<void> update({
     required String id,
     required String name,
-    String? color,
   }) async {
     // El balance no se edita a mano desde acá: se mantiene a través de los
     // movimientos registrados. Si en algún momento hace falta un ajuste
@@ -59,15 +56,12 @@ class AccountService {
     // no pisando el valor directamente.
     await _client.from('accounts').update({
       'name': name,
-      'color': color,
     }).eq('id', id);
   }
 
   /// Activa o inactiva una cuenta desde la lista, sin pasar por el
   /// formulario completo.
   Future<void> setActive({required String id, required bool isActive}) async {
-    await _client
-        .from('accounts')
-        .update({'is_active': isActive}).eq('id', id);
+    await _client.from('accounts').update({'is_active': isActive}).eq('id', id);
   }
 }

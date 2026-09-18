@@ -58,25 +58,21 @@ class AccountViewModel extends ChangeNotifier {
     required String userId,
     required String name,
     required double balance,
-    String? color,
   }) async {
     return _submit(() => _repository.create(
           userId: userId,
           name: name,
           balance: balance,
-          color: color,
         ));
   }
 
   Future<bool> updateAccount({
     required String id,
     required String name,
-    String? color,
   }) async {
     return _submit(() => _repository.update(
           id: id,
           name: name,
-          color: color,
         ));
   }
 

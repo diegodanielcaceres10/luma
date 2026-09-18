@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/account_visuals.dart';
-import '../../../../core/utils/category_visuals.dart' show colorFromHex;
 import '../../../accounts/data/models/account.dart';
 import '../view_models/monthly_balance_view_model.dart';
 
@@ -188,8 +186,6 @@ class _AccountBalanceField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = colorFromHex(account.color, fallback: AppColors.authAccent);
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -202,13 +198,6 @@ class _AccountBalanceField extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: color.withValues(alpha: 0.85),
-                child: const Icon(kDefaultAccountIcon,
-                    color: Colors.white, size: 16),
-              ),
-              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   account.name,

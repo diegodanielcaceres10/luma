@@ -14,25 +14,21 @@ class AccountRepository {
     required String userId,
     required String name,
     required double balance,
-    String? color,
   }) {
     return _service.create(
       userId: userId,
       name: name,
       balance: balance,
-      color: color,
     );
   }
 
   Future<void> update({
     required String id,
     required String name,
-    String? color,
   }) {
     return _service.update(
       id: id,
       name: name,
-      color: color,
     );
   }
 

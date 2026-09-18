@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/utils/category_visuals.dart'
-    show colorFromHex, kCategoryColors;
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart'
     show AccountSubmitError, AccountViewModel;
@@ -39,8 +37,6 @@ class _AccountFormTabState extends State<AccountFormTab> {
   final _nameController = TextEditingController();
   final _balanceController = TextEditingController();
 
-  late String _selectedColor;
-
   bool get _isEditing => widget.account != null;
 
   static const _fieldDecoration = InputDecoration(
@@ -67,7 +63,6 @@ class _AccountFormTabState extends State<AccountFormTab> {
     _nameController.text = account?.name ?? '';
     _balanceController.text =
         account != null ? account.balance.toStringAsFixed(2) : '';
-    _selectedColor = account?.color ?? kCategoryColors.first;
     // Re-build whenever isSubmitting or errorMessage changes.
     widget.accountViewModel.addListener(_onViewModelChanged);
   }
@@ -92,13 +87,11 @@ class _AccountFormTabState extends State<AccountFormTab> {
         ? await vm.updateAccount(
             id: widget.account!.id,
             name: _nameController.text.trim(),
-            color: _selectedColor,
           )
         : await vm.createAccount(
             userId: widget.userId,
             name: _nameController.text.trim(),
             balance: double.parse(_balanceController.text.trim()),
-            color: _selectedColor,
           );
 
     if (!mounted) return;
@@ -203,39 +196,6 @@ class _AccountFormTabState extends State<AccountFormTab> {
                       },
                     ),
                   ],
-                  const SizedBox(height: 20),
-                  const Text('Color',
-                      style: TextStyle(color: AppColors.authTextSecondary)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: kCategoryColors.map((hex) {
-                      final isSelected = hex == _selectedColor;
-                      return InkWell(
-                        onTap: isSubmitting
-                            ? null
-                            : () => setState(() => _selectedColor = hex),
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: colorFromHex(hex),
-                            shape: BoxShape.circle,
-                            border: isSelected
-                                ? Border.all(
-                                    color: AppColors.authTextPrimary, width: 2)
-                                : null,
-                          ),
-                          child: isSelected
-                              ? const Icon(Icons.check_rounded,
-                                  color: Colors.white, size: 20)
-                              : null,
-                        ),
-                      );
-                    }).toList(),
-                  ),
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
