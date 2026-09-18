@@ -48,6 +48,11 @@ class TransactionService {
   /// [categoryId] es nulo cuando la transacción viene de una
   /// transferencia entre cuentas propias — no pertenece a ninguna
   /// categoría de ingreso/gasto.
+  ///
+  /// Llama al RPC `create_transaction` en vez de insertar directo: ese
+  /// RPC inserta la fila y actualiza `accounts.balance` en una sola
+  /// transacción de la base — si algo falla, se revierte todo (ni queda
+  /// la transacción ni el saldo se mueve a medias).
   Future<String> createTransaction({
     required String userId,
     required String accountId,
@@ -57,21 +62,17 @@ class TransactionService {
     String? description,
     required DateTime date,
   }) async {
-    final row = await _client
-        .from('transactions')
-        .insert({
-          'user_id': userId,
-          'account_id': accountId,
-          'category_id': categoryId,
-          'type': type,
-          'amount': amount,
-          'description': description,
-          'date': _formatDate(date),
-        })
-        .select('id')
-        .single();
+    final id = await _client.rpc('create_transaction', params: {
+      'p_user_id': userId,
+      'p_account_id': accountId,
+      'p_category_id': categoryId,
+      'p_type': type,
+      'p_amount': amount,
+      'p_description': description,
+      'p_date': _formatDate(date),
+    });
 
-    return row['id'] as String;
+    return id as String;
   }
 
   String _formatDate(DateTime date) {

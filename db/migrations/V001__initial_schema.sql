@@ -106,3 +106,62 @@ create policy "users manage own invoices"
 
 create policy "users manage own monthly account balances"
   on monthly_account_balances for all using (auth.uid() = user_id);
+
+  -- ─── create_transaction (RPC) ──────────────────────────────
+-- Inserta la fila en `transactions` y actualiza `accounts.balance` en la
+-- misma transacción de Postgres: si algo falla (constraint, cuenta
+-- inexistente, etc.) toda la función se revierte y no queda ni la
+-- transacción ni el ajuste de saldo a medias.
+--
+-- security invoker (default): corre con los permisos del usuario que
+-- llama, así que las policies de RLS de `transactions` y `accounts`
+-- siguen aplicando igual que con un insert/update directo.
+create or replace function public.create_transaction(
+  p_user_id     uuid,
+  p_account_id  uuid,
+  p_category_id uuid,
+  p_type        text,
+  p_amount      numeric,
+  p_description text,
+  p_date        date
+)
+returns uuid
+language plpgsql
+security invoker
+as $$
+declare
+  v_id    uuid;
+  v_delta numeric(12, 2);
+begin
+  if p_type = 'income' then
+    v_delta := p_amount;
+  elsif p_type = 'expense' then
+    v_delta := -p_amount;
+  else
+    raise exception 'Tipo de transacción inválido: %', p_type;
+  end if;
+
+  insert into transactions (
+    user_id, account_id, category_id, type, amount, description, date
+  )
+  values (
+    p_user_id, p_account_id, p_category_id, p_type, p_amount, p_description, p_date
+  )
+  returning id into v_id;
+
+  update accounts
+  set balance = balance + v_delta
+  where id = p_account_id
+    and user_id = p_user_id;
+
+  if not found then
+    raise exception 'Cuenta % no encontrada para este usuario', p_account_id;
+  end if;
+
+  return v_id;
+end;
+$$;
+
+grant execute on function public.create_transaction(
+  uuid, uuid, uuid, text, numeric, text, date
+) to authenticated;

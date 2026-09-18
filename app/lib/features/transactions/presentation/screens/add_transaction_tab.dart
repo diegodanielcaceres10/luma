@@ -123,6 +123,11 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     if (!mounted) return;
 
     if (success) {
+      // El saldo de la cuenta se actualizó en el servidor junto con la
+      // transacción (RPC create_transaction); acá solo recargamos la
+      // lista de cuentas para que el nuevo saldo se vea en pantalla.
+      await widget.accountViewModel.loadAccounts();
+      if (!mounted) return;
       widget.onDone();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

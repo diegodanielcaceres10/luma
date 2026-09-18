@@ -163,9 +163,11 @@ class TransactionViewModel extends ChangeNotifier {
   /// movimiento, así que también entran en totalIncome/totalExpenses,
   /// netResult y categoryBreakdown (agrupadas como "Sin categoría").
   ///
-  /// Nota: igual que con [createTransaction], esto no actualiza
-  /// accounts.balance — esa columna no se recalcula desde ningún lado
-  /// del código todavía, para ingresos/gastos tampoco.
+  /// Nota: cada llamada a [_repository.create] actualiza accounts.balance
+  /// de forma atómica junto con su propia fila (RPC create_transaction),
+  /// pero las dos llamadas de esta transferencia no son atómicas *entre
+  /// sí*: si la segunda falla, la primera ya quedó confirmada y el saldo
+  /// de origen queda descontado sin su contraparte en destino.
   ///
   /// Devuelve true si ambas transacciones se crearon correctamente.
   Future<bool> createTransfer({
