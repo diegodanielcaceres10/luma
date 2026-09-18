@@ -265,74 +265,84 @@ class _MonthPickerSheet extends StatelessWidget {
 
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.authCardBorder,
-                  borderRadius: BorderRadius.circular(2),
+      // Acota el alto total de la hoja (handle + título + lista) a una
+      // fracción de la pantalla. Antes solo se limitaba la lista a un %
+      // fijo por su cuenta, sin contar el resto del contenido, así que en
+      // pantallas bajas el conjunto terminaba pidiendo más alto del que
+      // el modal tenía disponible (RenderFlex overflow).
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.authCardBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const Text(
-              'Elegí un mes',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.5,
-              ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: months.length,
-                separatorBuilder: (_, __) => const Divider(
-                  height: 1,
-                  color: AppColors.authCardBorder,
+              const Text(
+                'Elegí un mes',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.authTextPrimary,
                 ),
-                itemBuilder: (context, index) {
-                  final month = months[index];
-                  final isSelected = month.year == selectedMonth.year &&
-                      month.month == selectedMonth.month;
+              ),
+              const SizedBox(height: 8),
+              // Flexible (no un % fijo propio): toma lo que quede del alto
+              // ya acotado arriba, así nunca desborda a la lista le
+              // sobra o falta espacio según el resto del contenido.
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: months.length,
+                  separatorBuilder: (_, __) => const Divider(
+                    height: 1,
+                    color: AppColors.authCardBorder,
+                  ),
+                  itemBuilder: (context, index) {
+                    final month = months[index];
+                    final isSelected = month.year == selectedMonth.year &&
+                        month.month == selectedMonth.month;
 
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      _monthLabel(month),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected
-                            ? AppColors.authAccent
-                            : AppColors.authTextPrimary,
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        _monthLabel(month),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected
+                              ? AppColors.authAccent
+                              : AppColors.authTextPrimary,
+                        ),
                       ),
-                    ),
-                    trailing: isSelected
-                        ? const Icon(
-                            Icons.check_rounded,
-                            color: AppColors.authAccent,
-                            size: 20,
-                          )
-                        : null,
-                    onTap: () => Navigator.of(context).pop(month),
-                  );
-                },
+                      trailing: isSelected
+                          ? const Icon(
+                              Icons.check_rounded,
+                              color: AppColors.authAccent,
+                              size: 20,
+                            )
+                          : null,
+                      onTap: () => Navigator.of(context).pop(month),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
