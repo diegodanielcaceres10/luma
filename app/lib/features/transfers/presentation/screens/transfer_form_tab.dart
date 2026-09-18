@@ -106,8 +106,8 @@ class _TransferFormTabState extends State<TransferFormTab> {
     return SafeArea(
       top: false,
       child: ListenableBuilder(
-        listenable:
-            Listenable.merge([widget.accountViewModel, widget.transactionViewModel]),
+        listenable: Listenable.merge(
+            [widget.accountViewModel, widget.transactionViewModel]),
         builder: (context, _) {
           final accounts = widget.accountViewModel.activeAccounts;
           final isSubmitting = widget.transactionViewModel.isSubmitting;
@@ -120,154 +120,182 @@ class _TransferFormTabState extends State<TransferFormTab> {
           final originOptions = accounts
               .where((Account a) => a.id != _destinationAccountId)
               .toList();
-          final destinationOptions = accounts
-              .where((Account a) => a.id != _originAccountId)
-              .toList();
+          final destinationOptions =
+              accounts.where((Account a) => a.id != _originAccountId).toList();
 
           return Form(
             key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            child: Column(
               children: [
-                Row(
-                  children: [
-                    InkWell(
-                      onTap: widget.onDone,
-                      borderRadius: BorderRadius.circular(20),
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.arrow_back_rounded,
-                            color: AppColors.authTextPrimary),
+                // Barra de progreso fina arriba mientras se guarda.
+                if (isSubmitting)
+                  const LinearProgressIndicator(
+                    backgroundColor: AppColors.authCardBorder,
+                    color: AppColors.authAccent,
+                    minHeight: 3,
+                  ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    children: [
+                      Row(
+                        children: [
+                          InkWell(
+                            onTap: isSubmitting ? null : widget.onDone,
+                            borderRadius: BorderRadius.circular(20),
+                            child: const Padding(
+                              padding: EdgeInsets.all(4),
+                              child: Icon(Icons.arrow_back_rounded,
+                                  color: AppColors.authTextPrimary),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Transferencia entre cuentas',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.authTextPrimary,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Transferencia entre cuentas',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.authTextPrimary,
-                      ),
-                    ),
-                  ],
+                      const SizedBox(height: 20),
+                      if (accounts.length < 2)
+                        const Text(
+                          'Necesitás al menos dos cuentas activas para '
+                          'transferir entre ellas.',
+                          style: TextStyle(color: AppColors.authExpense),
+                        )
+                      else ...[
+                        const Text('Cuenta de origen',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String?>(
+                          initialValue: _originAccountId,
+                          dropdownColor: AppColors.authBackgroundBottom,
+                          style:
+                              const TextStyle(color: AppColors.authTextPrimary),
+                          hint: const Text(
+                            'Seleccioná la cuenta de origen',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary),
+                          ),
+                          decoration: _fieldDecoration,
+                          items: originOptions
+                              .map(
+                                (Account a) => DropdownMenuItem<String?>(
+                                  value: a.id,
+                                  child: Text(a.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: isSubmitting
+                              ? null
+                              : (value) => setState(() {
+                                    _originAccountId = value;
+                                    if (value != null &&
+                                        value == _destinationAccountId) {
+                                      _destinationAccountId = null;
+                                    }
+                                  }),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Cuenta de destino',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String?>(
+                          initialValue: _destinationAccountId,
+                          dropdownColor: AppColors.authBackgroundBottom,
+                          style:
+                              const TextStyle(color: AppColors.authTextPrimary),
+                          hint: const Text(
+                            'Seleccioná la cuenta de destino',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary),
+                          ),
+                          decoration: _fieldDecoration,
+                          items: destinationOptions
+                              .map(
+                                (Account a) => DropdownMenuItem<String?>(
+                                  value: a.id,
+                                  child: Text(a.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: isSubmitting
+                              ? null
+                              : (value) => setState(() {
+                                    _destinationAccountId = value;
+                                    if (value != null &&
+                                        value == _originAccountId) {
+                                      _originAccountId = null;
+                                    }
+                                  }),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Monto a transferir',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _amountController,
+                          enabled: !isSubmitting,
+                          style:
+                              const TextStyle(color: AppColors.authTextPrimary),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration:
+                              _fieldDecoration.copyWith(hintText: '0.00'),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Ingresá un monto';
+                            }
+                            final parsed =
+                                double.tryParse(value.replaceAll(',', '.'));
+                            if (parsed == null || parsed <= 0) {
+                              return 'Monto inválido';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.authAccent,
+                              foregroundColor: AppColors.authBackgroundBottom,
+                              disabledBackgroundColor:
+                                  AppColors.authAccent.withValues(alpha: 0.3),
+                              disabledForegroundColor: AppColors
+                                  .authBackgroundBottom
+                                  .withValues(alpha: 0.6),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: isSubmitting ||
+                                    _originAccountId == null ||
+                                    _destinationAccountId == null
+                                ? null
+                                : _submit,
+                            child: isSubmitting
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.authBackgroundBottom,
+                                    ),
+                                  )
+                                : const Text('Transferir'),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
-                if (accounts.length < 2)
-                  const Text(
-                    'Necesitás al menos dos cuentas activas para transferir '
-                    'entre ellas.',
-                    style: TextStyle(color: AppColors.authExpense),
-                  )
-                else ...[
-                  const Text('Cuenta de origen',
-                      style: TextStyle(color: AppColors.authTextSecondary)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String?>(
-                    initialValue: _originAccountId,
-                    dropdownColor: AppColors.authBackgroundBottom,
-                    style: const TextStyle(color: AppColors.authTextPrimary),
-                    hint: const Text(
-                      'Seleccioná la cuenta de origen',
-                      style: TextStyle(color: AppColors.authTextSecondary),
-                    ),
-                    decoration: _fieldDecoration,
-                    items: originOptions
-                        .map(
-                          (Account a) => DropdownMenuItem<String?>(
-                            value: a.id,
-                            child: Text(a.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) => setState(() {
-                      _originAccountId = value;
-                      if (value != null && value == _destinationAccountId) {
-                        _destinationAccountId = null;
-                      }
-                    }),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Cuenta de destino',
-                      style: TextStyle(color: AppColors.authTextSecondary)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String?>(
-                    initialValue: _destinationAccountId,
-                    dropdownColor: AppColors.authBackgroundBottom,
-                    style: const TextStyle(color: AppColors.authTextPrimary),
-                    hint: const Text(
-                      'Seleccioná la cuenta de destino',
-                      style: TextStyle(color: AppColors.authTextSecondary),
-                    ),
-                    decoration: _fieldDecoration,
-                    items: destinationOptions
-                        .map(
-                          (Account a) => DropdownMenuItem<String?>(
-                            value: a.id,
-                            child: Text(a.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) => setState(() {
-                      _destinationAccountId = value;
-                      if (value != null && value == _originAccountId) {
-                        _originAccountId = null;
-                      }
-                    }),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Monto a transferir',
-                      style: TextStyle(color: AppColors.authTextSecondary)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _amountController,
-                    style: const TextStyle(color: AppColors.authTextPrimary),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: _fieldDecoration.copyWith(hintText: '0.00'),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Ingresá un monto';
-                      }
-                      final parsed =
-                          double.tryParse(value.replaceAll(',', '.'));
-                      if (parsed == null || parsed <= 0) {
-                        return 'Monto inválido';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.authAccent,
-                        foregroundColor: AppColors.authBackgroundBottom,
-                        disabledBackgroundColor:
-                            AppColors.authAccent.withValues(alpha: 0.3),
-                        disabledForegroundColor: AppColors
-                            .authBackgroundBottom
-                            .withValues(alpha: 0.6),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      onPressed: isSubmitting ||
-                              _originAccountId == null ||
-                              _destinationAccountId == null
-                          ? null
-                          : _submit,
-                      child: isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.authBackgroundBottom,
-                              ),
-                            )
-                          : const Text('Transferir'),
-                    ),
-                  ),
-                ],
               ],
             ),
           );
