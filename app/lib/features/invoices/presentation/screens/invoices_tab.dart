@@ -92,19 +92,41 @@ class _InvoicesTabState extends State<InvoicesTab> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('¿Cancelar factura?'),
+        backgroundColor: AppColors.authBackgroundTop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        title: const Text(
+          '¿Cancelar factura?',
+          style: TextStyle(
+            color: AppColors.authTextPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         content: const Text(
           'La factura quedará marcada como cancelada. Esta acción no se '
           'puede deshacer.',
+          style: TextStyle(color: AppColors.authTextSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Volver'),
+            child: const Text(
+              'Volver',
+              style: TextStyle(color: AppColors.authTextSecondary),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Cancelar factura'),
+            child: const Text(
+              'Cancelar factura',
+              style: TextStyle(
+                color: AppColors.authExpense,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -238,10 +260,9 @@ class _InvoicesTabState extends State<InvoicesTab> {
                   child: Column(
                     children: List.generate(invoices.length, (i) {
                       final invoice = invoices[i];
-                      final service =
-                          widget.serviceViewModel.serviceById(invoice.serviceId);
-                      final serviceName =
-                          service?.name ?? 'Servicio eliminado';
+                      final service = widget.serviceViewModel
+                          .serviceById(invoice.serviceId);
+                      final serviceName = service?.name ?? 'Servicio eliminado';
                       final category = widget.categoryViewModel
                           .categoryById(service?.categoryId);
                       return _InvoiceRow(
@@ -305,8 +326,9 @@ class _StatusFilterRow extends StatelessWidget {
                   : AppColors.authCardFill,
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color:
-                    isSelected ? AppColors.authAccent : AppColors.authCardBorder,
+                color: isSelected
+                    ? AppColors.authAccent
+                    : AppColors.authCardBorder,
               ),
             ),
             child: Text(
@@ -351,8 +373,7 @@ class _InvoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        colorFromHex(category?.color, fallback: AppColors.authAccent);
+    final color = colorFromHex(category?.color, fallback: AppColors.authAccent);
 
     final badgeColor = invoice.cancelled
         ? AppColors.authTextFooter
@@ -554,8 +575,8 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
   @override
   Widget build(BuildContext context) {
     final accounts = widget.accounts;
-    final color = colorFromHex(widget.category.color,
-        fallback: AppColors.authAccent);
+    final color =
+        colorFromHex(widget.category.color, fallback: AppColors.authAccent);
 
     return AlertDialog(
       title: const Text('Registrar pago'),
@@ -617,8 +638,7 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
                 initialValue: _selectedAccount,
                 decoration: const InputDecoration(border: OutlineInputBorder()),
                 items: accounts
-                    .map((a) =>
-                        DropdownMenuItem(value: a, child: Text(a.name)))
+                    .map((a) => DropdownMenuItem(value: a, child: Text(a.name)))
                     .toList(),
                 onChanged: (value) => setState(() => _selectedAccount = value),
               ),
