@@ -419,7 +419,8 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
                     ),
                   ],
                   const SizedBox(height: 20),
-                  const Text('Actualizar saldo', style: AppTextStyles.authTitle),
+                  const Text('Actualizar saldo',
+                      style: AppTextStyles.authTitle),
                   const SizedBox(height: 8),
                   const Text(
                     'Ingresa el nuevo saldo de tu cuenta y agrega los movimientos '
@@ -486,7 +487,8 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
                           foregroundColor: AppColors.authBackgroundBottom,
                           disabledBackgroundColor:
                               AppColors.authAccent.withValues(alpha: 0.4),
-                          disabledForegroundColor: AppColors.authBackgroundBottom
+                          disabledForegroundColor: AppColors
+                              .authBackgroundBottom
                               .withValues(alpha: 0.6),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -751,9 +753,10 @@ class _MovementListTile extends StatelessWidget {
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: categoryColor, shape: BoxShape.circle),
-            child: Icon(
-              iconFromName(movement.category.icon),
+            decoration:
+                BoxDecoration(color: categoryColor, shape: BoxShape.circle),
+            child: CategoryGlyph(
+              icon: movement.category.icon,
               color: AppColors.authTextPrimary,
               size: 20,
             ),
@@ -1102,8 +1105,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) return;
 
-    final rawAmount =
-        double.parse(_amountController.text.replaceAll(',', '.'));
+    final rawAmount = double.parse(_amountController.text.replaceAll(',', '.'));
     // El signo lo pone la categoría, no el usuario: si es de gasto resta
     // del saldo, si es de ingreso suma. El campo "Monto" solo pide la
     // magnitud (siempre positiva).
@@ -1210,15 +1212,15 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                iconFromName(c.icon),
+                              CategoryGlyph(
+                                icon: c.icon,
                                 size: 16,
                                 color: colorFromHex(c.color),
                               ),
                               const SizedBox(width: 8),
                               Flexible(
-                                child:
-                                    Text(c.name, overflow: TextOverflow.ellipsis),
+                                child: Text(c.name,
+                                    overflow: TextOverflow.ellipsis),
                               ),
                             ],
                           ),
