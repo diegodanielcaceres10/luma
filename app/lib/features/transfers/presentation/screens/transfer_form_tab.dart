@@ -88,6 +88,11 @@ class _TransferFormTabState extends State<TransferFormTab> {
     if (!mounted) return;
 
     if (success) {
+      // El saldo de ambas cuentas se actualizó en el servidor junto con
+      // cada transacción (RPC create_transaction); acá solo recargamos la
+      // lista de cuentas para que los nuevos saldos se vean en pantalla.
+      await widget.accountViewModel.loadAccounts();
+      if (!mounted) return;
       widget.onDone();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
