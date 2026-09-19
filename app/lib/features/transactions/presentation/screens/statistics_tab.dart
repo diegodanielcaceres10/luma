@@ -7,6 +7,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../view_models/transaction_view_model.dart';
 
@@ -31,19 +32,24 @@ class StatisticsTab extends StatefulWidget {
 }
 
 class _StatisticsTabState extends State<StatisticsTab> {
-  /// Suma de `budgetAmount` de las categorías de gasto con presupuesto
-  /// asignado — el total contra el que se mide el gasto del mes.
-  double get _totalBudgeted => widget.categoryViewModel.budgetedCategories
-      .fold(0.0, (sum, c) => sum + (c.budgetAmount ?? 0));
+  /// Una fila por cada categoría con presupuesto asignado, con lo gastado
+  /// este mes en esa categoría puntual (0 si todavía no tiene ningún
+  /// movimiento). Reemplaza al total agrupado: cada categoría tiene su
+  /// propia barra, no una sola sumando todas.
+  List<_BudgetProgress> get _budgetProgress {
+    final spentByCategoryId = <String, double>{
+      for (final total
+          in widget.transactionViewModel.statisticsCategoryBreakdown)
+        if (total.category.id != null) total.category.id!: total.amount,
+    };
 
-  /// Lo gastado este mes, pero solo dentro de las categorías con
-  /// presupuesto — un gasto en una categoría sin presupuesto no cuenta acá
-  /// (no tendría con qué compararlo).
-  double get _totalBudgetSpent {
-    final budgetedIds = widget.categoryViewModel.budgetedCategoryIds;
-    return widget.transactionViewModel.statisticsCategoryBreakdown
-        .where((c) => budgetedIds.contains(c.category.id))
-        .fold(0.0, (sum, c) => sum + c.amount);
+    return widget.categoryViewModel.budgetedCategories
+        .map((category) => _BudgetProgress(
+              category: category,
+              budgeted: category.budgetAmount ?? 0,
+              spent: spentByCategoryId[category.id] ?? 0,
+            ))
+        .toList();
   }
 
   Future<void> _pickMonth() async {
@@ -89,17 +95,14 @@ class _StatisticsTabState extends State<StatisticsTab> {
         // El presupuesto es un objetivo del mes en curso — no tiene
         // sentido medir "cuánto llevás gastado de tu presupuesto" sobre un
         // mes ya cerrado, así que la card solo aparece con isCurrentMonth.
-        // Tampoco se muestra si no hay ninguna categoría con presupuesto
-        // asignado (quedaría en "0 de $0", sin nada que decir).
-        final showBudgetCard = isCurrentMonth &&
-            widget.categoryViewModel.budgetedCategories.isNotEmpty;
-        final budgetCard = showBudgetCard
-            ? _BudgetSummaryCard(
-                budgeted: _totalBudgeted,
-                spent: _totalBudgetSpent,
+        final budgetProgress =
+            isCurrentMonth ? _budgetProgress : const <_BudgetProgress>[];
+        final budgetCard = budgetProgress.isEmpty
+            ? null
+            : _BudgetCategoriesCard(
+                items: budgetProgress,
                 currency: widget.currency,
-              )
-            : null;
+              );
 
         final breakdown = vm.statisticsCategoryBreakdown;
 
@@ -552,102 +555,169 @@ class _ChangeIndicator extends StatelessWidget {
   }
 }
 
-/// Card de "Presupuesto": lo gastado este mes contra lo presupuestado,
-/// sumado entre todas las categorías de gasto con presupuesto asignado
-/// ([CategoryViewModel.budgetedCategories]), con una barra de progreso y
-/// el % de uso. Verde mientras no se pase del 100%, rojo en cuanto lo
-/// supera — mismo criterio de "favorable/no favorable" que las otras
-/// cards de [_SummaryCardsRow], pero acá no hay comparación contra el mes
-/// anterior: el presupuesto es siempre sobre el mes en curso.
-class _BudgetSummaryCard extends StatelessWidget {
+/// Datos ya resueltos para una fila de [_BudgetCategoriesCard]: la
+/// categoría, lo presupuestado (`category.budgetAmount`) y lo gastado en
+/// ella durante el mes en curso (`0` si todavía no tiene movimientos).
+class _BudgetProgress {
+  final Category category;
   final double budgeted;
   final double spent;
-  final String currency;
 
-  const _BudgetSummaryCard({
+  const _BudgetProgress({
+    required this.category,
     required this.budgeted,
     required this.spent,
+  });
+
+  double get percent => budgeted > 0 ? (spent / budgeted) * 100 : 0.0;
+  double get progress =>
+      budgeted > 0 ? (spent / budgeted).clamp(0.0, 1.0) : 0.0;
+  bool get isOverBudget => percent > 100;
+}
+
+/// Sección "Presupuesto por categoría": una fila con su propia barra por
+/// cada categoría de gasto con presupuesto asignado
+/// ([CategoryViewModel.budgetedCategories]) — a diferencia de la primera
+/// versión, ya no agrupa todo en una sola barra. Solo se arma con el mes
+/// en curso: un presupuesto es un objetivo del mes actual, no tiene
+/// sentido medirlo sobre uno ya cerrado.
+class _BudgetCategoriesCard extends StatelessWidget {
+  final List<_BudgetProgress> items;
+  final String currency;
+
+  const _BudgetCategoriesCard({
+    required this.items,
     required this.currency,
   });
 
   @override
   Widget build(BuildContext context) {
-    final percent = budgeted > 0 ? (spent / budgeted) * 100 : 0.0;
-    final progress = budgeted > 0 ? (spent / budgeted).clamp(0.0, 1.0) : 0.0;
-    final tone =
-        percent > 100 ? AppColors.authExpense : AppColors.authAccent;
-
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.authCardFill,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.authCardBorder),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: tone,
-              child: const Icon(
-                Icons.savings_outlined,
-                size: 16,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Presupuesto',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.authTextSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${formatCurrency(spent, currency)} de '
-                    '${formatCurrency(budgeted, currency)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.authTextPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 6,
-                      backgroundColor: AppColors.authCardBorder,
-                      color: tone,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              '${percent.toStringAsFixed(0)}%',
+            const Text(
+              'Presupuesto por categoría',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: tone,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            for (var i = 0; i < items.length; i++) ...[
+              _BudgetCategoryRow(item: items[i], currency: currency),
+              if (i < items.length - 1) const SizedBox(height: 18),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Una fila de [_BudgetCategoriesCard]: círculo con el color/ícono de la
+/// categoría (mismo patrón que usa [CategoriesTab]), nombre y
+/// "$presupuesto / mes" arriba de su propia barra, y a la derecha lo
+/// gastado en esa categoría puntual con su %. La barra usa el color de la
+/// categoría — salvo que se haya pasado del presupuesto, ahí pasa a rojo
+/// para que se note.
+class _BudgetCategoryRow extends StatelessWidget {
+  final _BudgetProgress item;
+  final String currency;
+
+  const _BudgetCategoryRow({required this.item, required this.currency});
+
+  @override
+  Widget build(BuildContext context) {
+    final category = item.category;
+    final categoryColor =
+        colorFromHex(category.color, fallback: AppColors.authAccent);
+    final barColor = item.isOverBudget ? AppColors.authExpense : categoryColor;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: categoryColor.withValues(
+            alpha: categoryIconBackgroundAlpha(category.icon),
+          ),
+          child: CategoryGlyph(
+            icon: category.icon,
+            color: Colors.white,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                category.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.authTextPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${formatCurrency(item.budgeted, currency)} / mes',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.authTextSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: item.progress,
+                  minHeight: 6,
+                  backgroundColor: AppColors.authCardBorder,
+                  color: barColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              formatCurrency(item.spent, currency),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${item.percent.toStringAsFixed(0)}%',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: barColor,
               ),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }
