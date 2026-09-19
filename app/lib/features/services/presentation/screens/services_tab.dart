@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -106,7 +107,7 @@ class _ServiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const color = AppColors.authAccent;
+    final color = colorFromHex(category?.color, fallback: AppColors.authAccent);
     final isActive = service.isActive;
 
     final subtitleParts = <String>[
@@ -127,9 +128,10 @@ class _ServiceRow extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: color.withValues(alpha: 0.85),
-                    child: const Icon(
-                      Icons.receipt_long_rounded,
+                    backgroundColor: color.withValues(
+                        alpha: categoryIconBackgroundAlpha(category?.icon)),
+                    child: CategoryGlyph(
+                      icon: category?.icon,
                       color: Colors.white,
                       size: 18,
                     ),
