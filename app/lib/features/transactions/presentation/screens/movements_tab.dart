@@ -612,8 +612,10 @@ class _MovementRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('d MMM. yyyy', 'es');
-    final color =
-        movement.isIncome ? AppColors.authIncome : AppColors.authAccent;
+    final hasCategory = movement.category.id != null;
+    final categoryColor = hasCategory
+        ? colorFromHex(movement.category.color, fallback: AppColors.authAccent)
+        : Colors.transparent;
     final sign = movement.isIncome ? '+' : '-';
 
     return Column(
@@ -624,14 +626,17 @@ class _MovementRow extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: color.withValues(alpha: 0.85),
-                child: Icon(
-                  movement.isIncome
-                      ? Icons.arrow_downward_rounded
-                      : Icons.more_horiz_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
+                backgroundColor: hasCategory
+                    ? categoryColor.withValues(
+                        alpha: categoryIconBackgroundAlpha(movement.category.icon))
+                    : Colors.transparent,
+                child: hasCategory
+                    ? CategoryGlyph(
+                        icon: movement.category.icon,
+                        color: Colors.white,
+                        size: 18,
+                      )
+                    : null,
               ),
               const SizedBox(width: 14),
               Expanded(
