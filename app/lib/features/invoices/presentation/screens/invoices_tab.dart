@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
@@ -372,7 +373,7 @@ class _InvoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const color = AppColors.authAccent;
+    final color = colorFromHex(category?.color, fallback: AppColors.authAccent);
 
     final badgeColor = invoice.cancelled
         ? AppColors.authTextFooter
@@ -406,9 +407,10 @@ class _InvoiceRow extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: color.withValues(alpha: 0.85),
-                  child: const Icon(
-                    Icons.receipt_long_rounded,
+                  backgroundColor: color.withValues(
+                      alpha: categoryIconBackgroundAlpha(category?.icon)),
+                  child: CategoryGlyph(
+                    icon: category?.icon,
                     color: Colors.white,
                     size: 18,
                   ),
@@ -590,7 +592,8 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
   @override
   Widget build(BuildContext context) {
     final accounts = widget.accounts;
-    const color = AppColors.authAccent;
+    final color =
+        colorFromHex(widget.category.color, fallback: AppColors.authAccent);
 
     return AlertDialog(
       backgroundColor: AppColors.authBackgroundTop,
@@ -615,9 +618,10 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
               children: [
                 CircleAvatar(
                   radius: 14,
-                  backgroundColor: color.withValues(alpha: 0.85),
-                  child: const Icon(
-                    Icons.receipt_long_rounded,
+                  backgroundColor: color.withValues(
+                      alpha: categoryIconBackgroundAlpha(widget.category.icon)),
+                  child: CategoryGlyph(
+                    icon: widget.category.icon,
                     color: Colors.white,
                     size: 14,
                   ),
