@@ -354,6 +354,7 @@ class _HomeShellState extends State<HomeShell> {
       ),
       StatisticsTab(
         transactionViewModel: widget.transactionViewModel,
+        categoryViewModel: widget.categoryViewModel,
         currency: widget.accountViewModel.primaryCurrency,
       ),
       ProfileScreen(viewModel: widget.authViewModel),
