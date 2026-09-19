@@ -22,6 +22,7 @@ class TransactionRepository {
     required double amount,
     String? description,
     required DateTime date,
+    bool isTransfer = false,
   }) {
     return _service.createTransaction(
       userId: userId,
@@ -31,6 +32,7 @@ class TransactionRepository {
       amount: amount,
       description: description,
       date: date,
+      isTransfer: isTransfer,
     );
   }
 }

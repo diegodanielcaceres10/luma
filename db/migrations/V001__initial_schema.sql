@@ -29,10 +29,17 @@ create table transactions (
   user_id        uuid not null references auth.users(id) on delete cascade,
   account_id     uuid not null references accounts(id) on delete cascade,
   category_id    uuid references categories(id) on delete set null,
-  type           text not null check (type in ('income', 'expense', 'transfer')),
+  type           text not null check (type in ('income', 'expense')),
   amount         numeric(12, 2) not null check (amount > 0),
   description    text,
   date           date not null default current_date,
+  -- true en las dos filas que arma una transferencia entre cuentas
+  -- propias (una 'expense' en origen, una 'income' en destino, mismo
+  -- monto): el dinero no entra ni sale de verdad, solo se mueve de una
+  -- cuenta a otra, así que no debe contarse como ingreso/gasto real en
+  -- ningún total ni en el desglose por categoría (ver
+  -- TransactionViewModel._sumByType / _breakdownOf en el cliente).
+  is_transfer    boolean not null default false,
   created_at     timestamptz not null default now()
 );
 
@@ -111,6 +118,11 @@ create policy "users manage own monthly account balances"
 -- inexistente, etc.) toda la función se revierte y no queda ni la
 -- transacción ni el ajuste de saldo a medias.
 --
+-- p_is_transfer marca la fila como parte de una transferencia entre
+-- cuentas propias (ver comentario en `transactions.is_transfer`); el
+-- saldo se sigue actualizando según p_type ('income'/'expense') como
+-- siempre — is_transfer solo la excluye de ingresos/gastos reales.
+--
 -- security invoker (default): corre con los permisos del usuario que
 -- llama, así que las policies de RLS de `transactions` y `accounts`
 -- siguen aplicando igual que con un insert/update directo.
@@ -121,7 +133,8 @@ create or replace function public.create_transaction(
   p_type        text,
   p_amount      numeric,
   p_description text,
-  p_date        date
+  p_date        date,
+  p_is_transfer boolean default false
 )
 returns uuid
 language plpgsql
@@ -140,10 +153,12 @@ begin
   end if;
 
   insert into transactions (
-    user_id, account_id, category_id, type, amount, description, date
+    user_id, account_id, category_id, type, amount, description, date,
+    is_transfer
   )
   values (
-    p_user_id, p_account_id, p_category_id, p_type, p_amount, p_description, p_date
+    p_user_id, p_account_id, p_category_id, p_type, p_amount, p_description,
+    p_date, p_is_transfer
   )
   returning id into v_id;
 
@@ -161,5 +176,5 @@ end;
 $$;
 
 grant execute on function public.create_transaction(
-  uuid, uuid, uuid, text, numeric, text, date
+  uuid, uuid, uuid, text, numeric, text, date, boolean
 ) to authenticated;

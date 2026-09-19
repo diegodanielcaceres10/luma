@@ -47,7 +47,9 @@ class TransactionService {
   /// necesita, por ejemplo, el pago de una factura para vincularla.
   /// [categoryId] es nulo cuando la transacción viene de una
   /// transferencia entre cuentas propias — no pertenece a ninguna
-  /// categoría de ingreso/gasto.
+  /// categoría de ingreso/gasto. [isTransfer] marca justamente esas filas
+  /// (ver [TransactionEntry.isTransfer]) para que no se cuenten como
+  /// ingreso/gasto real en las estadísticas.
   ///
   /// Llama al RPC `create_transaction` en vez de insertar directo: ese
   /// RPC inserta la fila y actualiza `accounts.balance` en una sola
@@ -61,6 +63,7 @@ class TransactionService {
     required double amount,
     String? description,
     required DateTime date,
+    bool isTransfer = false,
   }) async {
     final id = await _client.rpc('create_transaction', params: {
       'p_user_id': userId,
@@ -70,6 +73,7 @@ class TransactionService {
       'p_amount': amount,
       'p_description': description,
       'p_date': _formatDate(date),
+      'p_is_transfer': isTransfer,
     });
 
     return id as String;

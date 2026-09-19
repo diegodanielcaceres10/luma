@@ -107,13 +107,17 @@ class TransactionViewModel extends ChangeNotifier {
 
   static double _sumByType(List<TransactionEntry> entries, String type) {
     return entries
-        .where((t) => t.type == type)
+        .where((t) => t.type == type && !t.isTransfer)
         .fold<double>(0, (sum, t) => sum + t.amount);
   }
 
   /// Gastos agrupados por categoría (mayor a menor), con su % del total.
+  /// Excluye las transacciones de transferencia (`isTransfer`): mover
+  /// plata entre cuentas propias no es un gasto real, y de todos modos no
+  /// tienen categoría — contarlas acá las mostraba como "Sin categoría".
   static List<CategoryTotal> _breakdownOf(List<TransactionEntry> entries) {
-    final expenses = entries.where((t) => t.type == 'expense');
+    final expenses =
+        entries.where((t) => t.type == 'expense' && !t.isTransfer);
     final Map<String, double> totals = {};
     final Map<String, TransactionCategory> categories = {};
 
@@ -349,10 +353,9 @@ class TransactionViewModel extends ChangeNotifier {
 
   /// Registra una transferencia entre cuentas como dos transacciones sin
   /// categoría: un 'expense' en la cuenta de origen y un 'income' en la
-  /// de destino, con el mismo monto. No hay un tercer tipo para
-  /// transferencias a propósito — se tratan igual que cualquier otro
-  /// movimiento, así que también entran en totalIncome/totalExpenses,
-  /// netResult y categoryBreakdown (agrupadas como "Sin categoría").
+  /// de destino, con el mismo monto — marcadas con `isTransfer: true`
+  /// para que no se cuenten como ingreso/gasto real (ver
+  /// [TransactionEntry.isTransfer], [_sumByType], [_breakdownOf]).
   ///
   /// Nota: cada llamada a [_repository.create] actualiza accounts.balance
   /// de forma atómica junto con su propia fila (RPC create_transaction),
@@ -383,6 +386,7 @@ class TransactionViewModel extends ChangeNotifier {
         amount: amount,
         description: originDescription,
         date: date,
+        isTransfer: true,
       );
       await _repository.create(
         userId: userId,
@@ -391,6 +395,7 @@ class TransactionViewModel extends ChangeNotifier {
         amount: amount,
         description: destinationDescription,
         date: date,
+        isTransfer: true,
       );
       await loadCurrentMonth();
       await _refreshStatisticsMonth();

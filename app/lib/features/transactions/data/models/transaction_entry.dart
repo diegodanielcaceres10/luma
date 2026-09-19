@@ -56,6 +56,13 @@ class TransactionEntry {
   final TransactionCategory category;
   final TransactionAccount account;
 
+  /// true en las dos filas que arma una transferencia entre cuentas
+  /// propias (ver [TransactionViewModel.createTransfer]): el dinero no
+  /// entra ni sale de verdad, así que [TransactionViewModel._sumByType] y
+  /// [TransactionViewModel._breakdownOf] la excluyen de todo total de
+  /// ingresos/gastos y del desglose por categoría.
+  final bool isTransfer;
+
   const TransactionEntry({
     required this.id,
     required this.type,
@@ -64,6 +71,7 @@ class TransactionEntry {
     required this.date,
     required this.category,
     required this.account,
+    this.isTransfer = false,
   });
 
   bool get isIncome => type == 'income';
@@ -81,6 +89,7 @@ class TransactionEntry {
       account: TransactionAccount.fromMap(
         map['accounts'] as Map<String, dynamic>?,
       ),
+      isTransfer: map['is_transfer'] as bool? ?? false,
     );
   }
 }
