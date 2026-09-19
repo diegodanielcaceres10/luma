@@ -1,5 +1,4 @@
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart'
-    as emoji_picker;
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji_picker;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // `show` porque el paquete también exporta `colorFromHex` / `colorToHex`, que
@@ -48,8 +47,9 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
 
   late String _type;
   late String _selectedColor;
-  late String _selectedIcon;
+  String? _selectedIcon;
   late bool _hasBudget;
+  bool _showIconError = false;
 
   bool get _isEditing => widget.category != null;
 
@@ -77,7 +77,7 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     _nameController.text = category?.name ?? '';
     _type = category?.type ?? widget.initialType;
     _selectedColor = category?.color ?? kCategoryColors.first;
-    _selectedIcon = category?.icon ?? kCategoryIcons.keys.first;
+    _selectedIcon = category?.icon;
     _hasBudget = category?.hasBudget ?? false;
     _budgetController.text =
         category != null ? (category.budgetAmount ?? 0).toStringAsFixed(2) : '';
@@ -99,6 +99,12 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final icon = _selectedIcon;
+    if (icon == null) {
+      setState(() => _showIconError = true);
+      return;
+    }
+
     final vm = widget.categoryViewModel;
     // El presupuesto solo aplica a gastos — si el tipo es 'income', se
     // ignora aunque el switch haya quedado prendido de un cambio previo.
@@ -112,7 +118,7 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
             name: _nameController.text.trim(),
             type: _type,
             color: _selectedColor,
-            icon: _selectedIcon,
+            icon: icon,
             hasBudget: effectiveHasBudget,
             budgetAmount: effectiveBudgetAmount,
           )
@@ -121,7 +127,7 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
             name: _nameController.text.trim(),
             type: _type,
             color: _selectedColor,
-            icon: _selectedIcon,
+            icon: icon,
             hasBudget: effectiveHasBudget,
             budgetAmount: effectiveBudgetAmount,
           );
@@ -175,7 +181,10 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     );
 
     if (picked != null && mounted) {
-      setState(() => _selectedIcon = picked);
+      setState(() {
+        _selectedIcon = picked;
+        _showIconError = false;
+      });
     }
   }
 
@@ -414,18 +423,14 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
                     spacing: 12,
                     runSpacing: 12,
                     children: [
-                      for (final entry in kCategoryIcons.entries)
-                        _buildIconTile(
-                          isSelected: entry.key == _selectedIcon,
-                          onTap: isSubmitting
-                              ? null
-                              : () => setState(() => _selectedIcon = entry.key),
-                          childBuilder: (color) =>
-                              Icon(entry.value, color: color),
-                        ),
-                      // Emoji ya elegido: se muestra seleccionado y, al
-                      // tocarlo, reabre el selector para cambiarlo.
-                      if (isEmojiIcon(_selectedIcon))
+                      // Emoji elegido: se muestra seleccionado y, al tocarlo,
+                      // reabre el selector para cambiarlo. Una categoría
+                      // vieja con una clave de ícono Material ya guardada
+                      // (ver category_visuals.dart) se sigue mostrando acá
+                      // tal cual hasta que se cambie por un emoji. Si
+                      // todavía no se eligió ninguno, no se muestra casilla
+                      // — solo queda el botón de abajo para elegirlo.
+                      if (_selectedIcon != null)
                         _buildIconTile(
                           isSelected: true,
                           onTap: isSubmitting ? null : _openEmojiPicker,
@@ -437,6 +442,16 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
                       ),
                     ],
                   ),
+                  if (_showIconError) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Elegí un emoji para la categoría',
+                      style: TextStyle(
+                        color: AppColors.authExpense,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                   if (_type == 'expense') ...[
                     const SizedBox(height: 20),
                     Row(
