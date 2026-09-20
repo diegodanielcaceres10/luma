@@ -6,12 +6,10 @@ import '../features/accounts/data/services/account_service.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
 import '../features/auth/data/repositories/auth_repository.dart';
 import '../features/auth/data/services/auth_service.dart';
-import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
 import '../features/categories/data/repositories/category_repository.dart';
 import '../features/categories/data/services/category_service.dart';
 import '../features/categories/presentation/view_models/category_view_model.dart';
-import '../features/home/presentation/screens/home_shell.dart';
 import '../features/invoices/data/repositories/invoice_repository.dart';
 import '../features/invoices/data/services/invoice_service.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
@@ -24,6 +22,7 @@ import '../features/services/presentation/view_models/service_view_model.dart';
 import '../features/transactions/data/repositories/transaction_repository.dart';
 import '../features/transactions/data/services/transaction_service.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
+import 'router.dart';
 import 'theme/app_theme.dart';
 
 class LumaApp extends StatefulWidget {
@@ -41,6 +40,15 @@ class _LumaAppState extends State<LumaApp> {
   late final MonthlyBalanceViewModel _monthlyBalanceViewModel;
   late final ServiceViewModel _serviceViewModel;
   late final InvoiceViewModel _invoiceViewModel;
+  late final _router = buildAppRouter(
+    authViewModel: _authViewModel,
+    accountViewModel: _accountViewModel,
+    transactionViewModel: _transactionViewModel,
+    categoryViewModel: _categoryViewModel,
+    monthlyBalanceViewModel: _monthlyBalanceViewModel,
+    serviceViewModel: _serviceViewModel,
+    invoiceViewModel: _invoiceViewModel,
+  );
 
   @override
   void initState() {
@@ -106,26 +114,11 @@ class _LumaAppState extends State<LumaApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Luma',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: ListenableBuilder(
-        listenable: _authViewModel,
-        builder: (context, _) {
-          return _authViewModel.isAuthenticated
-              ? HomeShell(
-                  authViewModel: _authViewModel,
-                  accountViewModel: _accountViewModel,
-                  transactionViewModel: _transactionViewModel,
-                  categoryViewModel: _categoryViewModel,
-                  monthlyBalanceViewModel: _monthlyBalanceViewModel,
-                  serviceViewModel: _serviceViewModel,
-                  invoiceViewModel: _invoiceViewModel,
-                )
-              : LoginScreen(viewModel: _authViewModel);
-        },
-      ),
+      routerConfig: _router,
     );
   }
 }
