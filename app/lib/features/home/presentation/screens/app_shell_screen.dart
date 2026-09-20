@@ -83,7 +83,8 @@ class _AppShellScreenState extends State<AppShellScreen> {
         widget.navigationShell.goBranch(0, initialLocation: true);
       },
       child: Scaffold(
-        drawer: _AppDrawer(branchIndex: _branchIndex, onSelectBranch: _onNavTap),
+        drawer:
+            _AppDrawer(branchIndex: _branchIndex, onSelectBranch: _onNavTap),
         body: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -252,49 +253,44 @@ class _AppDrawer extends StatelessWidget {
               onTap: () => onSelectBranch(0),
             ),
             // Cuentas, Categorías, Servicios y Facturas ya son rutas
-            // propias — se abren empujando directo, sin pasar por
-            // AppShellScreen. No se resaltan acá: son pantallas
-            // transitorias que se empujan por encima de la rama actual,
+            // propias — viven anidadas bajo la rama "Inicio" para que el
+            // bottom nav siga visible, pero se navega con `context.go()`
+            // (no `push`) para que sea un único evento de ruteo atómico:
+            // reemplaza toda la configuración por la ruta pedida (URL
+            // específica y predecible siempre, venga de donde venga) y de
+            // paso descarta cualquier pantalla que hubiera empujada por
+            // encima de una visita anterior. Mezclar un `goBranch` previo
+            // con un `push` aparte (como se hacía antes) son dos eventos
+            // de ruteo separados y es lo que dejaba la URL sin
+            // actualizarse. No se resaltan acá: son pantallas transitorias,
             // no "la pestaña activa" en el sentido del bottom nav.
             _tile(
               context,
               icon: Icons.account_balance_wallet_outlined,
               label: 'Cuentas',
               isSelected: false,
-              onTap: () {
-                onSelectBranch(0);
-                context.push('/accounts');
-              },
+              onTap: () => context.go('/accounts'),
             ),
             _tile(
               context,
               icon: Icons.sell_outlined,
               label: 'Categorías',
               isSelected: false,
-              onTap: () {
-                onSelectBranch(0);
-                context.push('/categories');
-              },
+              onTap: () => context.go('/categories'),
             ),
             _tile(
               context,
               icon: Icons.receipt_long_outlined,
               label: 'Servicios',
               isSelected: false,
-              onTap: () {
-                onSelectBranch(0);
-                context.push('/services');
-              },
+              onTap: () => context.go('/services'),
             ),
             _tile(
               context,
               icon: Icons.request_page_outlined,
               label: 'Facturas',
               isSelected: false,
-              onTap: () {
-                onSelectBranch(0);
-                context.push('/invoices');
-              },
+              onTap: () => context.go('/invoices'),
             ),
             // Movimientos, Estadísticas, Perfil
             ...List.generate(_navItems.length - 1, (i) {
