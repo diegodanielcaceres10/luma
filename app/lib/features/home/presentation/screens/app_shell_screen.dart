@@ -261,28 +261,40 @@ class _AppDrawer extends StatelessWidget {
               icon: Icons.account_balance_wallet_outlined,
               label: 'Cuentas',
               isSelected: false,
-              onTap: () => context.push('/accounts'),
+              onTap: () {
+                onSelectBranch(0);
+                context.push('/accounts');
+              },
             ),
             _tile(
               context,
               icon: Icons.sell_outlined,
               label: 'Categorías',
               isSelected: false,
-              onTap: () => context.push('/categories'),
+              onTap: () {
+                onSelectBranch(0);
+                context.push('/categories');
+              },
             ),
             _tile(
               context,
               icon: Icons.receipt_long_outlined,
               label: 'Servicios',
               isSelected: false,
-              onTap: () => context.push('/services'),
+              onTap: () {
+                onSelectBranch(0);
+                context.push('/services');
+              },
             ),
             _tile(
               context,
               icon: Icons.request_page_outlined,
               label: 'Facturas',
               isSelected: false,
-              onTap: () => context.push('/invoices'),
+              onTap: () {
+                onSelectBranch(0);
+                context.push('/invoices');
+              },
             ),
             // Movimientos, Estadísticas, Perfil
             ...List.generate(_navItems.length - 1, (i) {
