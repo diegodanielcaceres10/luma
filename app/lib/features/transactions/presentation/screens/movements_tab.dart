@@ -12,9 +12,8 @@ enum _TypeFilter { all, income, expense }
 
 enum _DateRangeFilter { today, thisWeek, last7Days, last15Days, thisMonth, all }
 
-/// Contenido de la pestaña "Movimientos". No tiene Scaffold propio — vive
-/// dentro del Scaffold del HomeShell, que es quien pone el header y el
-/// bottomNavigationBar.
+/// Contenido de la rama "Movimientos" (ver router.dart/AppShellScreen,
+/// que ponen el Scaffold compartido con el header y el bottomNavigationBar).
 class MovementsTab extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
   final String currency;
@@ -37,6 +36,19 @@ class _MovementsTabState extends State<MovementsTab> {
   // nombre — mismo criterio que categoryBreakdown en el ViewModel.
   String? _categoryKey;
   String? _accountKey;
+
+  @override
+  void initState() {
+    super.initState();
+    // Carga perezosa: el historial completo de transacciones recién se
+    // pide la primera vez que se entra a "Movimientos", no al arrancar.
+    // Antes esto lo manejaba HomeShell con un flag (`_movementsLoaded`) y
+    // `_onTabTap`; ahora que "Movimientos" es su propia rama del bottom
+    // nav, initState ya se llama una sola vez por la vida de la rama
+    // (StatefulShellRoute mantiene su estado con IndexedStack), así que
+    // alcanza con pedirlo acá.
+    widget.transactionViewModel.loadAllTransactions();
+  }
 
   /// Movimientos visibles por cada grupo de mes (clave = la misma que
   /// arma [_groupByMonth]). Empieza en 10 y crece de a 10 con "Ver más".

@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/luma_logo.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/screens/account_form_tab.dart';
 import '../../../accounts/presentation/screens/accounts_overview_tab.dart';
 import '../../../accounts/presentation/screens/accounts_tab.dart';
 import '../../../accounts/presentation/screens/update_balance_tab.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
-import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/screens/categories_tab.dart';
@@ -24,38 +21,38 @@ import '../../../services/presentation/screens/service_form_tab.dart';
 import '../../../services/presentation/screens/services_tab.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../../transactions/presentation/screens/add_transaction_tab.dart';
-import '../../../transactions/presentation/screens/movements_tab.dart';
-import '../../../transactions/presentation/screens/statistics_tab.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import '../../../transfers/presentation/screens/transfer_form_tab.dart';
-import '../widgets/luma_header.dart';
+import '../../../../app/theme/app_colors.dart';
 import 'dashboard_tab.dart';
 
-/// Accesos compartidos entre el bottom nav y el drawer del menú hamburguesa.
-const _navItems = [
-  (Icons.home_rounded, 'Inicio'),
-  (Icons.trending_up_rounded, 'Movimientos'),
-  (Icons.bar_chart_rounded, 'Estadísticas'),
-  (Icons.person_outline_rounded, 'Perfil'),
-];
+/// FASE 2 de la migración a rutas (go_router): "Inicio", "Movimientos",
+/// "Estadísticas" y "Perfil" ya son ramas propias de un
+/// `StatefulShellRoute.indexedStack` (ver router.dart y
+/// app_shell_screen.dart, que pone el Scaffold/drawer/header/bottomNav
+/// compartido). Lo que queda ACÁ es todo lo que todavía no tiene ruta
+/// propia: el Dashboard y las pantallas a las que solo se llega desde el
+/// drawer o desde el propio Dashboard (Cuentas, Categorías, Servicios,
+/// Facturas y sus formularios) — siguen viviendo colgadas de la rama
+/// "Inicio" con el mismo mecanismo de índice + IndexedStack de antes.
+/// Migrarlas a rutas propias es una fase aparte del plan.
+///
+/// El índice 0 es siempre el Dashboard.
+const _accountsTabIndex = 1;
+const _accountFormTabIndex = 2;
+const _categoriesTabIndex = 3;
+const _categoryFormTabIndex = 4;
+const _monthlyBalanceTabIndex = 5;
+const _addTransactionTabIndex = 6;
+const _servicesTabIndex = 7;
+const _serviceFormTabIndex = 8;
+const _invoicesTabIndex = 9;
+const _invoiceFormTabIndex = 10;
+const _transferFormTabIndex = 11;
+const _accountsOverviewTabIndex = 12;
+const _updateBalanceTabIndex = 13;
 
-/// Pestañas a las que solo se llega desde el drawer o desde otra pestaña,
-/// sin entrada propia en el bottom nav.
-const _accountsTabIndex = 4;
-const _accountFormTabIndex = 5;
-const _categoriesTabIndex = 6;
-const _categoryFormTabIndex = 7;
-const _monthlyBalanceTabIndex = 8;
-const _addTransactionTabIndex = 9;
-const _servicesTabIndex = 10;
-const _serviceFormTabIndex = 11;
-const _invoicesTabIndex = 12;
-const _invoiceFormTabIndex = 13;
-const _transferFormTabIndex = 14;
-const _accountsOverviewTabIndex = 15;
-const _updateBalanceTabIndex = 16;
-
-class HomeShell extends StatefulWidget {
+class HomeBranchScreen extends StatefulWidget {
   final AuthViewModel authViewModel;
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
@@ -64,7 +61,18 @@ class HomeShell extends StatefulWidget {
   final ServiceViewModel serviceViewModel;
   final InvoiceViewModel invoiceViewModel;
 
-  const HomeShell({
+  /// AppShellScreen (el Scaffold compartido) necesita reconstruirse cada
+  /// vez que cambia el índice interno de acá — de eso depende qué acción
+  /// muestra el header, qué ítem del drawer queda resaltado, y si el
+  /// botón atrás debe cerrar la app o resolverse acá adentro.
+  final VoidCallback onChanged;
+
+  /// "Movimientos" ahora es su propia rama del bottom nav — este
+  /// callback reemplaza lo que antes hacía `_onTabTap(1)` para el botón
+  /// "ver todos" del Dashboard.
+  final VoidCallback onGoToMovements;
+
+  const HomeBranchScreen({
     super.key,
     required this.authViewModel,
     required this.accountViewModel,
@@ -73,15 +81,16 @@ class HomeShell extends StatefulWidget {
     required this.monthlyBalanceViewModel,
     required this.serviceViewModel,
     required this.invoiceViewModel,
+    required this.onChanged,
+    required this.onGoToMovements,
   });
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  State<HomeBranchScreen> createState() => HomeBranchScreenState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class HomeBranchScreenState extends State<HomeBranchScreen> {
   int _index = 0;
-  bool _movementsLoaded = false;
 
   // Cuenta que se está editando en la pestaña de formulario; null = alta.
   Account? _editingAccount;
@@ -134,27 +143,72 @@ class _HomeShellState extends State<HomeShell> {
   // formulario listo para cuando se agregue el guardado.
   int _transferFormNonce = 0;
 
-  void _onTabTap(int index) {
-    setState(() => _index = index);
-
-    // Carga perezosa: el historial completo de transacciones recién se
-    // pide la primera vez que se entra a "Movimientos", no al arrancar.
-    if (index == 1 && !_movementsLoaded) {
-      _movementsLoaded = true;
-      widget.transactionViewModel.loadAllTransactions();
-    }
+  /// Todo cambio de índice (o de cualquier estado que afecte al header,
+  /// al drawer o al botón atrás) pasa por acá para que AppShellScreen se
+  /// entere y se reconstruya.
+  void _update(VoidCallback fn) {
+    setState(fn);
+    widget.onChanged();
   }
 
+  // ---- API pública para AppShellScreen (el Scaffold compartido) ----
+
+  /// Índice interno actual.
+  int get index => _index;
+
+  /// true solo en el Dashboard — es cuándo AppShellScreen puede dejar que
+  /// el sistema haga "pop" real (cerrar la app / navegar atrás en Web).
+  bool get isDashboard => _index == 0;
+
+  bool get isAccountsSection =>
+      _index == _accountsTabIndex ||
+      _index == _accountFormTabIndex ||
+      _index == _accountsOverviewTabIndex ||
+      _index == _updateBalanceTabIndex;
+
+  bool get isCategoriesSection =>
+      _index == _categoriesTabIndex || _index == _categoryFormTabIndex;
+
+  bool get isServicesSection =>
+      _index == _servicesTabIndex || _index == _serviceFormTabIndex;
+
+  bool get isInvoicesSection =>
+      _index == _invoicesTabIndex || _index == _invoiceFormTabIndex;
+
+  /// Acción a mostrar en el header para el índice actual.
+  Widget? get headerAction => _headerAction();
+
+  /// Vuelve al Dashboard. Lo usa AppShellScreen tanto cuando se toca
+  /// "Inicio" en el bottom nav/drawer (siempre resetea, sin importar en
+  /// qué pantalla interna se haya quedado) como al volver acá desde otra
+  /// rama con el botón atrás.
+  void goToDashboard() => _update(() => _index = 0);
+
+  void goToAccounts() => _update(() => _index = _accountsTabIndex);
+  void goToCategories() => _update(() => _index = _categoriesTabIndex);
+  void goToServices() => _update(() => _index = _servicesTabIndex);
+  void goToInvoices() => _update(() => _index = _invoicesTabIndex);
+
+  /// Qué hacer cuando el usuario presiona "atrás" (botón físico/gesto en
+  /// Android, botón atrás del navegador en Web) estando en esta rama. Si
+  /// ya estamos en el Dashboard no hay nada que resolver acá —
+  /// AppShellScreen se encarga de qué pasa después.
+  void handleBackPress() {
+    if (_index != 0) _handleBackNavigation();
+  }
+
+  // ---- El resto es exactamente la misma lógica que tenía HomeShell ----
+
   void _openTransferForm() {
-    setState(() {
+    _update(() {
       _transferFormNonce++;
       _index = _transferFormTabIndex;
     });
   }
 
   void _closeTransferForm() {
-    setState(() {
-      _index = 0; // Vuelve a "Inicio", único lugar desde donde se abre.
+    _update(() {
+      _index = 0; // Vuelve a "Inicio" (Dashboard), único lugar desde donde se abre.
     });
   }
 
@@ -163,28 +217,28 @@ class _HomeShellState extends State<HomeShell> {
   // formulario propio, "atrás" vuelve a "Inicio" por el caso default de
   // _handleBackNavigation.
   void _openAccountsOverview() {
-    setState(() => _index = _accountsOverviewTabIndex);
+    _update(() => _index = _accountsOverviewTabIndex);
   }
 
   // Pantalla "Actualizar saldo", a la que se llega desde el ícono de
   // sincronización de cada tarjeta en AccountsOverviewTab. Siempre vuelve
   // a esa vista, único lugar desde donde se abre.
   void _openUpdateBalance(Account account) {
-    setState(() {
+    _update(() {
       _updatingBalanceAccount = account;
       _index = _updateBalanceTabIndex;
     });
   }
 
   void _closeUpdateBalance() {
-    setState(() {
+    _update(() {
       _updatingBalanceAccount = null;
       _index = _accountsOverviewTabIndex;
     });
   }
 
   void _openAccountForm(Account? account) {
-    setState(() {
+    _update(() {
       _editingAccount = account;
       if (account == null) _accountFormNonce++;
       _accountFormReturnIndex =
@@ -196,7 +250,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _closeAccountForm() {
-    setState(() {
+    _update(() {
       _editingAccount = null;
       _index = _accountFormReturnIndex;
     });
@@ -210,7 +264,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _openCategoryForm(Category? category, {String initialType = 'expense'}) {
-    setState(() {
+    _update(() {
       _editingCategory = category;
       _categoryInitialType = initialType;
       if (category == null) _categoryFormNonce++;
@@ -219,14 +273,14 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _closeCategoryForm() {
-    setState(() {
+    _update(() {
       _editingCategory = null;
       _index = _categoriesTabIndex;
     });
   }
 
   void _openMonthlyBalanceForm(List<Account> pendingAccounts) {
-    setState(() {
+    _update(() {
       _pendingMonthlyBalanceAccounts = pendingAccounts;
       _monthlyBalanceNonce++;
       _index = _monthlyBalanceTabIndex;
@@ -234,14 +288,14 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _closeMonthlyBalanceForm() {
-    setState(() {
+    _update(() {
       _pendingMonthlyBalanceAccounts = [];
-      _index = 0; // Vuelve a "Inicio", único lugar desde donde se abre.
+      _index = 0; // Vuelve a "Inicio" (Dashboard), único lugar desde donde se abre.
     });
   }
 
   void _openAddTransactionForm(String type) {
-    setState(() {
+    _update(() {
       _transactionType = type;
       _addTransactionNonce++;
       _index = _addTransactionTabIndex;
@@ -249,13 +303,13 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _closeAddTransactionForm() {
-    setState(() {
-      _index = 0; // Vuelve a "Inicio", único lugar desde donde se abre.
+    _update(() {
+      _index = 0; // Vuelve a "Inicio" (Dashboard), único lugar desde donde se abre.
     });
   }
 
   void _openServiceForm(Service? service) {
-    setState(() {
+    _update(() {
       _editingService = service;
       if (service == null) _serviceFormNonce++;
       _index = _serviceFormTabIndex;
@@ -263,39 +317,35 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _closeServiceForm() {
-    setState(() {
+    _update(() {
       _editingService = null;
       _index = _servicesTabIndex;
     });
   }
 
   void _openInvoiceForm() {
-    setState(() {
+    _update(() {
       _invoiceFormNonce++;
       _index = _invoiceFormTabIndex;
     });
   }
 
   void _closeInvoiceForm() {
-    setState(() {
+    _update(() {
       _index = _invoicesTabIndex;
     });
   }
 
   void _goToPendingInvoices() {
-    setState(() {
+    _update(() {
       _invoicesNonce++;
       _invoicesInitialPendingFilter = true;
       _index = _invoicesTabIndex;
     });
   }
 
-  /// Qué hacer cuando el usuario presiona "atrás" (botón físico/gesto en
-  /// Android, botón atrás del navegador en Web) estando en una pestaña que
-  /// no es "Inicio". En vez de dejar que el sistema cierre la app o
-  /// navegue fuera de ella, volvemos a la pantalla lógica anterior,
-  /// reutilizando las mismas funciones que ya usan los botones "cancelar"
-  /// de cada formulario.
+  /// Mismo criterio que tenía HomeShell: reutiliza las funciones "cerrar"
+  /// de cada formulario para volver a la pantalla lógica anterior.
   void _handleBackNavigation() {
     switch (_index) {
       case _accountFormTabIndex:
@@ -323,10 +373,10 @@ class _HomeShellState extends State<HomeShell> {
         _closeUpdateBalance();
         break;
       default:
-        // Pestañas de primer nivel (Movimientos, Estadísticas, Perfil) y
-        // listados a los que solo se llega desde el drawer (Cuentas,
-        // Categorías, Servicios, Facturas): "atrás" vuelve a Inicio.
-        setState(() => _index = 0);
+        // Listados a los que solo se llega desde el drawer (Cuentas,
+        // Categorías, Servicios, Facturas) y la vista general de cuentas:
+        // "atrás" vuelve al Dashboard.
+        _update(() => _index = 0);
     }
   }
 
@@ -340,7 +390,7 @@ class _HomeShellState extends State<HomeShell> {
         categoryViewModel: widget.categoryViewModel,
         monthlyBalanceViewModel: widget.monthlyBalanceViewModel,
         invoiceViewModel: widget.invoiceViewModel,
-        onSeeAllMovements: () => _onTabTap(1),
+        onSeeAllMovements: widget.onGoToMovements,
         onOpenMonthlyBalances: _openMonthlyBalanceForm,
         onOpenAddTransaction: _openAddTransactionForm,
         onGoToAccounts: () => _openAccountForm(null),
@@ -348,16 +398,6 @@ class _HomeShellState extends State<HomeShell> {
         onGoToInvoices: _goToPendingInvoices,
         onGoToTransfers: _openTransferForm,
       ),
-      MovementsTab(
-        transactionViewModel: widget.transactionViewModel,
-        currency: widget.accountViewModel.primaryCurrency,
-      ),
-      StatisticsTab(
-        transactionViewModel: widget.transactionViewModel,
-        categoryViewModel: widget.categoryViewModel,
-        currency: widget.accountViewModel.primaryCurrency,
-      ),
-      ProfileScreen(viewModel: widget.authViewModel),
       AccountsTab(
         accountViewModel: widget.accountViewModel,
         onOpenForm: _openAccountForm,
@@ -449,53 +489,10 @@ class _HomeShellState extends State<HomeShell> {
       ),
     ];
 
-    return PopScope(
-      // Solo dejamos que el sistema haga "pop" real (cerrar la app en
-      // Android, navegar atrás en el browser) cuando estamos en "Inicio".
-      // En cualquier otra pestaña, lo interceptamos y resolvemos nosotros
-      // a qué pantalla lógica volver.
-      canPop: _index == 0,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          _handleBackNavigation();
-        }
-      },
-      child: Scaffold(
-        drawer: _AppDrawer(
-          currentIndex: _index,
-          onSelect: _onTabTap,
-          userId: widget.authViewModel.userId,
-        ),
-        body: DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.authBackgroundTop,
-                AppColors.authBackgroundBottom,
-              ],
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                LumaHeader(trailing: _headerAction()),
-                Expanded(child: IndexedStack(index: _index, children: tabs)),
-              ],
-            ),
-          ),
-        ),
-        bottomNavigationBar: _BottomNav(
-          currentIndex: _index,
-          onTap: _onTabTap,
-        ),
-      ),
-    );
+    return IndexedStack(index: _index, children: tabs);
   }
 
-  /// Acción a la derecha del header, según la pestaña activa.
+  /// Acción a la derecha del header, según la pantalla interna activa.
   Widget? _headerAction() {
     switch (_index) {
       case 0:
@@ -503,12 +500,6 @@ class _HomeShellState extends State<HomeShell> {
         return const IconButton(
           onPressed: null,
           icon: Icon(Icons.notifications_none_rounded),
-          color: AppColors.authTextPrimary,
-        );
-      case 3:
-        return const IconButton(
-          onPressed: null,
-          icon: Icon(Icons.settings_outlined),
           color: AppColors.authTextPrimary,
         );
       case _accountsTabIndex:
@@ -538,209 +529,5 @@ class _HomeShellState extends State<HomeShell> {
       default:
         return null;
     }
-  }
-}
-
-class _BottomNav extends StatelessWidget {
-  final int currentIndex;
-  final ValueChanged<int> onTap;
-
-  const _BottomNav({required this.currentIndex, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.authBackgroundBottom,
-        border: Border(top: BorderSide(color: AppColors.authCardBorder)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(_navItems.length, (i) {
-              final item = _navItems[i];
-              final isSelected = i == currentIndex;
-              final color =
-                  isSelected ? AppColors.authAccent : AppColors.authTextFooter;
-
-              return InkWell(
-                onTap: () => onTap(i),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(item.$1, color: color, size: 22),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.$2,
-                        style: TextStyle(fontSize: 11, color: color),
-                      ),
-                      const SizedBox(height: 3),
-                      SizedBox(
-                        width: 16,
-                        height: 2,
-                        child: isSelected
-                            ? const DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: AppColors.authAccent,
-                                ),
-                              )
-                            : null,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AppDrawer extends StatelessWidget {
-  final int currentIndex;
-  final ValueChanged<int> onSelect;
-  final String? userId;
-
-  const _AppDrawer({
-    required this.currentIndex,
-    required this.onSelect,
-    required this.userId,
-  });
-
-  Widget _tile(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-    required VoidCallback? onTap,
-  }) {
-    final color =
-        isSelected ? AppColors.authAccent : AppColors.authTextSecondary;
-
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-        ),
-      ),
-      selected: isSelected,
-      selectedTileColor: AppColors.authCardFill,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-      onTap: onTap,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isAccountsSection = currentIndex == _accountsTabIndex ||
-        currentIndex == _accountFormTabIndex ||
-        currentIndex == _accountsOverviewTabIndex ||
-        currentIndex == _updateBalanceTabIndex;
-    final isCategoriesSection = currentIndex == _categoriesTabIndex ||
-        currentIndex == _categoryFormTabIndex;
-    final isServicesSection = currentIndex == _servicesTabIndex ||
-        currentIndex == _serviceFormTabIndex;
-    final isInvoicesSection = currentIndex == _invoicesTabIndex ||
-        currentIndex == _invoiceFormTabIndex;
-
-    void selectTab(int index) {
-      Navigator.of(context).pop();
-      onSelect(index);
-    }
-
-    return Drawer(
-      backgroundColor: AppColors.authBackgroundBottom,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 20),
-              child: Row(
-                children: [
-                  LumaLogo(size: 28),
-                  SizedBox(width: 8),
-                  Text(
-                    'Luma',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.authTextPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1, color: AppColors.authCardBorder),
-            const SizedBox(height: 8),
-            // Inicio
-            _tile(
-              context,
-              icon: _navItems[0].$1,
-              label: _navItems[0].$2,
-              isSelected: currentIndex == 0,
-              onTap: () => selectTab(0),
-            ),
-            // Cuentas
-            _tile(
-              context,
-              icon: Icons.account_balance_wallet_outlined,
-              label: 'Cuentas',
-              isSelected: isAccountsSection,
-              onTap: userId == null ? null : () => selectTab(_accountsTabIndex),
-            ),
-            // Categorías
-            _tile(
-              context,
-              icon: Icons.sell_outlined,
-              label: 'Categorías',
-              isSelected: isCategoriesSection,
-              onTap:
-                  userId == null ? null : () => selectTab(_categoriesTabIndex),
-            ),
-            // Servicios
-            _tile(
-              context,
-              icon: Icons.receipt_long_outlined,
-              label: 'Servicios',
-              isSelected: isServicesSection,
-              onTap: userId == null ? null : () => selectTab(_servicesTabIndex),
-            ),
-            // Facturas
-            _tile(
-              context,
-              icon: Icons.request_page_outlined,
-              label: 'Facturas',
-              isSelected: isInvoicesSection,
-              onTap: userId == null ? null : () => selectTab(_invoicesTabIndex),
-            ),
-            // Movimientos, Estadísticas, Perfil
-            ...List.generate(_navItems.length - 1, (i) {
-              final index = i + 1;
-              final item = _navItems[index];
-              return _tile(
-                context,
-                icon: item.$1,
-                label: item.$2,
-                isSelected: currentIndex == index,
-                onTap: () => selectTab(index),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
   }
 }
