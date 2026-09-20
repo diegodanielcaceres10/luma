@@ -38,6 +38,17 @@ class _MovementsTabState extends State<MovementsTab> {
   String? _categoryKey;
   String? _accountKey;
 
+  /// Movimientos visibles por cada grupo de mes (clave = la misma que
+  /// arma [_groupByMonth]). Empieza en 10 y crece de a 10 con "Ver más".
+  /// Un mes que no está acá todavía se muestra con el default de
+  /// [_visibleCountFor].
+  final Map<String, int> _visibleCountByMonth = {};
+
+  static const int _pageSize = 10;
+
+  int _visibleCountFor(String monthKey) =>
+      _visibleCountByMonth[monthKey] ?? _pageSize;
+
   Map<String, List<TransactionEntry>> _groupByMonth(
       List<TransactionEntry> transactions) {
     final monthFormat = DateFormat('MMMM yyyy', 'es');
@@ -275,22 +286,51 @@ class _MovementsTabState extends State<MovementsTab> {
                         ),
                       ),
                     ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: AppColors.authCardFill,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.authCardBorder),
-                      ),
-                      child: Column(
-                        children: List.generate(entry.value.length, (i) {
-                          return _MovementRow(
-                            movement: entry.value[i],
-                            currency: widget.currency,
-                            showDivider: i != entry.value.length - 1,
-                          );
-                        }),
-                      ),
-                    ),
+                    Builder(builder: (context) {
+                      final total = entry.value.length;
+                      final visibleCount =
+                          _visibleCountFor(entry.key).clamp(0, total);
+                      final visible = entry.value.take(visibleCount).toList();
+                      final remaining = total - visibleCount;
+
+                      return DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: AppColors.authCardFill,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.authCardBorder),
+                        ),
+                        child: Column(
+                          children: [
+                            ...List.generate(visible.length, (i) {
+                              return _MovementRow(
+                                movement: visible[i],
+                                currency: widget.currency,
+                                showDivider: i != visible.length - 1 ||
+                                    remaining > 0,
+                              );
+                            }),
+                            if (remaining > 0)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 4),
+                                child: TextButton(
+                                  onPressed: () => setState(() {
+                                    _visibleCountByMonth[entry.key] =
+                                        visibleCount + _pageSize;
+                                  }),
+                                  child: Text(
+                                    'Ver más (${remaining > _pageSize ? _pageSize : remaining})',
+                                    style: const TextStyle(
+                                      color: AppColors.authAccent,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
                     const SizedBox(height: 20),
                   ],
               ],
