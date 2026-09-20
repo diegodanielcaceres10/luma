@@ -533,8 +533,6 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
     _amountController = TextEditingController(
       text: widget.invoice.amount.toStringAsFixed(2),
     );
-    _selectedAccount =
-        widget.accounts.isNotEmpty ? widget.accounts.first : null;
   }
 
   @override
@@ -647,6 +645,10 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
                 dropdownColor: AppColors.authBackgroundBottom,
                 style: const TextStyle(color: AppColors.authTextPrimary),
                 decoration: _fieldDecoration,
+                hint: const Text(
+                  'Seleccioná una cuenta',
+                  style: TextStyle(color: AppColors.authTextSecondary),
+                ),
                 items: accounts
                     .map((a) => DropdownMenuItem(value: a, child: Text(a.name)))
                     .toList(),

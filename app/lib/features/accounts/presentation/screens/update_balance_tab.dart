@@ -1115,7 +1115,6 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
   @override
   Widget build(BuildContext context) {
     final categories = widget.categoryViewModel.categories;
-    _selectedCategory ??= categories.isNotEmpty ? categories.first : null;
 
     return AlertDialog(
       backgroundColor: AppColors.authBackgroundTop,
@@ -1192,6 +1191,10 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                   dropdownColor: AppColors.authBackgroundBottom,
                   style: const TextStyle(color: AppColors.authTextPrimary),
                   decoration: _fieldDecoration,
+                  hint: const Text(
+                    'Seleccioná una categoría',
+                    style: TextStyle(color: AppColors.authTextSecondary),
+                  ),
                   items: categories
                       .map(
                         (c) => DropdownMenuItem(
@@ -1202,6 +1205,8 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                       .toList(),
                   onChanged: (value) =>
                       setState(() => _selectedCategory = value),
+                  validator: (value) =>
+                      value == null ? 'Seleccioná una categoría' : null,
                 ),
               const SizedBox(height: 16),
               const Text('Descripción (opcional)', style: _labelStyle),

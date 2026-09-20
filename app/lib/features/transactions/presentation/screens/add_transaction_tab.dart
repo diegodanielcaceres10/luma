@@ -161,9 +161,6 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     final accounts = widget.accountViewModel.activeAccounts;
     final isSubmitting = widget.transactionViewModel.isSubmitting;
 
-    _selectedCategory ??= categories.isNotEmpty ? categories.first : null;
-    _selectedAccount ??= accounts.isNotEmpty ? accounts.first : null;
-
     return SafeArea(
       top: false,
       child: Form(
@@ -246,6 +243,15 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
                       decoration: _fieldDecoration,
+                      // DropdownButtonFormField no pinta su placeholder
+                      // desde decoration.hintText/hintStyle — lo hace a
+                      // través de este parámetro. Por eso el color se fija
+                      // acá y no en la decoration (mismo criterio que en
+                      // NewServiceForm).
+                      hint: const Text(
+                        'Seleccioná una categoría',
+                        style: TextStyle(color: AppColors.authTextSecondary),
+                      ),
                       items: categories
                           .map((c) =>
                               DropdownMenuItem(value: c, child: Text(c.name)))
@@ -254,6 +260,8 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                           ? null
                           : (value) =>
                               setState(() => _selectedCategory = value),
+                      validator: (value) =>
+                          value == null ? 'Seleccioná una categoría' : null,
                     ),
                   const SizedBox(height: 20),
                   const Text('Cuenta', style: _labelStyle),
@@ -274,6 +282,10 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
                       decoration: _fieldDecoration,
+                      hint: const Text(
+                        'Seleccioná una cuenta',
+                        style: TextStyle(color: AppColors.authTextSecondary),
+                      ),
                       items: accounts
                           .map((a) =>
                               DropdownMenuItem(value: a, child: Text(a.name)))
@@ -281,6 +293,8 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                       onChanged: isSubmitting
                           ? null
                           : (value) => setState(() => _selectedAccount = value),
+                      validator: (value) =>
+                          value == null ? 'Seleccioná una cuenta' : null,
                     ),
                   const SizedBox(height: 20),
                   const Text('Descripción (opcional)', style: _labelStyle),

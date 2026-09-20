@@ -54,7 +54,7 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
   ];
 
   String? _selectedServiceId;
-  int _selectedMonth = DateTime.now().month;
+  int? _selectedMonth;
   DateTime? _dueDate;
 
   static const _fieldDecoration = InputDecoration(
@@ -98,7 +98,8 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
     final year = int.tryParse(_yearController.text.trim()) ?? DateTime.now().year;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dueDate ?? DateTime(year, _selectedMonth),
+      initialDate:
+          _dueDate ?? DateTime(year, _selectedMonth ?? DateTime.now().month),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
       builder: (context, child) => Theme(
@@ -120,6 +121,7 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedMonth == null) return;
 
     final vm = widget.invoiceViewModel;
     final amount = double.parse(_amountController.text.trim());
@@ -128,7 +130,7 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
     final success = await vm.createInvoice(
       userId: widget.userId,
       serviceId: _selectedServiceId!,
-      month: _selectedMonth,
+      month: _selectedMonth!,
       year: year,
       amount: amount,
       dueDate: _dueDate,
@@ -254,14 +256,18 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
                   const Text('Mes',
                       style: TextStyle(color: AppColors.authTextSecondary)),
                   const SizedBox(height: 8),
-                  DropdownButtonFormField<int>(
+                  DropdownButtonFormField<int?>(
                     initialValue: _selectedMonth,
                     dropdownColor: AppColors.authBackgroundBottom,
                     style: const TextStyle(color: AppColors.authTextPrimary),
                     decoration: _fieldDecoration,
+                    hint: const Text(
+                      'Seleccioná un mes',
+                      style: TextStyle(color: AppColors.authTextSecondary),
+                    ),
                     items: List.generate(12, (i) => i + 1)
                         .map(
-                          (month) => DropdownMenuItem<int>(
+                          (month) => DropdownMenuItem<int?>(
                             value: month,
                             child: Text(_monthNames[month - 1]),
                           ),
@@ -269,8 +275,9 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
                         .toList(),
                     onChanged: isSubmitting
                         ? null
-                        : (value) =>
-                            setState(() => _selectedMonth = value ?? _selectedMonth),
+                        : (value) => setState(() => _selectedMonth = value),
+                    validator: (value) =>
+                        value == null ? 'Seleccioná un mes' : null,
                   ),
                   const SizedBox(height: 20),
                   const Text('Año',
