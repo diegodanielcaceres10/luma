@@ -104,6 +104,17 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 currency: widget.currency,
               );
 
+        // Card aparte para los movimientos (ingresos o gastos, sin contar
+        // transferencias) que quedaron sin categoría asignada. No se
+        // muestra si no hay ninguno.
+        final uncategorizedCard = vm.statisticsUncategorizedCount == 0
+            ? null
+            : _UncategorizedCard(
+                total: vm.statisticsUncategorizedTotal,
+                count: vm.statisticsUncategorizedCount,
+                currency: widget.currency,
+              );
+
         final breakdown = vm.statisticsCategoryBreakdown;
 
         if (vm.isStatisticsLoading && breakdown.isEmpty) {
@@ -172,6 +183,10 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 const SizedBox(height: 10),
                 budgetCard,
               ],
+              if (uncategorizedCard != null) ...[
+                const SizedBox(height: 10),
+                uncategorizedCard,
+              ],
               Padding(
                 padding: const EdgeInsets.only(top: 40),
                 child: Center(
@@ -205,6 +220,10 @@ class _StatisticsTabState extends State<StatisticsTab> {
             if (budgetCard != null) ...[
               const SizedBox(height: 10),
               budgetCard,
+            ],
+            if (uncategorizedCard != null) ...[
+              const SizedBox(height: 10),
+              uncategorizedCard,
             ],
             const SizedBox(height: 24),
             const Text(
@@ -616,6 +635,84 @@ class _BudgetCategoriesCard extends StatelessWidget {
               _BudgetCategoryRow(item: items[i], currency: currency),
               if (i < items.length - 1) const SizedBox(height: 18),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Card aparte para la suma de movimientos (ingresos o gastos, sin
+/// transferencias) sin categoría asignada — ayuda a notar cuánto del mes
+/// todavía no está clasificado. Solo aparece si hay al menos uno (ver
+/// [_StatisticsTabState.build]).
+class _UncategorizedCard extends StatelessWidget {
+  final double total;
+  final int count;
+  final String currency;
+
+  const _UncategorizedCard({
+    required this.total,
+    required this.count,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.authCardBorder),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: AppColors.authTextSecondary.withValues(
+                alpha: 0.18,
+              ),
+              child: const Icon(
+                Icons.help_outline_rounded,
+                size: 18,
+                color: AppColors.authTextSecondary,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Sin categoría',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.authTextPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    count == 1 ? '1 movimiento' : '$count movimientos',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.authTextFooter,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              formatCurrency(total, currency),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
           ],
         ),
       ),

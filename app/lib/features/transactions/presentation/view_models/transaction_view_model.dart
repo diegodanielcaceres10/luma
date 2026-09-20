@@ -207,6 +207,23 @@ class TransactionViewModel extends ChangeNotifier {
   List<CategoryTotal> get statisticsCategoryBreakdown =>
       _breakdownOf(_statisticsEntries);
 
+  /// Movimientos del mes elegido en Estadísticas sin categoría asignada
+  /// (`category.id == null`), sin contar transferencias — nunca tienen
+  /// categoría por diseño (ver [_breakdownOf]) y no son un gasto/ingreso
+  /// real, así que no cuentan como "sin categorizar".
+  List<TransactionEntry> get _statisticsUncategorizedEntries =>
+      _statisticsEntries
+          .where((t) => t.category.id == null && !t.isTransfer)
+          .toList();
+
+  /// Suma de esos movimientos (`amount` ya es la magnitud positiva, tanto
+  /// para ingresos como gastos — ver [TransactionEntry.amount]).
+  double get statisticsUncategorizedTotal => _statisticsUncategorizedEntries
+      .fold<double>(0, (sum, t) => sum + t.amount);
+
+  int get statisticsUncategorizedCount =>
+      _statisticsUncategorizedEntries.length;
+
   /// Cambia el mes que muestra Estadísticas y carga sus datos (más los del
   /// mes previo, para los comparativos). Elegir el mes en curso no consulta
   /// nada: ya está cargado en [loadCurrentMonth].
