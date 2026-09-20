@@ -178,29 +178,6 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: isSubmitting ? null : widget.onDone,
-                        borderRadius: BorderRadius.circular(20),
-                        child: const Padding(
-                          padding: EdgeInsets.all(4),
-                          child: Icon(Icons.arrow_back_rounded,
-                              color: AppColors.authTextPrimary),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isIncome ? 'Añadir ingreso' : 'Añadir gasto',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.authTextPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
                   const Text('Monto', style: _labelStyle),
                   const SizedBox(height: 8),
                   TextFormField(

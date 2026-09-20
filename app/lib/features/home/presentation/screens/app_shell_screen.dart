@@ -5,7 +5,6 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../widgets/luma_header.dart';
-import 'home_shell.dart';
 
 /// Accesos compartidos entre el bottom nav y el drawer — una entrada por
 /// rama real de `StatefulShellRoute.indexedStack` (ver router.dart).
@@ -16,30 +15,20 @@ const _navItems = [
   (Icons.person_outline_rounded, 'Perfil'),
 ];
 
-/// FASE 2/3 de la migración a rutas: el Scaffold compartido (drawer,
-/// header, bottom nav) de las 4 ramas reales del bottom nav. Cuentas,
-/// Categorías, Servicios y Facturas ya son rutas propias con su propio
-/// AppBar (ver RoutedScreenScaffold) — por eso el drawer las abre con
-/// `context.push` directo, sin pasar por acá.
-///
-/// "Inicio" (rama 0) todavía aloja, sin tocar su lógica, el Dashboard y
-/// los 3 formularios que solo se abren desde ahí (agregar saldo inicial,
-/// nueva transacción, transferencia) — ver [HomeBranchScreen]. Por eso
-/// esta pantalla necesita [homeBranchKey]/[homeBranchRevision]: para
-/// saber si puede dejar que el sistema haga "pop" real (solo en el
-/// Dashboard) o si hay que resolver el "atrás" adentro de
-/// HomeBranchScreen primero.
+/// MIGRACIÓN A RUTAS COMPLETA: el Scaffold compartido (drawer, header,
+/// bottom nav) de las 4 ramas reales del bottom nav. Todo lo que antes
+/// era "pestaña virtual" (Cuentas, Categorías, Servicios, Facturas, saldo
+/// inicial, nueva transacción, transferencia) ya es ruta propia con su
+/// propio AppBar y back nativo del Navigator — por eso esta pantalla ya
+/// no necesita saber nada de eso: el único "atrás" que le queda por
+/// resolver es entre las 4 ramas del bottom nav mismas.
 class AppShellScreen extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
-  final GlobalKey<HomeBranchScreenState> homeBranchKey;
-  final Listenable homeBranchRevision;
   final AuthViewModel authViewModel;
 
   const AppShellScreen({
     super.key,
     required this.navigationShell,
-    required this.homeBranchKey,
-    required this.homeBranchRevision,
     required this.authViewModel,
   });
 
@@ -49,31 +38,15 @@ class AppShellScreen extends StatefulWidget {
 
 class _AppShellScreenState extends State<AppShellScreen> {
   int get _branchIndex => widget.navigationShell.currentIndex;
-  HomeBranchScreenState? get _homeBranch => widget.homeBranchKey.currentState;
 
-  @override
-  void initState() {
-    super.initState();
-    // HomeBranchScreen (rama "Inicio") avisa por acá cada vez que cambia
-    // su índice interno — hace falta reconstruirse para que el botón
-    // atrás sepa si puede cerrar la app o no.
-    widget.homeBranchRevision.addListener(_onHomeBranchChanged);
-  }
-
-  @override
-  void dispose() {
-    widget.homeBranchRevision.removeListener(_onHomeBranchChanged);
-    super.dispose();
-  }
-
-  void _onHomeBranchChanged() => setState(() {});
-
-  /// "Inicio" siempre vuelve al Dashboard, sin importar en qué formulario
-  /// interno haya quedado — mismo criterio que tenía `_onTabTap(0)` en el
-  /// HomeShell viejo.
+  /// Tocar la rama ya activa vuelve a su raíz — ej. tocar "Inicio" desde
+  /// adentro de "Nueva cuenta" (empujada por encima) vuelve al Dashboard,
+  /// mismo criterio de siempre para el bottom nav.
   void _onNavTap(int index) {
-    widget.navigationShell.goBranch(index);
-    if (index == 0) _homeBranch?.goToDashboard();
+    widget.navigationShell.goBranch(
+      index,
+      initialLocation: index == _branchIndex,
+    );
   }
 
   Widget? _headerAction() {
@@ -98,25 +71,16 @@ class _AppShellScreenState extends State<AppShellScreen> {
   @override
   Widget build(BuildContext context) {
     // Solo dejamos que el sistema haga "pop" real (cerrar la app en
-    // Android, navegar atrás en el browser) cuando estamos en el
-    // Dashboard de "Inicio". En cualquier otro caso lo interceptamos:
-    // primero volvemos a la rama "Inicio", y si ya estábamos ahí,
-    // resolvemos el "atrás" lógico adentro de HomeBranchScreen (mismo
-    // criterio que tenía el HomeShell viejo). Cuentas/Categorías/
-    // Servicios/Facturas ya no pasan por acá: al ser rutas propias, su
-    // botón atrás lo maneja el Navigator solo.
-    final canPopReally = _branchIndex == 0 && (_homeBranch?.isDashboard ?? true);
-
+    // Android, navegar atrás en el browser) en la rama "Inicio" — desde
+    // cualquier otra rama, "atrás" vuelve primero a "Inicio". Cada
+    // pantalla empujada por encima de una rama (formularios, listados)
+    // ya resuelve su propio "atrás" con su Navigator nativo, sin pasar
+    // por acá.
     return PopScope(
-      canPop: canPopReally,
+      canPop: _branchIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        if (_branchIndex != 0) {
-          widget.navigationShell.goBranch(0);
-          _homeBranch?.goToDashboard();
-        } else {
-          _homeBranch?.handleBackPress();
-        }
+        widget.navigationShell.goBranch(0, initialLocation: true);
       },
       child: Scaffold(
         drawer: _AppDrawer(branchIndex: _branchIndex, onSelectBranch: _onNavTap),

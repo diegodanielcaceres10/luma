@@ -20,14 +20,17 @@ import '../features/home/presentation/screens/routed_screen_scaffold.dart';
 import '../features/invoices/presentation/screens/invoice_form_tab.dart';
 import '../features/invoices/presentation/screens/invoices_tab.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
+import '../features/monthly_balances/presentation/screens/monthly_balance_tab.dart';
 import '../features/monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../features/services/data/models/service.dart';
 import '../features/services/presentation/screens/service_form_tab.dart';
 import '../features/services/presentation/screens/services_tab.dart';
 import '../features/services/presentation/view_models/service_view_model.dart';
+import '../features/transactions/presentation/screens/add_transaction_tab.dart';
 import '../features/transactions/presentation/screens/movements_tab.dart';
 import '../features/transactions/presentation/screens/statistics_tab.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
+import '../features/transfers/presentation/screens/transfer_form_tab.dart';
 
 Account? _findAccount(AccountViewModel vm, String? id) {
   for (final a in vm.accounts) {
@@ -50,15 +53,16 @@ Service? _findService(ServiceViewModel vm, String? id) {
   return null;
 }
 
-/// FASE 2 y 3 de la migración de la navegación por tabs a rutas (plan
-/// acordado con el usuario).
+/// Migración de la navegación por tabs a rutas (plan acordado con el
+/// usuario) — completa.
 ///
 /// FASE 2: Inicio, Movimientos, Estadísticas y Perfil son ramas de un
 /// `StatefulShellRoute.indexedStack`, cada una con su propia URL y su
 /// propio Navigator.
 ///
-/// FASE 3: Cuentas, Categorías, Servicios, Facturas (y sus formularios,
-/// más la vista general de cuentas y "actualizar saldo") ya son rutas
+/// FASE 3 y 4: Cuentas, Categorías, Servicios, Facturas (con sus
+/// formularios, vista general de cuentas y "actualizar saldo"), saldo
+/// inicial del mes, nueva transacción y transferencia son todas rutas
 /// propias también, anidadas bajo la rama "Inicio" — por eso el bottom
 /// nav sigue visible al entrar a cualquiera de ellas (así lo pidió el
 /// usuario): un `context.push` dentro de una rama no reemplaza el
@@ -70,10 +74,8 @@ Service? _findService(ServiceViewModel vm, String? id) {
 /// lo abrió, sin importar desde dónde se haya llegado (ej. el formulario
 /// de cuenta se abre tanto desde "Cuentas" como desde la vista general).
 ///
-/// Lo que todavía NO es una ruta propia son el Dashboard y los 3
-/// formularios a los que solo se llega desde ahí (agregar saldo inicial,
-/// nueva transacción, transferencia) — ver [HomeBranchScreen]. Migrarlos
-/// es la fase siguiente del plan.
+/// La rama "Inicio" en sí ya es, directamente, el Dashboard — ver
+/// [HomeBranchScreen].
 GoRouter buildAppRouter({
   required AuthViewModel authViewModel,
   required AccountViewModel accountViewModel,
@@ -83,15 +85,6 @@ GoRouter buildAppRouter({
   required ServiceViewModel serviceViewModel,
   required InvoiceViewModel invoiceViewModel,
 }) {
-  // HomeBranchScreen (rama "Inicio") todavía maneja el Dashboard y sus 3
-  // formularios con índice + IndexedStack a mano, no con rutas — por eso
-  // AppShellScreen necesita esta llave (para saber si puede dejar que el
-  // sistema haga "pop" real) y este Listenable (para saber cuándo ese
-  // estado cambió y reconstruirse). El día que esos 3 formularios pasen a
-  // ser rutas propias, esta plomería deja de hacer falta.
-  final homeBranchKey = GlobalKey<HomeBranchScreenState>();
-  final homeBranchRevision = ValueNotifier<int>(0);
-
   return GoRouter(
     initialLocation: '/',
     // GoRouter no re-evalúa `redirect` solo porque cambió el estado de la
@@ -116,8 +109,6 @@ GoRouter buildAppRouter({
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShellScreen(
           navigationShell: navigationShell,
-          homeBranchKey: homeBranchKey,
-          homeBranchRevision: homeBranchRevision,
           authViewModel: authViewModel,
         ),
         branches: [
@@ -129,16 +120,67 @@ GoRouter buildAppRouter({
               GoRoute(
                 path: '/',
                 builder: (context, state) => HomeBranchScreen(
-                  key: homeBranchKey,
                   authViewModel: authViewModel,
                   accountViewModel: accountViewModel,
                   transactionViewModel: transactionViewModel,
                   categoryViewModel: categoryViewModel,
                   monthlyBalanceViewModel: monthlyBalanceViewModel,
                   invoiceViewModel: invoiceViewModel,
-                  onChanged: () => homeBranchRevision.value++,
                 ),
                 routes: [
+                  // ---- Saldo inicial del mes ----
+                  GoRoute(
+                    path: 'monthly-balance',
+                    builder: (context, state) => RoutedScreenScaffold(
+                      title: 'Saldos iniciales',
+                      body: MonthlyBalanceTab(
+                        userId: authViewModel.userId ?? '',
+                        // Se recalcula acá mismo en vez de viajar por la
+                        // navegación — misma cuenta que usaba el
+                        // Dashboard (ver dashboard_tab.dart).
+                        pendingAccounts: monthlyBalanceViewModel.checked
+                            ? monthlyBalanceViewModel.pendingAccounts(
+                                accountViewModel.activeAccounts)
+                            : const [],
+                        monthlyBalanceViewModel: monthlyBalanceViewModel,
+                        onDone: () => context.pop(),
+                      ),
+                    ),
+                  ),
+                  // ---- Nueva transacción ----
+                  GoRoute(
+                    path: 'add-transaction/:type',
+                    builder: (context, state) {
+                      final type = state.pathParameters['type'] == 'income'
+                          ? 'income'
+                          : 'expense';
+                      return RoutedScreenScaffold(
+                        title:
+                            type == 'income' ? 'Añadir ingreso' : 'Añadir gasto',
+                        body: AddTransactionTab(
+                          type: type,
+                          userId: authViewModel.userId ?? '',
+                          accountViewModel: accountViewModel,
+                          categoryViewModel: categoryViewModel,
+                          transactionViewModel: transactionViewModel,
+                          onDone: () => context.pop(),
+                        ),
+                      );
+                    },
+                  ),
+                  // ---- Transferencia entre cuentas ----
+                  GoRoute(
+                    path: 'transfer',
+                    builder: (context, state) => RoutedScreenScaffold(
+                      title: 'Transferencia entre cuentas',
+                      body: TransferFormTab(
+                        userId: authViewModel.userId,
+                        accountViewModel: accountViewModel,
+                        transactionViewModel: transactionViewModel,
+                        onDone: () => context.pop(),
+                      ),
+                    ),
+                  ),
                   // ---- Cuentas ----
                   GoRoute(
                     path: 'accounts',
