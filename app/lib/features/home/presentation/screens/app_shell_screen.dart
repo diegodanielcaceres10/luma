@@ -83,8 +83,11 @@ class _AppShellScreenState extends State<AppShellScreen> {
         widget.navigationShell.goBranch(0, initialLocation: true);
       },
       child: Scaffold(
-        drawer:
-            _AppDrawer(branchIndex: _branchIndex, onSelectBranch: _onNavTap),
+        drawer: _AppDrawer(
+          branchIndex: _branchIndex,
+          location: GoRouterState.of(context).uri.path,
+          onSelectBranch: _onNavTap,
+        ),
         body: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -183,9 +186,19 @@ class _BottomNav extends StatelessWidget {
 
 class _AppDrawer extends StatelessWidget {
   final int branchIndex;
+  final String location;
   final ValueChanged<int> onSelectBranch;
 
-  const _AppDrawer({required this.branchIndex, required this.onSelectBranch});
+  const _AppDrawer({
+    required this.branchIndex,
+    required this.location,
+    required this.onSelectBranch,
+  });
+
+  /// `true` si la ubicación actual es esa base o una sub-ruta suya
+  /// (ej. '/accounts/new' o '/accounts/abc/edit' cuentan como "Cuentas").
+  bool _isActive(String base) =>
+      location == base || location.startsWith('$base/');
 
   Widget _tile(
     BuildContext context, {
@@ -219,6 +232,22 @@ class _AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAccounts =
+        _isActive('/accounts') || _isActive('/accounts-overview');
+    final isCategories = _isActive('/categories');
+    final isServices = _isActive('/services');
+    final isInvoices = _isActive('/invoices');
+    // "Inicio" solo se resalta cuando ninguna de las otras cuatro rutas
+    // (todas anidadas bajo la misma rama) es la que está activa — si no,
+    // se quedaba marcado "Inicio" mientras se navegaba por Cuentas,
+    // Categorías, etc. Saldo inicial, nueva transacción y transferencia
+    // sí siguen contando como "Inicio", tal como antes.
+    final isHome = branchIndex == 0 &&
+        !isAccounts &&
+        !isCategories &&
+        !isServices &&
+        !isInvoices;
+
     return Drawer(
       backgroundColor: AppColors.authBackgroundBottom,
       child: SafeArea(
@@ -249,7 +278,7 @@ class _AppDrawer extends StatelessWidget {
               context,
               icon: _navItems[0].$1,
               label: _navItems[0].$2,
-              isSelected: branchIndex == 0,
+              isSelected: isHome,
               onTap: () => onSelectBranch(0),
             ),
             // Cuentas, Categorías, Servicios y Facturas ya son rutas
@@ -262,34 +291,33 @@ class _AppDrawer extends StatelessWidget {
             // encima de una visita anterior. Mezclar un `goBranch` previo
             // con un `push` aparte (como se hacía antes) son dos eventos
             // de ruteo separados y es lo que dejaba la URL sin
-            // actualizarse. No se resaltan acá: son pantallas transitorias,
-            // no "la pestaña activa" en el sentido del bottom nav.
+            // actualizarse.
             _tile(
               context,
               icon: Icons.account_balance_wallet_outlined,
               label: 'Cuentas',
-              isSelected: false,
+              isSelected: isAccounts,
               onTap: () => context.go('/accounts'),
             ),
             _tile(
               context,
               icon: Icons.sell_outlined,
               label: 'Categorías',
-              isSelected: false,
+              isSelected: isCategories,
               onTap: () => context.go('/categories'),
             ),
             _tile(
               context,
               icon: Icons.receipt_long_outlined,
               label: 'Servicios',
-              isSelected: false,
+              isSelected: isServices,
               onTap: () => context.go('/services'),
             ),
             _tile(
               context,
               icon: Icons.request_page_outlined,
               label: 'Facturas',
-              isSelected: false,
+              isSelected: isInvoices,
               onTap: () => context.go('/invoices'),
             ),
             // Movimientos, Estadísticas, Perfil
