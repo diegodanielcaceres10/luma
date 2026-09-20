@@ -19,7 +19,6 @@ class CategoryService {
     required String name,
     required String type,
     required String color,
-    required String icon,
     bool hasBudget = false,
     double? budgetAmount,
   }) async {
@@ -28,7 +27,6 @@ class CategoryService {
       'name': name,
       'type': type,
       'color': color,
-      'icon': icon,
       'has_budget': hasBudget,
       'budget_amount': hasBudget ? budgetAmount : null,
     });
@@ -39,7 +37,6 @@ class CategoryService {
     required String name,
     required String type,
     required String color,
-    required String icon,
     bool hasBudget = false,
     double? budgetAmount,
   }) async {
@@ -47,14 +44,13 @@ class CategoryService {
       'name': name,
       'type': type,
       'color': color,
-      'icon': icon,
       'has_budget': hasBudget,
       'budget_amount': hasBudget ? budgetAmount : null,
     }).eq('id', id);
   }
 
   /// Asigna, edita o quita el presupuesto de una categoría sin tocar el
-  /// resto de sus campos (nombre, tipo, color, ícono). Reemplaza a la
+  /// resto de sus campos (nombre, tipo, color). Reemplaza a la
   /// vieja tabla `budgets`: ahora el presupuesto es un dato de la propia
   /// categoría (`has_budget` + `budget_amount`).
   Future<void> updateBudget({

@@ -737,7 +737,6 @@ class _MovementListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categoryColor = colorFromHex(movement.category.color);
     final amount = movement.amount;
     final amountText = amount > 0
         ? '+${formatCurrency(amount, currency)}'
@@ -750,18 +749,6 @@ class _MovementListTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration:
-                BoxDecoration(color: categoryColor, shape: BoxShape.circle),
-            child: CategoryGlyph(
-              icon: movement.category.icon,
-              color: AppColors.authTextPrimary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1209,21 +1196,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                       .map(
                         (c) => DropdownMenuItem(
                           value: c,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CategoryGlyph(
-                                icon: c.icon,
-                                size: 16,
-                                color: colorFromHex(c.color),
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(c.name,
-                                    overflow: TextOverflow.ellipsis),
-                              ),
-                            ],
-                          ),
+                          child: Text(c.name, overflow: TextOverflow.ellipsis),
                         ),
                       )
                       .toList(),

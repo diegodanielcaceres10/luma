@@ -21,7 +21,7 @@ class CategoryViewModel extends ChangeNotifier {
       _categories.where((c) => c.type == type).toList();
 
   /// Busca una categoría por id — útil para features que solo guardan el
-  /// `category_id` (ej. servicios) y necesitan mostrar nombre/color/ícono.
+  /// `category_id` (ej. servicios) y necesitan mostrar nombre/color.
   Category? categoryById(String? id) {
     if (id == null) return null;
     for (final category in _categories) {
@@ -58,7 +58,6 @@ class CategoryViewModel extends ChangeNotifier {
     required String name,
     required String type,
     required String color,
-    required String icon,
     bool hasBudget = false,
     double? budgetAmount,
   }) async {
@@ -67,7 +66,6 @@ class CategoryViewModel extends ChangeNotifier {
           name: name,
           type: type,
           color: color,
-          icon: icon,
           hasBudget: hasBudget,
           budgetAmount: budgetAmount,
         ));
@@ -78,7 +76,6 @@ class CategoryViewModel extends ChangeNotifier {
     required String name,
     required String type,
     required String color,
-    required String icon,
     bool hasBudget = false,
     double? budgetAmount,
   }) async {
@@ -87,7 +84,6 @@ class CategoryViewModel extends ChangeNotifier {
           name: name,
           type: type,
           color: color,
-          icon: icon,
           hasBudget: hasBudget,
           budgetAmount: budgetAmount,
         ));

@@ -2,13 +2,11 @@ class TransactionCategory {
   final String? id;
   final String name;
   final String? color;
-  final String? icon;
 
   const TransactionCategory({
     this.id,
     required this.name,
     this.color,
-    this.icon,
   });
 
   factory TransactionCategory.fromMap(Map<String, dynamic>? map) {
@@ -19,7 +17,6 @@ class TransactionCategory {
       id: map['id'] as String?,
       name: map['name'] as String? ?? 'Sin categoría',
       color: map['color'] as String?,
-      icon: map['icon'] as String?,
     );
   }
 }

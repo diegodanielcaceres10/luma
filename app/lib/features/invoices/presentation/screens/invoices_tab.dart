@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
@@ -373,8 +372,6 @@ class _InvoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = colorFromHex(category?.color, fallback: AppColors.authAccent);
-
     final badgeColor = invoice.cancelled
         ? AppColors.authTextFooter
         : invoice.paid
@@ -405,17 +402,6 @@ class _InvoiceRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: color.withValues(
-                      alpha: categoryIconBackgroundAlpha(category?.icon)),
-                  child: CategoryGlyph(
-                    icon: category?.icon,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,8 +578,6 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
   @override
   Widget build(BuildContext context) {
     final accounts = widget.accounts;
-    final color =
-        colorFromHex(widget.category.color, fallback: AppColors.authAccent);
 
     return AlertDialog(
       backgroundColor: AppColors.authBackgroundTop,
@@ -614,29 +598,12 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: color.withValues(
-                      alpha: categoryIconBackgroundAlpha(widget.category.icon)),
-                  child: CategoryGlyph(
-                    icon: widget.category.icon,
-                    color: Colors.white,
-                    size: 14,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '${widget.serviceName} · ${widget.category.name}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.authTextPrimary,
-                    ),
-                  ),
-                ),
-              ],
+            Text(
+              '${widget.serviceName} · ${widget.category.name}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextPrimary,
+              ),
             ),
             const SizedBox(height: 20),
             const Text(

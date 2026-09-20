@@ -623,8 +623,7 @@ class _BudgetCategoriesCard extends StatelessWidget {
   }
 }
 
-/// Una fila de [_BudgetCategoriesCard]: círculo con el color/ícono de la
-/// categoría (mismo patrón que usa [CategoriesTab]), nombre y
+/// Una fila de [_BudgetCategoriesCard]: nombre de la categoría y
 /// "$presupuesto / mes" arriba de su propia barra, y a la derecha lo
 /// gastado en esa categoría puntual con su %. La barra usa el color de la
 /// categoría — salvo que se haya pasado del presupuesto, ahí pasa a rojo
@@ -645,18 +644,6 @@ class _BudgetCategoryRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: categoryColor.withValues(
-            alpha: categoryIconBackgroundAlpha(category.icon),
-          ),
-          child: CategoryGlyph(
-            icon: category.icon,
-            color: Colors.white,
-            size: 18,
-          ),
-        ),
-        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -938,7 +925,7 @@ class _DonutChartPainter extends CustomPainter {
   }
 }
 
-/// Fila de la leyenda: punto de color + ícono + nombre + monto + %, todos
+/// Fila de la leyenda: punto de color + nombre + monto + %, todos
 /// tomados de la misma categoría que pinta su segmento en la dona.
 class _CategoryLegendRow extends StatelessWidget {
   final CategoryTotal category;
@@ -959,12 +946,6 @@ class _CategoryLegendRow extends StatelessWidget {
             width: 8,
             height: 8,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 8),
-          CategoryGlyph(
-            icon: category.category.icon,
-            size: 14,
-            color: color,
           ),
           const SizedBox(width: 8),
           Expanded(

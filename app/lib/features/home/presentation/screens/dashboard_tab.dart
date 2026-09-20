@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
@@ -656,31 +655,12 @@ class _RecentMovements extends StatelessWidget {
 
     return Column(
       children: movements.map((m) {
-        final hasCategory = m.category.id != null;
-        final categoryColor = hasCategory
-            ? colorFromHex(m.category.color, fallback: AppColors.authAccent)
-            : Colors.transparent;
         final sign = m.isIncome ? '+' : '-';
 
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: hasCategory
-                    ? categoryColor.withValues(
-                        alpha: categoryIconBackgroundAlpha(m.category.icon))
-                    : Colors.transparent,
-                child: hasCategory
-                    ? CategoryGlyph(
-                        icon: m.category.icon,
-                        color: Colors.white,
-                        size: 18,
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

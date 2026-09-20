@@ -15,7 +15,6 @@ class CategoryRepository {
     required String name,
     required String type,
     required String color,
-    required String icon,
     bool hasBudget = false,
     double? budgetAmount,
   }) {
@@ -24,7 +23,6 @@ class CategoryRepository {
       name: name,
       type: type,
       color: color,
-      icon: icon,
       hasBudget: hasBudget,
       budgetAmount: budgetAmount,
     );
@@ -35,7 +33,6 @@ class CategoryRepository {
     required String name,
     required String type,
     required String color,
-    required String icon,
     bool hasBudget = false,
     double? budgetAmount,
   }) {
@@ -44,7 +41,6 @@ class CategoryRepository {
       name: name,
       type: type,
       color: color,
-      icon: icon,
       hasBudget: hasBudget,
       budgetAmount: budgetAmount,
     );
