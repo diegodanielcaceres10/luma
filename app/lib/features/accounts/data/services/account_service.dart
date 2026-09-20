@@ -9,7 +9,7 @@ class AccountService {
   Future<List<Account>> fetchAccounts() async {
     // Trae activas e inactivas: la lista de cuentas es donde se
     // inactivan/reactivan, así que necesita ver ambos estados.
-    final rows = await _client.from('accounts').select().order('created_at');
+    final rows = await _client.from('accounts').select().order('name');
 
     return (rows as List)
         .map((row) => Account.fromMap(row as Map<String, dynamic>))
