@@ -47,7 +47,18 @@ class _MovementsTabState extends State<MovementsTab> {
     // nav, initState ya se llama una sola vez por la vida de la rama
     // (StatefulShellRoute mantiene su estado con IndexedStack), así que
     // alcanza con pedirlo acá.
-    widget.transactionViewModel.loadAllTransactions();
+    //
+    // `loadAllTransactions` llama a `notifyListeners()` antes del primer
+    // `await` (para prender el spinner ya mismo) — eso corre en el mismo
+    // tick que este `initState`, mientras el framework todavía está
+    // construyendo el árbol, y cualquier `ListenableBuilder` que ya esté
+    // escuchando a este ViewModel más arriba explota con "setState() or
+    // markNeedsBuild() called during build". Con `addPostFrameCallback`
+    // se pide recién cuando termina de construirse este frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.transactionViewModel.loadAllTransactions();
+    });
   }
 
   /// Movimientos visibles por cada grupo de mes (clave = la misma que
@@ -317,14 +328,14 @@ class _MovementsTabState extends State<MovementsTab> {
                               return _MovementRow(
                                 movement: visible[i],
                                 currency: widget.currency,
-                                showDivider: i != visible.length - 1 ||
-                                    remaining > 0,
+                                showDivider:
+                                    i != visible.length - 1 || remaining > 0,
                               );
                             }),
                             if (remaining > 0)
                               Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 4),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
                                 child: TextButton(
                                   onPressed: () => setState(() {
                                     _visibleCountByMonth[entry.key] =
