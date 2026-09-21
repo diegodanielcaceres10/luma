@@ -200,6 +200,7 @@ GoRouter buildAppRouter({
                     path: 'accounts/new',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
+                      showAppBar: false,
                       body: AccountFormTab(
                         userId: authViewModel.userId ?? '',
                         accountViewModel: accountViewModel,
@@ -214,6 +215,7 @@ GoRouter buildAppRouter({
                     path: 'accounts/:id/edit',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
+                      showAppBar: false,
                       body: AccountFormTab(
                         userId: authViewModel.userId ?? '',
                         accountViewModel: accountViewModel,
@@ -230,6 +232,7 @@ GoRouter buildAppRouter({
                     path: 'accounts/:id/balance',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
+                      showAppBar: false,
                       body: UpdateBalanceTab(
                         account: _findAccount(
                             accountViewModel, state.pathParameters['id']),
@@ -273,6 +276,7 @@ GoRouter buildAppRouter({
                     path: 'categories/new',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
+                      showAppBar: false,
                       body: CategoryFormTab(
                         userId: authViewModel.userId ?? '',
                         categoryViewModel: categoryViewModel,
@@ -284,6 +288,7 @@ GoRouter buildAppRouter({
                     path: 'categories/:id/edit',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
+                      showAppBar: false,
                       body: CategoryFormTab(
                         userId: authViewModel.userId ?? '',
                         categoryViewModel: categoryViewModel,
@@ -312,6 +317,7 @@ GoRouter buildAppRouter({
                     path: 'services/new',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
+                      showAppBar: false,
                       body: ServiceFormTab(
                         userId: authViewModel.userId ?? '',
                         serviceViewModel: serviceViewModel,
@@ -324,6 +330,7 @@ GoRouter buildAppRouter({
                     path: 'services/:id/edit',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
+                      showAppBar: false,
                       body: ServiceFormTab(
                         userId: authViewModel.userId ?? '',
                         serviceViewModel: serviceViewModel,
@@ -359,6 +366,7 @@ GoRouter buildAppRouter({
                     path: 'invoices/new',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
+                      showAppBar: false,
                       body: InvoiceFormTab(
                         userId: authViewModel.userId ?? '',
                         invoiceViewModel: invoiceViewModel,
