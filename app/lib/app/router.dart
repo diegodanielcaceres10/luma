@@ -132,6 +132,7 @@ GoRouter buildAppRouter({
                     path: 'monthly-balance',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: 'Saldos iniciales',
+                      showAppBar: false,
                       body: MonthlyBalanceTab(
                         userId: authViewModel.userId ?? '',
                         // Se recalcula acá mismo en vez de viajar por la
@@ -157,6 +158,7 @@ GoRouter buildAppRouter({
                         title: type == 'income'
                             ? 'Añadir ingreso'
                             : 'Añadir gasto',
+                        showAppBar: false,
                         body: AddTransactionTab(
                           type: type,
                           userId: authViewModel.userId ?? '',
@@ -173,6 +175,7 @@ GoRouter buildAppRouter({
                     path: 'transfer',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: 'Transferencia entre cuentas',
+                      showAppBar: false,
                       body: TransferFormTab(
                         userId: authViewModel.userId,
                         accountViewModel: accountViewModel,
@@ -248,8 +251,10 @@ GoRouter buildAppRouter({
                     path: 'accounts-overview',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
+                      showAppBar: false,
                       body: AccountsOverviewTab(
                         accountViewModel: accountViewModel,
+                        onBack: () => context.pop(),
                         onOpenForm: (account) => account == null
                             ? context.push('/accounts/new')
                             : context.push('/accounts/${account.id}/edit'),

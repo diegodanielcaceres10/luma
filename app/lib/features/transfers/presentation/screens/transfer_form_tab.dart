@@ -143,6 +143,29 @@ class _TransferFormTabState extends State<TransferFormTab> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                     children: [
+                      Row(
+                        children: [
+                          InkWell(
+                            onTap: isSubmitting ? null : widget.onDone,
+                            borderRadius: BorderRadius.circular(20),
+                            child: const Padding(
+                              padding: EdgeInsets.all(4),
+                              child: Icon(Icons.arrow_back_rounded,
+                                  color: AppColors.authTextPrimary),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Transferencia entre cuentas',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.authTextPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
                       if (accounts.length < 2)
                         const Text(
                           'Necesitás al menos dos cuentas activas para '

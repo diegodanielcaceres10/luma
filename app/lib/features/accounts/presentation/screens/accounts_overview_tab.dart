@@ -37,11 +37,15 @@ class AccountsOverviewTab extends StatelessWidget {
   /// de saldo para esta cuenta (distinta del formulario de edición).
   final ValueChanged<Account> onOpenUpdateBalance;
 
+  /// Vuelve a la pantalla desde la que se abrió esta vista (el Dashboard).
+  final VoidCallback onBack;
+
   const AccountsOverviewTab({
     super.key,
     required this.accountViewModel,
     required this.onOpenForm,
     required this.onOpenUpdateBalance,
+    required this.onBack,
   });
 
   @override
@@ -57,7 +61,21 @@ class AccountsOverviewTab extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              const Text('Cuentas', style: AppTextStyles.authTitle),
+              Row(
+                children: [
+                  InkWell(
+                    onTap: onBack,
+                    borderRadius: BorderRadius.circular(20),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(Icons.arrow_back_rounded,
+                          color: AppColors.authTextPrimary),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Cuentas', style: AppTextStyles.authTitle),
+                ],
+              ),
               const SizedBox(height: 8),
               const Text(
                 'Gestiona tus cuentas, actualiza saldos y mantén todo en '

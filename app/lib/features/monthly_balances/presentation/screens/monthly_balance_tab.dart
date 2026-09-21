@@ -108,6 +108,29 @@ class _MonthlyBalanceTabState extends State<MonthlyBalanceTab> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: vm.isSubmitting ? null : widget.onDone,
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.arrow_back_rounded,
+                            color: AppColors.authTextPrimary),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Saldos iniciales',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.authTextPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
                 Text(
                   'Completá el saldo con el que arrancó cada cuenta '
                   'en $monthLabel de ${now.year}.',
