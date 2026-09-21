@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../services/data/models/service.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import '../../data/models/invoice.dart';
 import '../../data/repositories/invoice_repository.dart';
@@ -38,6 +39,38 @@ class InvoiceViewModel extends ChangeNotifier {
 
   bool isCancelling(String invoiceId) => _cancellingIds.contains(invoiceId);
   bool isPaying(String invoiceId) => _payingIds.contains(invoiceId);
+
+  /// Lo que falta pagar este mes por servicios recurrentes, para el
+  /// BalanceCard del Dashboard: de los [activeServices] recibidos, deja
+  /// afuera los que ya tengan su factura del mes pagada o cancelada, y
+  /// suma el resto — el monto de la factura pendiente si ya se generó, o
+  /// el aproximado del servicio si todavía no existe factura para este
+  /// mes.
+  double pendingAmountForCurrentMonth(List<Service> activeServices) {
+    final now = DateTime.now();
+    var total = 0.0;
+
+    for (final service in activeServices) {
+      Invoice? invoiceThisMonth;
+      for (final invoice in _invoices) {
+        if (invoice.serviceId == service.id &&
+            invoice.month == now.month &&
+            invoice.year == now.year) {
+          invoiceThisMonth = invoice;
+          break;
+        }
+      }
+
+      if (invoiceThisMonth == null) {
+        total += service.approximateAmount;
+      } else if (invoiceThisMonth.isPending) {
+        total += invoiceThisMonth.amount;
+      }
+      // Pagada o cancelada: no suma, ya está resuelta para este mes.
+    }
+
+    return total;
+  }
 
   Future<void> loadInvoices() async {
     _isLoading = true;

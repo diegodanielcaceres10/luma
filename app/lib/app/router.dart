@@ -205,6 +205,7 @@ GoRouter buildAppRouter({
               categoryViewModel: categoryViewModel,
               monthlyBalanceViewModel: monthlyBalanceViewModel,
               invoiceViewModel: invoiceViewModel,
+              serviceViewModel: serviceViewModel,
             ),
           ),
           // ---- Saldo inicial del mes ----

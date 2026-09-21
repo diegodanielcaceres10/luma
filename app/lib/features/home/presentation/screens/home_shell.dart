@@ -6,6 +6,7 @@ import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
+import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import 'dashboard_tab.dart';
 
@@ -19,6 +20,7 @@ class HomeBranchScreen extends StatelessWidget {
   final CategoryViewModel categoryViewModel;
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final InvoiceViewModel invoiceViewModel;
+  final ServiceViewModel serviceViewModel;
 
   const HomeBranchScreen({
     super.key,
@@ -28,6 +30,7 @@ class HomeBranchScreen extends StatelessWidget {
     required this.categoryViewModel,
     required this.monthlyBalanceViewModel,
     required this.invoiceViewModel,
+    required this.serviceViewModel,
   });
 
   @override
@@ -39,6 +42,7 @@ class HomeBranchScreen extends StatelessWidget {
       categoryViewModel: categoryViewModel,
       monthlyBalanceViewModel: monthlyBalanceViewModel,
       invoiceViewModel: invoiceViewModel,
+      serviceViewModel: serviceViewModel,
       onSeeAllMovements: () => context.push('/movements'),
       onOpenMonthlyBalances: () => context.push('/monthly-balance'),
       onOpenAddTransaction: (type) => context.push('/add-transaction/$type'),

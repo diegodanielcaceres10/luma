@@ -10,6 +10,7 @@ import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
+import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../../transactions/data/models/transaction_entry.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 
@@ -27,6 +28,7 @@ class DashboardTab extends StatefulWidget {
   final CategoryViewModel categoryViewModel;
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final InvoiceViewModel invoiceViewModel;
+  final ServiceViewModel serviceViewModel;
   final VoidCallback? onSeeAllMovements;
   final VoidCallback onOpenMonthlyBalances;
   final ValueChanged<String> onOpenAddTransaction;
@@ -43,6 +45,7 @@ class DashboardTab extends StatefulWidget {
     required this.categoryViewModel,
     required this.monthlyBalanceViewModel,
     required this.invoiceViewModel,
+    required this.serviceViewModel,
     required this.onOpenMonthlyBalances,
     required this.onOpenAddTransaction,
     required this.onGoToAccounts,
@@ -72,13 +75,15 @@ class _DashboardTabState extends State<DashboardTab> {
       !widget.accountViewModel.isLoading &&
       !widget.transactionViewModel.isLoading &&
       !widget.monthlyBalanceViewModel.isLoading &&
-      !widget.invoiceViewModel.isLoading;
+      !widget.invoiceViewModel.isLoading &&
+      !widget.serviceViewModel.isLoading;
 
   void _retryLoad() {
     widget.accountViewModel.loadAccounts();
     widget.transactionViewModel.loadCurrentMonth();
     widget.monthlyBalanceViewModel.checkCurrentMonth();
     widget.invoiceViewModel.loadInvoices();
+    widget.serviceViewModel.loadServices();
   }
 
   @override
@@ -89,6 +94,7 @@ class _DashboardTabState extends State<DashboardTab> {
         widget.transactionViewModel,
         widget.monthlyBalanceViewModel,
         widget.invoiceViewModel,
+        widget.serviceViewModel,
       ]),
       builder: (context, _) {
         final accountViewModel = widget.accountViewModel;
@@ -151,6 +157,9 @@ class _DashboardTabState extends State<DashboardTab> {
         ? monthlyBalanceViewModel.pendingAccounts(activeAccounts)
         : const <Account>[];
 
+    final pendingInvoicesTotal = widget.invoiceViewModel
+        .pendingAmountForCurrentMonth(widget.serviceViewModel.activeServices);
+
     return ListView(
       key: const ValueKey('dashboard-content'),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -170,6 +179,10 @@ class _DashboardTabState extends State<DashboardTab> {
           onCompletePendingBalances:
               pendingAccounts.isEmpty ? null : widget.onOpenMonthlyBalances,
           onManageAccounts: widget.onManageAccounts,
+          pendingInvoicesTotal: pendingInvoicesTotal,
+          isLoadingPendingInvoices: widget.invoiceViewModel.isLoading ||
+              widget.serviceViewModel.isLoading,
+          onTapPendingInvoices: widget.onGoToInvoices,
         ),
         const SizedBox(height: 28),
         const _SectionHeader(title: 'Acciones rápidas'),
@@ -384,6 +397,9 @@ class _BalanceCard extends StatelessWidget {
   final int pendingAccountsCount;
   final VoidCallback? onCompletePendingBalances;
   final VoidCallback onManageAccounts;
+  final double pendingInvoicesTotal;
+  final bool isLoadingPendingInvoices;
+  final VoidCallback? onTapPendingInvoices;
 
   const _BalanceCard({
     required this.isLoading,
@@ -394,6 +410,9 @@ class _BalanceCard extends StatelessWidget {
     required this.onManageAccounts,
     this.pendingAccountsCount = 0,
     this.onCompletePendingBalances,
+    this.pendingInvoicesTotal = 0,
+    this.isLoadingPendingInvoices = false,
+    this.onTapPendingInvoices,
   });
 
   @override
@@ -488,6 +507,41 @@ class _BalanceCard extends StatelessWidget {
                       ),
                     ],
                   ),
+            if (isLoadingPendingInvoices) ...[
+              const SizedBox(height: 8),
+              const SizedBox(
+                height: 14,
+                width: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white70,
+                ),
+              ),
+            ] else if (pendingInvoicesTotal > 0) ...[
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: onTapPendingInvoices,
+                borderRadius: BorderRadius.circular(8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.receipt_long_rounded,
+                        color: Colors.white70, size: 16),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Facturas pendientes este mes: '
+                        '${formatCurrency(pendingInvoicesTotal, currency)}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (pendingAccountsCount > 0) ...[
               const SizedBox(height: 16),
               const Divider(color: Colors.white24, height: 1),
