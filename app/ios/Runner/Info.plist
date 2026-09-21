@@ -55,6 +55,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>io.luma.app</string>
+				<string>com.googleusercontent.apps.666450779730-lm6uh06dat4qo6eg03nej4b0kbrkqmee</string>
 			</array>
 		</dict>
 	</array>

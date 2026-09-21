@@ -7,7 +7,7 @@ import '../../../../core/widgets/luma_logo.dart';
 import '../widgets/google_sign_in_button.dart';
 import '../view_models/auth_view_model.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   final AuthViewModel viewModel;
 
   const LoginScreen({
@@ -16,7 +16,56 @@ class LoginScreen extends StatelessWidget {
   });
 
   @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  String? _lastShownError;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.viewModel.addListener(_handleViewModelChange);
+  }
+
+  @override
+  void dispose() {
+    widget.viewModel.removeListener(_handleViewModelChange);
+    super.dispose();
+  }
+
+  void _handleViewModelChange() {
+    final error = widget.viewModel.errorMessage;
+    if (error != null && error != _lastShownError) {
+      _lastShownError = error;
+      _showErrorToast(error);
+    } else if (error == null) {
+      _lastShownError = null;
+    }
+  }
+
+  // "Toast" con el detalle del error (en Android/iOS no hay Toast nativo
+  // accesible desde Flutter sin un plugin nuevo; el SnackBar es el
+  // equivalente estándar y permite copiar el texto completo).
+  void _showErrorToast(String message) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 8),
+        content: Text(message),
+        action: SnackBarAction(
+          label: 'Copiar',
+          onPressed: () => Clipboard.setData(ClipboardData(text: message)),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final viewModel = widget.viewModel;
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
@@ -65,7 +114,10 @@ class LoginScreen extends StatelessWidget {
                             ),
                             if (viewModel.errorMessage != null) ...[
                               const SizedBox(height: 16),
-                              Text(
+                              // Selectable para poder copiar el detalle del
+                              // error (código/descripción) sin depender del
+                              // SnackBar si ya desapareció.
+                              SelectableText(
                                 viewModel.errorMessage!,
                                 style: const TextStyle(color: AppColors.error),
                                 textAlign: TextAlign.center,

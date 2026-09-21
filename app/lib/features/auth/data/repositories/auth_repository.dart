@@ -6,7 +6,7 @@ class AuthRepository {
 
   AuthRepository(this._service);
 
-  Future<bool> signInWithGoogle() {
+  Future<void> signInWithGoogle() {
     return _service.signInWithGoogle();
   }
 

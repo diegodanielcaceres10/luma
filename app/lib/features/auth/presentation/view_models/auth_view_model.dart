@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/repositories/auth_repository.dart';
 
@@ -15,9 +16,6 @@ class AuthViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   bool _isAuthenticated = false;
-
-  // Completer used to resolve the sign-in once the OAuth callback arrives.
-  Completer<AuthState>? _oauthCompleter;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -46,11 +44,6 @@ class AuthViewModel extends ChangeNotifier {
   void _onAuthStateChange(AuthState state) {
     _isAuthenticated = _repository.isAuthenticated;
 
-    // If we are waiting for an OAuth callback, resolve the completer.
-    if (_oauthCompleter != null && !_oauthCompleter!.isCompleted) {
-      _oauthCompleter!.complete(state);
-    }
-
     notifyListeners();
   }
 
@@ -60,28 +53,49 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
 
-    _oauthCompleter = Completer<AuthState>();
-
     try {
-      // Launch the external Google sign-in flow. This returns immediately;
-      // the actual session arrives via the auth state stream.
       await _repository.signInWithGoogle();
-
-      // Wait up to 2 minutes for the OAuth callback to return.
-      await _oauthCompleter!.future.timeout(
-        const Duration(minutes: 2),
-        onTimeout: () =>
-            throw TimeoutException('Login cancelled or timed out.'),
-      );
-    } on TimeoutException {
-      _errorMessage = 'Inicio de sesión cancelado.';
+      _isAuthenticated = _repository.isAuthenticated;
       notifyListeners();
-    } catch (error) {
+    } on GoogleSignInException catch (error, stackTrace) {
+      debugPrint(
+        'Google sign-in failed: code=${error.code.name} '
+        'description=${error.description} details=${error.details}',
+      );
+      debugPrintStack(stackTrace: stackTrace);
+      _errorMessage = _googleSignInErrorMessage(error);
+      notifyListeners();
+    } on AuthException catch (error, stackTrace) {
+      debugPrint('Supabase Google sign-in failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _errorMessage = 'No se pudo iniciar sesión con Google.';
+      notifyListeners();
+    } catch (error, stackTrace) {
+      debugPrint('Unexpected Google sign-in error: $error');
+      debugPrintStack(stackTrace: stackTrace);
       _errorMessage = 'Error desconocido. No se pudo autenticar.';
       notifyListeners();
     } finally {
-      _oauthCompleter = null;
       _setLoading(false);
+    }
+  }
+
+  String _googleSignInErrorMessage(GoogleSignInException error) {
+    switch (error.code) {
+      case GoogleSignInExceptionCode.canceled:
+        return 'Inicio de sesión cancelado.';
+      case GoogleSignInExceptionCode.clientConfigurationError:
+        return 'Configuración de Google incompleta. Revisa package, SHA-1 y Web Client ID.';
+      case GoogleSignInExceptionCode.providerConfigurationError:
+        return 'Google Play Services no está disponible o está mal configurado.';
+      case GoogleSignInExceptionCode.uiUnavailable:
+        return 'No se pudo mostrar el inicio de sesión de Google.';
+      case GoogleSignInExceptionCode.interrupted:
+        return 'Inicio de sesión interrumpido. Intenta nuevamente.';
+      case GoogleSignInExceptionCode.userMismatch:
+        return 'La cuenta seleccionada no coincide con la sesión actual.';
+      case GoogleSignInExceptionCode.unknownError:
+        return 'No se pudo iniciar sesión con Google.';
     }
   }
 
