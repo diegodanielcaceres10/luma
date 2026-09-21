@@ -84,6 +84,15 @@ GoRouter buildAppRouter({
   required ServiceViewModel serviceViewModel,
   required InvoiceViewModel invoiceViewModel,
 }) {
+  // Por defecto, go_router SOLO refleja `context.go()` en la barra de
+  // direcciones del navegador — un `context.push()` cambia de pantalla
+  // pero deja la URL vieja (es diseño de la librería, no un bug nuestro:
+  // pensado para casos tipo diálogo, donde no tendría sentido que la URL
+  // apunte ahí). Como acá SÍ queremos que cada pantalla empujada tenga su
+  // URL propia (Cuentas > Nueva cuenta, Saldos iniciales, etc.), hay que
+  // prender esta opción global antes de crear el GoRouter.
+  GoRouter.optionURLReflectsImperativeAPIs = true;
+
   return GoRouter(
     initialLocation: '/',
     // GoRouter no re-evalúa `redirect` solo porque cambió el estado de la
