@@ -11,12 +11,18 @@ class ServiceViewModel extends ChangeNotifier {
   ServiceViewModel(this._repository);
 
   bool _isLoading = false;
+  bool _hasLoaded = false;
   bool _isSubmitting = false;
   String? _errorMessage;
   ServiceSubmitError? _submitError;
   List<Service> _services = [];
 
   bool get isLoading => _isLoading;
+
+  /// `true` una vez que la lista se cargó con éxito al menos una vez. Sirve
+  /// para distinguir "todavía no llegaron" de "llegaron y esta no existe"
+  /// (ver EntityRouteGuard).
+  bool get hasLoaded => _hasLoaded;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
   ServiceSubmitError? get submitError => _submitError;
@@ -45,6 +51,7 @@ class ServiceViewModel extends ChangeNotifier {
 
     try {
       _services = await _repository.getAll();
+      _hasLoaded = true;
     } catch (error) {
       _errorMessage = 'No se pudieron cargar los servicios.';
     } finally {

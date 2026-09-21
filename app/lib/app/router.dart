@@ -1,12 +1,14 @@
+import 'package:flutter/widgets.dart' show BuildContext, Widget;
 import 'package:go_router/go_router.dart';
 
 import '../core/navigation/app_back.dart';
+import '../core/navigation/entity_route_guard.dart';
+import '../features/accounts/data/models/account.dart';
 import '../features/accounts/presentation/screens/account_form_tab.dart';
 import '../features/accounts/presentation/screens/accounts_overview_tab.dart';
 import '../features/accounts/presentation/screens/accounts_tab.dart';
 import '../features/accounts/presentation/screens/update_balance_tab.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
-import '../features/accounts/presentation/widgets/account_route_guard.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
@@ -33,19 +35,74 @@ import '../features/transactions/presentation/view_models/transaction_view_model
 import '../features/transfers/presentation/screens/transfer_form_tab.dart';
 import 'not_found_screen.dart';
 
-Category? _findCategory(CategoryViewModel vm, String? id) {
-  for (final c in vm.categories) {
-    if (c.id == id) return c;
-  }
-  return null;
-}
+/// Guards de las rutas con `:id` (ver [EntityRouteGuard]): si el id no
+/// existe mandan a la lista con un aviso, en vez de abrir el formulario como
+/// si fuera un alta.
+Widget _accountGuard(
+  AccountViewModel vm,
+  String? id,
+  Widget Function(BuildContext, Account) builder,
+) =>
+    EntityRouteGuard<Account>(
+      listenable: vm,
+      entityId: id,
+      find: (id) {
+        for (final a in vm.accounts) {
+          if (a.id == id) return a;
+        }
+        return null;
+      },
+      isLoading: () => vm.isLoading,
+      hasLoaded: () => vm.hasLoaded,
+      errorMessage: () => vm.errorMessage,
+      notFoundMessage: 'No encontramos esa cuenta.',
+      fallbackRoute: '/accounts',
+      builder: builder,
+    );
 
-Service? _findService(ServiceViewModel vm, String? id) {
-  for (final s in vm.services) {
-    if (s.id == id) return s;
-  }
-  return null;
-}
+Widget _categoryGuard(
+  CategoryViewModel vm,
+  String? id,
+  Widget Function(BuildContext, Category) builder,
+) =>
+    EntityRouteGuard<Category>(
+      listenable: vm,
+      entityId: id,
+      find: (id) {
+        for (final c in vm.categories) {
+          if (c.id == id) return c;
+        }
+        return null;
+      },
+      isLoading: () => vm.isLoading,
+      hasLoaded: () => vm.hasLoaded,
+      errorMessage: () => vm.errorMessage,
+      notFoundMessage: 'No encontramos esa categoría.',
+      fallbackRoute: '/categories',
+      builder: builder,
+    );
+
+Widget _serviceGuard(
+  ServiceViewModel vm,
+  String? id,
+  Widget Function(BuildContext, Service) builder,
+) =>
+    EntityRouteGuard<Service>(
+      listenable: vm,
+      entityId: id,
+      find: (id) {
+        for (final s in vm.services) {
+          if (s.id == id) return s;
+        }
+        return null;
+      },
+      isLoading: () => vm.isLoading,
+      hasLoaded: () => vm.hasLoaded,
+      errorMessage: () => vm.errorMessage,
+      notFoundMessage: 'No encontramos ese servicio.',
+      fallbackRoute: '/services',
+      builder: builder,
+    );
 
 /// Navegación con historial único: el shell (drawer, header y bottom nav)
 /// es un `ShellRoute` común — un solo Navigator y una sola pila para toda
@@ -206,13 +263,13 @@ GoRouter buildAppRouter({
           ),
           GoRoute(
             path: '/accounts/:id/edit',
-            // Si el :id no existe, AccountRouteGuard manda a '/accounts'
-            // con un aviso (en vez de abrir el formulario como alta).
+            // Si el :id no existe, el guard manda a '/accounts' con un
+            // aviso (en vez de abrir el formulario como alta).
             builder: (context, state) => RoutedScreenScaffold(
-              body: AccountRouteGuard(
-                accountViewModel: accountViewModel,
-                accountId: state.pathParameters['id'],
-                builder: (context, account) => AccountFormTab(
+              body: _accountGuard(
+                accountViewModel,
+                state.pathParameters['id'],
+                (context, account) => AccountFormTab(
                   userId: authViewModel.userId ?? '',
                   accountViewModel: accountViewModel,
                   account: account,
@@ -227,10 +284,10 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/accounts/:id/balance',
             builder: (context, state) => RoutedScreenScaffold(
-              body: AccountRouteGuard(
-                accountViewModel: accountViewModel,
-                accountId: state.pathParameters['id'],
-                builder: (context, account) => UpdateBalanceTab(
+              body: _accountGuard(
+                accountViewModel,
+                state.pathParameters['id'],
+                (context, account) => UpdateBalanceTab(
                   account: account,
                   accountViewModel: accountViewModel,
                   categoryViewModel: categoryViewModel,
@@ -280,12 +337,15 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/categories/:id/edit',
             builder: (context, state) => RoutedScreenScaffold(
-              body: CategoryFormTab(
-                userId: authViewModel.userId ?? '',
-                categoryViewModel: categoryViewModel,
-                category: _findCategory(
-                    categoryViewModel, state.pathParameters['id']),
-                onDone: () => context.goBack(),
+              body: _categoryGuard(
+                categoryViewModel,
+                state.pathParameters['id'],
+                (context, category) => CategoryFormTab(
+                  userId: authViewModel.userId ?? '',
+                  categoryViewModel: categoryViewModel,
+                  category: category,
+                  onDone: () => context.goBack(),
+                ),
               ),
             ),
           ),
@@ -316,13 +376,16 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/services/:id/edit',
             builder: (context, state) => RoutedScreenScaffold(
-              body: ServiceFormTab(
-                userId: authViewModel.userId ?? '',
-                serviceViewModel: serviceViewModel,
-                categoryViewModel: categoryViewModel,
-                service: _findService(
-                    serviceViewModel, state.pathParameters['id']),
-                onDone: () => context.goBack(),
+              body: _serviceGuard(
+                serviceViewModel,
+                state.pathParameters['id'],
+                (context, service) => ServiceFormTab(
+                  userId: authViewModel.userId ?? '',
+                  serviceViewModel: serviceViewModel,
+                  categoryViewModel: categoryViewModel,
+                  service: service,
+                  onDone: () => context.goBack(),
+                ),
               ),
             ),
           ),

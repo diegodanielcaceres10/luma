@@ -8,11 +8,17 @@ class CategoryViewModel extends ChangeNotifier {
   CategoryViewModel(this._repository);
 
   bool _isLoading = false;
+  bool _hasLoaded = false;
   bool _isSubmitting = false;
   String? _errorMessage;
   List<Category> _categories = [];
 
   bool get isLoading => _isLoading;
+
+  /// `true` una vez que la lista se cargó con éxito al menos una vez. Sirve
+  /// para distinguir "todavía no llegaron" de "llegaron y esta no existe"
+  /// (ver EntityRouteGuard).
+  bool get hasLoaded => _hasLoaded;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
   List<Category> get categories => _categories;
@@ -45,6 +51,7 @@ class CategoryViewModel extends ChangeNotifier {
 
     try {
       _categories = await _repository.getAll();
+      _hasLoaded = true;
     } catch (error) {
       _errorMessage = 'No se pudieron cargar las categorías.';
     } finally {
