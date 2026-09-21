@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/accounts/data/models/account.dart';
@@ -155,8 +154,9 @@ GoRouter buildAppRouter({
                           ? 'income'
                           : 'expense';
                       return RoutedScreenScaffold(
-                        title:
-                            type == 'income' ? 'Añadir ingreso' : 'Añadir gasto',
+                        title: type == 'income'
+                            ? 'Añadir ingreso'
+                            : 'Añadir gasto',
                         body: AddTransactionTab(
                           type: type,
                           userId: authViewModel.userId ?? '',
@@ -186,14 +186,10 @@ GoRouter buildAppRouter({
                     path: 'accounts',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
-                      actions: [
-                        IconButton(
-                          onPressed: () => context.push('/accounts/new'),
-                          icon: const Icon(Icons.add_rounded),
-                        ),
-                      ],
+                      showAppBar: false,
                       body: AccountsTab(
                         accountViewModel: accountViewModel,
+                        onAdd: () => context.push('/accounts/new'),
                         onOpenForm: (account) => account == null
                             ? context.push('/accounts/new')
                             : context.push('/accounts/${account.id}/edit'),
@@ -264,14 +260,10 @@ GoRouter buildAppRouter({
                     path: 'categories',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
-                      actions: [
-                        IconButton(
-                          onPressed: () => context.push('/categories/new'),
-                          icon: const Icon(Icons.add_rounded),
-                        ),
-                      ],
+                      showAppBar: false,
                       body: CategoriesTab(
                         categoryViewModel: categoryViewModel,
+                        onAdd: () => context.push('/categories/new'),
                         onEdit: (category) =>
                             context.push('/categories/${category.id}/edit'),
                       ),
@@ -306,15 +298,11 @@ GoRouter buildAppRouter({
                     path: 'services',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
-                      actions: [
-                        IconButton(
-                          onPressed: () => context.push('/services/new'),
-                          icon: const Icon(Icons.add_rounded),
-                        ),
-                      ],
+                      showAppBar: false,
                       body: ServicesTab(
                         serviceViewModel: serviceViewModel,
                         categoryViewModel: categoryViewModel,
+                        onAdd: () => context.push('/services/new'),
                         onEdit: (service) =>
                             context.push('/services/${service.id}/edit'),
                       ),
@@ -351,18 +339,14 @@ GoRouter buildAppRouter({
                     path: 'invoices',
                     builder: (context, state) => RoutedScreenScaffold(
                       title: '',
-                      actions: [
-                        IconButton(
-                          onPressed: () => context.push('/invoices/new'),
-                          icon: const Icon(Icons.add_rounded),
-                        ),
-                      ],
+                      showAppBar: false,
                       body: InvoicesTab(
                         userId: authViewModel.userId ?? '',
                         invoiceViewModel: invoiceViewModel,
                         serviceViewModel: serviceViewModel,
                         categoryViewModel: categoryViewModel,
                         accountViewModel: accountViewModel,
+                        onAdd: () => context.push('/invoices/new'),
                         // Cada push crea un InvoicesTab nuevo (ya no hace
                         // falta el nonce que usaba HomeShell) — alcanza
                         // con leer el query param una vez, al construir.

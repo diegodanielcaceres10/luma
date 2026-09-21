@@ -13,9 +13,11 @@ import '../view_models/invoice_view_model.dart';
 
 enum _StatusFilter { all, pending, paid, cancelled }
 
-/// Contenido de la pestaña "Facturas". No tiene Scaffold propio — vive
-/// dentro del Scaffold del HomeShell, que es quien pone el header (con el
-/// botón "+" para crear) y el bottomNavigationBar.
+/// Contenido de la pestaña "Facturas". Es una ruta de primer nivel del
+/// drawer sin AppBar propio (ver RoutedScreenScaffold): vive dentro del
+/// Scaffold del AppShellScreen, que pone el header y el
+/// bottomNavigationBar. El "+" para crear va alineado con el título de
+/// acá abajo, no en ninguna barra superior.
 ///
 /// Además de crear facturas, desde acá se puede cancelar una factura
 /// pendiente (cerrar su flujo sin pagarla) o registrar su pago: eso crea
@@ -35,6 +37,9 @@ class InvoicesTab extends StatefulWidget {
   /// State (ver el nonce en HomeShell).
   final bool initialPendingFilter;
 
+  /// Abre el formulario de alta ("+" del título).
+  final VoidCallback onAdd;
+
   const InvoicesTab({
     super.key,
     required this.userId,
@@ -42,6 +47,7 @@ class InvoicesTab extends StatefulWidget {
     required this.serviceViewModel,
     required this.categoryViewModel,
     required this.accountViewModel,
+    required this.onAdd,
     this.initialPendingFilter = false,
   });
 
@@ -223,13 +229,23 @@ class _InvoicesTabState extends State<InvoicesTab> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              const Text(
-                'Facturas',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                ),
+              Row(
+                children: [
+                  const Text(
+                    'Facturas',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.authTextPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: widget.onAdd,
+                    icon: const Icon(Icons.add_rounded),
+                    color: AppColors.authTextPrimary,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               _StatusFilterRow(
