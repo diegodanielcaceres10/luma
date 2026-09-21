@@ -58,19 +58,32 @@ class AuthViewModel extends ChangeNotifier {
       _isAuthenticated = _repository.isAuthenticated;
       notifyListeners();
     } on GoogleSignInException catch (error, stackTrace) {
-      debugPrint('Google sign-in failed: $error');
+      debugPrint(
+        'Google sign-in failed: code=${error.code.name} '
+        'description=${error.description} details=${error.details}',
+      );
       debugPrintStack(stackTrace: stackTrace);
       _errorMessage = _googleSignInErrorMessage(error);
+      if (kDebugMode) {
+        _errorMessage = '${_errorMessage!}\n[debug] code=${error.code.name} '
+            'desc=${error.description ?? "-"} details=${error.details ?? "-"}';
+      }
       notifyListeners();
     } on AuthException catch (error, stackTrace) {
       debugPrint('Supabase Google sign-in failed: $error');
       debugPrintStack(stackTrace: stackTrace);
       _errorMessage = error.message;
+      if (kDebugMode) {
+        _errorMessage = '${_errorMessage!}\n[debug] $error';
+      }
       notifyListeners();
     } catch (error, stackTrace) {
       debugPrint('Unexpected Google sign-in error: $error');
       debugPrintStack(stackTrace: stackTrace);
       _errorMessage = 'Error desconocido. No se pudo autenticar.';
+      if (kDebugMode) {
+        _errorMessage = '${_errorMessage!}\n[debug] $error';
+      }
       notifyListeners();
     } finally {
       _setLoading(false);

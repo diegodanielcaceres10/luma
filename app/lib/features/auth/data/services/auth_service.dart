@@ -18,6 +18,12 @@ class AuthService {
   ///  - las Redirect URLs del proyecto en Supabase
   static const oauthRedirectUrl = 'io.luma.app://login-callback';
 
+  /// Scopes mínimos para obtener un accessToken de Google válido.
+  /// En Android, `AuthorizationRequest.Builder.setRequestedScopes` rechaza
+  /// una lista vacía con `IllegalArgumentException: requestedScopes cannot
+  /// be null or empty`, por eso no se puede pedir `const <String>[]`.
+  static const _authorizationScopes = <String>['email'];
+
   Future<void> signInWithGoogle() async {
     if (kIsWeb) {
       await _client.auth.signInWithOAuth(
@@ -40,10 +46,10 @@ class AuthService {
     final googleAuthentication = googleAccount.authentication;
     final googleAuthorization =
         await googleAccount.authorizationClient.authorizationForScopes(
-              const <String>[],
+              _authorizationScopes,
             ) ??
             await googleAccount.authorizationClient.authorizeScopes(
-              const <String>[],
+              _authorizationScopes,
             );
 
     final idToken = googleAuthentication.idToken;
