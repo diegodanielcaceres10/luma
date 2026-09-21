@@ -17,8 +17,8 @@ const _navItems = [
 
 /// Índice del bottom nav que corresponde a una ruta. Movimientos,
 /// Estadísticas y Perfil se resaltan por prefijo; cualquier otra ruta
-/// (el Dashboard y todo lo que cuelga de '/': Cuentas, Categorías,
-/// formularios, etc.) cuenta como "Inicio", igual que antes.
+/// (el Dashboard, Cuentas, Categorías, Servicios, Facturas, formularios,
+/// etc.) cuenta como "Inicio", igual que antes.
 int _navIndexFor(String path) {
   for (var i = 1; i < _navItems.length; i++) {
     final base = _navItems[i].$3;
@@ -232,8 +232,8 @@ class _AppDrawer extends StatelessWidget {
     final isServices = _isActive('/services');
     final isInvoices = _isActive('/invoices');
     // "Inicio" solo se resalta cuando ninguna de las otras cuatro rutas
-    // (todas colgadas de '/') es la que está activa — si no, se quedaba
-    // marcado "Inicio" mientras se navegaba por Cuentas, Categorías, etc.
+    // es la que está activa — si no, se quedaba marcado "Inicio" mientras
+    // se navegaba por Cuentas, Categorías, etc.
     // Saldo inicial, nueva transacción y transferencia sí siguen contando
     // como "Inicio", tal como antes.
     final isHome = navIndex == 0 &&
@@ -275,10 +275,10 @@ class _AppDrawer extends StatelessWidget {
               isSelected: isHome,
               onTap: () => onNavigate(_navItems[0].$3),
             ),
-            // Cuentas, Categorías, Servicios y Facturas: destinos del
-            // drawer que cuelgan de '/'. Se abren con `push` (vía
-            // `onNavigate`) para que se apilen en el historial único y
-            // "atrás" vuelva a la pantalla desde la que se abrieron.
+            // Cuentas, Categorías, Servicios y Facturas: destinos propios
+            // del drawer. Se abren con `push` (vía `onNavigate`) para que
+            // se apilen en el historial único y "atrás" vuelva a la
+            // pantalla desde la que se abrieron.
             _tile(
               context,
               icon: Icons.account_balance_wallet_outlined,
