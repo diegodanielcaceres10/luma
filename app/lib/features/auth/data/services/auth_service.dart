@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../../core/config/app_env.dart';
 
 class AuthService {
   final SupabaseClient _client;
@@ -80,14 +81,17 @@ class AuthService {
   Future<void> _initializeGoogleSignIn() {
     return _googleSignInInitialization ??= _googleSignIn.initialize(
       clientId: _nativeClientId,
-      serverClientId: _requiredEnv('GOOGLE_WEB_CLIENT_ID'),
+      serverClientId: _requiredEnv(
+        AppEnv.googleWebClientId,
+        'GOOGLE_WEB_CLIENT_ID',
+      ),
     );
   }
 
   String? get _nativeClientId {
     switch (defaultTargetPlatform) {
       case TargetPlatform.iOS:
-        return _requiredEnv('GOOGLE_IOS_CLIENT_ID');
+        return _requiredEnv(AppEnv.googleIosClientId, 'GOOGLE_IOS_CLIENT_ID');
       case TargetPlatform.android:
         return null;
       case TargetPlatform.fuchsia:
@@ -98,10 +102,12 @@ class AuthService {
     }
   }
 
-  String _requiredEnv(String key) {
-    final value = dotenv.env[key]?.trim();
-    if (value == null || value.isEmpty) {
-      throw AuthException('Missing $key in .env.');
+  String _requiredEnv(String rawValue, String key) {
+    final value = rawValue.trim();
+    if (value.isEmpty) {
+      throw AuthException(
+        'Missing $key. Run the app with --dart-define-from-file=.env.',
+      );
     }
     return value;
   }

@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
+import 'core/config/app_env.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Sin esto, go_router arma URLs con "#" en Web (ej. /#/movements) — no
   // afecta a mobile/desktop, ahí no hay URL de por medio.
   usePathUrlStrategy();
-  await dotenv.load(fileName: ".env");
   await initializeDateFormatting('es');
 
+  if (AppEnv.supabaseUrl.isEmpty || AppEnv.supabasePublishableKey.isEmpty) {
+    throw StateError(
+      'Faltan SUPABASE_URL o SUPABASE_PUBLISHABLE_KEY. Ejecutá la app con '
+      '--dart-define-from-file=.env (ver README).',
+    );
+  }
+
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    publishableKey: dotenv.env['SUPABASE_PUBLISHABLE_KEY']!,
+    url: AppEnv.supabaseUrl,
+    publishableKey: AppEnv.supabasePublishableKey,
   );
   runApp(const LumaApp());
 }

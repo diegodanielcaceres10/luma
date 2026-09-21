@@ -17,8 +17,15 @@ $ErrorActionPreference = "Stop"
 $AppDir = Split-Path -Parent $PSScriptRoot
 Set-Location $AppDir
 
+# Las variables (Supabase, Google) se compilan dentro del APK desde app\.env;
+# ya no viajan como asset. Ver README.
+$EnvFile = ".env"
+if (-not (Test-Path $EnvFile)) {
+    throw "No encontré app\$EnvFile (copiá .env.example y completalo)"
+}
+
 Write-Host "Compilando APK (debug)..." -ForegroundColor Cyan
-flutter build apk --debug --android-skip-build-dependency-validation
+flutter build apk --debug --android-skip-build-dependency-validation --dart-define-from-file=$EnvFile
 if ($LASTEXITCODE -ne 0) {
     throw "flutter build apk falló (exit code $LASTEXITCODE)"
 }

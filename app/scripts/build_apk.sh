@@ -11,8 +11,16 @@ set -e
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$APP_DIR"
 
+# Las variables (Supabase, Google) se compilan dentro del APK desde app/.env;
+# ya no viajan como asset. Ver README.
+ENV_FILE=".env"
+if [ ! -f "$ENV_FILE" ]; then
+  echo "❌ No encontré app/$ENV_FILE (copiá .env.example y completalo)"
+  exit 1
+fi
+
 echo "⚙️  Compilando APK (debug)..."
-flutter build apk --debug
+flutter build apk --debug --dart-define-from-file="$ENV_FILE"
 
 SRC_APK="build/app/outputs/flutter-apk/app-debug.apk"
 if [ ! -f "$SRC_APK" ]; then
