@@ -154,11 +154,13 @@ GoRouter buildAppRouter({
           ),
           // ---- Nueva transacción ----
           GoRoute(
-            path: '/add-transaction/:type',
+            // El regex restringe `:type` a income/expense: cualquier otro
+            // valor no coincide con ninguna ruta y cae en NotFoundScreen
+            // (ver `errorBuilder`). go_router compara los paths sin
+            // distinguir mayúsculas, por eso el builder lo normaliza.
+            path: '/add-transaction/:type(income|expense)',
             builder: (context, state) {
-              final type = state.pathParameters['type'] == 'income'
-                  ? 'income'
-                  : 'expense';
+              final type = state.pathParameters['type']!.toLowerCase();
               return RoutedScreenScaffold(
                 body: AddTransactionTab(
                   type: type,
