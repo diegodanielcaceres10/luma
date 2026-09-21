@@ -6,7 +6,7 @@ import '../../../accounts/data/models/account.dart';
 import '../view_models/monthly_balance_view_model.dart';
 
 /// Contenido de la pestaña "Saldos iniciales". No tiene Scaffold propio —
-/// vive dentro del Scaffold del HomeShell. Se llega acá desde el aviso en
+/// se muestra dentro de un RoutedScreenScaffold. Se llega acá desde el aviso en
 /// el card de balance del Dashboard, para cargar a mano el saldo inicial
 /// del mes en curso de cada cuenta que todavía no lo tiene.
 class MonthlyBalanceTab extends StatefulWidget {
@@ -111,7 +111,7 @@ class _MonthlyBalanceTabState extends State<MonthlyBalanceTab> {
                 Row(
                   children: [
                     InkWell(
-                      onTap: widget.onDone,
+                      onTap: vm.isSubmitting ? null : widget.onDone,
                       borderRadius: BorderRadius.circular(20),
                       child: const Padding(
                         padding: EdgeInsets.all(4),

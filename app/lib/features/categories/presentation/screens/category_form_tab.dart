@@ -11,8 +11,8 @@ import '../../data/models/category.dart';
 import '../view_models/category_view_model.dart';
 
 /// Contenido de la pestaña "Nueva categoría" / "Editar categoría". No tiene
-/// Scaffold propio — vive dentro del Scaffold del HomeShell, que es quien
-/// pone el header y el bottomNavigationBar.
+/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
+/// del header y encima del bottomNavigationBar que pone AppShellScreen.
 ///
 /// Si [category] viene nulo, es un alta nueva (con [initialType] fijo).
 /// Si viene con valor, es edición — el tipo se puede seguir cambiando.

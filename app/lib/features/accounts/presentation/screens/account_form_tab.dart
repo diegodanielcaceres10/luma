@@ -6,8 +6,8 @@ import '../view_models/account_view_model.dart'
     show AccountSubmitError, AccountViewModel;
 
 /// Contenido de la pestaña "Nueva cuenta" / "Editar cuenta". No tiene
-/// Scaffold propio — vive dentro del Scaffold del HomeShell, que es quien
-/// pone el header y el bottomNavigationBar.
+/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
+/// del header y encima del bottomNavigationBar que pone AppShellScreen.
 ///
 /// Si [account] viene nulo, es un alta nueva (con saldo inicial editable).
 /// Si viene con valor, es edición — el saldo no se toca desde acá, se

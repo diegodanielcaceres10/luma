@@ -70,13 +70,15 @@ class _LumaAppState extends State<LumaApp> {
 
     final monthlyBalanceRepository =
         MonthlyBalanceRepository(MonthlyBalanceService(client));
-    _monthlyBalanceViewModel = MonthlyBalanceViewModel(monthlyBalanceRepository);
+    _monthlyBalanceViewModel =
+        MonthlyBalanceViewModel(monthlyBalanceRepository);
 
     final serviceRepository = ServiceRepository(ServiceService(client));
     _serviceViewModel = ServiceViewModel(serviceRepository);
 
     final invoiceRepository = InvoiceRepository(InvoiceService(client));
-    _invoiceViewModel = InvoiceViewModel(invoiceRepository, _transactionViewModel);
+    _invoiceViewModel =
+        InvoiceViewModel(invoiceRepository, _transactionViewModel);
 
     _authViewModel.addListener(_onAuthChanged);
     if (_authViewModel.isAuthenticated) {

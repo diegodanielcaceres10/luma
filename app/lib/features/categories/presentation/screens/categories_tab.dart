@@ -5,17 +5,23 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../data/models/category.dart';
 import '../view_models/category_view_model.dart';
 
-/// Contenido de la pestaña "Categorías". No tiene Scaffold propio — vive
-/// dentro del Scaffold del HomeShell, que es quien pone el header (con el
-/// botón "+" para crear) y el bottomNavigationBar.
+/// Contenido de la pestaña "Categorías". Es una ruta de primer nivel del
+/// drawer sin AppBar propio (ver RoutedScreenScaffold): vive dentro del
+/// Scaffold del AppShellScreen, que pone el header y el
+/// bottomNavigationBar. El "+" para crear va alineado con el título de
+/// acá abajo, no en ninguna barra superior.
 class CategoriesTab extends StatelessWidget {
   final CategoryViewModel categoryViewModel;
   final ValueChanged<Category> onEdit;
+
+  /// Abre el formulario de alta ("+" del título).
+  final VoidCallback onAdd;
 
   const CategoriesTab({
     super.key,
     required this.categoryViewModel,
     required this.onEdit,
+    required this.onAdd,
   });
 
   @override
@@ -38,13 +44,23 @@ class CategoriesTab extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              const Text(
-                'Categorías',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                ),
+              Row(
+                children: [
+                  const Text(
+                    'Categorías',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.authTextPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: onAdd,
+                    icon: const Icon(Icons.add_rounded),
+                    color: AppColors.authTextPrimary,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               if (expenses.isEmpty && incomes.isEmpty)

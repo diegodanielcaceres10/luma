@@ -6,8 +6,8 @@ import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 
 /// Contenido de la pestaña "Transferencia entre cuentas". No tiene
-/// Scaffold propio — vive dentro del Scaffold del HomeShell, que es quien
-/// pone el header y el bottomNavigationBar.
+/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
+/// del header y encima del bottomNavigationBar que pone AppShellScreen.
 ///
 /// Al guardar, se crean dos transacciones sin categoría: un 'expense'
 /// en la cuenta de origen y un 'income' en la de destino, ambas con el

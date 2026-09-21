@@ -50,8 +50,6 @@ class ServiceService {
   /// Activa o inactiva un servicio desde la lista, sin pasar por el
   /// formulario completo.
   Future<void> setActive({required String id, required bool isActive}) async {
-    await _client
-        .from('services')
-        .update({'is_active': isActive}).eq('id', id);
+    await _client.from('services').update({'is_active': isActive}).eq('id', id);
   }
 }

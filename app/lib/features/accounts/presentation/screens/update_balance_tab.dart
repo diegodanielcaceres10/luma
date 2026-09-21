@@ -32,9 +32,9 @@ const _kAccountIcons = [
 /// de pisar el campo `balance` directamente. Se abre desde el ícono de
 /// actualización de cada tarjeta en [AccountsOverviewTab].
 ///
-/// No tiene Scaffold propio — vive dentro del Scaffold del HomeShell, que es
-/// quien pone el header (menú + marca Luma + campana) y el
-/// bottomNavigationBar.
+/// No tiene Scaffold propio — se muestra dentro de un RoutedScreenScaffold,
+/// debajo del header (menú + marca Luma + campana) y encima del
+/// bottomNavigationBar que pone AppShellScreen.
 ///
 /// Entrega 4: agrega el popup de "Agregar movimiento" que abre el botón de
 /// la Entrega 3 — por ahora solo título, "Cancelar" y "Guardar", todavía
@@ -69,10 +69,9 @@ const _kAccountIcons = [
 /// gasto no declarado). El propio RPC actualiza `accounts.balance` en la
 /// misma operación — acá no se hace ningún update aparte sobre la cuenta.
 class UpdateBalanceTab extends StatefulWidget {
-  /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` porque,
-  /// igual que en [AccountFormTab], el HomeShell mantiene esta pestaña
-  /// siempre montada en el `IndexedStack` aunque todavía no se haya
-  /// abierto desde ninguna tarjeta.
+  /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` si el id
+  /// de la URL (`/accounts/:id/balance`) no corresponde a ninguna cuenta
+  /// cargada.
   final Account? account;
 
   /// Se usa para leer [AccountViewModel.primaryCurrency] (formato de los
@@ -153,8 +152,7 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   @override
   void didUpdateWidget(UpdateBalanceTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // El HomeShell reutiliza esta misma pantalla para cada cuenta que se
-    // abre (cambia solo la `key`), pero por si alguna vez se reusa la
+    // Cada ruta crea su propio State, pero por si alguna vez se reusa la
     // instancia con otra cuenta, no queremos arrastrar un monto viejo.
     if (oldWidget.account?.id != widget.account?.id) {
       _newBalanceController.clear();

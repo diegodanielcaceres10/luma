@@ -12,7 +12,7 @@ enum _TypeFilter { all, income, expense }
 
 enum _DateRangeFilter { today, thisWeek, last7Days, last15Days, thisMonth, all }
 
-/// Contenido de la rama "Movimientos" (ver router.dart/AppShellScreen,
+/// Contenido de la pantalla "Movimientos" (ver router.dart/AppShellScreen,
 /// que ponen el Scaffold compartido con el header y el bottomNavigationBar).
 class MovementsTab extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
@@ -41,13 +41,23 @@ class _MovementsTabState extends State<MovementsTab> {
   void initState() {
     super.initState();
     // Carga perezosa: el historial completo de transacciones recién se
-    // pide la primera vez que se entra a "Movimientos", no al arrancar.
-    // Antes esto lo manejaba HomeShell con un flag (`_movementsLoaded`) y
-    // `_onTabTap`; ahora que "Movimientos" es su propia rama del bottom
-    // nav, initState ya se llama una sola vez por la vida de la rama
-    // (StatefulShellRoute mantiene su estado con IndexedStack), así que
-    // alcanza con pedirlo acá.
-    widget.transactionViewModel.loadAllTransactions();
+    // pide al entrar a "Movimientos", no al arrancar. La pantalla se crea
+    // de nuevo en cada visita (no se mantiene viva al cambiar de
+    // pestaña), así que el historial completo se vuelve a pedir cada vez:
+    // decisión a propósito — para un uso personal el volumen es chico y
+    // así los datos siempre están frescos.
+    //
+    // `loadAllTransactions` llama a `notifyListeners()` antes del primer
+    // `await` (para prender el spinner ya mismo) — eso corre en el mismo
+    // tick que este `initState`, mientras el framework todavía está
+    // construyendo el árbol, y cualquier `ListenableBuilder` que ya esté
+    // escuchando a este ViewModel más arriba explota con "setState() or
+    // markNeedsBuild() called during build". Con `addPostFrameCallback`
+    // se pide recién cuando termina de construirse este frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.transactionViewModel.loadAllTransactions();
+    });
   }
 
   /// Movimientos visibles por cada grupo de mes (clave = la misma que
@@ -317,14 +327,14 @@ class _MovementsTabState extends State<MovementsTab> {
                               return _MovementRow(
                                 movement: visible[i],
                                 currency: widget.currency,
-                                showDivider: i != visible.length - 1 ||
-                                    remaining > 0,
+                                showDivider:
+                                    i != visible.length - 1 || remaining > 0,
                               );
                             }),
                             if (remaining > 0)
                               Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 4),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
                                 child: TextButton(
                                   onPressed: () => setState(() {
                                     _visibleCountByMonth[entry.key] =

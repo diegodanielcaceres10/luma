@@ -6,20 +6,26 @@ import '../../../../core/utils/currency_format.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
-/// Contenido de la pestaña "Cuentas". No tiene Scaffold propio — vive dentro
-/// del Scaffold del HomeShell, que es quien pone el header y el
-/// bottomNavigationBar.
+/// Contenido de la pestaña "Cuentas". Es una ruta de primer nivel del
+/// drawer sin AppBar propio (ver RoutedScreenScaffold): vive dentro del
+/// Scaffold del AppShellScreen, que pone el header y el
+/// bottomNavigationBar. El "+" para crear va alineado con el título de
+/// acá abajo, no en ninguna barra superior.
 class AccountsTab extends StatelessWidget {
   final AccountViewModel accountViewModel;
 
-  /// Pide al HomeShell que muestre la pestaña de formulario. `null` = alta
-  /// nueva; con valor = edición de esa cuenta.
+  /// Abre el formulario de cuenta. `null` = alta nueva; con valor = edición
+  /// de esa cuenta.
   final ValueChanged<Account?> onOpenForm;
+
+  /// Abre el formulario de alta ("+" del título).
+  final VoidCallback onAdd;
 
   const AccountsTab({
     super.key,
     required this.accountViewModel,
     required this.onOpenForm,
+    required this.onAdd,
   });
 
   @override
@@ -40,13 +46,23 @@ class AccountsTab extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              const Text(
-                'Cuentas',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                ),
+              Row(
+                children: [
+                  const Text(
+                    'Cuentas',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.authTextPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: onAdd,
+                    icon: const Icon(Icons.add_rounded),
+                    color: AppColors.authTextPrimary,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               if (accounts.isEmpty)

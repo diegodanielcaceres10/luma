@@ -13,9 +13,11 @@ import '../view_models/invoice_view_model.dart';
 
 enum _StatusFilter { all, pending, paid, cancelled }
 
-/// Contenido de la pestaña "Facturas". No tiene Scaffold propio — vive
-/// dentro del Scaffold del HomeShell, que es quien pone el header (con el
-/// botón "+" para crear) y el bottomNavigationBar.
+/// Contenido de la pestaña "Facturas". Es una ruta de primer nivel del
+/// drawer sin AppBar propio (ver RoutedScreenScaffold): vive dentro del
+/// Scaffold del AppShellScreen, que pone el header y el
+/// bottomNavigationBar. El "+" para crear va alineado con el título de
+/// acá abajo, no en ninguna barra superior.
 ///
 /// Además de crear facturas, desde acá se puede cancelar una factura
 /// pendiente (cerrar su flujo sin pagarla) o registrar su pago: eso crea
@@ -30,10 +32,12 @@ class InvoicesTab extends StatefulWidget {
 
   /// Si es true, la pestaña arranca con el filtro "Pendientes" ya
   /// aplicado (ej. al entrar desde la quick action "Facturas por pagar"
-  /// del Dashboard). Solo se lee una vez, al crear el State — para que
-  /// tenga efecto en una pestaña ya montada hace falta forzar un nuevo
-  /// State (ver el nonce en HomeShell).
+  /// del Dashboard). Solo se lee una vez, al crear el State — como
+  /// cada `push` crea una pantalla nueva, alcanza con eso.
   final bool initialPendingFilter;
+
+  /// Abre el formulario de alta ("+" del título).
+  final VoidCallback onAdd;
 
   const InvoicesTab({
     super.key,
@@ -42,6 +46,7 @@ class InvoicesTab extends StatefulWidget {
     required this.serviceViewModel,
     required this.categoryViewModel,
     required this.accountViewModel,
+    required this.onAdd,
     this.initialPendingFilter = false,
   });
 
@@ -223,13 +228,23 @@ class _InvoicesTabState extends State<InvoicesTab> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              const Text(
-                'Facturas',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                ),
+              Row(
+                children: [
+                  const Text(
+                    'Facturas',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.authTextPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: widget.onAdd,
+                    icon: const Icon(Icons.add_rounded),
+                    color: AppColors.authTextPrimary,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               _StatusFilterRow(

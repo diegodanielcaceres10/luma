@@ -116,8 +116,7 @@ class TransactionViewModel extends ChangeNotifier {
   /// plata entre cuentas propias no es un gasto real, y de todos modos no
   /// tienen categoría — contarlas acá las mostraba como "Sin categoría".
   static List<CategoryTotal> _breakdownOf(List<TransactionEntry> entries) {
-    final expenses =
-        entries.where((t) => t.type == 'expense' && !t.isTransfer);
+    final expenses = entries.where((t) => t.type == 'expense' && !t.isTransfer);
     final Map<String, double> totals = {};
     final Map<String, TransactionCategory> categories = {};
 

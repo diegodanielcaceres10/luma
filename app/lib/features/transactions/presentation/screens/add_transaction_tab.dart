@@ -8,9 +8,9 @@ import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../view_models/transaction_view_model.dart';
 
 /// Contenido de la pestaña "Añadir ingreso" / "Añadir gasto". No tiene
-/// Scaffold propio — vive dentro del Scaffold del HomeShell, que es quien
-/// pone el header y el bottomNavigationBar. Se llega acá desde "Acciones
-/// rápidas" en el Dashboard.
+/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
+/// del header y encima del bottomNavigationBar que pone AppShellScreen. Se
+/// llega acá desde "Acciones rápidas" en el Dashboard.
 ///
 /// [type]: 'income' o 'expense'. Fija el tipo de transacción que se va a
 /// crear; no hay selector de tipo en el formulario a propósito, porque se

@@ -3,178 +3,105 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
-import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../widgets/luma_header.dart';
-import 'home_shell.dart';
 
-/// Accesos compartidos entre el bottom nav y el drawer — una entrada por
-/// rama real de `StatefulShellRoute.indexedStack` (ver router.dart).
+/// Accesos compartidos entre el bottom nav y el drawer: (ícono, texto,
+/// ruta). Son las 4 entradas fijas del bottom nav — ver router.dart.
 const _navItems = [
-  (Icons.home_rounded, 'Inicio'),
-  (Icons.trending_up_rounded, 'Movimientos'),
-  (Icons.bar_chart_rounded, 'Estadísticas'),
-  (Icons.person_outline_rounded, 'Perfil'),
+  (Icons.home_rounded, 'Inicio', '/'),
+  (Icons.trending_up_rounded, 'Movimientos', '/movements'),
+  (Icons.bar_chart_rounded, 'Estadísticas', '/statistics'),
+  (Icons.person_outline_rounded, 'Perfil', '/profile'),
 ];
 
-/// FASE 2 de la migración a rutas: el Scaffold compartido (drawer, header,
-/// bottom nav) de las 4 ramas reales del bottom nav. Reemplaza al viejo
-/// `Scaffold`/`PopScope` que tenía `HomeShell` para las 17 "pestañas".
-///
-/// "Inicio" (rama 0) sigue alojando, sin tocar su lógica, todo lo que
-/// todavía no tiene ruta propia (Cuentas, Categorías, Servicios, Facturas
-/// y sus formularios) — ver [HomeBranchScreen]. Como ese mecanismo viejo
-/// vive DENTRO de una rama del shell y no en rutas propias, esta pantalla
-/// necesita leer su estado interno (para el header, el drawer y el botón
-/// atrás) a través de [homeBranchKey] y enterarse de sus cambios a través
-/// de [homeBranchRevision] — el día que esas pantallas pasen a ser rutas
-/// propias (fase aparte del plan), toda esta plomería deja de hacer
-/// falta.
-class AppShellScreen extends StatefulWidget {
-  final StatefulNavigationShell navigationShell;
-  final GlobalKey<HomeBranchScreenState> homeBranchKey;
-  final Listenable homeBranchRevision;
-  final AuthViewModel authViewModel;
-
-  const AppShellScreen({
-    super.key,
-    required this.navigationShell,
-    required this.homeBranchKey,
-    required this.homeBranchRevision,
-    required this.authViewModel,
-  });
-
-  @override
-  State<AppShellScreen> createState() => _AppShellScreenState();
+/// Índice del bottom nav que corresponde a una ruta. Movimientos,
+/// Estadísticas y Perfil se resaltan por prefijo; cualquier otra ruta
+/// (el Dashboard, Cuentas, Categorías, Servicios, Facturas, formularios,
+/// etc.) cuenta como "Inicio", igual que antes.
+int _navIndexFor(String path) {
+  for (var i = 1; i < _navItems.length; i++) {
+    final base = _navItems[i].$3;
+    if (path == base || path.startsWith('$base/')) return i;
+  }
+  return 0;
 }
 
-class _AppShellScreenState extends State<AppShellScreen> {
-  int get _branchIndex => widget.navigationShell.currentIndex;
-  HomeBranchScreenState? get _homeBranch => widget.homeBranchKey.currentState;
+/// Scaffold compartido (drawer, header, bottom nav) de un `ShellRoute`
+/// común: hay UN solo Navigator y UNA sola pila para toda la app. Bottom
+/// nav y drawer navegan con `context.push`, así que cada pantalla que se
+/// abre se apila y "atrás" (botón del navegador o del dispositivo)
+/// vuelve siempre a la pantalla anterior, en el mismo orden en que se
+/// visitaron — sin manejo de "atrás" a mano.
+///
+/// Tocar el destino en el que ya estás no hace nada, para no apilar la
+/// misma pantalla dos veces seguidas.
+class AppShellScreen extends StatelessWidget {
+  /// El Navigator del `ShellRoute`: la pantalla actual y las apiladas.
+  final Widget child;
 
-  @override
-  void initState() {
-    super.initState();
-    // HomeBranchScreen (rama "Inicio") avisa por acá cada vez que cambia
-    // su índice interno — hace falta reconstruirse para reflejarlo en el
-    // header, el drawer y el botón atrás.
-    widget.homeBranchRevision.addListener(_onHomeBranchChanged);
-  }
+  const AppShellScreen({super.key, required this.child});
 
-  @override
-  void dispose() {
-    widget.homeBranchRevision.removeListener(_onHomeBranchChanged);
-    super.dispose();
-  }
-
-  void _onHomeBranchChanged() => setState(() {});
-
-  /// "Inicio" siempre vuelve al Dashboard, sin importar en qué pantalla
-  /// interna haya quedado — mismo criterio que tenía `_onTabTap(0)` en el
-  /// HomeShell viejo.
-  void _onNavTap(int index) {
-    widget.navigationShell.goBranch(index);
-    if (index == 0) _homeBranch?.goToDashboard();
-  }
-
-  void _onDrawerSelectAccounts() {
-    widget.navigationShell.goBranch(0);
-    _homeBranch?.goToAccounts();
-  }
-
-  void _onDrawerSelectCategories() {
-    widget.navigationShell.goBranch(0);
-    _homeBranch?.goToCategories();
-  }
-
-  void _onDrawerSelectServices() {
-    widget.navigationShell.goBranch(0);
-    _homeBranch?.goToServices();
-  }
-
-  void _onDrawerSelectInvoices() {
-    widget.navigationShell.goBranch(0);
-    _homeBranch?.goToInvoices();
-  }
-
-  Widget? _headerAction() {
-    switch (_branchIndex) {
-      case 0:
-        return _homeBranch?.headerAction;
+  Widget? _headerAction(int navIndex) {
+    switch (navIndex) {
+      case 0: // Inicio
+        return const IconButton(
+          onPressed: null,
+          icon: Icon(Icons.notifications_none_rounded),
+          color: AppColors.authTextPrimary,
+        );
       case 3: // Perfil
         return const IconButton(
           onPressed: null,
           icon: Icon(Icons.settings_outlined),
           color: AppColors.authTextPrimary,
         );
-      default:
+      default: // Movimientos, Estadísticas
         return null;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Solo dejamos que el sistema haga "pop" real (cerrar la app en
-    // Android, navegar atrás en el browser) cuando estamos en el
-    // Dashboard de "Inicio". En cualquier otro caso lo interceptamos:
-    // primero volvemos a la rama "Inicio", y si ya estábamos ahí,
-    // resolvemos el "atrás" lógico adentro de HomeBranchScreen (mismo
-    // criterio que tenía el HomeShell viejo).
-    final canPopReally = _branchIndex == 0 && (_homeBranch?.isDashboard ?? true);
+    final uri = GoRouterState.of(context).uri;
+    final navIndex = _navIndexFor(uri.path);
 
-    return PopScope(
-      canPop: canPopReally,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (_branchIndex != 0) {
-          widget.navigationShell.goBranch(0);
-          _homeBranch?.goToDashboard();
-        } else {
-          _homeBranch?.handleBackPress();
-        }
-      },
-      child: Scaffold(
-        drawer: _AppDrawer(
-          branchIndex: _branchIndex,
-          isAccountsSection: _homeBranch?.isAccountsSection ?? false,
-          isCategoriesSection: _homeBranch?.isCategoriesSection ?? false,
-          isServicesSection: _homeBranch?.isServicesSection ?? false,
-          isInvoicesSection: _homeBranch?.isInvoicesSection ?? false,
-          userId: widget.authViewModel.userId,
-          onSelectBranch: _onNavTap,
-          onSelectAccounts: _onDrawerSelectAccounts,
-          onSelectCategories: _onDrawerSelectCategories,
-          onSelectServices: _onDrawerSelectServices,
-          onSelectInvoices: _onDrawerSelectInvoices,
-        ),
-        body: DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.authBackgroundTop,
-                AppColors.authBackgroundBottom,
-              ],
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                LumaHeader(trailing: _headerAction()),
-                // navigationShell ya es el IndexedStack de las 4 ramas —
-                // mantiene vivo el estado de cada una (scroll, filtros,
-                // formularios a medio llenar) al cambiar de pestaña,
-                // igual que hacía el IndexedStack de 17 pantallas viejo.
-                Expanded(child: widget.navigationShell),
-              ],
-            ),
+    // Se compara contra la ubicación completa (con query params) para que
+    // tocar "Facturas" estando en '/invoices?pending=true' sí abra el
+    // listado sin filtrar.
+    void navigateTo(String target) {
+      if (uri.toString() == target) return;
+      context.push(target);
+    }
+
+    return Scaffold(
+      drawer: _AppDrawer(
+        location: uri.path,
+        onNavigate: navigateTo,
+      ),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.authBackgroundTop,
+              AppColors.authBackgroundBottom,
+            ],
           ),
         ),
-        bottomNavigationBar: _BottomNav(
-          currentIndex: _branchIndex,
-          onTap: _onNavTap,
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              LumaHeader(trailing: _headerAction(navIndex)),
+              Expanded(child: child),
+            ],
+          ),
         ),
+      ),
+      bottomNavigationBar: _BottomNav(
+        currentIndex: navIndex,
+        onTap: (i) => navigateTo(_navItems[i].$3),
       ),
     );
   }
@@ -244,38 +171,28 @@ class _BottomNav extends StatelessWidget {
 }
 
 class _AppDrawer extends StatelessWidget {
-  final int branchIndex;
-  final bool isAccountsSection;
-  final bool isCategoriesSection;
-  final bool isServicesSection;
-  final bool isInvoicesSection;
-  final String? userId;
-  final ValueChanged<int> onSelectBranch;
-  final VoidCallback onSelectAccounts;
-  final VoidCallback onSelectCategories;
-  final VoidCallback onSelectServices;
-  final VoidCallback onSelectInvoices;
+  /// Ruta actual (sin query params).
+  final String location;
+
+  /// Navega (con `push`) a la ruta pedida — ver [AppShellScreen].
+  final ValueChanged<String> onNavigate;
 
   const _AppDrawer({
-    required this.branchIndex,
-    required this.isAccountsSection,
-    required this.isCategoriesSection,
-    required this.isServicesSection,
-    required this.isInvoicesSection,
-    required this.userId,
-    required this.onSelectBranch,
-    required this.onSelectAccounts,
-    required this.onSelectCategories,
-    required this.onSelectServices,
-    required this.onSelectInvoices,
+    required this.location,
+    required this.onNavigate,
   });
+
+  /// `true` si la ubicación actual es esa base o una sub-ruta suya
+  /// (ej. '/accounts/new' o '/accounts/abc/edit' cuentan como "Cuentas").
+  bool _isActive(String base) =>
+      location == base || location.startsWith('$base/');
 
   Widget _tile(
     BuildContext context, {
     required IconData icon,
     required String label,
     required bool isSelected,
-    required VoidCallback? onTap,
+    required VoidCallback onTap,
   }) {
     final color =
         isSelected ? AppColors.authAccent : AppColors.authTextSecondary;
@@ -293,17 +210,32 @@ class _AppDrawer extends StatelessWidget {
       selectedTileColor: AppColors.authCardFill,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-      onTap: onTap == null
-          ? null
-          : () {
-              Navigator.of(context).pop();
-              onTap();
-            },
+      onTap: () {
+        Navigator.of(context).pop();
+        onTap();
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final navIndex = _navIndexFor(location);
+    final isAccounts =
+        _isActive('/accounts') || _isActive('/accounts-overview');
+    final isCategories = _isActive('/categories');
+    final isServices = _isActive('/services');
+    final isInvoices = _isActive('/invoices');
+    // "Inicio" solo se resalta cuando ninguna de las otras cuatro rutas
+    // es la que está activa — si no, se quedaba marcado "Inicio" mientras
+    // se navegaba por Cuentas, Categorías, etc.
+    // Saldo inicial, nueva transacción y transferencia sí siguen contando
+    // como "Inicio", tal como antes.
+    final isHome = navIndex == 0 &&
+        !isAccounts &&
+        !isCategories &&
+        !isServices &&
+        !isInvoices;
+
     return Drawer(
       backgroundColor: AppColors.authBackgroundBottom,
       child: SafeArea(
@@ -334,40 +266,40 @@ class _AppDrawer extends StatelessWidget {
               context,
               icon: _navItems[0].$1,
               label: _navItems[0].$2,
-              isSelected: branchIndex == 0,
-              onTap: () => onSelectBranch(0),
+              isSelected: isHome,
+              onTap: () => onNavigate(_navItems[0].$3),
             ),
-            // Cuentas
+            // Cuentas, Categorías, Servicios y Facturas: destinos propios
+            // del drawer. Se abren con `push` (vía `onNavigate`) para que
+            // se apilen en el historial único y "atrás" vuelva a la
+            // pantalla desde la que se abrieron.
             _tile(
               context,
               icon: Icons.account_balance_wallet_outlined,
               label: 'Cuentas',
-              isSelected: isAccountsSection,
-              onTap: userId == null ? null : onSelectAccounts,
+              isSelected: isAccounts,
+              onTap: () => onNavigate('/accounts'),
             ),
-            // Categorías
             _tile(
               context,
               icon: Icons.sell_outlined,
               label: 'Categorías',
-              isSelected: isCategoriesSection,
-              onTap: userId == null ? null : onSelectCategories,
+              isSelected: isCategories,
+              onTap: () => onNavigate('/categories'),
             ),
-            // Servicios
             _tile(
               context,
               icon: Icons.receipt_long_outlined,
               label: 'Servicios',
-              isSelected: isServicesSection,
-              onTap: userId == null ? null : onSelectServices,
+              isSelected: isServices,
+              onTap: () => onNavigate('/services'),
             ),
-            // Facturas
             _tile(
               context,
               icon: Icons.request_page_outlined,
               label: 'Facturas',
-              isSelected: isInvoicesSection,
-              onTap: userId == null ? null : onSelectInvoices,
+              isSelected: isInvoices,
+              onTap: () => onNavigate('/invoices'),
             ),
             // Movimientos, Estadísticas, Perfil
             ...List.generate(_navItems.length - 1, (i) {
@@ -377,8 +309,8 @@ class _AppDrawer extends StatelessWidget {
                 context,
                 icon: item.$1,
                 label: item.$2,
-                isSelected: branchIndex == index,
-                onTap: () => onSelectBranch(index),
+                isSelected: navIndex == index,
+                onTap: () => onNavigate(item.$3),
               );
             }),
           ],

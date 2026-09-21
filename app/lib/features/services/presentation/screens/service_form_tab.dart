@@ -7,8 +7,8 @@ import '../../data/models/service.dart';
 import '../view_models/service_view_model.dart';
 
 /// Contenido de la pestaña "Nuevo servicio" / "Editar servicio". No tiene
-/// Scaffold propio — vive dentro del Scaffold del HomeShell, que es quien
-/// pone el header y el bottomNavigationBar.
+/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
+/// del header y encima del bottomNavigationBar que pone AppShellScreen.
 ///
 /// Si [service] viene nulo, es un alta nueva. Si viene con valor, es
 /// edición — activo/inactivo no se toca acá, se maneja desde la lista.

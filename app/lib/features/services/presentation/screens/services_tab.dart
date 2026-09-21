@@ -8,19 +8,25 @@ import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/service.dart';
 import '../view_models/service_view_model.dart';
 
-/// Contenido de la pestaña "Servicios". No tiene Scaffold propio — vive
-/// dentro del Scaffold del HomeShell, que es quien pone el header (con el
-/// botón "+" para crear) y el bottomNavigationBar.
+/// Contenido de la pestaña "Servicios". Es una ruta de primer nivel del
+/// drawer sin AppBar propio (ver RoutedScreenScaffold): vive dentro del
+/// Scaffold del AppShellScreen, que pone el header y el
+/// bottomNavigationBar. El "+" para crear va alineado con el título de
+/// acá abajo, no en ninguna barra superior.
 class ServicesTab extends StatelessWidget {
   final ServiceViewModel serviceViewModel;
   final CategoryViewModel categoryViewModel;
   final ValueChanged<Service> onEdit;
+
+  /// Abre el formulario de alta ("+" del título).
+  final VoidCallback onAdd;
 
   const ServicesTab({
     super.key,
     required this.serviceViewModel,
     required this.categoryViewModel,
     required this.onEdit,
+    required this.onAdd,
   });
 
   @override
@@ -41,13 +47,23 @@ class ServicesTab extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              const Text(
-                'Servicios',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                ),
+              Row(
+                children: [
+                  const Text(
+                    'Servicios',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.authTextPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: onAdd,
+                    icon: const Icon(Icons.add_rounded),
+                    color: AppColors.authTextPrimary,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               if (services.isEmpty)
