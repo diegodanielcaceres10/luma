@@ -52,29 +52,28 @@ Service? _findService(ServiceViewModel vm, String? id) {
   return null;
 }
 
-/// Migración de la navegación por tabs a rutas (plan acordado con el
-/// usuario) — completa.
+/// Navegación con historial único: el shell (drawer, header y bottom nav)
+/// es un `ShellRoute` común — un solo Navigator y una sola pila para toda
+/// la app — así que cada pantalla que se abre (por el drawer, el bottom
+/// nav o un botón) se apila con `context.push`, y "atrás" (botón del
+/// navegador o del dispositivo) vuelve siempre a la pantalla anterior, en
+/// el mismo orden en que se visitaron.
 ///
-/// FASE 2: Inicio, Movimientos, Estadísticas y Perfil son ramas de un
-/// `StatefulShellRoute.indexedStack`, cada una con su propia URL y su
-/// propio Navigator.
+/// Inicio, Movimientos, Estadísticas y Perfil son las 4 entradas del
+/// bottom nav; Cuentas, Categorías, Servicios y Facturas (con sus
+/// formularios, la vista general de cuentas y "actualizar saldo"), saldo
+/// inicial del mes, nueva transacción y transferencia cuelgan de la ruta
+/// '/' — así, si se abre una URL directa (ej. al recargar el navegador en
+/// '/accounts/new'), la pila arranca con el Dashboard abajo y "atrás" /
+/// `context.pop()` siguen funcionando. Todas conservan el bottom nav
+/// visible porque el shell queda por fuera del Navigator.
 ///
-/// FASE 3 y 4: Cuentas, Categorías, Servicios, Facturas (con sus
-/// formularios, vista general de cuentas y "actualizar saldo"), saldo
-/// inicial del mes, nueva transacción y transferencia son todas rutas
-/// propias también, anidadas bajo la rama "Inicio" — por eso el bottom
-/// nav sigue visible al entrar a cualquiera de ellas (así lo pidió el
-/// usuario): un `context.push` dentro de una rama no reemplaza el
-/// Scaffold de afuera, solo agrega una pantalla arriba en el Navigator de
-/// esa rama. Cada una tiene su propio AppBar con botón atrás nativo — ya
-/// no hace falta ningún manejo de "atrás" a mano para estas pantallas.
 /// Todo botón "volver"/"cancelar" y "guardar" (al terminar) hace
 /// `context.pop()`, así que siempre vuelve exactamente a la pantalla que
 /// lo abrió, sin importar desde dónde se haya llegado (ej. el formulario
 /// de cuenta se abre tanto desde "Cuentas" como desde la vista general).
 ///
-/// La rama "Inicio" en sí ya es, directamente, el Dashboard — ver
-/// [HomeBranchScreen].
+/// La ruta '/' es, directamente, el Dashboard — ver [HomeBranchScreen].
 GoRouter buildAppRouter({
   required AuthViewModel authViewModel,
   required AccountViewModel accountViewModel,
@@ -114,319 +113,304 @@ GoRouter buildAppRouter({
         path: '/login',
         builder: (context, state) => LoginScreen(viewModel: authViewModel),
       ),
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => AppShellScreen(
-          navigationShell: navigationShell,
+      ShellRoute(
+        builder: (context, state, child) => AppShellScreen(
           authViewModel: authViewModel,
+          child: child,
         ),
-        branches: [
-          // Rama 0 — Inicio (Dashboard + lo que todavía no tiene ruta
-          // propia, ver HomeBranchScreen) + Cuentas/Categorías/Servicios/
-          // Facturas y sus formularios, empujados por encima.
-          StatefulShellBranch(
+        routes: [
+          // Inicio (Dashboard) + Cuentas/Categorías/Servicios/Facturas y
+          // sus formularios, saldo inicial, nueva transacción y
+          // transferencia, anidadas para que una URL directa arme la pila
+          // con el Dashboard debajo.
+          GoRoute(
+            path: '/',
+            builder: (context, state) => HomeBranchScreen(
+              authViewModel: authViewModel,
+              accountViewModel: accountViewModel,
+              transactionViewModel: transactionViewModel,
+              categoryViewModel: categoryViewModel,
+              monthlyBalanceViewModel: monthlyBalanceViewModel,
+              invoiceViewModel: invoiceViewModel,
+            ),
             routes: [
+              // ---- Saldo inicial del mes ----
               GoRoute(
-                path: '/',
-                builder: (context, state) => HomeBranchScreen(
-                  authViewModel: authViewModel,
-                  accountViewModel: accountViewModel,
-                  transactionViewModel: transactionViewModel,
-                  categoryViewModel: categoryViewModel,
-                  monthlyBalanceViewModel: monthlyBalanceViewModel,
-                  invoiceViewModel: invoiceViewModel,
-                ),
-                routes: [
-                  // ---- Saldo inicial del mes ----
-                  GoRoute(
-                    path: 'monthly-balance',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: 'Saldos iniciales',
-                      showAppBar: false,
-                      body: MonthlyBalanceTab(
-                        userId: authViewModel.userId ?? '',
-                        // Se recalcula acá mismo en vez de viajar por la
-                        // navegación — misma cuenta que usaba el
-                        // Dashboard (ver dashboard_tab.dart).
-                        pendingAccounts: monthlyBalanceViewModel.checked
-                            ? monthlyBalanceViewModel.pendingAccounts(
-                                accountViewModel.activeAccounts)
-                            : const [],
-                        monthlyBalanceViewModel: monthlyBalanceViewModel,
-                        onDone: () => context.pop(),
-                      ),
-                    ),
+                path: 'monthly-balance',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: 'Saldos iniciales',
+                  showAppBar: false,
+                  body: MonthlyBalanceTab(
+                    userId: authViewModel.userId ?? '',
+                    // Se recalcula acá mismo en vez de viajar por la
+                    // navegación — misma cuenta que usaba el
+                    // Dashboard (ver dashboard_tab.dart).
+                    pendingAccounts: monthlyBalanceViewModel.checked
+                        ? monthlyBalanceViewModel.pendingAccounts(
+                            accountViewModel.activeAccounts)
+                        : const [],
+                    monthlyBalanceViewModel: monthlyBalanceViewModel,
+                    onDone: () => context.pop(),
                   ),
-                  // ---- Nueva transacción ----
-                  GoRoute(
-                    path: 'add-transaction/:type',
-                    builder: (context, state) {
-                      final type = state.pathParameters['type'] == 'income'
-                          ? 'income'
-                          : 'expense';
-                      return RoutedScreenScaffold(
-                        title: type == 'income'
-                            ? 'Añadir ingreso'
-                            : 'Añadir gasto',
-                        showAppBar: false,
-                        body: AddTransactionTab(
-                          type: type,
-                          userId: authViewModel.userId ?? '',
-                          accountViewModel: accountViewModel,
-                          categoryViewModel: categoryViewModel,
-                          transactionViewModel: transactionViewModel,
-                          onDone: () => context.pop(),
-                        ),
-                      );
+                ),
+              ),
+              // ---- Nueva transacción ----
+              GoRoute(
+                path: 'add-transaction/:type',
+                builder: (context, state) {
+                  final type = state.pathParameters['type'] == 'income'
+                      ? 'income'
+                      : 'expense';
+                  return RoutedScreenScaffold(
+                    title: type == 'income'
+                        ? 'Añadir ingreso'
+                        : 'Añadir gasto',
+                    showAppBar: false,
+                    body: AddTransactionTab(
+                      type: type,
+                      userId: authViewModel.userId ?? '',
+                      accountViewModel: accountViewModel,
+                      categoryViewModel: categoryViewModel,
+                      transactionViewModel: transactionViewModel,
+                      onDone: () => context.pop(),
+                    ),
+                  );
+                },
+              ),
+              // ---- Transferencia entre cuentas ----
+              GoRoute(
+                path: 'transfer',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: 'Transferencia entre cuentas',
+                  showAppBar: false,
+                  body: TransferFormTab(
+                    userId: authViewModel.userId,
+                    accountViewModel: accountViewModel,
+                    transactionViewModel: transactionViewModel,
+                    onDone: () => context.pop(),
+                  ),
+                ),
+              ),
+              // ---- Cuentas ----
+              GoRoute(
+                path: 'accounts',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: AccountsTab(
+                    accountViewModel: accountViewModel,
+                    onAdd: () => context.push('/accounts/new'),
+                    onOpenForm: (account) => account == null
+                        ? context.push('/accounts/new')
+                        : context.push('/accounts/${account.id}/edit'),
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'accounts/new',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: AccountFormTab(
+                    userId: authViewModel.userId ?? '',
+                    accountViewModel: accountViewModel,
+                    onDone: () {
+                      monthlyBalanceViewModel.checkCurrentMonth();
+                      context.pop();
                     },
                   ),
-                  // ---- Transferencia entre cuentas ----
-                  GoRoute(
-                    path: 'transfer',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: 'Transferencia entre cuentas',
-                      showAppBar: false,
-                      body: TransferFormTab(
-                        userId: authViewModel.userId,
-                        accountViewModel: accountViewModel,
-                        transactionViewModel: transactionViewModel,
-                        onDone: () => context.pop(),
-                      ),
-                    ),
-                  ),
-                  // ---- Cuentas ----
-                  GoRoute(
-                    path: 'accounts',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: AccountsTab(
-                        accountViewModel: accountViewModel,
-                        onAdd: () => context.push('/accounts/new'),
-                        onOpenForm: (account) => account == null
-                            ? context.push('/accounts/new')
-                            : context.push('/accounts/${account.id}/edit'),
-                      ),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'accounts/new',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: AccountFormTab(
-                        userId: authViewModel.userId ?? '',
-                        accountViewModel: accountViewModel,
-                        onDone: () {
-                          monthlyBalanceViewModel.checkCurrentMonth();
-                          context.pop();
-                        },
-                      ),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'accounts/:id/edit',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: AccountFormTab(
-                        userId: authViewModel.userId ?? '',
-                        accountViewModel: accountViewModel,
-                        account: _findAccount(
-                            accountViewModel, state.pathParameters['id']),
-                        onDone: () {
-                          monthlyBalanceViewModel.checkCurrentMonth();
-                          context.pop();
-                        },
-                      ),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'accounts/:id/balance',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: UpdateBalanceTab(
-                        account: _findAccount(
-                            accountViewModel, state.pathParameters['id']),
-                        accountViewModel: accountViewModel,
-                        categoryViewModel: categoryViewModel,
-                        transactionViewModel: transactionViewModel,
-                        userId: authViewModel.userId,
-                        onDone: () => context.pop(),
-                      ),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'accounts-overview',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: AccountsOverviewTab(
-                        accountViewModel: accountViewModel,
-                        onBack: () => context.pop(),
-                        onOpenForm: (account) => account == null
-                            ? context.push('/accounts/new')
-                            : context.push('/accounts/${account.id}/edit'),
-                        onOpenUpdateBalance: (account) =>
-                            context.push('/accounts/${account.id}/balance'),
-                      ),
-                    ),
-                  ),
-                  // ---- Categorías ----
-                  GoRoute(
-                    path: 'categories',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: CategoriesTab(
-                        categoryViewModel: categoryViewModel,
-                        onAdd: () => context.push('/categories/new'),
-                        onEdit: (category) =>
-                            context.push('/categories/${category.id}/edit'),
-                      ),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'categories/new',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: CategoryFormTab(
-                        userId: authViewModel.userId ?? '',
-                        categoryViewModel: categoryViewModel,
-                        onDone: () => context.pop(),
-                      ),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'categories/:id/edit',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: CategoryFormTab(
-                        userId: authViewModel.userId ?? '',
-                        categoryViewModel: categoryViewModel,
-                        category: _findCategory(
-                            categoryViewModel, state.pathParameters['id']),
-                        onDone: () => context.pop(),
-                      ),
-                    ),
-                  ),
-                  // ---- Servicios ----
-                  GoRoute(
-                    path: 'services',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: ServicesTab(
-                        serviceViewModel: serviceViewModel,
-                        categoryViewModel: categoryViewModel,
-                        onAdd: () => context.push('/services/new'),
-                        onEdit: (service) =>
-                            context.push('/services/${service.id}/edit'),
-                      ),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'services/new',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: ServiceFormTab(
-                        userId: authViewModel.userId ?? '',
-                        serviceViewModel: serviceViewModel,
-                        categoryViewModel: categoryViewModel,
-                        onDone: () => context.pop(),
-                      ),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'services/:id/edit',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: ServiceFormTab(
-                        userId: authViewModel.userId ?? '',
-                        serviceViewModel: serviceViewModel,
-                        categoryViewModel: categoryViewModel,
-                        service: _findService(
-                            serviceViewModel, state.pathParameters['id']),
-                        onDone: () => context.pop(),
-                      ),
-                    ),
-                  ),
-                  // ---- Facturas ----
-                  GoRoute(
-                    path: 'invoices',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: InvoicesTab(
-                        userId: authViewModel.userId ?? '',
-                        invoiceViewModel: invoiceViewModel,
-                        serviceViewModel: serviceViewModel,
-                        categoryViewModel: categoryViewModel,
-                        accountViewModel: accountViewModel,
-                        onAdd: () => context.push('/invoices/new'),
-                        // Cada push crea un InvoicesTab nuevo (ya no hace
-                        // falta el nonce que usaba HomeShell) — alcanza
-                        // con leer el query param una vez, al construir.
-                        initialPendingFilter:
-                            state.uri.queryParameters['pending'] == 'true',
-                      ),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'invoices/new',
-                    builder: (context, state) => RoutedScreenScaffold(
-                      title: '',
-                      showAppBar: false,
-                      body: InvoiceFormTab(
-                        userId: authViewModel.userId ?? '',
-                        invoiceViewModel: invoiceViewModel,
-                        serviceViewModel: serviceViewModel,
-                        onDone: () => context.pop(),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ],
-          ),
-          // Rama 1 — Movimientos
-          StatefulShellBranch(
-            routes: [
               GoRoute(
-                path: '/movements',
-                builder: (context, state) => MovementsTab(
-                  transactionViewModel: transactionViewModel,
-                  currency: accountViewModel.primaryCurrency,
+                path: 'accounts/:id/edit',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: AccountFormTab(
+                    userId: authViewModel.userId ?? '',
+                    accountViewModel: accountViewModel,
+                    account: _findAccount(
+                        accountViewModel, state.pathParameters['id']),
+                    onDone: () {
+                      monthlyBalanceViewModel.checkCurrentMonth();
+                      context.pop();
+                    },
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'accounts/:id/balance',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: UpdateBalanceTab(
+                    account: _findAccount(
+                        accountViewModel, state.pathParameters['id']),
+                    accountViewModel: accountViewModel,
+                    categoryViewModel: categoryViewModel,
+                    transactionViewModel: transactionViewModel,
+                    userId: authViewModel.userId,
+                    onDone: () => context.pop(),
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'accounts-overview',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: AccountsOverviewTab(
+                    accountViewModel: accountViewModel,
+                    onBack: () => context.pop(),
+                    onOpenForm: (account) => account == null
+                        ? context.push('/accounts/new')
+                        : context.push('/accounts/${account.id}/edit'),
+                    onOpenUpdateBalance: (account) =>
+                        context.push('/accounts/${account.id}/balance'),
+                  ),
+                ),
+              ),
+              // ---- Categorías ----
+              GoRoute(
+                path: 'categories',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: CategoriesTab(
+                    categoryViewModel: categoryViewModel,
+                    onAdd: () => context.push('/categories/new'),
+                    onEdit: (category) =>
+                        context.push('/categories/${category.id}/edit'),
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'categories/new',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: CategoryFormTab(
+                    userId: authViewModel.userId ?? '',
+                    categoryViewModel: categoryViewModel,
+                    onDone: () => context.pop(),
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'categories/:id/edit',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: CategoryFormTab(
+                    userId: authViewModel.userId ?? '',
+                    categoryViewModel: categoryViewModel,
+                    category: _findCategory(
+                        categoryViewModel, state.pathParameters['id']),
+                    onDone: () => context.pop(),
+                  ),
+                ),
+              ),
+              // ---- Servicios ----
+              GoRoute(
+                path: 'services',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: ServicesTab(
+                    serviceViewModel: serviceViewModel,
+                    categoryViewModel: categoryViewModel,
+                    onAdd: () => context.push('/services/new'),
+                    onEdit: (service) =>
+                        context.push('/services/${service.id}/edit'),
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'services/new',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: ServiceFormTab(
+                    userId: authViewModel.userId ?? '',
+                    serviceViewModel: serviceViewModel,
+                    categoryViewModel: categoryViewModel,
+                    onDone: () => context.pop(),
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'services/:id/edit',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: ServiceFormTab(
+                    userId: authViewModel.userId ?? '',
+                    serviceViewModel: serviceViewModel,
+                    categoryViewModel: categoryViewModel,
+                    service: _findService(
+                        serviceViewModel, state.pathParameters['id']),
+                    onDone: () => context.pop(),
+                  ),
+                ),
+              ),
+              // ---- Facturas ----
+              GoRoute(
+                path: 'invoices',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: InvoicesTab(
+                    userId: authViewModel.userId ?? '',
+                    invoiceViewModel: invoiceViewModel,
+                    serviceViewModel: serviceViewModel,
+                    categoryViewModel: categoryViewModel,
+                    accountViewModel: accountViewModel,
+                    onAdd: () => context.push('/invoices/new'),
+                    // Cada push crea un InvoicesTab nuevo (ya no hace
+                    // falta el nonce que usaba HomeShell) — alcanza
+                    // con leer el query param una vez, al construir.
+                    initialPendingFilter:
+                        state.uri.queryParameters['pending'] == 'true',
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'invoices/new',
+                builder: (context, state) => RoutedScreenScaffold(
+                  title: '',
+                  showAppBar: false,
+                  body: InvoiceFormTab(
+                    userId: authViewModel.userId ?? '',
+                    invoiceViewModel: invoiceViewModel,
+                    serviceViewModel: serviceViewModel,
+                    onDone: () => context.pop(),
+                  ),
                 ),
               ),
             ],
           ),
-          // Rama 2 — Estadísticas
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/statistics',
-                builder: (context, state) => StatisticsTab(
-                  transactionViewModel: transactionViewModel,
-                  categoryViewModel: categoryViewModel,
-                  currency: accountViewModel.primaryCurrency,
-                ),
-              ),
-            ],
+          // Movimientos
+          GoRoute(
+            path: '/movements',
+            builder: (context, state) => MovementsTab(
+              transactionViewModel: transactionViewModel,
+              currency: accountViewModel.primaryCurrency,
+            ),
           ),
-          // Rama 3 — Perfil
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/profile',
-                builder: (context, state) =>
-                    ProfileScreen(viewModel: authViewModel),
-              ),
-            ],
+          // Estadísticas
+          GoRoute(
+            path: '/statistics',
+            builder: (context, state) => StatisticsTab(
+              transactionViewModel: transactionViewModel,
+              categoryViewModel: categoryViewModel,
+              currency: accountViewModel.primaryCurrency,
+            ),
+          ),
+          // Perfil
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) =>
+                ProfileScreen(viewModel: authViewModel),
           ),
         ],
       ),
