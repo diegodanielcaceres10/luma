@@ -413,7 +413,6 @@ class _InvoiceRow extends StatelessWidget {
     final dueDate = invoice.dueDate;
     final subtitleParts = <String>[
       '$monthLabel ${invoice.year}',
-      formatCurrency(invoice.amount, 'EUR'),
       if (dueDate != null)
         'vence el ${dueDate.day.toString().padLeft(2, '0')}/'
             '${dueDate.month.toString().padLeft(2, '0')}',
@@ -435,14 +434,29 @@ class _InvoiceRow extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          serviceName,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.authTextPrimary,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                serviceName,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.authTextPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              formatCurrency(invoice.amount, 'EUR'),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.authTextPrimary,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(

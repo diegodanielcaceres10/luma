@@ -7,9 +7,13 @@ class InvoiceService {
   InvoiceService(this._client);
 
   Future<List<Invoice>> fetchAll() async {
+    // Vencimiento más próximo primero; las que no tienen fecha de
+    // vencimiento cargada quedan al final. Entre iguales (o entre las
+    // que no tienen fecha), año/mes más reciente primero.
     final rows = await _client
         .from('invoices')
         .select()
+        .order('due_date', ascending: true, nullsFirst: false)
         .order('year', ascending: false)
         .order('month', ascending: false);
 
