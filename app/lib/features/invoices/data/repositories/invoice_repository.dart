@@ -28,6 +28,24 @@ class InvoiceRepository {
     );
   }
 
+  Future<void> update({
+    required String id,
+    required String serviceId,
+    required int month,
+    required int year,
+    required double amount,
+    DateTime? dueDate,
+  }) {
+    return _service.update(
+      id: id,
+      serviceId: serviceId,
+      month: month,
+      year: year,
+      amount: amount,
+      dueDate: dueDate,
+    );
+  }
+
   Future<void> cancel(String id) {
     return _service.cancel(id: id);
   }

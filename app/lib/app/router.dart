@@ -19,6 +19,7 @@ import '../features/categories/presentation/view_models/category_view_model.dart
 import '../features/home/presentation/screens/app_shell_screen.dart';
 import '../features/home/presentation/screens/home_shell.dart';
 import '../features/home/presentation/screens/routed_screen_scaffold.dart';
+import '../features/invoices/data/models/invoice.dart';
 import '../features/invoices/presentation/screens/invoice_form_tab.dart';
 import '../features/invoices/presentation/screens/invoices_tab.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
@@ -101,6 +102,28 @@ Widget _serviceGuard(
       errorMessage: () => vm.errorMessage,
       notFoundMessage: 'No encontramos ese servicio.',
       fallbackRoute: '/services',
+      builder: builder,
+    );
+
+Widget _invoiceGuard(
+  InvoiceViewModel vm,
+  String? id,
+  Widget Function(BuildContext, Invoice) builder,
+) =>
+    EntityRouteGuard<Invoice>(
+      listenable: vm,
+      entityId: id,
+      find: (id) {
+        for (final i in vm.invoices) {
+          if (i.id == id) return i;
+        }
+        return null;
+      },
+      isLoading: () => vm.isLoading,
+      hasLoaded: () => vm.hasLoaded,
+      errorMessage: () => vm.errorMessage,
+      notFoundMessage: 'No encontramos esa factura.',
+      fallbackRoute: '/invoices',
       builder: builder,
     );
 
@@ -400,6 +423,8 @@ GoRouter buildAppRouter({
                 categoryViewModel: categoryViewModel,
                 accountViewModel: accountViewModel,
                 onAdd: () => context.push('/invoices/new'),
+                onEdit: (invoice) =>
+                    context.push('/invoices/${invoice.id}/edit'),
                 // Cada push crea un InvoicesTab nuevo, así que alcanza
                 // con leer el query param una vez, al construir.
                 initialPendingFilter:
@@ -415,6 +440,24 @@ GoRouter buildAppRouter({
                 invoiceViewModel: invoiceViewModel,
                 serviceViewModel: serviceViewModel,
                 onDone: () => context.goBack(),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/invoices/:id/edit',
+            // Si el :id no existe, el guard manda a '/invoices' con un
+            // aviso (en vez de abrir el formulario como alta).
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _invoiceGuard(
+                invoiceViewModel,
+                state.pathParameters['id'],
+                (context, invoice) => InvoiceFormTab(
+                  userId: authViewModel.userId ?? '',
+                  invoiceViewModel: invoiceViewModel,
+                  serviceViewModel: serviceViewModel,
+                  invoice: invoice,
+                  onDone: () => context.goBack(),
+                ),
               ),
             ),
           ),

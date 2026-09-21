@@ -39,6 +39,9 @@ class InvoicesTab extends StatefulWidget {
   /// Abre el formulario de alta ("+" del título).
   final VoidCallback onAdd;
 
+  /// Abre el formulario de edición al tocar una factura pendiente.
+  final ValueChanged<Invoice> onEdit;
+
   const InvoicesTab({
     super.key,
     required this.userId,
@@ -47,6 +50,7 @@ class InvoicesTab extends StatefulWidget {
     required this.categoryViewModel,
     required this.accountViewModel,
     required this.onAdd,
+    required this.onEdit,
     this.initialPendingFilter = false,
   });
 
@@ -288,6 +292,12 @@ class _InvoicesTabState extends State<InvoicesTab> {
                         isCancelling:
                             widget.invoiceViewModel.isCancelling(invoice.id),
                         isPaying: widget.invoiceViewModel.isPaying(invoice.id),
+                        // Solo las pendientes se pueden editar — una
+                        // pagada ya generó su transacción, y una
+                        // cancelada cerró su flujo.
+                        onTap: invoice.isPending
+                            ? () => widget.onEdit(invoice)
+                            : null,
                         onCancel: () => _confirmCancel(context, invoice),
                         onPay: () => _payInvoice(
                           context,
@@ -370,6 +380,7 @@ class _InvoiceRow extends StatelessWidget {
   final bool showDivider;
   final bool isCancelling;
   final bool isPaying;
+  final VoidCallback? onTap;
   final VoidCallback onCancel;
   final VoidCallback onPay;
 
@@ -381,6 +392,7 @@ class _InvoiceRow extends StatelessWidget {
     required this.showDivider,
     required this.isCancelling,
     required this.isPaying,
+    required this.onTap,
     required this.onCancel,
     required this.onPay,
   });
@@ -413,91 +425,94 @@ class _InvoiceRow extends StatelessWidget {
       children: [
         Opacity(
           opacity: invoice.cancelled ? 0.5 : 1,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        serviceName,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.authTextPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitleParts.join(' · '),
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.authTextSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: badgeColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    badgeLabel,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: badgeColor,
-                    ),
-                  ),
-                ),
-                if (invoice.isPending) ...[
-                  const SizedBox(width: 4),
-                  if (isBusy)
-                    const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.authTextSecondary,
-                        ),
-                      ),
-                    )
-                  else
-                    Row(
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.check_circle_outline_rounded,
-                            size: 18,
-                            color: AppColors.authIncome,
+                        Text(
+                          serviceName,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.authTextPrimary,
                           ),
-                          tooltip: 'Registrar pago',
-                          onPressed: onPay,
                         ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            size: 18,
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitleParts.join(' · '),
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
                             color: AppColors.authTextSecondary,
                           ),
-                          tooltip: 'Cancelar factura',
-                          onPressed: onCancel,
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      badgeLabel,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: badgeColor,
+                      ),
+                    ),
+                  ),
+                  if (invoice.isPending) ...[
+                    const SizedBox(width: 4),
+                    if (isBusy)
+                      const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.authTextSecondary,
+                          ),
+                        ),
+                      )
+                    else
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.check_circle_outline_rounded,
+                              size: 18,
+                              color: AppColors.authIncome,
+                            ),
+                            tooltip: 'Registrar pago',
+                            onPressed: onPay,
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: AppColors.authTextSecondary,
+                            ),
+                            tooltip: 'Cancelar factura',
+                            onPressed: onCancel,
+                          ),
+                        ],
+                      ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

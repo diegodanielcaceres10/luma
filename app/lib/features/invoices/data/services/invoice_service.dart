@@ -43,6 +43,30 @@ class InvoiceService {
     });
   }
 
+  /// Edita una factura pendiente (servicio, mes, año, monto, vencimiento).
+  /// No se usa sobre facturas pagadas o canceladas — la pantalla de
+  /// edición no llega a mostrarse para esos casos (ver InvoicesTab).
+  Future<void> update({
+    required String id,
+    required String serviceId,
+    required int month,
+    required int year,
+    required double amount,
+    DateTime? dueDate,
+  }) async {
+    await _client.from('invoices').update({
+      'service_id': serviceId,
+      'month': month,
+      'year': year,
+      'amount': amount,
+      'due_date': dueDate == null
+          ? null
+          : '${dueDate.year.toString().padLeft(4, '0')}-'
+              '${dueDate.month.toString().padLeft(2, '0')}-'
+              '${dueDate.day.toString().padLeft(2, '0')}',
+    }).eq('id', id);
+  }
+
   /// Cierra el flujo de una factura pendiente sin pagarla. El constraint
   /// de la tabla impide cancelar una factura ya pagada.
   Future<void> cancel({required String id}) async {

@@ -13,6 +13,7 @@ class InvoiceViewModel extends ChangeNotifier {
   InvoiceViewModel(this._repository, this._transactionViewModel);
 
   bool _isLoading = false;
+  bool _hasLoaded = false;
   bool _isSubmitting = false;
   String? _errorMessage;
   InvoiceSubmitError? _submitError;
@@ -21,6 +22,11 @@ class InvoiceViewModel extends ChangeNotifier {
   final Set<String> _payingIds = {};
 
   bool get isLoading => _isLoading;
+
+  /// `true` una vez que la lista se cargó con éxito al menos una vez. Sirve
+  /// para distinguir "todavía no llegaron" de "llegaron y esta no existe"
+  /// (ver EntityRouteGuard, usado por `/invoices/:id/edit`).
+  bool get hasLoaded => _hasLoaded;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
   InvoiceSubmitError? get submitError => _submitError;
@@ -40,6 +46,7 @@ class InvoiceViewModel extends ChangeNotifier {
 
     try {
       _invoices = await _repository.getAll();
+      _hasLoaded = true;
     } catch (error) {
       _errorMessage = 'No se pudieron cargar las facturas.';
     } finally {
@@ -48,9 +55,8 @@ class InvoiceViewModel extends ChangeNotifier {
     }
   }
 
-  /// Alta de una factura. Por ahora no hay edición ni activar/inactivar
-  /// — el pago (marcarla como pagada, asociarla a una transacción) se
-  /// agrega en una etapa futura.
+  /// Alta de una factura. Activar/inactivar (marcarla pagada) se maneja
+  /// aparte, desde la lista — ver [payInvoice] y [cancelInvoice].
   Future<bool> createInvoice({
     required String userId,
     required String serviceId,
@@ -67,6 +73,54 @@ class InvoiceViewModel extends ChangeNotifier {
     try {
       await _repository.create(
         userId: userId,
+        serviceId: serviceId,
+        month: month,
+        year: year,
+        amount: amount,
+        dueDate: dueDate,
+      );
+      await loadInvoices();
+      return true;
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        _submitError = InvoiceSubmitError.duplicate;
+        _errorMessage = 'Ya existe una factura de ese servicio para ese mes.';
+      } else {
+        _submitError = InvoiceSubmitError.generic;
+        _errorMessage = 'No se pudo guardar la factura.';
+      }
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _submitError = InvoiceSubmitError.generic;
+      _errorMessage = 'No se pudo guardar la factura.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Edita una factura pendiente (servicio, mes, año, monto, vencimiento).
+  /// Solo aplica a pendientes — una factura pagada o cancelada no llega a
+  /// mostrar esta acción (ver InvoicesTab).
+  Future<bool> updateInvoice({
+    required String id,
+    required String serviceId,
+    required int month,
+    required int year,
+    required double amount,
+    DateTime? dueDate,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    _submitError = null;
+    notifyListeners();
+
+    try {
+      await _repository.update(
+        id: id,
         serviceId: serviceId,
         month: month,
         year: year,

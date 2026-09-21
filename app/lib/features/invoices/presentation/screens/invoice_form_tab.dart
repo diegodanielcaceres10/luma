@@ -3,19 +3,22 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../services/data/models/service.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
+import '../../data/models/invoice.dart';
 import '../view_models/invoice_view_model.dart';
 
-/// Contenido de la pestaña "Nueva factura". No tiene Scaffold propio —
-/// se muestra dentro de un RoutedScreenScaffold, debajo del header y
-/// encima del bottomNavigationBar que pone AppShellScreen.
+/// Contenido de la pestaña "Nueva factura" / "Editar factura". No tiene
+/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
+/// del header y encima del bottomNavigationBar que pone AppShellScreen.
 ///
-/// Por ahora este formulario solo crea facturas, pensadas para un pago
-/// futuro: no hay edición ni forma de activar/inactivar, eso se agrega
-/// más adelante junto con el flujo de pago.
+/// Si [invoice] viene nulo, es un alta nueva. Si viene con valor, es
+/// edición — pagar o cancelar no se tocan acá, se manejan desde la lista,
+/// y una factura pagada o cancelada no llega a mostrar esta pantalla (ver
+/// InvoicesTab).
 class InvoiceFormTab extends StatefulWidget {
   final String userId;
   final InvoiceViewModel invoiceViewModel;
   final ServiceViewModel serviceViewModel;
+  final Invoice? invoice;
 
   /// Se llama tras guardar con éxito, o al cancelar, para volver a
   /// "Facturas".
@@ -27,6 +30,7 @@ class InvoiceFormTab extends StatefulWidget {
     required this.invoiceViewModel,
     required this.serviceViewModel,
     required this.onDone,
+    this.invoice,
   });
 
   @override
@@ -57,6 +61,8 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
   int? _selectedMonth;
   DateTime? _dueDate;
 
+  bool get _isEditing => widget.invoice != null;
+
   static const _fieldDecoration = InputDecoration(
     filled: true,
     fillColor: AppColors.authCardFill,
@@ -78,7 +84,16 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
   @override
   void initState() {
     super.initState();
-    _yearController = TextEditingController(text: '${DateTime.now().year}');
+    final invoice = widget.invoice;
+    _selectedServiceId = invoice?.serviceId;
+    _selectedMonth = invoice?.month;
+    _dueDate = invoice?.dueDate;
+    _yearController = TextEditingController(
+      text: '${invoice?.year ?? DateTime.now().year}',
+    );
+    if (invoice != null) {
+      _amountController.text = invoice.amount.toStringAsFixed(2);
+    }
     widget.invoiceViewModel.addListener(_onViewModelChanged);
   }
 
@@ -128,14 +143,23 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
     final amount = double.parse(_amountController.text.trim());
     final year = int.parse(_yearController.text.trim());
 
-    final success = await vm.createInvoice(
-      userId: widget.userId,
-      serviceId: _selectedServiceId!,
-      month: _selectedMonth!,
-      year: year,
-      amount: amount,
-      dueDate: _dueDate,
-    );
+    final success = _isEditing
+        ? await vm.updateInvoice(
+            id: widget.invoice!.id,
+            serviceId: _selectedServiceId!,
+            month: _selectedMonth!,
+            year: year,
+            amount: amount,
+            dueDate: _dueDate,
+          )
+        : await vm.createInvoice(
+            userId: widget.userId,
+            serviceId: _selectedServiceId!,
+            month: _selectedMonth!,
+            year: year,
+            amount: amount,
+            dueDate: _dueDate,
+          );
 
     if (!mounted) return;
 
@@ -190,9 +214,9 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Nueva factura',
-                        style: TextStyle(
+                      Text(
+                        _isEditing ? 'Editar factura' : 'Nueva factura',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: AppColors.authTextPrimary,
@@ -373,7 +397,9 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
                                 color: AppColors.authBackgroundBottom,
                               ),
                             )
-                          : const Text('Crear factura'),
+                          : Text(_isEditing
+                              ? 'Guardar cambios'
+                              : 'Crear factura'),
                     ),
                   ),
                 ],
