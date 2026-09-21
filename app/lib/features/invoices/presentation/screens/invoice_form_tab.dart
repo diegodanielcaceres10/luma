@@ -6,8 +6,8 @@ import '../../../services/presentation/view_models/service_view_model.dart';
 import '../view_models/invoice_view_model.dart';
 
 /// Contenido de la pestaña "Nueva factura". No tiene Scaffold propio —
-/// vive dentro del Scaffold del HomeShell, que es quien pone el header y
-/// el bottomNavigationBar.
+/// se muestra dentro de un RoutedScreenScaffold, debajo del header y
+/// encima del bottomNavigationBar que pone AppShellScreen.
 ///
 /// Por ahora este formulario solo crea facturas, pensadas para un pago
 /// futuro: no hay edición ni forma de activar/inactivar, eso se agrega
@@ -95,7 +95,8 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
   }
 
   Future<void> _pickDueDate() async {
-    final year = int.tryParse(_yearController.text.trim()) ?? DateTime.now().year;
+    final year =
+        int.tryParse(_yearController.text.trim()) ?? DateTime.now().year;
     final picked = await showDatePicker(
       context: context,
       initialDate:
@@ -243,9 +244,9 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
                                   final service = services.firstWhere(
                                     (s) => s.id == value,
                                   );
-                                  _amountController.text =
-                                      service.approximateAmount
-                                          .toStringAsFixed(2);
+                                  _amountController.text = service
+                                      .approximateAmount
+                                      .toStringAsFixed(2);
                                 }
                               });
                             },
@@ -361,9 +362,8 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
                             .withValues(alpha: 0.6),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      onPressed: (isSubmitting || services.isEmpty)
-                          ? null
-                          : _submit,
+                      onPressed:
+                          (isSubmitting || services.isEmpty) ? null : _submit,
                       child: isSubmitting
                           ? const SizedBox(
                               height: 20,

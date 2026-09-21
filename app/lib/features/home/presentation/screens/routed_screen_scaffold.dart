@@ -2,46 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
-/// FASE 3 de la migración a rutas: Scaffold para pantallas que ya son
-/// rutas propias (empujadas con `context.push`, dentro de la rama
-/// "Inicio" del bottom nav — por eso el bottom nav sigue visible, es
-/// AppShellScreen quien lo pone por fuera de esto). A diferencia del
-/// header compartido que todavía usa HomeBranchScreen para lo que falta
-/// migrar, acá cada pantalla tiene su propio AppBar con botón atrás
-/// nativo del Navigator — no hace falta ningún PopScope a mano.
-///
-/// Excepción: Cuentas, Categorías, Servicios y Facturas (`showAppBar:
-/// false`) son destinos de primer nivel del drawer — ya se puede volver
-/// con el bottom nav o el propio drawer, así que no necesitan ni AppBar
-/// ni botón "atrás". El "+" para crear ahí vive alineado con el título
-/// que ya dibuja cada pestaña, no en esta barra.
+/// Scaffold de las pantallas que se abren como ruta propia (formularios,
+/// listados, saldos iniciales, etc.): fondo con degradé y el contenido de
+/// la pantalla. No dibuja AppBar ni botón "atrás": el header, el drawer y
+/// el bottom nav los pone AppShellScreen por fuera, y cada pantalla trae
+/// su propio título y su botón de volver (`context.goBack()`, ver
+/// core/navigation/app_back.dart).
 class RoutedScreenScaffold extends StatelessWidget {
-  final String title;
   final Widget body;
-  final List<Widget>? actions;
-  final bool showAppBar;
 
-  const RoutedScreenScaffold({
-    super.key,
-    required this.title,
-    required this.body,
-    this.actions,
-    this.showAppBar = true,
-  });
+  const RoutedScreenScaffold({super.key, required this.body});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.authBackgroundBottom,
-      appBar: showAppBar
-          ? AppBar(
-              title: Text(title),
-              backgroundColor: AppColors.authBackgroundBottom,
-              foregroundColor: AppColors.authTextPrimary,
-              elevation: 0,
-              actions: actions,
-            )
-          : null,
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

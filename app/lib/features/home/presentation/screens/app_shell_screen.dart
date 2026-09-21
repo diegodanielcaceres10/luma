@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
-import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../widgets/luma_header.dart';
 
 /// Accesos compartidos entre el bottom nav y el drawer: (ícono, texto,
@@ -39,13 +38,8 @@ int _navIndexFor(String path) {
 class AppShellScreen extends StatelessWidget {
   /// El Navigator del `ShellRoute`: la pantalla actual y las apiladas.
   final Widget child;
-  final AuthViewModel authViewModel;
 
-  const AppShellScreen({
-    super.key,
-    required this.child,
-    required this.authViewModel,
-  });
+  const AppShellScreen({super.key, required this.child});
 
   Widget? _headerAction(int navIndex) {
     switch (navIndex) {

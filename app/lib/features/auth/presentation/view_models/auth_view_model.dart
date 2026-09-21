@@ -70,7 +70,8 @@ class AuthViewModel extends ChangeNotifier {
       // Wait up to 2 minutes for the OAuth callback to return.
       await _oauthCompleter!.future.timeout(
         const Duration(minutes: 2),
-        onTimeout: () => throw TimeoutException('Login cancelled or timed out.'),
+        onTimeout: () =>
+            throw TimeoutException('Login cancelled or timed out.'),
       );
     } on TimeoutException {
       _errorMessage = 'Inicio de sesión cancelado.';

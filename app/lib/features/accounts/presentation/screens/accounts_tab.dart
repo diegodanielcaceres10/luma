@@ -14,8 +14,8 @@ import '../view_models/account_view_model.dart';
 class AccountsTab extends StatelessWidget {
   final AccountViewModel accountViewModel;
 
-  /// Pide al HomeShell que muestre la pestaña de formulario. `null` = alta
-  /// nueva; con valor = edición de esa cuenta.
+  /// Abre el formulario de cuenta. `null` = alta nueva; con valor = edición
+  /// de esa cuenta.
   final ValueChanged<Account?> onOpenForm;
 
   /// Abre el formulario de alta ("+" del título).

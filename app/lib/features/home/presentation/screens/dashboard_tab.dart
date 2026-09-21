@@ -13,8 +13,9 @@ import '../../../monthly_balances/presentation/view_models/monthly_balance_view_
 import '../../../transactions/data/models/transaction_entry.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 
-/// Contenido de la pestaña "Inicio". No tiene Scaffold propio — vive dentro
-/// del Scaffold del HomeShell, que es quien pone el bottomNavigationBar.
+/// Contenido de la pestaña "Inicio". No tiene Scaffold propio — se muestra
+/// dentro del Scaffold de AppShellScreen, que pone el header y el
+/// bottomNavigationBar.
 class DashboardTab extends StatelessWidget {
   final AuthViewModel authViewModel;
   final AccountViewModel accountViewModel;
@@ -23,7 +24,7 @@ class DashboardTab extends StatelessWidget {
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final InvoiceViewModel invoiceViewModel;
   final VoidCallback? onSeeAllMovements;
-  final ValueChanged<List<Account>> onOpenMonthlyBalances;
+  final VoidCallback onOpenMonthlyBalances;
   final ValueChanged<String> onOpenAddTransaction;
   final VoidCallback onGoToAccounts;
   final VoidCallback onManageAccounts;
@@ -93,9 +94,8 @@ class DashboardTab extends StatelessWidget {
               netResult: transactionViewModel.netResult,
               isLoadingNetResult: transactionViewModel.isLoading,
               pendingAccountsCount: pendingAccounts.length,
-              onCompletePendingBalances: pendingAccounts.isEmpty
-                  ? null
-                  : () => onOpenMonthlyBalances(pendingAccounts),
+              onCompletePendingBalances:
+                  pendingAccounts.isEmpty ? null : onOpenMonthlyBalances,
               onManageAccounts: onManageAccounts,
             ),
             const SizedBox(height: 28),

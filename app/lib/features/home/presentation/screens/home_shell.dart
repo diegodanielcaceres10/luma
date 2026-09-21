@@ -9,12 +9,9 @@ import '../../../monthly_balances/presentation/view_models/monthly_balance_view_
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import 'dashboard_tab.dart';
 
-/// MIGRACIÓN A RUTAS COMPLETA para la rama "Inicio": Cuentas, Categorías,
-/// Servicios, Facturas, saldo inicial del mes, nueva transacción y
-/// transferencia ya son todas rutas propias, empujadas con `context.push`
-/// desde acá o desde el Dashboard (ver router.dart). Lo único que queda
-/// en esta rama es, directamente, el Dashboard — ya no hace falta ningún
-/// índice ni `IndexedStack` a mano.
+/// Ruta '/': el Dashboard. Conecta sus acciones con el resto de las
+/// pantallas, que son rutas propias abiertas con `context.push` (ver
+/// router.dart).
 class HomeBranchScreen extends StatelessWidget {
   final AuthViewModel authViewModel;
   final AccountViewModel accountViewModel;
@@ -43,8 +40,7 @@ class HomeBranchScreen extends StatelessWidget {
       monthlyBalanceViewModel: monthlyBalanceViewModel,
       invoiceViewModel: invoiceViewModel,
       onSeeAllMovements: () => context.push('/movements'),
-      onOpenMonthlyBalances: (pendingAccounts) =>
-          context.push('/monthly-balance'),
+      onOpenMonthlyBalances: () => context.push('/monthly-balance'),
       onOpenAddTransaction: (type) => context.push('/add-transaction/$type'),
       onGoToAccounts: () => context.push('/accounts/new'),
       onManageAccounts: () => context.push('/accounts-overview'),

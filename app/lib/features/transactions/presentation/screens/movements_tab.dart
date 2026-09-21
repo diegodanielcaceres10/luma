@@ -12,7 +12,7 @@ enum _TypeFilter { all, income, expense }
 
 enum _DateRangeFilter { today, thisWeek, last7Days, last15Days, thisMonth, all }
 
-/// Contenido de la rama "Movimientos" (ver router.dart/AppShellScreen,
+/// Contenido de la pantalla "Movimientos" (ver router.dart/AppShellScreen,
 /// que ponen el Scaffold compartido con el header y el bottomNavigationBar).
 class MovementsTab extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
@@ -41,12 +41,11 @@ class _MovementsTabState extends State<MovementsTab> {
   void initState() {
     super.initState();
     // Carga perezosa: el historial completo de transacciones recién se
-    // pide la primera vez que se entra a "Movimientos", no al arrancar.
-    // Antes esto lo manejaba HomeShell con un flag (`_movementsLoaded`) y
-    // `_onTabTap`; ahora que "Movimientos" es su propia rama del bottom
-    // nav, initState ya se llama una sola vez por la vida de la rama
-    // (StatefulShellRoute mantiene su estado con IndexedStack), así que
-    // alcanza con pedirlo acá.
+    // pide al entrar a "Movimientos", no al arrancar. La pantalla se crea
+    // de nuevo en cada visita (no se mantiene viva al cambiar de
+    // pestaña), así que el historial completo se vuelve a pedir cada vez:
+    // decisión a propósito — para un uso personal el volumen es chico y
+    // así los datos siempre están frescos.
     //
     // `loadAllTransactions` llama a `notifyListeners()` antes del primer
     // `await` (para prender el spinner ya mismo) — eso corre en el mismo

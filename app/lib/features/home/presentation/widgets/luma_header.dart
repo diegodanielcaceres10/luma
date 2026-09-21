@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
 
-/// Header compartido por las pestañas del HomeShell: menú hamburguesa,
+/// Header compartido por todas las pantallas del shell (AppShellScreen): menú hamburguesa,
 /// marca Luma y una acción opcional a la derecha (campana, ajustes, etc.).
 class LumaHeader extends StatelessWidget {
   final Widget? trailing;

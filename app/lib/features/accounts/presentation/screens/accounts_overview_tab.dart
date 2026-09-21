@@ -22,19 +22,18 @@ const _kAccountIcons = [
 /// Contenido de la pestaña "Cuentas" (vista general), basada en el
 /// prototipo con el resumen de saldos y las cuentas en tarjetas.
 ///
-/// No tiene Scaffold propio — vive dentro del Scaffold del HomeShell, que es
-/// quien pone el header (menú + marca Luma + campana) y el
-/// bottomNavigationBar.
+/// No tiene Scaffold propio — se muestra dentro de un RoutedScreenScaffold,
+/// debajo del header (menú + marca Luma + campana) y encima del
+/// bottomNavigationBar que pone AppShellScreen.
 class AccountsOverviewTab extends StatelessWidget {
   final AccountViewModel accountViewModel;
 
-  /// Pide al HomeShell que muestre la pestaña de formulario. `null` = alta
-  /// nueva; con valor = edición de esa cuenta. Mismo contrato que
-  /// [AccountsTab.onOpenForm].
+  /// Abre el formulario de cuenta. `null` = alta nueva; con valor = edición
+  /// de esa cuenta. Mismo contrato que [AccountsTab.onOpenForm].
   final ValueChanged<Account?> onOpenForm;
 
-  /// Pide al HomeShell que abra la nueva pantalla de actualización rápida
-  /// de saldo para esta cuenta (distinta del formulario de edición).
+  /// Abre la pantalla de actualización rápida de saldo para esta cuenta
+  /// (distinta del formulario de edición).
   final ValueChanged<Account> onOpenUpdateBalance;
 
   /// Vuelve a la pantalla desde la que se abrió esta vista (el Dashboard).

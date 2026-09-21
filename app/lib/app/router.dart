@@ -112,10 +112,7 @@ GoRouter buildAppRouter({
         builder: (context, state) => LoginScreen(viewModel: authViewModel),
       ),
       ShellRoute(
-        builder: (context, state, child) => AppShellScreen(
-          authViewModel: authViewModel,
-          child: child,
-        ),
+        builder: (context, state, child) => AppShellScreen(child: child),
         routes: [
           // Inicio (Dashboard)
           GoRoute(
@@ -133,16 +130,14 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/monthly-balance',
             builder: (context, state) => RoutedScreenScaffold(
-              title: 'Saldos iniciales',
-              showAppBar: false,
               body: MonthlyBalanceTab(
                 userId: authViewModel.userId ?? '',
                 // Se recalcula acá mismo en vez de viajar por la
                 // navegación — misma cuenta que usaba el
                 // Dashboard (ver dashboard_tab.dart).
                 pendingAccounts: monthlyBalanceViewModel.checked
-                    ? monthlyBalanceViewModel.pendingAccounts(
-                        accountViewModel.activeAccounts)
+                    ? monthlyBalanceViewModel
+                        .pendingAccounts(accountViewModel.activeAccounts)
                     : const [],
                 monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
@@ -157,10 +152,6 @@ GoRouter buildAppRouter({
                   ? 'income'
                   : 'expense';
               return RoutedScreenScaffold(
-                title: type == 'income'
-                    ? 'Añadir ingreso'
-                    : 'Añadir gasto',
-                showAppBar: false,
                 body: AddTransactionTab(
                   type: type,
                   userId: authViewModel.userId ?? '',
@@ -176,8 +167,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/transfer',
             builder: (context, state) => RoutedScreenScaffold(
-              title: 'Transferencia entre cuentas',
-              showAppBar: false,
               body: TransferFormTab(
                 userId: authViewModel.userId,
                 accountViewModel: accountViewModel,
@@ -190,8 +179,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/accounts',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: AccountsTab(
                 accountViewModel: accountViewModel,
                 onAdd: () => context.push('/accounts/new'),
@@ -204,8 +191,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/accounts/new',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: AccountFormTab(
                 userId: authViewModel.userId ?? '',
                 accountViewModel: accountViewModel,
@@ -219,13 +204,11 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/accounts/:id/edit',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: AccountFormTab(
                 userId: authViewModel.userId ?? '',
                 accountViewModel: accountViewModel,
-                account: _findAccount(
-                    accountViewModel, state.pathParameters['id']),
+                account:
+                    _findAccount(accountViewModel, state.pathParameters['id']),
                 onDone: () {
                   monthlyBalanceViewModel.checkCurrentMonth();
                   context.goBack();
@@ -236,11 +219,9 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/accounts/:id/balance',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: UpdateBalanceTab(
-                account: _findAccount(
-                    accountViewModel, state.pathParameters['id']),
+                account:
+                    _findAccount(accountViewModel, state.pathParameters['id']),
                 accountViewModel: accountViewModel,
                 categoryViewModel: categoryViewModel,
                 transactionViewModel: transactionViewModel,
@@ -252,8 +233,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/accounts-overview',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: AccountsOverviewTab(
                 accountViewModel: accountViewModel,
                 onBack: () => context.goBack(),
@@ -269,8 +248,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/categories',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: CategoriesTab(
                 categoryViewModel: categoryViewModel,
                 onAdd: () => context.push('/categories/new'),
@@ -282,8 +259,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/categories/new',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: CategoryFormTab(
                 userId: authViewModel.userId ?? '',
                 categoryViewModel: categoryViewModel,
@@ -294,8 +269,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/categories/:id/edit',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: CategoryFormTab(
                 userId: authViewModel.userId ?? '',
                 categoryViewModel: categoryViewModel,
@@ -309,8 +282,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/services',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: ServicesTab(
                 serviceViewModel: serviceViewModel,
                 categoryViewModel: categoryViewModel,
@@ -323,8 +294,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/services/new',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: ServiceFormTab(
                 userId: authViewModel.userId ?? '',
                 serviceViewModel: serviceViewModel,
@@ -336,14 +305,12 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/services/:id/edit',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: ServiceFormTab(
                 userId: authViewModel.userId ?? '',
                 serviceViewModel: serviceViewModel,
                 categoryViewModel: categoryViewModel,
-                service: _findService(
-                    serviceViewModel, state.pathParameters['id']),
+                service:
+                    _findService(serviceViewModel, state.pathParameters['id']),
                 onDone: () => context.goBack(),
               ),
             ),
@@ -352,8 +319,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/invoices',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: InvoicesTab(
                 userId: authViewModel.userId ?? '',
                 invoiceViewModel: invoiceViewModel,
@@ -361,8 +326,7 @@ GoRouter buildAppRouter({
                 categoryViewModel: categoryViewModel,
                 accountViewModel: accountViewModel,
                 onAdd: () => context.push('/invoices/new'),
-                // Cada push crea un InvoicesTab nuevo (ya no hace
-                // falta el nonce que usaba HomeShell) — alcanza
+                // Cada push crea un InvoicesTab nuevo, así que alcanza
                 // con leer el query param una vez, al construir.
                 initialPendingFilter:
                     state.uri.queryParameters['pending'] == 'true',
@@ -372,8 +336,6 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/invoices/new',
             builder: (context, state) => RoutedScreenScaffold(
-              title: '',
-              showAppBar: false,
               body: InvoiceFormTab(
                 userId: authViewModel.userId ?? '',
                 invoiceViewModel: invoiceViewModel,

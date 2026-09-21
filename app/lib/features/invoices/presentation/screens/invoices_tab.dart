@@ -32,9 +32,8 @@ class InvoicesTab extends StatefulWidget {
 
   /// Si es true, la pestaña arranca con el filtro "Pendientes" ya
   /// aplicado (ej. al entrar desde la quick action "Facturas por pagar"
-  /// del Dashboard). Solo se lee una vez, al crear el State — para que
-  /// tenga efecto en una pestaña ya montada hace falta forzar un nuevo
-  /// State (ver el nonce en HomeShell).
+  /// del Dashboard). Solo se lee una vez, al crear el State — como
+  /// cada `push` crea una pantalla nueva, alcanza con eso.
   final bool initialPendingFilter;
 
   /// Abre el formulario de alta ("+" del título).

@@ -18,9 +18,7 @@ class MonthlyBalanceService {
         .eq('month', month)
         .eq('year', year);
 
-    return (rows as List)
-        .map((row) => row['account_id'] as String)
-        .toSet();
+    return (rows as List).map((row) => row['account_id'] as String).toSet();
   }
 
   Future<void> saveOpeningBalance({
