@@ -16,7 +16,11 @@ import '../../../transactions/presentation/view_models/transaction_view_model.da
 /// Contenido de la pestaña "Inicio". No tiene Scaffold propio — se muestra
 /// dentro del Scaffold de AppShellScreen, que pone el header y el
 /// bottomNavigationBar.
-class DashboardTab extends StatelessWidget {
+///
+/// Mientras no lleguen todos los datos iniciales muestra solo un spinner.
+/// Después, según las cuentas activas, muestra el card para crear la primera
+/// cuenta o el resto del contenido.
+class DashboardTab extends StatefulWidget {
   final AuthViewModel authViewModel;
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
@@ -49,79 +53,212 @@ class DashboardTab extends StatelessWidget {
   });
 
   @override
+  State<DashboardTab> createState() => _DashboardTabState();
+}
+
+class _DashboardTabState extends State<DashboardTab> {
+  // Se vuelve true cuando termina la primera carga y ya no se revierte: los
+  // refrescos posteriores (p. ej. tras crear un movimiento) no deben tapar
+  // el dashboard con el spinner, para eso quedan los spinners de cada
+  // sección.
+  bool _initialLoadDone = false;
+
+  /// `true` cuando todos los datos que usa el dashboard terminaron de
+  /// cargar. Las cuentas se validan con `hasLoaded` porque antes de que
+  /// arranque la carga `isLoading` todavía es false y se vería el card de
+  /// "sin cuentas" por un instante.
+  bool get _isInitialLoadComplete =>
+      widget.accountViewModel.hasLoaded &&
+      !widget.accountViewModel.isLoading &&
+      !widget.transactionViewModel.isLoading &&
+      !widget.monthlyBalanceViewModel.isLoading &&
+      !widget.invoiceViewModel.isLoading;
+
+  void _retryLoad() {
+    widget.accountViewModel.loadAccounts();
+    widget.transactionViewModel.loadCurrentMonth();
+    widget.monthlyBalanceViewModel.checkCurrentMonth();
+    widget.invoiceViewModel.loadInvoices();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: Listenable.merge([
-        accountViewModel,
-        transactionViewModel,
-        monthlyBalanceViewModel,
-        invoiceViewModel,
+        widget.accountViewModel,
+        widget.transactionViewModel,
+        widget.monthlyBalanceViewModel,
+        widget.invoiceViewModel,
       ]),
       builder: (context, _) {
-        final pendingAccounts = monthlyBalanceViewModel.checked
-            ? monthlyBalanceViewModel
-                .pendingAccounts(accountViewModel.activeAccounts)
-            : const <Account>[];
+        final accountViewModel = widget.accountViewModel;
 
-        // No active accounts — guide the user to create one.
-        if (!accountViewModel.isLoading &&
-            accountViewModel.activeAccounts.isEmpty) {
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: [
-              _GreetingRow(
-                initials: authViewModel.initials,
-                firstName: authViewModel.displayName.split(' ').first,
-              ),
-              const SizedBox(height: 40),
-              _NoAccountsCard(onGoToAccounts: onGoToAccounts),
-            ],
-          );
+        if (!_initialLoadDone && _isInitialLoadComplete) {
+          _initialLoadDone = true;
         }
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          children: [
-            _GreetingRow(
-              initials: authViewModel.initials,
-              firstName: authViewModel.displayName.split(' ').first,
-            ),
-            const SizedBox(height: 20),
-            _BalanceCard(
-              isLoading: accountViewModel.isLoading,
-              total: accountViewModel.totalBalance,
-              currency: accountViewModel.primaryCurrency,
-              netResult: transactionViewModel.netResult,
-              isLoadingNetResult: transactionViewModel.isLoading,
-              pendingAccountsCount: pendingAccounts.length,
-              onCompletePendingBalances:
-                  pendingAccounts.isEmpty ? null : onOpenMonthlyBalances,
-              onManageAccounts: onManageAccounts,
-            ),
-            const SizedBox(height: 28),
-            const _SectionHeader(title: 'Acciones rápidas'),
-            const SizedBox(height: 12),
-            _QuickActions(
-              onAddIncome: () => onOpenAddTransaction('income'),
-              onAddExpense: () => onOpenAddTransaction('expense'),
-              onGoToInvoices: onGoToInvoices,
-              onGoToTransfers: onGoToTransfers,
-              pendingInvoicesCount: invoiceViewModel.pendingCount,
-            ),
-            const SizedBox(height: 28),
-            _SectionHeader(
-              title: 'Últimos movimientos',
-              onSeeAll: onSeeAllMovements,
-            ),
-            const SizedBox(height: 8),
-            _RecentMovements(
-              isLoading: transactionViewModel.isLoading,
-              movements: transactionViewModel.recentMovements,
-              currency: accountViewModel.primaryCurrency,
-            ),
-          ],
+        // Si fallan las cuentas nunca llega `hasLoaded`; sin este caso el
+        // spinner quedaría infinito.
+        final loadFailed = !accountViewModel.hasLoaded &&
+            !accountViewModel.isLoading &&
+            accountViewModel.errorMessage != null;
+
+        final Widget child;
+        if (loadFailed) {
+          child = _LoadErrorView(
+            key: const ValueKey('dashboard-error'),
+            onRetry: _retryLoad,
+          );
+        } else if (!_initialLoadDone) {
+          child = const _DashboardLoading(key: ValueKey('dashboard-loading'));
+        } else {
+          final activeAccounts = accountViewModel.activeAccounts;
+          child = activeAccounts.isEmpty
+              ? _buildNoAccounts()
+              : _buildContent(activeAccounts);
+        }
+
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: child,
         );
       },
+    );
+  }
+
+  // No active accounts — guide the user to create one.
+  Widget _buildNoAccounts() {
+    return ListView(
+      key: const ValueKey('dashboard-no-accounts'),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      children: [
+        _GreetingRow(
+          initials: widget.authViewModel.initials,
+          firstName: widget.authViewModel.displayName.split(' ').first,
+        ),
+        const SizedBox(height: 40),
+        _NoAccountsCard(onGoToAccounts: widget.onGoToAccounts),
+      ],
+    );
+  }
+
+  Widget _buildContent(List<Account> activeAccounts) {
+    final accountViewModel = widget.accountViewModel;
+    final transactionViewModel = widget.transactionViewModel;
+    final monthlyBalanceViewModel = widget.monthlyBalanceViewModel;
+
+    final pendingAccounts = monthlyBalanceViewModel.checked
+        ? monthlyBalanceViewModel.pendingAccounts(activeAccounts)
+        : const <Account>[];
+
+    return ListView(
+      key: const ValueKey('dashboard-content'),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      children: [
+        _GreetingRow(
+          initials: widget.authViewModel.initials,
+          firstName: widget.authViewModel.displayName.split(' ').first,
+        ),
+        const SizedBox(height: 20),
+        _BalanceCard(
+          isLoading: accountViewModel.isLoading,
+          total: accountViewModel.totalBalance,
+          currency: accountViewModel.primaryCurrency,
+          netResult: transactionViewModel.netResult,
+          isLoadingNetResult: transactionViewModel.isLoading,
+          pendingAccountsCount: pendingAccounts.length,
+          onCompletePendingBalances:
+              pendingAccounts.isEmpty ? null : widget.onOpenMonthlyBalances,
+          onManageAccounts: widget.onManageAccounts,
+        ),
+        const SizedBox(height: 28),
+        const _SectionHeader(title: 'Acciones rápidas'),
+        const SizedBox(height: 12),
+        _QuickActions(
+          onAddIncome: () => widget.onOpenAddTransaction('income'),
+          onAddExpense: () => widget.onOpenAddTransaction('expense'),
+          onGoToInvoices: widget.onGoToInvoices,
+          onGoToTransfers: widget.onGoToTransfers,
+          pendingInvoicesCount: widget.invoiceViewModel.pendingCount,
+        ),
+        const SizedBox(height: 28),
+        _SectionHeader(
+          title: 'Últimos movimientos',
+          onSeeAll: widget.onSeeAllMovements,
+        ),
+        const SizedBox(height: 8),
+        _RecentMovements(
+          isLoading: transactionViewModel.isLoading,
+          movements: transactionViewModel.recentMovements,
+          currency: accountViewModel.primaryCurrency,
+        ),
+      ],
+    );
+  }
+}
+
+/// Spinner centrado mientras llegan los datos iniciales del dashboard.
+class _DashboardLoading extends StatelessWidget {
+  const _DashboardLoading({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: CircularProgressIndicator(
+          strokeWidth: 3,
+          color: AppColors.authAccent,
+        ),
+      ),
+    );
+  }
+}
+
+/// Se muestra si no se pudieron cargar las cuentas, para no dejar el spinner
+/// girando para siempre ni mostrar el card de "sin cuentas" por error.
+class _LoadErrorView extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _LoadErrorView({super.key, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              color: AppColors.authTextSecondary,
+              size: 40,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No pudimos cargar tus datos',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.authAccent,
+                foregroundColor: AppColors.authBackgroundBottom,
+              ),
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
