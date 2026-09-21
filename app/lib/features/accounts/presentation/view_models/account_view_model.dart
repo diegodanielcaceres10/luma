@@ -11,12 +11,18 @@ class AccountViewModel extends ChangeNotifier {
   AccountViewModel(this._repository);
 
   bool _isLoading = false;
+  bool _hasLoaded = false;
   bool _isSubmitting = false;
   String? _errorMessage;
   AccountSubmitError? _submitError;
   List<Account> _accounts = [];
 
   bool get isLoading => _isLoading;
+
+  /// `true` una vez que la lista de cuentas se cargó con éxito al menos una
+  /// vez. Sirve para distinguir "todavía no llegaron las cuentas" de "las
+  /// cuentas llegaron y esta no existe" (ver AccountRouteGuard).
+  bool get hasLoaded => _hasLoaded;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
   AccountSubmitError? get submitError => _submitError;
@@ -46,6 +52,7 @@ class AccountViewModel extends ChangeNotifier {
 
     try {
       _accounts = await _repository.getAccounts();
+      _hasLoaded = true;
     } catch (error) {
       _errorMessage = 'No se pudieron cargar las cuentas.';
     } finally {

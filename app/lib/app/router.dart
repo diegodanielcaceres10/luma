@@ -1,12 +1,12 @@
 import 'package:go_router/go_router.dart';
 
 import '../core/navigation/app_back.dart';
-import '../features/accounts/data/models/account.dart';
 import '../features/accounts/presentation/screens/account_form_tab.dart';
 import '../features/accounts/presentation/screens/accounts_overview_tab.dart';
 import '../features/accounts/presentation/screens/accounts_tab.dart';
 import '../features/accounts/presentation/screens/update_balance_tab.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
+import '../features/accounts/presentation/widgets/account_route_guard.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
@@ -32,13 +32,6 @@ import '../features/transactions/presentation/screens/statistics_tab.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import '../features/transfers/presentation/screens/transfer_form_tab.dart';
 import 'not_found_screen.dart';
-
-Account? _findAccount(AccountViewModel vm, String? id) {
-  for (final a in vm.accounts) {
-    if (a.id == id) return a;
-  }
-  return null;
-}
 
 Category? _findCategory(CategoryViewModel vm, String? id) {
   for (final c in vm.categories) {
@@ -213,30 +206,38 @@ GoRouter buildAppRouter({
           ),
           GoRoute(
             path: '/accounts/:id/edit',
+            // Si el :id no existe, AccountRouteGuard manda a '/accounts'
+            // con un aviso (en vez de abrir el formulario como alta).
             builder: (context, state) => RoutedScreenScaffold(
-              body: AccountFormTab(
-                userId: authViewModel.userId ?? '',
+              body: AccountRouteGuard(
                 accountViewModel: accountViewModel,
-                account: _findAccount(
-                    accountViewModel, state.pathParameters['id']),
-                onDone: () {
-                  monthlyBalanceViewModel.checkCurrentMonth();
-                  context.goBack();
-                },
+                accountId: state.pathParameters['id'],
+                builder: (context, account) => AccountFormTab(
+                  userId: authViewModel.userId ?? '',
+                  accountViewModel: accountViewModel,
+                  account: account,
+                  onDone: () {
+                    monthlyBalanceViewModel.checkCurrentMonth();
+                    context.goBack();
+                  },
+                ),
               ),
             ),
           ),
           GoRoute(
             path: '/accounts/:id/balance',
             builder: (context, state) => RoutedScreenScaffold(
-              body: UpdateBalanceTab(
-                account: _findAccount(
-                    accountViewModel, state.pathParameters['id']),
+              body: AccountRouteGuard(
                 accountViewModel: accountViewModel,
-                categoryViewModel: categoryViewModel,
-                transactionViewModel: transactionViewModel,
-                userId: authViewModel.userId,
-                onDone: () => context.goBack(),
+                accountId: state.pathParameters['id'],
+                builder: (context, account) => UpdateBalanceTab(
+                  account: account,
+                  accountViewModel: accountViewModel,
+                  categoryViewModel: categoryViewModel,
+                  transactionViewModel: transactionViewModel,
+                  userId: authViewModel.userId,
+                  onDone: () => context.goBack(),
+                ),
               ),
             ),
           ),
