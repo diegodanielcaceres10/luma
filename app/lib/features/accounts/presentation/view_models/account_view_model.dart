@@ -52,6 +52,16 @@ class AccountViewModel extends ChangeNotifier {
 
     try {
       _accounts = await _repository.getAccounts();
+      // El `order('name')` de Supabase/Postgres distingue mayúsculas de
+      // minúsculas (ordena por código de carácter), así que una cuenta con
+      // mayúscula inicial puede terminar antes que otras que
+      // alfabéticamente van primero. Se reordena acá, sin distinguir
+      // mayúsculas/minúsculas, para que se vea alfabético de verdad —
+      // afecta a esta lista y a todo lo que sale de ella (selectores de
+      // cuenta en movimientos, transferencias, etc.).
+      _accounts.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
       _hasLoaded = true;
     } catch (error) {
       _errorMessage = 'No se pudieron cargar las cuentas.';
