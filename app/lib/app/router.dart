@@ -31,6 +31,7 @@ import '../features/transactions/presentation/screens/movements_tab.dart';
 import '../features/transactions/presentation/screens/statistics_tab.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import '../features/transfers/presentation/screens/transfer_form_tab.dart';
+import 'not_found_screen.dart';
 
 Account? _findAccount(AccountViewModel vm, String? id) {
   for (final a in vm.accounts) {
@@ -106,6 +107,13 @@ GoRouter buildAppRouter({
       if (isAuthenticated && isLoggingIn) return '/';
       return null;
     },
+    // URLs que no coinciden con ninguna ruta. El `redirect` de arriba corre
+    // ANTES que esto, también para rutas que no existen: sin sesión,
+    // cualquier URL inválida termina en '/login', así que esta pantalla
+    // solo la ve quien ya está autenticado. Va por fuera del shell (sin
+    // header ni bottom nav).
+    errorBuilder: (context, state) =>
+        NotFoundScreen(location: state.uri.path),
     routes: [
       GoRoute(
         path: '/login',
@@ -136,8 +144,8 @@ GoRouter buildAppRouter({
                 // navegación — misma cuenta que usaba el
                 // Dashboard (ver dashboard_tab.dart).
                 pendingAccounts: monthlyBalanceViewModel.checked
-                    ? monthlyBalanceViewModel
-                        .pendingAccounts(accountViewModel.activeAccounts)
+                    ? monthlyBalanceViewModel.pendingAccounts(
+                        accountViewModel.activeAccounts)
                     : const [],
                 monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
@@ -207,8 +215,8 @@ GoRouter buildAppRouter({
               body: AccountFormTab(
                 userId: authViewModel.userId ?? '',
                 accountViewModel: accountViewModel,
-                account:
-                    _findAccount(accountViewModel, state.pathParameters['id']),
+                account: _findAccount(
+                    accountViewModel, state.pathParameters['id']),
                 onDone: () {
                   monthlyBalanceViewModel.checkCurrentMonth();
                   context.goBack();
@@ -220,8 +228,8 @@ GoRouter buildAppRouter({
             path: '/accounts/:id/balance',
             builder: (context, state) => RoutedScreenScaffold(
               body: UpdateBalanceTab(
-                account:
-                    _findAccount(accountViewModel, state.pathParameters['id']),
+                account: _findAccount(
+                    accountViewModel, state.pathParameters['id']),
                 accountViewModel: accountViewModel,
                 categoryViewModel: categoryViewModel,
                 transactionViewModel: transactionViewModel,
@@ -309,8 +317,8 @@ GoRouter buildAppRouter({
                 userId: authViewModel.userId ?? '',
                 serviceViewModel: serviceViewModel,
                 categoryViewModel: categoryViewModel,
-                service:
-                    _findService(serviceViewModel, state.pathParameters['id']),
+                service: _findService(
+                    serviceViewModel, state.pathParameters['id']),
                 onDone: () => context.goBack(),
               ),
             ),
