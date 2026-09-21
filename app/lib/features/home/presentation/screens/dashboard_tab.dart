@@ -529,7 +529,7 @@ class _BalanceCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        'Facturas pendientes este mes: '
+                        'Servicios pendientes de pagar: '
                         '${formatCurrency(pendingInvoicesTotal, currency)}',
                         style: const TextStyle(
                           color: Colors.white70,
