@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
@@ -9,6 +10,7 @@ import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../export/statistics_pdf_builder.dart';
 import '../view_models/transaction_view_model.dart';
 
 class StatisticsTab extends StatefulWidget {
@@ -32,6 +34,48 @@ class StatisticsTab extends StatefulWidget {
 }
 
 class _StatisticsTabState extends State<StatisticsTab> {
+  bool _isExportingPdf = false;
+
+  /// Genera el PDF del mes que se está viendo y lo descarga (web) o abre el
+  /// menú de compartir (móvil). Solo se ofrece para meses ya cerrados: ver
+  /// `canExportPdf` en [build].
+  Future<void> _exportPdf() async {
+    if (_isExportingPdf) return;
+
+    // Se toma una foto de los datos antes del primer await: si el usuario
+    // cambia de mes mientras se genera, el PDF sigue siendo del mes en que
+    // tocó el botón.
+    final vm = widget.transactionViewModel;
+    final data = StatisticsPdfData(
+      month: vm.statisticsMonth,
+      monthLabel: _monthLabel(vm.statisticsMonth),
+      currency: widget.currency,
+      income: vm.statisticsIncome,
+      expenses: vm.statisticsExpenses,
+      netResult: vm.statisticsNetResult,
+      incomeChangePercent: vm.statisticsIncomeChangePercent,
+      expenseChangePercent: vm.statisticsExpenseChangePercent,
+      netChangePercent: vm.statisticsNetResultChangePercent,
+      breakdown: List.of(vm.statisticsCategoryBreakdown),
+      uncategorizedCount: vm.statisticsUncategorizedCount,
+      uncategorizedTotal: vm.statisticsUncategorizedTotal,
+    );
+
+    setState(() => _isExportingPdf = true);
+    try {
+      final bytes = await StatisticsPdfBuilder.build(data);
+      await Printing.sharePdf(bytes: bytes, filename: data.fileName);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo generar el PDF.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExportingPdf = false);
+    }
+  }
+
   /// Una fila por cada categoría con presupuesto asignado, con lo gastado
   /// este mes en esa categoría puntual (0 si todavía no tiene ningún
   /// movimiento). Reemplaza al total agrupado: cada categoría tiene su
@@ -87,9 +131,19 @@ class _StatisticsTabState extends State<StatisticsTab> {
         // frase ("gastados en septiembre 2025").
         final monthInSentence = _monthLabel(month).toLowerCase();
 
+        // El PDF es un resumen del mes cerrado: no se ofrece en el mes en
+        // curso (todavía no terminó) ni mientras carga, si falló la carga o
+        // si el mes no tiene movimientos.
+        final canExportPdf = !isCurrentMonth &&
+            !vm.isStatisticsLoading &&
+            vm.statisticsErrorMessage == null &&
+            (vm.statisticsIncome > 0 || vm.statisticsExpenses > 0);
+
         final header = _StatisticsHeader(
           selectedMonth: month,
           onTapMonthSelector: _pickMonth,
+          onExportPdf: canExportPdf ? _exportPdf : null,
+          isExportingPdf: _isExportingPdf,
         );
 
         // El presupuesto es un objetivo del mes en curso — no tiene
@@ -296,9 +350,15 @@ class _StatisticsHeader extends StatelessWidget {
   final DateTime selectedMonth;
   final VoidCallback onTapMonthSelector;
 
+  /// `null` oculta el botón "Exportar PDF" (mes en curso, cargando, etc.).
+  final VoidCallback? onExportPdf;
+  final bool isExportingPdf;
+
   const _StatisticsHeader({
     required this.selectedMonth,
     required this.onTapMonthSelector,
+    this.onExportPdf,
+    this.isExportingPdf = false,
   });
 
   @override
@@ -332,6 +392,31 @@ class _StatisticsHeader extends StatelessWidget {
           'Analiza tus ingresos, gastos y mantén el control de tus finanzas.',
           style: AppTextStyles.authSubtitle,
         ),
+        if (onExportPdf != null) ...[
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.authAccent,
+              side: const BorderSide(color: AppColors.authCardBorder),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            onPressed: isExportingPdf ? null : onExportPdf,
+            icon: isExportingPdf
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.authAccent,
+                    ),
+                  )
+                : const Icon(Icons.picture_as_pdf_outlined, size: 18),
+            label: Text(isExportingPdf ? 'Generando…' : 'Exportar PDF'),
+          ),
+        ],
       ],
     );
   }
