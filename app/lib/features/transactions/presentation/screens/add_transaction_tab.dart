@@ -15,6 +15,10 @@ import '../view_models/transaction_view_model.dart';
 /// [type]: 'income' o 'expense'. Fija el tipo de transacción que se va a
 /// crear; no hay selector de tipo en el formulario a propósito, porque se
 /// llega acá desde el botón correspondiente.
+///
+/// La categoría es opcional (tanto en ingresos como en gastos): si no se
+/// elige ninguna, el movimiento se guarda con `category_id` nulo y en el
+/// resto de la app figura como "Sin categoría".
 class AddTransactionTab extends StatefulWidget {
   final String type;
   final String userId;
@@ -118,14 +122,14 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedCategory == null || _selectedAccount == null) return;
+    if (_selectedAccount == null) return;
 
     final amount = double.parse(_amountController.text.replaceAll(',', '.'));
 
     final success = await widget.transactionViewModel.createTransaction(
       userId: widget.userId,
       accountId: _selectedAccount!.id,
-      categoryId: _selectedCategory!.id,
+      categoryId: _selectedCategory?.id,
       type: widget.type,
       amount: amount,
       description: _descriptionController.text.trim().isEmpty
@@ -223,7 +227,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  const Text('Categoría', style: _labelStyle),
+                  const Text('Categoría (opcional)', style: _labelStyle),
                   const SizedBox(height: 8),
                   if (widget.categoryViewModel.isLoading)
                     const Center(
@@ -233,9 +237,12 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                   else if (categories.isEmpty)
                     Text(
                       _isIncome
-                          ? 'No hay categorías de ingreso todavía.'
-                          : 'No hay categorías de gasto todavía.',
-                      style: const TextStyle(color: AppColors.authExpense),
+                          ? 'No hay categorías de ingreso todavía. '
+                              'Se guardará sin categoría.'
+                          : 'No hay categorías de gasto todavía. '
+                              'Se guardará sin categoría.',
+                      style:
+                          const TextStyle(color: AppColors.authTextSecondary),
                     )
                   else
                     DropdownButtonFormField<Category>(
@@ -249,19 +256,32 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                       // acá y no en la decoration (mismo criterio que en
                       // NewServiceForm).
                       hint: const Text(
-                        'Seleccioná una categoría',
+                        'Sin categoría',
                         style: TextStyle(color: AppColors.authTextSecondary),
                       ),
-                      items: categories
-                          .map((c) =>
-                              DropdownMenuItem(value: c, child: Text(c.name)))
-                          .toList(),
+                      // El primer ítem (value nulo) permite volver a "sin
+                      // categoría" después de haber elegido una. Sin
+                      // validator: la categoría no es obligatoria.
+                      items: [
+                        const DropdownMenuItem<Category>(
+                          value: null,
+                          child: Text(
+                            'Sin categoría',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary),
+                          ),
+                        ),
+                        ...categories.map(
+                          (c) => DropdownMenuItem<Category>(
+                            value: c,
+                            child: Text(c.name),
+                          ),
+                        ),
+                      ],
                       onChanged: isSubmitting
                           ? null
                           : (value) =>
                               setState(() => _selectedCategory = value),
-                      validator: (value) =>
-                          value == null ? 'Seleccioná una categoría' : null,
                     ),
                   const SizedBox(height: 20),
                   const Text('Cuenta', style: _labelStyle),
@@ -343,10 +363,11 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                             .withValues(alpha: 0.6),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      onPressed:
-                          isSubmitting || categories.isEmpty || accounts.isEmpty
-                              ? null
-                              : _submit,
+                      onPressed: isSubmitting ||
+                              widget.categoryViewModel.isLoading ||
+                              accounts.isEmpty
+                          ? null
+                          : _submit,
                       child: isSubmitting
                           ? const SizedBox(
                               height: 20,
