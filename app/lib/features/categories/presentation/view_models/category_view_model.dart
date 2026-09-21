@@ -51,6 +51,13 @@ class CategoryViewModel extends ChangeNotifier {
 
     try {
       _categories = await _repository.getAll();
+      // Mismo caso que en cuentas (ver AccountViewModel.loadAccounts): el
+      // `order('name')` de Supabase/Postgres distingue mayúsculas de
+      // minúsculas, así que se reordena acá sin distinguirlas para que
+      // quede alfabético de verdad.
+      _categories.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
       _hasLoaded = true;
     } catch (error) {
       _errorMessage = 'No se pudieron cargar las categorías.';
