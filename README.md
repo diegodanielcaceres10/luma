@@ -1,5 +1,49 @@
 # luma
+
 A lightweight personal finance app for tracking income, expenses, budgets, and monthly spending insights.
+
+## Stack
+
+- **App**: Flutter (SDK `^3.5.3`), multiplataforma (Android, iOS, web, Linux, macOS, Windows).
+- **Backend**: [Supabase](https://supabase.com) (auth, base de datos y storage).
+- **Autenticación**: `supabase_flutter` + `google_sign_in` (Google Sign-In).
+- **Navegación**: `go_router`.
+- **Otras libs clave**: `pdf` + `printing` (exportar estadísticas en PDF),
+  `flutter_colorpicker` (selector de color de categorías), `intl`
+  (formateo de fechas/moneda).
+
+## Estructura del repo
+
+```
+luma/
+├── app/                  # Proyecto Flutter
+│   ├── lib/
+│   │   ├── app/          # App shell, router, theming
+│   │   ├── core/         # Config, navegación, utils y widgets compartidos
+│   │   └── features/     # Módulos por feature (ver abajo)
+│   ├── assets/           # Imágenes, logo y fuentes
+│   ├── scripts/          # Scripts de build (build_apk.sh / .ps1)
+│   └── pubspec.yaml
+└── db/
+    └── migrations/       # Migraciones SQL del esquema de Supabase/Postgres
+```
+
+### Features (`app/lib/features`)
+
+- `accounts` — cuentas del usuario (bancos, efectivo, tarjetas, etc.)
+- `auth` — login / registro (Supabase Auth + Google Sign-In)
+- `categories` — categorías de ingresos/gastos (color, ícono/emoji)
+- `home` — dashboard / pantalla de inicio
+- `invoices` — facturas asociadas a servicios
+- `monthly_balances` — balances mensuales por cuenta
+- `services` — servicios recurrentes (suscripciones, facturas, etc.)
+- `transactions` — movimientos (ingresos y gastos)
+- `transfers` — transferencias entre cuentas
+
+### Esquema de base de datos (`db/migrations/V001__initial_schema.sql`)
+
+Tablas principales: `accounts`, `categories`, `transactions`, `services`,
+`invoices`, `monthly_account_balances`.
 
 ## Configuración
 
