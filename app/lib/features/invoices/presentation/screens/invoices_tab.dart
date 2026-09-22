@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/filter_chip_row.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/data/models/category.dart';
@@ -279,8 +280,14 @@ class _InvoicesTabState extends State<InvoicesTab> {
                 ],
               ),
               const SizedBox(height: 16),
-              _StatusFilterRow(
-                value: _statusFilter,
+              FilterChipRow<_StatusFilter>(
+                options: const [
+                  (value: _StatusFilter.all, label: 'Todas'),
+                  (value: _StatusFilter.pending, label: 'Pendientes'),
+                  (value: _StatusFilter.paid, label: 'Pagadas'),
+                  (value: _StatusFilter.cancelled, label: 'Canceladas'),
+                ],
+                selectedValue: _statusFilter,
                 onChanged: (value) {
                   if (value == _statusFilter) return;
                   context.push(_queryForFilter(value));
@@ -344,61 +351,6 @@ class _InvoicesTabState extends State<InvoicesTab> {
           );
         },
       ),
-    );
-  }
-}
-
-/// Filtro rápido por estado de la factura: Todas / Pendientes / Pagadas /
-/// Canceladas. Chips que fluyen horizontalmente y saltan de línea al
-/// llegar al borde (Wrap), mismo criterio que los filtros de Movimientos.
-class _StatusFilterRow extends StatelessWidget {
-  final _StatusFilter value;
-  final ValueChanged<_StatusFilter> onChanged;
-
-  const _StatusFilterRow({required this.value, required this.onChanged});
-
-  static const _options = [
-    (_StatusFilter.all, 'Todas'),
-    (_StatusFilter.pending, 'Pendientes'),
-    (_StatusFilter.paid, 'Pagadas'),
-    (_StatusFilter.cancelled, 'Canceladas'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _options.map((option) {
-        final isSelected = option.$1 == value;
-        return GestureDetector(
-          onTap: () => onChanged(option.$1),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.authAccent.withValues(alpha: 0.18)
-                  : AppColors.authCardFill,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: isSelected
-                    ? AppColors.authAccent
-                    : AppColors.authCardBorder,
-              ),
-            ),
-            child: Text(
-              option.$2,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? AppColors.authTextPrimary
-                    : AppColors.authTextSecondary,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }

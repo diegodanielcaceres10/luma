@@ -4,8 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/filter_chip_row.dart';
 import '../../data/models/transaction_entry.dart';
 import '../view_models/transaction_view_model.dart';
 
@@ -376,8 +376,13 @@ class _MovementsTabState extends State<MovementsTab> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _TypeFilterRow(
-                  value: _typeFilter,
+                FilterChipRow<_TypeFilter>(
+                  options: const [
+                    (value: _TypeFilter.all, label: 'Todos'),
+                    (value: _TypeFilter.income, label: 'Ingresos'),
+                    (value: _TypeFilter.expense, label: 'Gastos'),
+                  ],
+                  selectedValue: _typeFilter,
                   onChanged: (value) {
                     if (value != _typeFilter) _pushType(value);
                   },
@@ -385,8 +390,19 @@ class _MovementsTabState extends State<MovementsTab> {
                 const SizedBox(height: 12),
                 const _FilterSectionLabel('Período'),
                 const SizedBox(height: 6),
-                _DateRangeFilterRow(
-                  value: _dateRange,
+                FilterChipRow<_DateRangeFilter>(
+                  options: const [
+                    (value: _DateRangeFilter.all, label: 'Todo'),
+                    (value: _DateRangeFilter.today, label: 'Hoy'),
+                    (value: _DateRangeFilter.thisWeek, label: 'Esta semana'),
+                    (value: _DateRangeFilter.last7Days, label: 'Últimos 7 días'),
+                    (
+                      value: _DateRangeFilter.last15Days,
+                      label: 'Últimos 15 días'
+                    ),
+                    (value: _DateRangeFilter.thisMonth, label: 'Este mes'),
+                  ],
+                  selectedValue: _dateRange,
                   onChanged: (value) {
                     if (value != _dateRange) _pushRange(value);
                   },
@@ -395,17 +411,15 @@ class _MovementsTabState extends State<MovementsTab> {
                   const SizedBox(height: 12),
                   const _FilterSectionLabel('Cuenta'),
                   const SizedBox(height: 6),
-                  _ChipFilterRow(
-                    items: accounts
-                        .map((a) => (
-                              key: _accountModelKey(a),
-                              label: a.name,
-                              color: colorFromHex(a.color,
-                                  fallback: AppColors.authTextSecondary),
-                            ))
-                        .toList(),
-                    selectedKey: effectiveAccountKey,
-                    onSelect: (key) {
+                  FilterChipRow<String?>(
+                    options: <({String? value, String label})>[
+                      (value: null, label: 'Todas'),
+                      ...accounts.map(
+                        (a) => (value: _accountModelKey(a), label: a.name),
+                      ),
+                    ],
+                    selectedValue: effectiveAccountKey,
+                    onChanged: (key) {
                       if (key != _accountKey) _pushAccount(key);
                     },
                   ),
@@ -414,16 +428,15 @@ class _MovementsTabState extends State<MovementsTab> {
                   const SizedBox(height: 12),
                   const _FilterSectionLabel('Categoría'),
                   const SizedBox(height: 6),
-                  _ChipFilterRow(
-                    items: categories
-                        .map((c) => (
-                              key: _categoryModelKey(c),
-                              label: c.name,
-                              color: AppColors.authAccent,
-                            ))
-                        .toList(),
-                    selectedKey: effectiveCategoryKey,
-                    onSelect: (key) {
+                  FilterChipRow<String?>(
+                    options: <({String? value, String label})>[
+                      (value: null, label: 'Todas'),
+                      ...categories.map(
+                        (c) => (value: _categoryModelKey(c), label: c.name),
+                      ),
+                    ],
+                    selectedValue: effectiveCategoryKey,
+                    onChanged: (key) {
                       if (key != _categoryKey) _pushCategory(key);
                     },
                   ),
@@ -525,237 +538,6 @@ class _FilterSectionLabel extends StatelessWidget {
         fontWeight: FontWeight.w700,
         letterSpacing: 0.4,
         color: AppColors.authTextFooter,
-      ),
-    );
-  }
-}
-
-/// Filtro rápido por tipo: Todos / Ingresos / Gastos, estilo segmented
-/// control para no ocupar más de una fila chica.
-class _TypeFilterRow extends StatelessWidget {
-  final _TypeFilter value;
-  final ValueChanged<_TypeFilter> onChanged;
-
-  const _TypeFilterRow({required this.value, required this.onChanged});
-
-  static const _options = [
-    (_TypeFilter.all, 'Todos'),
-    (_TypeFilter.income, 'Ingresos'),
-    (_TypeFilter.expense, 'Gastos'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.authCardFill,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.authCardBorder),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Row(
-          children: _options.map((option) {
-            final isSelected = option.$1 == value;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => onChanged(option.$1),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
-                    color:
-                        isSelected ? AppColors.authAccent : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    option.$2,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected
-                          ? AppColors.authBackgroundBottom
-                          : AppColors.authTextSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-}
-
-/// Filtro rápido por rango de fechas: Todo / Hoy / Esta semana / Últimos 7
-/// días / Últimos 15 días / Este mes. Se muestran en varias líneas (Wrap)
-/// para que todas las opciones queden visibles sin scroll horizontal.
-/// Chips sin punto de color (no representan una entidad con color propio
-/// como categoría/cuenta).
-class _DateRangeFilterRow extends StatelessWidget {
-  final _DateRangeFilter value;
-  final ValueChanged<_DateRangeFilter> onChanged;
-
-  const _DateRangeFilterRow({required this.value, required this.onChanged});
-
-  static const _options = [
-    (_DateRangeFilter.all, 'Todo'),
-    (_DateRangeFilter.today, 'Hoy'),
-    (_DateRangeFilter.thisWeek, 'Esta semana'),
-    (_DateRangeFilter.last7Days, 'Últimos 7 días'),
-    (_DateRangeFilter.last15Days, 'Últimos 15 días'),
-    (_DateRangeFilter.thisMonth, 'Este mes'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _options.map((option) {
-        return _PlainChip(
-          label: option.$2,
-          isSelected: option.$1 == value,
-          onTap: () => onChanged(option.$1),
-        );
-      }).toList(),
-    );
-  }
-}
-
-/// Filtro rápido por categoría o cuenta: chips que fluyen horizontalmente
-/// y saltan de línea al llegar al borde (Wrap), una por cada valor con
-/// movimientos bajo los demás filtros activos, más "Todas" para soltarlo.
-/// Genérica para no duplicar la misma fila para cuenta y categoría.
-class _ChipFilterRow extends StatelessWidget {
-  final List<({String key, String label, Color color})> items;
-  final String? selectedKey;
-  final ValueChanged<String?> onSelect;
-
-  const _ChipFilterRow({
-    required this.items,
-    required this.selectedKey,
-    required this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        _ColorChip(
-          label: 'Todas',
-          color: AppColors.authTextSecondary,
-          isSelected: selectedKey == null,
-          onTap: () => onSelect(null),
-        ),
-        for (final item in items)
-          _ColorChip(
-            label: item.label,
-            color: item.color,
-            isSelected: selectedKey == item.key,
-            onTap: () => onSelect(item.key),
-          ),
-      ],
-    );
-  }
-}
-
-/// Chip simple (sin punto de color), para el filtro de período.
-class _PlainChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _PlainChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.authAccent.withValues(alpha: 0.18)
-              : AppColors.authCardFill,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isSelected ? AppColors.authAccent : AppColors.authCardBorder,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected
-                ? AppColors.authTextPrimary
-                : AppColors.authTextSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Chip con punto de color, para el filtro de categoría o cuenta.
-class _ColorChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ColorChip({
-    required this.label,
-    required this.color,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? color.withValues(alpha: 0.18)
-              : AppColors.authCardFill,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isSelected ? color : AppColors.authCardBorder,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? AppColors.authTextPrimary
-                    : AppColors.authTextSecondary,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
