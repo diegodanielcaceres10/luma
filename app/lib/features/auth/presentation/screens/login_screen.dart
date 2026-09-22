@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/widgets/luma_logo.dart';
 import '../widgets/google_sign_in_button.dart';
@@ -112,17 +111,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               isLoading: viewModel.isLoading,
                               onPressed: viewModel.signInWithGoogle,
                             ),
-                            if (viewModel.errorMessage != null) ...[
-                              const SizedBox(height: 16),
-                              // Selectable para poder copiar el detalle del
-                              // error (código/descripción) sin depender del
-                              // SnackBar si ya desapareció.
-                              SelectableText(
-                                viewModel.errorMessage!,
-                                style: const TextStyle(color: AppColors.error),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
                             const Spacer(flex: 5),
                             const Text(
                               'Desarrollado por Diego Caceres\nv1.0.0',

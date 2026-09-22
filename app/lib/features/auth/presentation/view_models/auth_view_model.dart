@@ -63,10 +63,15 @@ class AuthViewModel extends ChangeNotifier {
         'description=${error.description} details=${error.details}',
       );
       debugPrintStack(stackTrace: stackTrace);
+      // El detalle (código/descripción) queda solo en consola; en pantalla
+      // se muestra un mensaje genérico.
       _errorMessage = _googleSignInErrorMessage(error);
       notifyListeners();
     } on AuthException catch (error, stackTrace) {
-      debugPrint('Supabase Google sign-in failed: $error');
+      debugPrint(
+        'Supabase Google sign-in failed: statusCode=${error.statusCode} '
+        'code=${error.code} message=${error.message}',
+      );
       debugPrintStack(stackTrace: stackTrace);
       _errorMessage = 'No se pudo iniciar sesión con Google.';
       notifyListeners();
