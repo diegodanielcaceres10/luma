@@ -428,8 +428,7 @@ GoRouter buildAppRouter({
                     context.push('/invoices/${invoice.id}/edit'),
                 // Cada push crea un InvoicesTab nuevo, así que alcanza
                 // con leer el query param una vez, al construir.
-                initialPendingFilter:
-                    state.uri.queryParameters['pending'] == 'true',
+                initialFilter: state.uri.queryParameters['filter'],
               ),
             ),
           ),

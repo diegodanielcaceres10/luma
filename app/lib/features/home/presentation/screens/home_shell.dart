@@ -48,7 +48,7 @@ class HomeBranchScreen extends StatelessWidget {
       onOpenAddTransaction: (type) => context.push('/add-transaction/$type'),
       onGoToAccounts: () => context.push('/accounts/new'),
       onManageAccounts: () => context.push('/accounts-overview'),
-      onGoToInvoices: () => context.push('/invoices?pending=true'),
+      onGoToInvoices: () => context.push('/invoices?filter=pending'),
       onGoToTransfers: () => context.push('/transfer'),
     );
   }

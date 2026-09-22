@@ -66,7 +66,7 @@ class AppShellScreen extends StatelessWidget {
     final navIndex = _navIndexFor(uri.path);
 
     // Se compara contra la ubicación completa (con query params) para que
-    // tocar "Facturas" estando en '/invoices?pending=true' sí abra el
+    // tocar "Facturas" estando en '/invoices?filter=pending' sí abra el
     // listado sin filtrar.
     void navigateTo(String target) {
       if (uri.toString() == target) return;

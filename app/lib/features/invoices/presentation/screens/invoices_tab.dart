@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
@@ -30,11 +31,13 @@ class InvoicesTab extends StatefulWidget {
   final CategoryViewModel categoryViewModel;
   final AccountViewModel accountViewModel;
 
-  /// Si es true, la pestaña arranca con el filtro "Pendientes" ya
-  /// aplicado (ej. al entrar desde la quick action "Facturas por pagar"
-  /// del Dashboard). Solo se lee una vez, al crear el State — como
-  /// cada `push` crea una pantalla nueva, alcanza con eso.
-  final bool initialPendingFilter;
+  /// Filtro con el que arranca esta instancia, tal cual viene de la URL
+  /// (`?filter=pending|paid|cancelled`; sin el query param es "Todas").
+  /// Se lee una sola vez, al crear el State — tocar un chip de filtro
+  /// hace push a una URL nueva en vez de cambiar el estado local, así
+  /// que cada filtro queda como su propia entrada en el historial y se
+  /// puede volver al filtro anterior con "atrás".
+  final String? initialFilter;
 
   /// Abre el formulario de alta ("+" del título).
   final VoidCallback onAdd;
@@ -51,7 +54,7 @@ class InvoicesTab extends StatefulWidget {
     required this.accountViewModel,
     required this.onAdd,
     required this.onEdit,
-    this.initialPendingFilter = false,
+    this.initialFilter,
   });
 
   @override
@@ -64,8 +67,33 @@ class _InvoicesTabState extends State<InvoicesTab> {
   @override
   void initState() {
     super.initState();
-    _statusFilter =
-        widget.initialPendingFilter ? _StatusFilter.pending : _StatusFilter.all;
+    _statusFilter = _filterFromQuery(widget.initialFilter);
+  }
+
+  static _StatusFilter _filterFromQuery(String? value) {
+    switch (value) {
+      case 'pending':
+        return _StatusFilter.pending;
+      case 'paid':
+        return _StatusFilter.paid;
+      case 'cancelled':
+        return _StatusFilter.cancelled;
+      default:
+        return _StatusFilter.all;
+    }
+  }
+
+  static String _queryForFilter(_StatusFilter filter) {
+    switch (filter) {
+      case _StatusFilter.all:
+        return '/invoices';
+      case _StatusFilter.pending:
+        return '/invoices?filter=pending';
+      case _StatusFilter.paid:
+        return '/invoices?filter=paid';
+      case _StatusFilter.cancelled:
+        return '/invoices?filter=cancelled';
+    }
   }
 
   static const _monthNames = [
@@ -253,7 +281,10 @@ class _InvoicesTabState extends State<InvoicesTab> {
               const SizedBox(height: 16),
               _StatusFilterRow(
                 value: _statusFilter,
-                onChanged: (value) => setState(() => _statusFilter = value),
+                onChanged: (value) {
+                  if (value == _statusFilter) return;
+                  context.push(_queryForFilter(value));
+                },
               ),
               const SizedBox(height: 16),
               if (invoices.isEmpty)
@@ -457,8 +488,8 @@ class _InvoiceRow extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: badgeColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(999),
