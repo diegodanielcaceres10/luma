@@ -2,22 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
-
-/// Íconos genéricos que se van alternando entre cuentas. A diferencia de
-/// las categorías, las cuentas no guardan un ícono ni un color propio en
-/// la base (ver `db/migrations`), así que no hay forma de replicar el
-/// logo/color de cada banco del prototipo — se asigna una variante fija
-/// por posición, solo para diferenciar visualmente las tarjetas.
-const _kAccountIcons = [
-  Icons.account_balance_wallet_rounded,
-  Icons.credit_card_rounded,
-  Icons.savings_rounded,
-  Icons.account_balance_rounded,
-];
 
 /// Contenido de la pestaña "Cuentas" (vista general), basada en el
 /// prototipo con el resumen de saldos y las cuentas en tarjetas.
@@ -28,8 +15,9 @@ const _kAccountIcons = [
 class AccountsOverviewTab extends StatelessWidget {
   final AccountViewModel accountViewModel;
 
-  /// Abre el formulario de cuenta. `null` = alta nueva; con valor = edición
-  /// de esa cuenta. Mismo contrato que [AccountsTab.onOpenForm].
+  /// Abre el formulario de cuenta. Acá solo se usa para alta nueva (se
+  /// llama con `null`) — la edición se sacó de esta vista, queda nada
+  /// más en "Cuentas" (ver [AccountsTab.onOpenForm], mismo contrato).
   final ValueChanged<Account?> onOpenForm;
 
   /// Abre la pantalla de actualización rápida de saldo para esta cuenta
@@ -121,11 +109,6 @@ class AccountsOverviewTab extends StatelessWidget {
                       return _AccountCard(
                         account: account,
                         currency: currency,
-                        color: colorFromHex(
-                          kCategoryColors[i % kCategoryColors.length],
-                        ),
-                        icon: _kAccountIcons[i % _kAccountIcons.length],
-                        onTap: () => onOpenForm(account),
                         onUpdateBalance: () => onOpenUpdateBalance(account),
                       );
                     }),
@@ -218,109 +201,109 @@ class _TotalCard extends StatelessWidget {
 class _AccountCard extends StatelessWidget {
   final Account account;
   final String currency;
-  final Color color;
-  final IconData icon;
-  final VoidCallback onTap;
   final VoidCallback onUpdateBalance;
 
   const _AccountCard({
     required this.account,
     required this.currency,
-    required this.color,
-    required this.icon,
-    required this.onTap,
     required this.onUpdateBalance,
   });
 
   @override
   Widget build(BuildContext context) {
     final isActive = account.isActive;
+    const color = AppColors.authAccent;
 
     // No se puede combinar un Border con colores distintos por lado (el
     // acento a la izquierda, el borde tenue en el resto) con borderRadius
     // — Flutter lo exige uniforme. En su lugar, la franja de color va como
     // un Container aparte dentro del Row, y el redondeo lo da el ClipRRect
     // que envuelve toda la tarjeta.
+    //
+    // Sin InkWell: la tarjeta ya no lleva a "editar cuenta" al tocarla —
+    // lo único tocable es el ícono de actualizar saldo.
     return Opacity(
       opacity: isActive ? 1 : 0.5,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          child: DecoratedBox(
-            decoration: const BoxDecoration(color: AppColors.authCardFill),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(width: 3, color: color),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 34,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(icon, color: color, size: 18),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(color: AppColors.authCardFill),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 3, color: color),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
                             ),
-                            const Spacer(),
-                            // Ícono de actualización de saldo (no de
-                            // edición): abre una pantalla nueva, aparte,
-                            // pensada solo para cargar el saldo actual.
-                            IconButton(
-                              onPressed: onUpdateBalance,
-                              icon: Icon(Icons.loop, color: color, size: 25),
-                              tooltip: 'Actualizar saldo',
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 28,
-                                minHeight: 28,
-                              ),
-                              visualDensity: VisualDensity.compact,
+                            child: const Icon(
+                              Icons.account_balance_wallet_rounded,
+                              color: color,
+                              size: 18,
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          account.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.authTextPrimary,
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          isActive ? 'Cuenta activa' : 'Cuenta inactiva',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.authTextSecondary,
+                          const Spacer(),
+                          // Ícono de actualización de saldo (no de
+                          // edición): abre una pantalla nueva, aparte,
+                          // pensada solo para cargar el saldo actual.
+                          IconButton(
+                            onPressed: onUpdateBalance,
+                            icon:
+                                const Icon(Icons.loop, color: color, size: 25),
+                            tooltip: 'Actualizar saldo',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 28,
+                              minHeight: 28,
+                            ),
+                            visualDensity: VisualDensity.compact,
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        account.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.authTextPrimary,
                         ),
-                        const Spacer(),
-                        Text(
-                          formatCurrency(account.balance, currency),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.authTextPrimary,
-                          ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isActive ? 'Cuenta activa' : 'Cuenta inactiva',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.authTextSecondary,
                         ),
-                      ],
-                    ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        formatCurrency(account.balance, currency),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.authTextPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
