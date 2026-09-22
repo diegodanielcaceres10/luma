@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -12,25 +11,12 @@ import '../../../transactions/presentation/view_models/transaction_view_model.da
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
-/// Mismos íconos genéricos que usa [AccountsOverviewTab] para diferenciar
-/// las tarjetas: las cuentas no guardan ícono ni color propio en la base,
-/// así que se asigna uno por posición en la lista. Se repite acá para que el
-/// header de esta pantalla coincida con la tarjeta desde la que se abrió.
-/// Si cambia allá, hay que cambiarlo también acá (o extraerlo a un lugar
-/// común).
-const _kAccountIcons = [
-  Icons.account_balance_wallet_rounded,
-  Icons.credit_card_rounded,
-  Icons.savings_rounded,
-  Icons.account_balance_rounded,
-];
-
 /// Contenido de la nueva pestaña "Actualizar saldo": pantalla aparte del
 /// formulario de edición de cuenta, pensada para cargar el saldo real de la
 /// cuenta (ej. desde el resumen del banco) y descubrir, a partir de la
 /// diferencia con el saldo actual, los movimientos que la explican — en vez
-/// de pisar el campo `balance` directamente. Se abre desde el ícono de
-/// actualización de cada tarjeta en [AccountsOverviewTab].
+/// de pisar el campo `balance` directamente. Se abre al tocar la fila de la
+/// cuenta en [AccountsOverviewTab].
 ///
 /// No tiene Scaffold propio — se muestra dentro de un RoutedScreenScaffold,
 /// debajo del header (menú + marca Luma + campana) y encima del
@@ -75,9 +61,8 @@ class UpdateBalanceTab extends StatefulWidget {
   final Account? account;
 
   /// Se usa para leer [AccountViewModel.primaryCurrency] (formato de los
-  /// montos), la posición de la cuenta en la lista (ícono y color del
-  /// header) y, tras guardar, recargar la lista para que el nuevo saldo
-  /// (ya actualizado por el RPC) se vea en pantalla.
+  /// montos) y, tras guardar, recargar la lista para que el nuevo saldo (ya
+  /// actualizado por el RPC) se vea en pantalla.
   final AccountViewModel accountViewModel;
 
   /// Categorías disponibles para el selector del popup "Agregar
@@ -211,13 +196,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
 
     final cents = ((diff - _pendingMovementsTotal) * 100).round();
     return cents / 100;
-  }
-
-  /// Posición de la cuenta en la lista, para reutilizar el mismo ícono y
-  /// color que tiene su tarjeta en la vista general.
-  int _accountIndex(Account account) {
-    final index = widget.accountViewModel.accounts.indexOf(account);
-    return index < 0 ? 0 : index;
   }
 
   /// Acción del botón "Guardar y actualizar saldo". Entrega 8: inserta
@@ -406,15 +384,7 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
                   ),
                   if (account != null) ...[
                     const SizedBox(height: 8),
-                    _AccountHeader(
-                      account: account,
-                      color: colorFromHex(
-                        kCategoryColors[
-                            _accountIndex(account) % kCategoryColors.length],
-                      ),
-                      icon: _kAccountIcons[
-                          _accountIndex(account) % _kAccountIcons.length],
-                    ),
+                    _AccountHeader(account: account),
                   ],
                   const SizedBox(height: 20),
                   const Text('Actualizar saldo',
@@ -526,55 +496,36 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   }
 }
 
-/// Header de la cuenta que se está actualizando: ícono, nombre y estado.
-/// El prototipo muestra además el tipo de cuenta ("Cuenta corriente"), pero
-/// hoy `accounts` no guarda ese dato, así que se muestra si está activa o
-/// inactiva, igual que la tarjeta de la vista general.
+/// Header de la cuenta que se está actualizando: nombre y estado. El
+/// prototipo muestra además el tipo de cuenta ("Cuenta corriente"), pero
+/// hoy `accounts` no guarda ese dato, así que se muestra si está activa
+/// o inactiva, igual que la fila de la vista general.
 class _AccountHeader extends StatelessWidget {
   final Account account;
-  final Color color;
-  final IconData icon;
 
-  const _AccountHeader({
-    required this.account,
-    required this.color,
-    required this.icon,
-  });
+  const _AccountHeader({required this.account});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          child: Icon(icon, color: AppColors.authTextPrimary, size: 28),
+        Text(
+          account.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: AppColors.authTextPrimary,
+          ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                account.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.authTextPrimary,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                account.isActive ? 'Cuenta activa' : 'Cuenta inactiva',
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: AppColors.authTextSecondary,
-                ),
-              ),
-            ],
+        const SizedBox(height: 2),
+        Text(
+          account.isActive ? 'Cuenta activa' : 'Cuenta inactiva',
+          style: const TextStyle(
+            fontSize: 15,
+            color: AppColors.authTextSecondary,
           ),
         ),
       ],
