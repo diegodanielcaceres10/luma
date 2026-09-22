@@ -67,12 +67,19 @@ class StatisticsPdfBuilder {
 
   static PdfColor _pdfColor(Color color) => PdfColor.fromInt(color.toARGB32());
 
+  // Créditos del pie de página, solo en la última hoja del PDF.
+  static const _copyright = '© 2026 Diego Daniel Caceres';
+  static const _portfolioLabel = 'diegodanielcaceres10.github.io/nura';
+
   static Future<Uint8List> build(StatisticsPdfData data) async {
     final regular = pw.Font.ttf(
       await rootBundle.load('assets/fonts/Roboto-Regular.ttf'),
     );
     final bold = pw.Font.ttf(
       await rootBundle.load('assets/fonts/Roboto-Bold.ttf'),
+    );
+    final logo = pw.MemoryImage(
+      (await rootBundle.load('assets/logo.png')).buffer.asUint8List(),
     );
 
     final generatedOn = DateFormat('d MMMM yyyy', 'es').format(DateTime.now());
@@ -89,22 +96,37 @@ class StatisticsPdfBuilder {
         margin: const pw.EdgeInsets.fromLTRB(36, 40, 36, 40),
         footer: (context) => pw.Padding(
           padding: const pw.EdgeInsets.only(top: 12),
-          child: pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(
-                'Generado con Luma · $generatedOn',
-                style: const pw.TextStyle(fontSize: 9, color: _textSecondary),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Generado con Luma · $generatedOn',
+                    style:
+                        const pw.TextStyle(fontSize: 9, color: _textSecondary),
+                  ),
+                  pw.Text(
+                    'Página ${context.pageNumber} de ${context.pagesCount}',
+                    style:
+                        const pw.TextStyle(fontSize: 9, color: _textSecondary),
+                  ),
+                ],
               ),
-              pw.Text(
-                'Página ${context.pageNumber} de ${context.pagesCount}',
-                style: const pw.TextStyle(fontSize: 9, color: _textSecondary),
-              ),
+              if (context.pageNumber == context.pagesCount) ...[
+                pw.SizedBox(height: 3),
+                pw.Text(
+                  '$_copyright · $_portfolioLabel',
+                  style:
+                      const pw.TextStyle(fontSize: 7.5, color: _textSecondary),
+                ),
+              ],
             ],
           ),
         ),
         build: (context) => [
-          _header(data),
+          _header(data, logo),
           pw.SizedBox(height: 22),
           _summaryRow(data),
           pw.SizedBox(height: 26),
@@ -120,17 +142,23 @@ class StatisticsPdfBuilder {
     return doc.save();
   }
 
-  static pw.Widget _header(StatisticsPdfData data) {
+  static pw.Widget _header(StatisticsPdfData data, pw.MemoryImage logo) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(
-          'Luma',
-          style: pw.TextStyle(
-            fontSize: 12,
-            fontWeight: pw.FontWeight.bold,
-            color: _pdfColor(AppColors.authAccentDark),
-          ),
+        pw.Row(
+          children: [
+            pw.Image(logo, width: 18, height: 18),
+            pw.SizedBox(width: 6),
+            pw.Text(
+              'Luma',
+              style: pw.TextStyle(
+                fontSize: 12,
+                fontWeight: pw.FontWeight.bold,
+                color: _pdfColor(AppColors.authAccentDark),
+              ),
+            ),
+          ],
         ),
         pw.SizedBox(height: 6),
         pw.Text(

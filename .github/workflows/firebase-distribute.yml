@@ -1,11 +1,6 @@
 name: Distribute Android (Firebase App Distribution)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "app/**"
-      - ".github/workflows/firebase-distribute.yml"
   workflow_dispatch:
 
 jobs:
