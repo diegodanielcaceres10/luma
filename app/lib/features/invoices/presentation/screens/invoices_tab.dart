@@ -434,29 +434,14 @@ class _InvoiceRow extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                serviceName,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.authTextPrimary,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              formatCurrency(invoice.amount, 'EUR'),
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.authTextPrimary,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          '$serviceName - ${formatCurrency(invoice.amount, 'EUR')}',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.authTextPrimary,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -472,8 +457,8 @@ class _InvoiceRow extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: badgeColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(999),
