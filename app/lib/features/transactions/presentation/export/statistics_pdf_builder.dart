@@ -82,7 +82,8 @@ class StatisticsPdfBuilder {
       (await rootBundle.load('assets/logo.png')).buffer.asUint8List(),
     );
 
-    final generatedOn = DateFormat('d MMMM yyyy', 'es').format(DateTime.now());
+    final generatedOn =
+        DateFormat('dd-MM-yyyy HH:mm', 'es').format(DateTime.now());
 
     final doc = pw.Document(
       title: 'Estadísticas ${data.monthLabel}',
@@ -103,7 +104,7 @@ class StatisticsPdfBuilder {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'Generado con Luma · $generatedOn',
+                    'Generado con Luma · $generatedOn hs',
                     style:
                         const pw.TextStyle(fontSize: 9, color: _textSecondary),
                   ),
