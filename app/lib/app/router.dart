@@ -185,7 +185,8 @@ GoRouter buildAppRouter({
     // cualquier URL inválida termina en '/login', así que esta pantalla
     // solo la ve quien ya está autenticado. Va por fuera del shell (sin
     // header ni bottom nav).
-    errorBuilder: (context, state) => NotFoundScreen(location: state.uri.path),
+    errorBuilder: (context, state) =>
+        NotFoundScreen(location: state.uri.path),
     routes: [
       GoRoute(
         path: '/login',
@@ -217,8 +218,8 @@ GoRouter buildAppRouter({
                 // navegación — misma cuenta que usaba el
                 // Dashboard (ver dashboard_tab.dart).
                 pendingAccounts: monthlyBalanceViewModel.checked
-                    ? monthlyBalanceViewModel
-                        .pendingAccounts(accountViewModel.activeAccounts)
+                    ? monthlyBalanceViewModel.pendingAccounts(
+                        accountViewModel.activeAccounts)
                     : const [],
                 monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
@@ -470,9 +471,19 @@ GoRouter buildAppRouter({
           // Movimientos
           GoRoute(
             path: '/movements',
-            builder: (context, state) => MovementsTab(
-              transactionViewModel: transactionViewModel,
-              currency: accountViewModel.primaryCurrency,
+            // Sin transición: cambiar de filtro hace push (para que
+            // "atrás" vuelva a la combinación anterior — ver
+            // MovementsTab), pero sigue siendo la misma pantalla.
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: MovementsTab(
+                transactionViewModel: transactionViewModel,
+                currency: accountViewModel.primaryCurrency,
+                initialType: state.uri.queryParameters['type'],
+                initialRange: state.uri.queryParameters['range'],
+                initialCategory: state.uri.queryParameters['category'],
+                initialAccount: state.uri.queryParameters['account'],
+              ),
             ),
           ),
           // Estadísticas

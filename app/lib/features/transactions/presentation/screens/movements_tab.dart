@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -18,10 +19,27 @@ class MovementsTab extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
   final String currency;
 
+  /// Filtros con los que arranca esta instancia, tal cual vienen de la
+  /// URL (`?type=income|expense&range=today|week|last7|last15|month
+  /// &category=<key>&account=<key>`; sin un query param es "sin ese
+  /// filtro"). Se leen una sola vez, al crear el State — tocar cualquier
+  /// chip hace push a una URL nueva con los cuatro filtros combinados,
+  /// en vez de cambiar el estado local, así que cada combinación queda
+  /// como su propia entrada en el historial y se puede volver a la
+  /// anterior con "atrás".
+  final String? initialType;
+  final String? initialRange;
+  final String? initialCategory;
+  final String? initialAccount;
+
   const MovementsTab({
     super.key,
     required this.transactionViewModel,
     required this.currency,
+    this.initialType,
+    this.initialRange,
+    this.initialCategory,
+    this.initialAccount,
   });
 
   @override
@@ -29,17 +47,21 @@ class MovementsTab extends StatefulWidget {
 }
 
 class _MovementsTabState extends State<MovementsTab> {
-  _TypeFilter _typeFilter = _TypeFilter.all;
-  _DateRangeFilter _dateRange = _DateRangeFilter.all;
+  late _TypeFilter _typeFilter;
+  late _DateRangeFilter _dateRange;
 
   // null = "todas". Guardan category.id/account.id si existen, si no el
   // nombre — mismo criterio que categoryBreakdown en el ViewModel.
-  String? _categoryKey;
-  String? _accountKey;
+  late String? _categoryKey;
+  late String? _accountKey;
 
   @override
   void initState() {
     super.initState();
+    _typeFilter = _typeFromQuery(widget.initialType);
+    _dateRange = _rangeFromQuery(widget.initialRange);
+    _categoryKey = widget.initialCategory;
+    _accountKey = widget.initialAccount;
     // Carga perezosa: el historial completo de transacciones recién se
     // pide al entrar a "Movimientos", no al arrancar. La pantalla se crea
     // de nuevo en cada visita (no se mantiene viva al cambiar de
@@ -59,6 +81,121 @@ class _MovementsTabState extends State<MovementsTab> {
       widget.transactionViewModel.loadAllTransactions();
     });
   }
+
+  static _TypeFilter _typeFromQuery(String? value) {
+    switch (value) {
+      case 'income':
+        return _TypeFilter.income;
+      case 'expense':
+        return _TypeFilter.expense;
+      default:
+        return _TypeFilter.all;
+    }
+  }
+
+  static String? _typeQueryValue(_TypeFilter filter) {
+    switch (filter) {
+      case _TypeFilter.all:
+        return null;
+      case _TypeFilter.income:
+        return 'income';
+      case _TypeFilter.expense:
+        return 'expense';
+    }
+  }
+
+  static _DateRangeFilter _rangeFromQuery(String? value) {
+    switch (value) {
+      case 'today':
+        return _DateRangeFilter.today;
+      case 'week':
+        return _DateRangeFilter.thisWeek;
+      case 'last7':
+        return _DateRangeFilter.last7Days;
+      case 'last15':
+        return _DateRangeFilter.last15Days;
+      case 'month':
+        return _DateRangeFilter.thisMonth;
+      default:
+        return _DateRangeFilter.all;
+    }
+  }
+
+  static String? _rangeQueryValue(_DateRangeFilter filter) {
+    switch (filter) {
+      case _DateRangeFilter.all:
+        return null;
+      case _DateRangeFilter.today:
+        return 'today';
+      case _DateRangeFilter.thisWeek:
+        return 'week';
+      case _DateRangeFilter.last7Days:
+        return 'last7';
+      case _DateRangeFilter.last15Days:
+        return 'last15';
+      case _DateRangeFilter.thisMonth:
+        return 'month';
+    }
+  }
+
+  /// Arma la URL con los cuatro filtros combinados (los tres que no
+  /// cambiaron quedan en su valor actual) y hace push — ver el doc de
+  /// [MovementsTab.initialType] y hermanos.
+  void _pushFilters({
+    required _TypeFilter type,
+    required _DateRangeFilter range,
+    required String? categoryKey,
+    required String? accountKey,
+  }) {
+    final params = <String, String>{};
+    final typeValue = _typeQueryValue(type);
+    if (typeValue != null) params['type'] = typeValue;
+    final rangeValue = _rangeQueryValue(range);
+    if (rangeValue != null) params['range'] = rangeValue;
+    if (categoryKey != null) params['category'] = categoryKey;
+    if (accountKey != null) params['account'] = accountKey;
+
+    final uri = Uri(
+      path: '/movements',
+      queryParameters: params.isEmpty ? null : params,
+    );
+    context.push(uri.toString());
+  }
+
+  void _pushType(_TypeFilter value) => _pushFilters(
+        type: value,
+        range: _dateRange,
+        categoryKey: _categoryKey,
+        accountKey: _accountKey,
+      );
+
+  void _pushRange(_DateRangeFilter value) => _pushFilters(
+        type: _typeFilter,
+        range: value,
+        categoryKey: _categoryKey,
+        accountKey: _accountKey,
+      );
+
+  void _pushCategory(String? value) => _pushFilters(
+        type: _typeFilter,
+        range: _dateRange,
+        categoryKey: value,
+        accountKey: _accountKey,
+      );
+
+  void _pushAccount(String? value) => _pushFilters(
+        type: _typeFilter,
+        range: _dateRange,
+        categoryKey: _categoryKey,
+        accountKey: value,
+      );
+
+  void _pushClearFilters() => _pushFilters(
+        type: _TypeFilter.all,
+        range: _DateRangeFilter.all,
+        categoryKey: null,
+        accountKey: null,
+      );
 
   /// Movimientos visibles por cada grupo de mes (clave = la misma que
   /// arma [_groupByMonth]). Empieza en 10 y crece de a 10 con "Ver más".
@@ -241,14 +378,18 @@ class _MovementsTabState extends State<MovementsTab> {
                 const SizedBox(height: 16),
                 _TypeFilterRow(
                   value: _typeFilter,
-                  onChanged: (value) => setState(() => _typeFilter = value),
+                  onChanged: (value) {
+                    if (value != _typeFilter) _pushType(value);
+                  },
                 ),
                 const SizedBox(height: 12),
                 const _FilterSectionLabel('Período'),
                 const SizedBox(height: 6),
                 _DateRangeFilterRow(
                   value: _dateRange,
-                  onChanged: (value) => setState(() => _dateRange = value),
+                  onChanged: (value) {
+                    if (value != _dateRange) _pushRange(value);
+                  },
                 ),
                 if (accounts.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -264,7 +405,9 @@ class _MovementsTabState extends State<MovementsTab> {
                             ))
                         .toList(),
                     selectedKey: effectiveAccountKey,
-                    onSelect: (key) => setState(() => _accountKey = key),
+                    onSelect: (key) {
+                      if (key != _accountKey) _pushAccount(key);
+                    },
                   ),
                 ],
                 if (categories.isNotEmpty) ...[
@@ -280,20 +423,15 @@ class _MovementsTabState extends State<MovementsTab> {
                             ))
                         .toList(),
                     selectedKey: effectiveCategoryKey,
-                    onSelect: (key) => setState(() => _categoryKey = key),
+                    onSelect: (key) {
+                      if (key != _categoryKey) _pushCategory(key);
+                    },
                   ),
                 ],
                 const SizedBox(height: 16),
                 if (filtered.isEmpty)
                   _EmptyFilteredState(
-                    onClear: hasActiveFilters
-                        ? () => setState(() {
-                              _typeFilter = _TypeFilter.all;
-                              _dateRange = _DateRangeFilter.all;
-                              _categoryKey = null;
-                              _accountKey = null;
-                            })
-                        : null,
+                    onClear: hasActiveFilters ? _pushClearFilters : null,
                   )
                 else
                   for (final entry in grouped.entries) ...[
