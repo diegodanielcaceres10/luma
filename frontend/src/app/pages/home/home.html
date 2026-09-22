@@ -38,9 +38,14 @@
   </section>
 
   <footer class="flex flex-col items-center gap-2 px-6 py-8 text-center text-xs text-neutral-600">
-    <a routerLink="/privacidad" class="text-neutral-400 underline underline-offset-2 hover:text-neutral-200">
-      Política de privacidad
-    </a>
+    <div class="flex gap-4">
+      <a routerLink="/privacidad" class="text-neutral-400 underline underline-offset-2 hover:text-neutral-200">
+        Política de privacidad
+      </a>
+      <a routerLink="/condiciones" class="text-neutral-400 underline underline-offset-2 hover:text-neutral-200">
+        Condiciones del servicio
+      </a>
+    </div>
     <span>© {{ year }} Luma — Proyecto personal y educativo</span>
   </footer>
 </main>
