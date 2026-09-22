@@ -6,8 +6,9 @@ import '../../../../core/utils/currency_format.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
-/// Contenido de la pestaña "Cuentas" (vista general), basada en el
-/// prototipo con el resumen de saldos y las cuentas en tarjetas.
+/// Contenido de la pestaña "Cuentas" (vista general), con el resumen de
+/// saldos y las cuentas en lista — mismo patrón que [AccountsTab], pero
+/// acá cada fila lleva a actualizar el saldo en vez de editar la cuenta.
 ///
 /// No tiene Scaffold propio — se muestra dentro de un RoutedScreenScaffold,
 /// debajo del header (menú + marca Luma + campana) y encima del
@@ -61,6 +62,12 @@ class AccountsOverviewTab extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   const Text('Cuentas', style: AppTextStyles.authTitle),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => onOpenForm(null),
+                    icon: const Icon(Icons.add_rounded),
+                    color: AppColors.authTextPrimary,
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -89,31 +96,29 @@ class AccountsOverviewTab extends StatelessWidget {
                 const Padding(
                   padding: EdgeInsets.only(top: 24),
                   child: Text(
-                    'Todavía no hay cuentas.\nTocá "Agregar cuenta" para '
-                    'crear la primera.',
+                    'Todavía no hay cuentas.\nTocá + para crear la primera.',
                     textAlign: TextAlign.center,
                     style: AppTextStyles.authSubtitle,
                   ),
                 )
               else
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 1.15,
-                  children: [
-                    ...List.generate(accounts.length, (i) {
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.authCardFill,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.authCardBorder),
+                  ),
+                  child: Column(
+                    children: List.generate(accounts.length, (i) {
                       final account = accounts[i];
-                      return _AccountCard(
+                      return _AccountRow(
                         account: account,
                         currency: currency,
                         onUpdateBalance: () => onOpenUpdateBalance(account),
+                        showDivider: i != accounts.length - 1,
                       );
                     }),
-                    _AddAccountCard(onTap: () => onOpenForm(null)),
-                  ],
+                  ),
                 ),
             ],
           );
@@ -198,166 +203,84 @@ class _TotalCard extends StatelessWidget {
   }
 }
 
-class _AccountCard extends StatelessWidget {
+class _AccountRow extends StatelessWidget {
   final Account account;
   final String currency;
   final VoidCallback onUpdateBalance;
+  final bool showDivider;
 
-  const _AccountCard({
+  const _AccountRow({
     required this.account,
     required this.currency,
     required this.onUpdateBalance,
+    required this.showDivider,
   });
 
   @override
   Widget build(BuildContext context) {
     final isActive = account.isActive;
-    const color = AppColors.authAccent;
 
-    // No se puede combinar un Border con colores distintos por lado (el
-    // acento a la izquierda, el borde tenue en el resto) con borderRadius
-    // — Flutter lo exige uniforme. En su lugar, la franja de color va como
-    // un Container aparte dentro del Row, y el redondeo lo da el ClipRRect
-    // que envuelve toda la tarjeta.
-    //
-    // Sin InkWell: la tarjeta ya no lleva a "editar cuenta" al tocarla —
-    // lo único tocable es el ícono de actualizar saldo.
-    return Opacity(
-      opacity: isActive ? 1 : 0.5,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: DecoratedBox(
-          decoration: const BoxDecoration(color: AppColors.authCardFill),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(width: 3, color: color),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.account_balance_wallet_rounded,
-                              color: color,
-                              size: 18,
-                            ),
+    return Column(
+      children: [
+        Opacity(
+          opacity: isActive ? 1 : 0.5,
+          child: InkWell(
+            // Ya no hay edición desde acá (ver AccountsOverviewTab.onOpenForm):
+            // toda la fila lleva a actualizar el saldo, no solo el ícono.
+            onTap: onUpdateBalance,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          account.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.authTextPrimary,
                           ),
-                          const Spacer(),
-                          // Ícono de actualización de saldo (no de
-                          // edición): abre una pantalla nueva, aparte,
-                          // pensada solo para cargar el saldo actual.
-                          IconButton(
-                            onPressed: onUpdateBalance,
-                            icon:
-                                const Icon(Icons.loop, color: color, size: 25),
-                            tooltip: 'Actualizar saldo',
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 28,
-                              minHeight: 28,
-                            ),
-                            visualDensity: VisualDensity.compact,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isActive ? 'Cuenta activa' : 'Cuenta inactiva',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.authTextSecondary,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        account.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.authTextPrimary,
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        isActive ? 'Cuenta activa' : 'Cuenta inactiva',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.authTextSecondary,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        formatCurrency(account.balance, currency),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.authTextPrimary,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Text(
+                    formatCurrency(account.balance, currency),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.authTextPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Solo indica que la fila lleva a actualizar el saldo —
+                  // el tap real es de toda la fila (ver el onTap de arriba).
+                  const Icon(
+                    Icons.price_change_rounded,
+                    color: AppColors.authAccent,
+                    size: 20,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _AddAccountCard extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _AddAccountCard({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppColors.authAccent.withValues(alpha: 0.4),
-            width: 1.5,
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.authAccent),
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  color: AppColors.authAccent,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Agregar cuenta',
-                style: TextStyle(
-                  color: AppColors.authAccent,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+        if (showDivider)
+          const Divider(height: 1, color: AppColors.authCardBorder),
+      ],
     );
   }
 }
