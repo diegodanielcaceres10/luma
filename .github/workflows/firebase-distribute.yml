@@ -50,9 +50,9 @@ jobs:
           EOF
 
       - name: Decode keystore
-        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+        run: echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
         env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
       # Genera android/key.properties (gitignored) que lee android/app/build.gradle
       # para firmar el build de release con el keystore de producción.
