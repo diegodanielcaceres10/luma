@@ -185,8 +185,7 @@ GoRouter buildAppRouter({
     // cualquier URL inválida termina en '/login', así que esta pantalla
     // solo la ve quien ya está autenticado. Va por fuera del shell (sin
     // header ni bottom nav).
-    errorBuilder: (context, state) =>
-        NotFoundScreen(location: state.uri.path),
+    errorBuilder: (context, state) => NotFoundScreen(location: state.uri.path),
     routes: [
       GoRoute(
         path: '/login',
@@ -218,8 +217,8 @@ GoRouter buildAppRouter({
                 // navegación — misma cuenta que usaba el
                 // Dashboard (ver dashboard_tab.dart).
                 pendingAccounts: monthlyBalanceViewModel.checked
-                    ? monthlyBalanceViewModel.pendingAccounts(
-                        accountViewModel.activeAccounts)
+                    ? monthlyBalanceViewModel
+                        .pendingAccounts(accountViewModel.activeAccounts)
                     : const [],
                 monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
@@ -416,19 +415,26 @@ GoRouter buildAppRouter({
           // ---- Facturas ----
           GoRoute(
             path: '/invoices',
-            builder: (context, state) => RoutedScreenScaffold(
-              body: InvoicesTab(
-                userId: authViewModel.userId ?? '',
-                invoiceViewModel: invoiceViewModel,
-                serviceViewModel: serviceViewModel,
-                categoryViewModel: categoryViewModel,
-                accountViewModel: accountViewModel,
-                onAdd: () => context.push('/invoices/new'),
-                onEdit: (invoice) =>
-                    context.push('/invoices/${invoice.id}/edit'),
-                // Cada push crea un InvoicesTab nuevo, así que alcanza
-                // con leer el query param una vez, al construir.
-                initialFilter: state.uri.queryParameters['filter'],
+            // Sin transición: cambiar de filtro hace push (para que
+            // "atrás" vuelva al filtro anterior — ver InvoicesTab), pero
+            // sigue siendo la misma pantalla, así que no debe animar
+            // como si fuera una pantalla nueva.
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: RoutedScreenScaffold(
+                body: InvoicesTab(
+                  userId: authViewModel.userId ?? '',
+                  invoiceViewModel: invoiceViewModel,
+                  serviceViewModel: serviceViewModel,
+                  categoryViewModel: categoryViewModel,
+                  accountViewModel: accountViewModel,
+                  onAdd: () => context.push('/invoices/new'),
+                  onEdit: (invoice) =>
+                      context.push('/invoices/${invoice.id}/edit'),
+                  // Cada push crea un InvoicesTab nuevo, así que alcanza
+                  // con leer el query param una vez, al construir.
+                  initialFilter: state.uri.queryParameters['filter'],
+                ),
               ),
             ),
           ),
