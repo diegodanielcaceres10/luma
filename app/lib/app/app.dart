@@ -26,7 +26,13 @@ import 'router.dart';
 import 'theme/app_theme.dart';
 
 class LumaApp extends StatefulWidget {
-  const LumaApp({super.key});
+  /// Mensaje de la Edge Function `check-app-version` cuando el estado es
+  /// "outdated_but_usable": hay una versión nueva, pero la instalada
+  /// todavía se puede seguir usando. Si no es `null`, se muestra un
+  /// diálogo informativo al abrir la app (ver [_showUpdateAvailableDialog]).
+  final String? pendingUpdateMessage;
+
+  const LumaApp({super.key, this.pendingUpdateMessage});
 
   @override
   State<LumaApp> createState() => _LumaAppState();
@@ -84,6 +90,15 @@ class _LumaAppState extends State<LumaApp> {
     if (_authViewModel.isAuthenticated) {
       _loadUserData();
     }
+
+    final pendingMessage = widget.pendingUpdateMessage;
+    if (pendingMessage != null) {
+      // Se espera al primer frame para poder mostrar el diálogo con el
+      // Navigator del router ya montado (ver `_router.routerDelegate`).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showUpdateAvailableDialog(pendingMessage);
+      });
+    }
   }
 
   void _onAuthChanged() {
@@ -99,6 +114,24 @@ class _LumaAppState extends State<LumaApp> {
     _monthlyBalanceViewModel.checkCurrentMonth();
     _serviceViewModel.loadServices();
     _invoiceViewModel.loadInvoices();
+  }
+
+  // Diálogo de "hay una versión nueva, pero podés seguir usando esta"
+  // (estado "outdated_but_usable" de `check-app-version`). A propósito no
+  // tiene ningún botón de acción: se cierra tocando afuera (o "atrás"), y
+  // el usuario sigue directo a la app.
+  void _showUpdateAvailableDialog(String message) {
+    final context = _router.routerDelegate.navigatorKey.currentContext;
+    if (context == null) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.system_update_rounded),
+        title: const Text('Hay una actualización disponible'),
+        content: Text(message),
+      ),
+    );
   }
 
   @override

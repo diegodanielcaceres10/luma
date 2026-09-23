@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
@@ -29,41 +30,39 @@ Future<void> main() async {
     publishableKey: AppEnv.supabasePublishableKey,
   );
 
-  final blocked = await _checkVersionBlocked();
-  if (blocked != null) {
+  final versionCheck = await _checkAppVersion();
+
+  if (versionCheck?.status == VersionCheckStatus.blocked) {
     runApp(MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: UpdateRequiredScreen(message: blocked.message),
+      home: UpdateRequiredScreen(message: versionCheck!.message),
     ));
     return;
   }
 
-  runApp(const LumaApp());
+  // "outdated_but_usable": se deja entrar a la app, pero con un mensaje
+  // pendiente que LumaApp muestra como diálogo al terminar de armar la
+  // primera pantalla (ver app/app.dart). "updated" o error de red: null,
+  // no se muestra nada.
+  final pendingUpdateMessage =
+      versionCheck?.status == VersionCheckStatus.outdatedButUsable
+          ? versionCheck!.message
+          : null;
+
+  runApp(LumaApp(pendingUpdateMessage: pendingUpdateMessage));
 }
 
-/// Llama a la Edge Function `check-app-version` y devuelve el resultado
-/// solo si el estado es "blocked" — los otros dos escenarios ("updated" /
-/// "outdated_but_usable") todavía no están implementados en el cliente,
-/// así que por ahora se ignoran y la app sigue normalmente.
-///
-/// Cualquier error (sin conexión, función caída, etc.) también se ignora:
-/// un problema de red al arrancar no debería trabar la app entera.
-///
-/// TODO: se fuerza una versión instalada baja ('0.0.1') para poder probar
-/// el escenario "blocked" de punta a punta sin depender de la versión real
-/// compilada. Reemplazar por `(await PackageInfo.fromPlatform()).version`
-/// cuando se agreguen los otros dos escenarios.
-Future<VersionCheckResult?> _checkVersionBlocked() async {
+/// Llama a la Edge Function `check-app-version` con la versión instalada
+/// (`PackageInfo`, la real, ya sin forzar nada). Cualquier error (sin
+/// conexión, función caída, etc.) devuelve `null`: un problema de red al
+/// arrancar no debería trabar la app ni mostrar avisos de más.
+Future<VersionCheckResult?> _checkAppVersion() async {
   try {
-    const forcedTestVersion = '0.0.1';
-    final result = await AppUpdateService(Supabase.instance.client)
-        .checkVersion(forcedTestVersion);
-    if (result.status == VersionCheckStatus.blocked) {
-      return result;
-    }
+    final info = await PackageInfo.fromPlatform();
+    return await AppUpdateService(Supabase.instance.client)
+        .checkVersion(info.version);
   } catch (_) {
-    // Sin conexión, función caída, etc.: no bloqueamos por esto.
+    return null;
   }
-  return null;
 }
