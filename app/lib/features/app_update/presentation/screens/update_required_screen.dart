@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
@@ -7,9 +8,10 @@ import '../../../../core/widgets/luma_logo.dart';
 /// Pantalla que bloquea toda la app cuando la versión instalada quedó por
 /// debajo de la mínima requerida (ver Edge Function `check-app-version`).
 ///
-/// Mismo layout que el login (logo + título centrados) pero sin la imagen
-/// de fondo: acá no hay nada que hacer más que esperar a que un admin
-/// habilite una nueva versión, así que tampoco hay botón.
+/// Mismo fondo (gradiente oscuro de marca) que usa el resto de la app en
+/// [AppShellScreen] y el login, pero sin ilustración ni botón: acá no hay
+/// nada que hacer más que esperar a que un admin habilite una nueva
+/// versión.
 class UpdateRequiredScreen extends StatelessWidget {
   final String? message;
 
@@ -24,31 +26,49 @@ class UpdateRequiredScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const LumaLogo(size: 64),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Luma',
-                      style: AppTextStyles.title,
-                      textAlign: TextAlign.center,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light, // Android
+          statusBarBrightness: Brightness.dark, // iOS
+        ),
+        child: Scaffold(
+          body: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.authBackgroundTop,
+                  AppColors.authBackgroundBottom,
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const LumaLogo(size: 64),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Luma',
+                          style: AppTextStyles.authTitle,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          message ?? _defaultMessage,
+                          style: AppTextStyles.authSubtitle,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      message ?? _defaultMessage,
-                      style: AppTextStyles.subtitle,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
