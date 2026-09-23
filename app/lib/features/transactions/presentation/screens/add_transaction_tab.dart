@@ -312,7 +312,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton.icon(
+                    child: OutlinedButton(
                       onPressed:
                           isSubmitting || _isScanning ? null : _scanReceipt,
                       style: OutlinedButton.styleFrom(
@@ -320,7 +320,11 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                         side: const BorderSide(color: AppColors.authCardBorder),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      icon: _isScanning
+                      // Mientras escanea, el child pasa a ser únicamente el
+                      // spinner (mismo criterio que el botón de Guardar),
+                      // así queda centrado en el botón en vez de correrse
+                      // hacia la izquierda por ir en Row junto al texto.
+                      child: _isScanning
                           ? const SizedBox(
                               height: 16,
                               width: 16,
@@ -329,10 +333,15 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                                 color: AppColors.authTextPrimary,
                               ),
                             )
-                          : const Icon(Icons.document_scanner_rounded),
-                      label: Text(_isScanning
-                          ? 'Leyendo ticket...'
-                          : 'Escanear ticket (POC)'),
+                          : const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.document_scanner_rounded),
+                                SizedBox(width: 8),
+                                Text('Escanear ticket (POC)'),
+                              ],
+                            ),
                     ),
                   ),
                   const SizedBox(height: 20),

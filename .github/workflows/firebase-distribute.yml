@@ -7,7 +7,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Comparar versiones
+        run: |
+          PREVIOUS=$(git show HEAD^:app/pubspec.yaml 2>/dev/null | grep '^version:' | sed 's/version: *//' || true)
+          CURRENT=$(grep '^version:' app/pubspec.yaml | sed 's/version: *//')
+          if [ -z "$PREVIOUS" ]; then
+            echo "⚠️  No hay commit anterior para comparar, se omite el chequeo."
+            exit 0
+          fi
+          chmod +x app/scripts/check_version.sh
+          app/scripts/check_version.sh "$PREVIOUS" "$CURRENT"
+
   build-and-distribute:
+    needs: check-version
     runs-on: ubuntu-latest
     permissions:
       contents: write
