@@ -60,7 +60,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
   // una foto del ticket/factura, vía Edge Function + Gemini (tier
   // gratuito). El usuario siempre revisa/corrige antes de guardar.
   final _receiptScanService = ReceiptScanService(Supabase.instance.client);
-  bool _isScanning = true;
+  bool _isScanning = false;
 
   bool get _isIncome => widget.type == 'income';
   Color get _accentColor =>
