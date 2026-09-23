@@ -69,63 +69,56 @@ class _LoginScreenState extends State<LoginScreen> {
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
-        return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: const SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.light, // Android
-            statusBarBrightness: Brightness.dark, // iOS
-          ),
-          child: Scaffold(
-            body: Stack(
-              children: [
-                // Background image.
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/images/login_bg.png',
-                    fit: BoxFit.cover,
-                  ),
+        return Scaffold(
+          body: Stack(
+            children: [
+              // Background image.
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/login_bg.png',
+                  fit: BoxFit.cover,
                 ),
-                SafeArea(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 420),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 28),
-                        child: Column(
-                          children: [
-                            const Spacer(flex: 4),
-                            const LumaLogo(size: 64),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Luma',
-                              style: AppTextStyles.authTitle,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Inicia sesión para continuar\ncon tu planificación financiera.',
-                              style: AppTextStyles.authSubtitle,
-                              textAlign: TextAlign.center,
-                            ),
-                            const Spacer(flex: 3),
-                            GoogleSignInButton(
-                              isLoading: viewModel.isLoading,
-                              onPressed: viewModel.signInWithGoogle,
-                            ),
-                            const Spacer(flex: 5),
-                            const AppVersionFooter(
-                              style: AppTextStyles.authFooter,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                        ),
+              ),
+              SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: Column(
+                        children: [
+                          const Spacer(flex: 4),
+                          const LumaLogo(size: 64),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Luma',
+                            style: AppTextStyles.authTitle,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Inicia sesión para continuar\ncon tu planificación financiera.',
+                            style: AppTextStyles.authSubtitle,
+                            textAlign: TextAlign.center,
+                          ),
+                          const Spacer(flex: 3),
+                          GoogleSignInButton(
+                            isLoading: viewModel.isLoading,
+                            onPressed: viewModel.signInWithGoogle,
+                          ),
+                          const Spacer(flex: 5),
+                          const AppVersionFooter(
+                            style: AppTextStyles.authFooter,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,6 +13,16 @@ Future<void> main() async {
   // afecta a mobile/desktop, ahí no hay URL de por medio.
   usePathUrlStrategy();
   await initializeDateFormatting('es');
+
+  // Status bar transparente con iconos claros, fijo para toda la app
+  // (antes solo se aplicaba en LoginScreen vía AnnotatedRegion).
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light, // Android
+      statusBarBrightness: Brightness.dark, // iOS
+    ),
+  );
 
   if (AppEnv.supabaseUrl.isEmpty || AppEnv.supabasePublishableKey.isEmpty) {
     throw StateError(
