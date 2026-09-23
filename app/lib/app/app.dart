@@ -23,6 +23,7 @@ import '../features/transactions/data/repositories/transaction_repository.dart';
 import '../features/transactions/data/services/transaction_service.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import 'router.dart';
+import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
 class LumaApp extends StatefulWidget {
@@ -127,9 +128,29 @@ class _LumaAppState extends State<LumaApp> {
       context: context,
       barrierDismissible: true,
       builder: (context) => AlertDialog(
-        icon: const Icon(Icons.system_update_rounded),
-        title: const Text('Hay una actualización disponible'),
-        content: Text(message),
+        backgroundColor: AppColors.authBackgroundTop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        icon: const Icon(
+          Icons.system_update_rounded,
+          color: AppColors.authAccent,
+        ),
+        title: const Text(
+          'Hay una actualización disponible',
+          style: TextStyle(
+            color: AppColors.authTextPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(color: AppColors.authTextSecondary),
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
