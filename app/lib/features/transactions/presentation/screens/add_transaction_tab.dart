@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/currency_format.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/data/models/category.dart';
@@ -447,8 +448,12 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                         style: TextStyle(color: AppColors.authTextSecondary),
                       ),
                       items: accounts
-                          .map((a) =>
-                              DropdownMenuItem(value: a, child: Text(a.name)))
+                          .map((a) => DropdownMenuItem(
+                                value: a,
+                                child: Text(
+                                  '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
+                                ),
+                              ))
                           .toList(),
                       onChanged: isBusy
                           ? null

@@ -210,6 +210,7 @@ class _InvoicesTabState extends State<InvoicesTab> {
         serviceName: serviceName,
         category: category,
         accounts: accounts,
+        currency: widget.accountViewModel.primaryCurrency,
       ),
     );
 
@@ -536,12 +537,14 @@ class _PayInvoiceDialog extends StatefulWidget {
   final String serviceName;
   final Category category;
   final List<Account> accounts;
+  final String currency;
 
   const _PayInvoiceDialog({
     required this.invoice,
     required this.serviceName,
     required this.category,
     required this.accounts,
+    required this.currency,
   });
 
   @override
@@ -705,7 +708,12 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
                   style: TextStyle(color: AppColors.authTextSecondary),
                 ),
                 items: accounts
-                    .map((a) => DropdownMenuItem(value: a, child: Text(a.name)))
+                    .map((a) => DropdownMenuItem(
+                          value: a,
+                          child: Text(
+                            '${a.name} - ${formatCurrency(a.balance, widget.currency)}',
+                          ),
+                        ))
                     .toList(),
                 onChanged: (value) => setState(() => _selectedAccount = value),
               ),

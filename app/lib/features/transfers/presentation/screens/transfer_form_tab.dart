@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/currency_format.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
@@ -192,7 +193,9 @@ class _TransferFormTabState extends State<TransferFormTab> {
                               .map(
                                 (Account a) => DropdownMenuItem<String?>(
                                   value: a.id,
-                                  child: Text(a.name),
+                                  child: Text(
+                                    '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
+                                  ),
                                 ),
                               )
                               .toList(),
@@ -226,7 +229,9 @@ class _TransferFormTabState extends State<TransferFormTab> {
                               .map(
                                 (Account a) => DropdownMenuItem<String?>(
                                   value: a.id,
-                                  child: Text(a.name),
+                                  child: Text(
+                                    '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
+                                  ),
                                 ),
                               )
                               .toList(),
