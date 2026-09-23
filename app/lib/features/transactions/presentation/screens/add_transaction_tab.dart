@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../data/models/receipt_scan_result.dart';
+import '../../data/services/receipt_scan_service.dart';
 import '../view_models/transaction_view_model.dart';
 
 /// Contenido de la pestaña "Añadir ingreso" / "Añadir gasto". No tiene
@@ -51,6 +55,12 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
   Category? _selectedCategory;
   Account? _selectedAccount;
   DateTime _selectedDate = DateTime.now();
+
+  // POC (branch gemini-image-reader): precompletar el form a partir de
+  // una foto del ticket/factura, vía Edge Function + Gemini (tier
+  // gratuito). El usuario siempre revisa/corrige antes de guardar.
+  final _receiptScanService = ReceiptScanService(Supabase.instance.client);
+  bool _isScanning = false;
 
   bool get _isIncome => widget.type == 'income';
   Color get _accentColor =>
@@ -159,11 +169,101 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     }
   }
 
+  Future<ImageSource?> _pickImageSource() {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppColors.authBackgroundBottom,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded,
+                  color: AppColors.authTextPrimary),
+              title: const Text('Sacar foto',
+                  style: TextStyle(color: AppColors.authTextPrimary)),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded,
+                  color: AppColors.authTextPrimary),
+              title: const Text('Elegir de la galería',
+                  style: TextStyle(color: AppColors.authTextPrimary)),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _scanReceipt() async {
+    final source = await _pickImageSource();
+    if (source == null || !mounted) return;
+
+    final XFile? picked = await ImagePicker().pickImage(
+      source: source,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _isScanning = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final result = await _receiptScanService.scan(
+        imageBytes: bytes,
+        mimeType: picked.mimeType ?? 'image/jpeg',
+      );
+      if (!mounted) return;
+      _applyScanResult(result);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo leer el ticket: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isScanning = false);
+    }
+  }
+
+  void _applyScanResult(ReceiptScanResult result) {
+    setState(() {
+      if (result.amount != null && result.amount! > 0) {
+        _amountController.text = result.amount!.toStringAsFixed(2);
+      }
+      if (result.description != null) {
+        _descriptionController.text = result.description!;
+      }
+      if (result.date != null && !result.date!.isAfter(DateTime.now())) {
+        _selectedDate = result.date!;
+      }
+      if (result.categoryName != null) {
+        final categories = widget.categoryViewModel.byType(widget.type);
+        final normalized = result.categoryName!.toLowerCase();
+        for (final category in categories) {
+          if (category.name.toLowerCase() == normalized) {
+            _selectedCategory = category;
+            break;
+          }
+        }
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Datos leídos del ticket — revisá antes de guardar.'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final categories = widget.categoryViewModel.byType(widget.type);
     final accounts = widget.accountViewModel.activeAccounts;
     final isSubmitting = widget.transactionViewModel.isSubmitting;
+    // Cubre tanto el guardado como el escaneo de ticket: mientras cualquiera
+    // de los dos está en curso, el resto del form queda bloqueado.
+    final isBusy = isSubmitting || _isScanning;
 
     return SafeArea(
       top: false,
@@ -185,7 +285,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                   Row(
                     children: [
                       InkWell(
-                        onTap: isSubmitting ? null : widget.onDone,
+                        onTap: isBusy ? null : widget.onDone,
                         borderRadius: BorderRadius.circular(20),
                         child: const Padding(
                           padding: EdgeInsets.all(4),
@@ -204,12 +304,39 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed:
+                          isSubmitting || _isScanning ? null : _scanReceipt,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.authTextPrimary,
+                        side:
+                            const BorderSide(color: AppColors.authCardBorder),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      icon: _isScanning
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.authTextPrimary,
+                              ),
+                            )
+                          : const Icon(Icons.document_scanner_rounded),
+                      label: Text(_isScanning
+                          ? 'Leyendo ticket...'
+                          : 'Escanear ticket (POC)'),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   const Text('Monto', style: _labelStyle),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _amountController,
-                    enabled: !isSubmitting,
+                    enabled: !isBusy,
                     style: const TextStyle(color: AppColors.authTextPrimary),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -278,7 +405,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                           ),
                         ),
                       ],
-                      onChanged: isSubmitting
+                      onChanged: isBusy
                           ? null
                           : (value) =>
                               setState(() => _selectedCategory = value),
@@ -310,7 +437,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                           .map((a) =>
                               DropdownMenuItem(value: a, child: Text(a.name)))
                           .toList(),
-                      onChanged: isSubmitting
+                      onChanged: isBusy
                           ? null
                           : (value) => setState(() => _selectedAccount = value),
                       validator: (value) =>
@@ -321,7 +448,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _descriptionController,
-                    enabled: !isSubmitting,
+                    enabled: !isBusy,
                     style: const TextStyle(color: AppColors.authTextPrimary),
                     decoration:
                         _fieldDecoration.copyWith(hintText: 'Ej: Mercadona'),
@@ -330,7 +457,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                   const Text('Fecha', style: _labelStyle),
                   const SizedBox(height: 8),
                   InkWell(
-                    onTap: isSubmitting ? null : _pickDate,
+                    onTap: isBusy ? null : _pickDate,
                     borderRadius: BorderRadius.circular(14),
                     child: InputDecorator(
                       decoration: _fieldDecoration,
@@ -363,7 +490,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                             .withValues(alpha: 0.6),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      onPressed: isSubmitting ||
+                      onPressed: isBusy ||
                               widget.categoryViewModel.isLoading ||
                               accounts.isEmpty
                           ? null
