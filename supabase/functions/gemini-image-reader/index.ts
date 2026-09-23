@@ -25,15 +25,14 @@ const CORS_HEADERS: Record<string, string> = {
 };
 
 const PROMPT = `Sos un asistente que lee fotos de tickets, recibos o
-facturas de Argentina y devuelve ÚNICAMENTE un JSON (sin texto
+facturas y devuelve ÚNICAMENTE un JSON (sin texto
 adicional, sin markdown, sin \`\`\`) con esta forma exacta:
 
 {
   "type": "income" | "expense",
   "amount": number | null,
   "date": "YYYY-MM-DD" | null,
-  "description": string | null,
-  "category": string | null
+  "description": string | null
 }
 
 Reglas:
@@ -45,9 +44,6 @@ Reglas:
   aparece o no se puede leer, null.
 - "description": nombre del comercio/emisor, corto. Si no se lee,
   null.
-- "category": una palabra que describa el rubro (ej: "Supermercado",
-  "Restaurante", "Transporte", "Servicios", "Salud", "Ropa"). Si no
-  hay forma de inferirlo, null.
 
 Si la imagen no parece un ticket/factura, devolvé todos los campos en
 null salvo "type", que va como "expense".`;
