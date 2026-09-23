@@ -11,6 +11,10 @@ import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../view_models/transaction_view_model.dart';
 
+// Sitio de Luma, mostrado como texto plano en el pie de página (mismo
+// criterio que el crédito del portfolio).
+const _lumaUrl = 'diegodanielcaceres10.github.io/luma';
+
 /// Foto de lo que muestra Estadísticas para un mes, lista para volcar a un
 /// PDF. Se arma con los valores del [TransactionViewModel] en el momento de
 /// exportar, así el PDF no cambia si el usuario cambia de mes mientras se
@@ -118,7 +122,7 @@ class StatisticsPdfBuilder {
               if (context.pageNumber == context.pagesCount) ...[
                 pw.SizedBox(height: 3),
                 pw.Text(
-                  '$_copyright · $_portfolioLabel',
+                  '$_copyright · $_portfolioLabel · $_lumaUrl',
                   style:
                       const pw.TextStyle(fontSize: 7.5, color: _textSecondary),
                 ),
