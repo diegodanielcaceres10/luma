@@ -225,6 +225,14 @@ class _InvoicesTabState extends State<InvoicesTab> {
       date: result.date,
     );
 
+    if (ok) {
+      // El saldo de la cuenta se actualizó en el servidor junto con la
+      // transacción de gasto; acá solo recargamos la lista de cuentas
+      // para que el nuevo saldo se vea en pantalla (ver
+      // AccountsOverviewTab).
+      await widget.accountViewModel.loadAccounts();
+    }
+
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
