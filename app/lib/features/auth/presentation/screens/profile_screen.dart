@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_version_footer.dart';
 import '../view_models/auth_view_model.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -66,6 +67,11 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         _SignOutButton(onPressed: viewModel.signOut),
+        const SizedBox(height: 24),
+        const AppVersionFooter(
+          style: AppTextStyles.authFooter,
+          textAlign: TextAlign.center,
+        ),
       ],
     );
   }

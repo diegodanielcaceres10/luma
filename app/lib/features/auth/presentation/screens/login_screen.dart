@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_version_footer.dart';
 import '../../../../core/widgets/luma_logo.dart';
 import '../widgets/google_sign_in_button.dart';
 import '../view_models/auth_view_model.dart';
@@ -112,8 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               onPressed: viewModel.signInWithGoogle,
                             ),
                             const Spacer(flex: 5),
-                            const Text(
-                              'Desarrollado por Diego Caceres\nv1.0.0',
+                            const AppVersionFooter(
                               style: AppTextStyles.authFooter,
                               textAlign: TextAlign.center,
                             ),
