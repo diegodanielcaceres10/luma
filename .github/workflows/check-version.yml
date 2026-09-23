@@ -1,0 +1,37 @@
+name: Check version bump
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "app/pubspec.yaml"
+      - "app/**"
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Obtener versión de main
+        id: base
+        run: |
+          git fetch origin main
+          PREVIOUS=$(git show origin/main:app/pubspec.yaml | grep '^version:' | sed 's/version: *//')
+          echo "version=$PREVIOUS" >> "$GITHUB_OUTPUT"
+
+      - name: Obtener versión del PR
+        id: head
+        run: |
+          CURRENT=$(grep '^version:' app/pubspec.yaml | sed 's/version: *//')
+          echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
+
+      - name: Comparar versiones
+        run: |
+          chmod +x app/scripts/check_version.sh
+          app/scripts/check_version.sh "${{ steps.base.outputs.version }}" "${{ steps.head.outputs.version }}"
