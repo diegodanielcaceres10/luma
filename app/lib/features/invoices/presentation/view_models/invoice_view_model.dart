@@ -208,9 +208,11 @@ class InvoiceViewModel extends ChangeNotifier {
   /// Registra el pago de una factura pendiente: crea la transacción de
   /// gasto vinculada a la categoría del servicio (con el monto que se
   /// haya confirmado, que puede diferir del importe original de la
-  /// factura) y marca la factura como pagada apuntando a esa
-  /// transacción. Una factura ya pagada o cancelada no llega a mostrar
-  /// esta acción — la protege además el constraint de la tabla.
+  /// factura, y la fecha elegida en el diálogo de pago — si no se pasa
+  /// ninguna, se usa la fecha actual) y marca la factura como pagada
+  /// apuntando a esa transacción. Una factura ya pagada o cancelada no
+  /// llega a mostrar esta acción — la protege además el constraint de la
+  /// tabla.
   ///
   /// La transacción se crea a través de [TransactionViewModel] (y no
   /// directo contra el repositorio) para que recargue sus propias listas
@@ -224,6 +226,7 @@ class InvoiceViewModel extends ChangeNotifier {
     required String categoryId,
     required double amount,
     String? description,
+    DateTime? date,
   }) async {
     _payingIds.add(invoice.id);
     _errorMessage = null;
@@ -237,7 +240,7 @@ class InvoiceViewModel extends ChangeNotifier {
         type: 'expense',
         amount: amount,
         description: description,
-        date: DateTime.now(),
+        date: date ?? DateTime.now(),
       );
       final transactionId = _transactionViewModel.lastCreatedTransactionId;
       if (!created || transactionId == null) {

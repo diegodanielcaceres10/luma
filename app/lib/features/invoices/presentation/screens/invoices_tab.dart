@@ -222,6 +222,7 @@ class _InvoicesTabState extends State<InvoicesTab> {
       categoryId: category.id,
       amount: result.amount,
       description: 'Factura · $serviceName',
+      date: result.date,
     );
 
     if (!ok && context.mounted) {
@@ -440,8 +441,8 @@ class _InvoiceRow extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: badgeColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(999),
@@ -508,8 +509,13 @@ class _InvoiceRow extends StatelessWidget {
 class _PayInvoiceResult {
   final double amount;
   final String accountId;
+  final DateTime date;
 
-  const _PayInvoiceResult({required this.amount, required this.accountId});
+  const _PayInvoiceResult({
+    required this.amount,
+    required this.accountId,
+    required this.date,
+  });
 }
 
 /// Diálogo de pago de una factura. El monto viene precargado con el
@@ -538,6 +544,7 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
   late final TextEditingController _amountController;
   Account? _selectedAccount;
   String? _amountError;
+  late DateTime _selectedDate;
 
   @override
   void initState() {
@@ -545,6 +552,7 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
     _amountController = TextEditingController(
       text: widget.invoice.amount.toStringAsFixed(2),
     );
+    _selectedDate = DateTime.now();
   }
 
   @override
@@ -563,8 +571,35 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
     if (_selectedAccount == null) return;
 
     Navigator.of(context).pop(
-      _PayInvoiceResult(amount: amount, accountId: _selectedAccount!.id),
+      _PayInvoiceResult(
+        amount: amount,
+        accountId: _selectedAccount!.id,
+        date: _selectedDate,
+      ),
     );
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.authAccent,
+            onPrimary: AppColors.authBackgroundBottom,
+            surface: AppColors.authBackgroundBottom,
+            onSurface: AppColors.authTextPrimary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
   }
 
   static const _fieldDecoration = InputDecoration(
@@ -666,6 +701,31 @@ class _PayInvoiceDialogState extends State<_PayInvoiceDialog> {
                     .toList(),
                 onChanged: (value) => setState(() => _selectedAccount = value),
               ),
+            const SizedBox(height: 20),
+            const Text(
+              'Fecha de pago',
+              style: TextStyle(color: AppColors.authTextSecondary),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: _pickDate,
+              borderRadius: BorderRadius.circular(14),
+              child: InputDecorator(
+                decoration: _fieldDecoration.copyWith(
+                  suffixIcon: const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 18,
+                    color: AppColors.authTextSecondary,
+                  ),
+                ),
+                child: Text(
+                  '${_selectedDate.day.toString().padLeft(2, '0')}/'
+                  '${_selectedDate.month.toString().padLeft(2, '0')}/'
+                  '${_selectedDate.year}',
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                ),
+              ),
+            ),
           ],
         ),
       ),
