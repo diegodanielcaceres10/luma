@@ -219,7 +219,12 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo leer el ticket: $e')),
+        const SnackBar(
+          content: Text(
+            'Servicio no disponible. Intente más tarde o consulte a su '
+            'administrador.',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isScanning = false);
@@ -312,8 +317,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                           isSubmitting || _isScanning ? null : _scanReceipt,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.authTextPrimary,
-                        side:
-                            const BorderSide(color: AppColors.authCardBorder),
+                        side: const BorderSide(color: AppColors.authCardBorder),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       icon: _isScanning
