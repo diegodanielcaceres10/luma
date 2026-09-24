@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
+import 'app/theme/app_system_ui.dart';
 import 'app/theme/app_theme.dart';
 import 'core/config/app_env.dart';
 import 'features/app_update/data/models/version_check_result.dart';
@@ -13,6 +15,11 @@ import 'features/app_update/presentation/screens/update_required_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Se fija acá, antes de mostrar cualquier UI, para que ya esté
+  // aplicado tanto en la app normal como en la pantalla de bloqueo por
+  // versión (ver `versionCheck?.status == VersionCheckStatus.blocked`
+  // más abajo) — ver app/theme/app_system_ui.dart.
+  SystemChrome.setSystemUIOverlayStyle(appStatusBarStyle);
   // Sin esto, go_router arma URLs con "#" en Web (ej. /#/movements) — no
   // afecta a mobile/desktop, ahí no hay URL de por medio.
   usePathUrlStrategy();
