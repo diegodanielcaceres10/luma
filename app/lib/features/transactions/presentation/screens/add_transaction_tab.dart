@@ -217,6 +217,11 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
       );
       if (!mounted) return;
 
+      // La API ya respondió y el modal va a mostrar el resultado — no
+      // tiene sentido que el botón siga con el spinner de "escaneando"
+      // por detrás mientras la persona lo está revisando.
+      setState(() => _isScanning = false);
+
       // El usuario confirma o descarta lo que devolvió la API antes de que
       // toque el formulario — así el escaneo nunca completa campos sin que
       // la persona vea primero qué se detectó.
@@ -277,15 +282,14 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
             ),
             _scanResultRow(
               'Fecha',
-              result.date != null
-                  ? _formatDate(result.date!)
-                  : 'No detectada',
+              result.date != null ? _formatDate(result.date!) : 'No detectada',
             ),
             const SizedBox(height: 12),
             const Text(
               'Podés confirmarlos para precompletar el formulario, o '
               'cancelar y cargarlos a mano.',
-              style: TextStyle(color: AppColors.authTextSecondary, fontSize: 12),
+              style:
+                  TextStyle(color: AppColors.authTextSecondary, fontSize: 12),
             ),
           ],
         ),
@@ -352,7 +356,8 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Datos aplicados al formulario — revisalos antes de guardar.'),
+        content:
+            Text('Datos aplicados al formulario — revisalos antes de guardar.'),
       ),
     );
   }
