@@ -277,18 +277,15 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
             ),
             _scanResultRow(
               'Fecha',
-              result.date != null ? _formatDate(result.date!) : 'No detectada',
-            ),
-            _scanResultRow(
-              'Categoría',
-              result.categoryName ?? 'No detectada',
+              result.date != null
+                  ? _formatDate(result.date!)
+                  : 'No detectada',
             ),
             const SizedBox(height: 12),
             const Text(
               'Podés confirmarlos para precompletar el formulario, o '
               'cancelar y cargarlos a mano.',
-              style:
-                  TextStyle(color: AppColors.authTextSecondary, fontSize: 12),
+              style: TextStyle(color: AppColors.authTextSecondary, fontSize: 12),
             ),
           ],
         ),
@@ -351,22 +348,11 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
       if (result.date != null && !result.date!.isAfter(DateTime.now())) {
         _selectedDate = result.date!;
       }
-      if (result.categoryName != null) {
-        final categories = widget.categoryViewModel.byType(widget.type);
-        final normalized = result.categoryName!.toLowerCase();
-        for (final category in categories) {
-          if (category.name.toLowerCase() == normalized) {
-            _selectedCategory = category;
-            break;
-          }
-        }
-      }
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content:
-            Text('Datos aplicados al formulario — revisalos antes de guardar.'),
+        content: Text('Datos aplicados al formulario — revisalos antes de guardar.'),
       ),
     );
   }
