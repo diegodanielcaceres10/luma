@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
+import 'app/theme/app_theme.dart';
 import 'core/config/app_env.dart';
+import 'features/app_update/data/models/version_check_result.dart';
+import 'features/app_update/data/services/app_update_service.dart';
+import 'features/app_update/presentation/screens/update_required_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,5 +29,40 @@ Future<void> main() async {
     url: AppEnv.supabaseUrl,
     publishableKey: AppEnv.supabasePublishableKey,
   );
-  runApp(const LumaApp());
+
+  final versionCheck = await _checkAppVersion();
+
+  if (versionCheck?.status == VersionCheckStatus.blocked) {
+    runApp(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      home: UpdateRequiredScreen(message: versionCheck!.message),
+    ));
+    return;
+  }
+
+  // "outdated_but_usable": se deja entrar a la app, pero con un mensaje
+  // pendiente que LumaApp muestra como diálogo al terminar de armar la
+  // primera pantalla (ver app/app.dart). "updated" o error de red: null,
+  // no se muestra nada.
+  final pendingUpdateMessage =
+      versionCheck?.status == VersionCheckStatus.outdatedButUsable
+          ? versionCheck!.message
+          : null;
+
+  runApp(LumaApp(pendingUpdateMessage: pendingUpdateMessage));
+}
+
+/// Llama a la Edge Function `check-app-version` con la versión instalada
+/// (`PackageInfo`, la real, ya sin forzar nada). Cualquier error (sin
+/// conexión, función caída, etc.) devuelve `null`: un problema de red al
+/// arrancar no debería trabar la app ni mostrar avisos de más.
+Future<VersionCheckResult?> _checkAppVersion() async {
+  try {
+    final info = await PackageInfo.fromPlatform();
+    return await AppUpdateService(Supabase.instance.client)
+        .checkVersion(info.version);
+  } catch (_) {
+    return null;
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/currency_format.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
@@ -11,8 +12,7 @@ import '../../../transactions/presentation/view_models/transaction_view_model.da
 ///
 /// Al guardar, se crean dos transacciones sin categoría: un 'expense'
 /// en la cuenta de origen y un 'income' en la de destino, ambas con el
-/// mismo monto y fecha de hoy. La fecha no es editable a propósito — no
-/// se pidió ese campo para esta entrega.
+/// mismo monto y la fecha elegida en el campo "Fecha".
 class TransferFormTab extends StatefulWidget {
   final String? userId;
   final AccountViewModel accountViewModel;
@@ -39,6 +39,7 @@ class _TransferFormTabState extends State<TransferFormTab> {
 
   String? _originAccountId;
   String? _destinationAccountId;
+  DateTime _selectedDate = DateTime.now();
 
   static const _fieldDecoration = InputDecoration(
     filled: true,
@@ -64,6 +65,29 @@ class _TransferFormTabState extends State<TransferFormTab> {
     super.dispose();
   }
 
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.authAccent,
+            onPrimary: AppColors.authBackgroundBottom,
+            surface: AppColors.authBackgroundBottom,
+            onSurface: AppColors.authTextPrimary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_originAccountId == null || _destinationAccountId == null) return;
@@ -80,7 +104,7 @@ class _TransferFormTabState extends State<TransferFormTab> {
       originAccountId: _originAccountId!,
       destinationAccountId: _destinationAccountId!,
       amount: amount,
-      date: DateTime.now(),
+      date: _selectedDate,
       originDescription: 'Transferencia a $destinationName',
       destinationDescription: 'Transferencia desde $originName',
     );
@@ -192,7 +216,9 @@ class _TransferFormTabState extends State<TransferFormTab> {
                               .map(
                                 (Account a) => DropdownMenuItem<String?>(
                                   value: a.id,
-                                  child: Text(a.name),
+                                  child: Text(
+                                    '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
+                                  ),
                                 ),
                               )
                               .toList(),
@@ -226,7 +252,9 @@ class _TransferFormTabState extends State<TransferFormTab> {
                               .map(
                                 (Account a) => DropdownMenuItem<String?>(
                                   value: a.id,
-                                  child: Text(a.name),
+                                  child: Text(
+                                    '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
+                                  ),
                                 ),
                               )
                               .toList(),
@@ -265,6 +293,31 @@ class _TransferFormTabState extends State<TransferFormTab> {
                             }
                             return null;
                           },
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Fecha',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary)),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: isSubmitting ? null : _pickDate,
+                          borderRadius: BorderRadius.circular(14),
+                          child: InputDecorator(
+                            decoration: _fieldDecoration.copyWith(
+                              suffixIcon: const Icon(
+                                Icons.calendar_today_rounded,
+                                size: 18,
+                                color: AppColors.authTextSecondary,
+                              ),
+                            ),
+                            child: Text(
+                              '${_selectedDate.day.toString().padLeft(2, '0')}/'
+                              '${_selectedDate.month.toString().padLeft(2, '0')}/'
+                              '${_selectedDate.year}',
+                              style: const TextStyle(
+                                  color: AppColors.authTextPrimary),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 32),
                         SizedBox(

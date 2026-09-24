@@ -16,6 +16,8 @@ import '../features/invoices/presentation/view_models/invoice_view_model.dart';
 import '../features/monthly_balances/data/repositories/monthly_balance_repository.dart';
 import '../features/monthly_balances/data/services/monthly_balance_service.dart';
 import '../features/monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
+import '../features/preferences/data/repositories/preferences_repository.dart';
+import '../features/preferences/presentation/view_models/preferences_view_model.dart';
 import '../features/services/data/repositories/service_repository.dart';
 import '../features/services/data/services/service_service.dart';
 import '../features/services/presentation/view_models/service_view_model.dart';
@@ -23,10 +25,17 @@ import '../features/transactions/data/repositories/transaction_repository.dart';
 import '../features/transactions/data/services/transaction_service.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import 'router.dart';
+import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
 class LumaApp extends StatefulWidget {
-  const LumaApp({super.key});
+  /// Mensaje de la Edge Function `check-app-version` cuando el estado es
+  /// "outdated_but_usable": hay una versión nueva, pero la instalada
+  /// todavía se puede seguir usando. Si no es `null`, se muestra un
+  /// diálogo informativo al abrir la app (ver [_showUpdateAvailableDialog]).
+  final String? pendingUpdateMessage;
+
+  const LumaApp({super.key, this.pendingUpdateMessage});
 
   @override
   State<LumaApp> createState() => _LumaAppState();
@@ -40,6 +49,7 @@ class _LumaAppState extends State<LumaApp> {
   late final MonthlyBalanceViewModel _monthlyBalanceViewModel;
   late final ServiceViewModel _serviceViewModel;
   late final InvoiceViewModel _invoiceViewModel;
+  late final PreferencesViewModel _preferencesViewModel;
   late final _router = buildAppRouter(
     authViewModel: _authViewModel,
     accountViewModel: _accountViewModel,
@@ -48,6 +58,7 @@ class _LumaAppState extends State<LumaApp> {
     monthlyBalanceViewModel: _monthlyBalanceViewModel,
     serviceViewModel: _serviceViewModel,
     invoiceViewModel: _invoiceViewModel,
+    preferencesViewModel: _preferencesViewModel,
   );
 
   @override
@@ -80,9 +91,24 @@ class _LumaAppState extends State<LumaApp> {
     _invoiceViewModel =
         InvoiceViewModel(invoiceRepository, _transactionViewModel);
 
+    // A diferencia del resto de los view models, no depende de Supabase ni
+    // de haber iniciado sesión (son preferencias del dispositivo, no del
+    // usuario logueado) — se carga siempre, no dentro de _loadUserData().
+    _preferencesViewModel = PreferencesViewModel(PreferencesRepository());
+    _preferencesViewModel.loadPreferences();
+
     _authViewModel.addListener(_onAuthChanged);
     if (_authViewModel.isAuthenticated) {
       _loadUserData();
+    }
+
+    final pendingMessage = widget.pendingUpdateMessage;
+    if (pendingMessage != null) {
+      // Se espera al primer frame para poder mostrar el diálogo con el
+      // Navigator del router ya montado (ver `_router.routerDelegate`).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showUpdateAvailableDialog(pendingMessage);
+      });
     }
   }
 
@@ -101,6 +127,44 @@ class _LumaAppState extends State<LumaApp> {
     _invoiceViewModel.loadInvoices();
   }
 
+  // Diálogo de "hay una versión nueva, pero podés seguir usando esta"
+  // (estado "outdated_but_usable" de `check-app-version`). A propósito no
+  // tiene ningún botón de acción: se cierra tocando afuera (o "atrás"), y
+  // el usuario sigue directo a la app.
+  void _showUpdateAvailableDialog(String message) {
+    final context = _router.routerDelegate.navigatorKey.currentContext;
+    if (context == null) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.authBackgroundTop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        icon: const Icon(
+          Icons.system_update_rounded,
+          color: AppColors.authAccent,
+        ),
+        title: const Text(
+          'Hay una actualización disponible',
+          style: TextStyle(
+            color: AppColors.authTextPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(color: AppColors.authTextSecondary),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _authViewModel.removeListener(_onAuthChanged);
@@ -111,6 +175,7 @@ class _LumaAppState extends State<LumaApp> {
     _monthlyBalanceViewModel.dispose();
     _serviceViewModel.dispose();
     _invoiceViewModel.dispose();
+    _preferencesViewModel.dispose();
     super.dispose();
   }
 

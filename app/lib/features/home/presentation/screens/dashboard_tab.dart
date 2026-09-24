@@ -182,7 +182,6 @@ class _DashboardTabState extends State<DashboardTab> {
           pendingInvoicesTotal: pendingInvoicesTotal,
           isLoadingPendingInvoices: widget.invoiceViewModel.isLoading ||
               widget.serviceViewModel.isLoading,
-          onTapPendingInvoices: widget.onGoToInvoices,
         ),
         const SizedBox(height: 28),
         const _SectionHeader(title: 'Acciones rápidas'),
@@ -399,7 +398,6 @@ class _BalanceCard extends StatelessWidget {
   final VoidCallback onManageAccounts;
   final double pendingInvoicesTotal;
   final bool isLoadingPendingInvoices;
-  final VoidCallback? onTapPendingInvoices;
 
   const _BalanceCard({
     required this.isLoading,
@@ -412,7 +410,6 @@ class _BalanceCard extends StatelessWidget {
     this.onCompletePendingBalances,
     this.pendingInvoicesTotal = 0,
     this.isLoadingPendingInvoices = false,
-    this.onTapPendingInvoices,
   });
 
   @override
@@ -519,27 +516,23 @@ class _BalanceCard extends StatelessWidget {
               ),
             ] else if (pendingInvoicesTotal > 0) ...[
               const SizedBox(height: 8),
-              InkWell(
-                onTap: onTapPendingInvoices,
-                borderRadius: BorderRadius.circular(8),
-                child: Row(
-                  children: [
-                    const Icon(Icons.receipt_long_rounded,
-                        color: Colors.white70, size: 16),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        'Servicios pendientes de pagar: '
-                        '${formatCurrency(pendingInvoicesTotal, currency)}',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
+              Row(
+                children: [
+                  const Icon(Icons.receipt_long_rounded,
+                      color: Colors.white70, size: 16),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Servicios pendientes de pagar: '
+                      '${formatCurrency(pendingInvoicesTotal, currency)}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
             if (pendingAccountsCount > 0) ...[

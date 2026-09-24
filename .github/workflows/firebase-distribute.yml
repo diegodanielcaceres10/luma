@@ -30,8 +30,6 @@ jobs:
   build-and-distribute:
     needs: check-version
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     defaults:
       run:
@@ -108,13 +106,3 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-key.json
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
-
-      - name: Publish public GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0-${{ github.run_number }}
-          name: Build ${{ github.run_number }}
-          files: app/build/app/outputs/flutter-apk/app-release.apk
-          make_latest: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -8,7 +8,17 @@ import '../view_models/auth_view_model.dart';
 class ProfileScreen extends StatelessWidget {
   final AuthViewModel viewModel;
 
-  const ProfileScreen({super.key, required this.viewModel});
+  /// Navega a la pantalla de preferencias ('/profile/preferences' — ver
+  /// router.dart). Se recibe por callback, igual que el resto de la
+  /// navegación de esta app (ver AccountsTab.onAdd, etc.), para no atar
+  /// esta pantalla a go_router directamente.
+  final VoidCallback onOpenPreferences;
+
+  const ProfileScreen({
+    super.key,
+    required this.viewModel,
+    required this.onOpenPreferences,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +76,12 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 20),
+        _NavigationEntry(
+          icon: Icons.tune_rounded,
+          label: 'Preferencias',
+          onTap: onOpenPreferences,
+        ),
+        const SizedBox(height: 12),
         _SignOutButton(onPressed: viewModel.signOut),
         const SizedBox(height: 24),
         const AppVersionFooter(
@@ -151,6 +167,57 @@ class _ProfileRow extends StatelessWidget {
         if (showDivider)
           const Divider(height: 1, color: AppColors.authCardBorder),
       ],
+    );
+  }
+}
+
+class _NavigationEntry extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _NavigationEntry({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.authCardFill,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.authCardBorder),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: AppColors.authTextPrimary, size: 20),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.authTextPrimary,
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.authTextFooter,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
