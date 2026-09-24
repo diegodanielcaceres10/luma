@@ -25,6 +25,8 @@ import '../features/invoices/presentation/screens/invoices_tab.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
 import '../features/monthly_balances/presentation/screens/monthly_balance_tab.dart';
 import '../features/monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
+import '../features/preferences/presentation/screens/preferences_screen.dart';
+import '../features/preferences/presentation/view_models/preferences_view_model.dart';
 import '../features/services/data/models/service.dart';
 import '../features/services/presentation/screens/service_form_tab.dart';
 import '../features/services/presentation/screens/services_tab.dart';
@@ -154,6 +156,7 @@ GoRouter buildAppRouter({
   required MonthlyBalanceViewModel monthlyBalanceViewModel,
   required ServiceViewModel serviceViewModel,
   required InvoiceViewModel invoiceViewModel,
+  required PreferencesViewModel preferencesViewModel,
 }) {
   // Por defecto, go_router SOLO refleja `context.go()` en la barra de
   // direcciones del navegador — un `context.push()` cambia de pantalla
@@ -498,8 +501,22 @@ GoRouter buildAppRouter({
           // Perfil
           GoRoute(
             path: '/profile',
-            builder: (context, state) =>
-                ProfileScreen(viewModel: authViewModel),
+            builder: (context, state) => ProfileScreen(
+              viewModel: authViewModel,
+              onOpenPreferences: () => context.push('/profile/preferences'),
+            ),
+          ),
+          // Bajo '/profile/' (no '/preferences' suelto) para que el bottom
+          // nav siga resaltando "Perfil" mientras se navega acá — ver
+          // AppShellScreen._navIndexFor.
+          GoRoute(
+            path: '/profile/preferences',
+            builder: (context, state) => RoutedScreenScaffold(
+              body: PreferencesScreen(
+                viewModel: preferencesViewModel,
+                onBack: () => context.goBack(),
+              ),
+            ),
           ),
         ],
       ),

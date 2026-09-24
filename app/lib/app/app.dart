@@ -16,6 +16,8 @@ import '../features/invoices/presentation/view_models/invoice_view_model.dart';
 import '../features/monthly_balances/data/repositories/monthly_balance_repository.dart';
 import '../features/monthly_balances/data/services/monthly_balance_service.dart';
 import '../features/monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
+import '../features/preferences/data/repositories/preferences_repository.dart';
+import '../features/preferences/presentation/view_models/preferences_view_model.dart';
 import '../features/services/data/repositories/service_repository.dart';
 import '../features/services/data/services/service_service.dart';
 import '../features/services/presentation/view_models/service_view_model.dart';
@@ -47,6 +49,7 @@ class _LumaAppState extends State<LumaApp> {
   late final MonthlyBalanceViewModel _monthlyBalanceViewModel;
   late final ServiceViewModel _serviceViewModel;
   late final InvoiceViewModel _invoiceViewModel;
+  late final PreferencesViewModel _preferencesViewModel;
   late final _router = buildAppRouter(
     authViewModel: _authViewModel,
     accountViewModel: _accountViewModel,
@@ -55,6 +58,7 @@ class _LumaAppState extends State<LumaApp> {
     monthlyBalanceViewModel: _monthlyBalanceViewModel,
     serviceViewModel: _serviceViewModel,
     invoiceViewModel: _invoiceViewModel,
+    preferencesViewModel: _preferencesViewModel,
   );
 
   @override
@@ -86,6 +90,12 @@ class _LumaAppState extends State<LumaApp> {
     final invoiceRepository = InvoiceRepository(InvoiceService(client));
     _invoiceViewModel =
         InvoiceViewModel(invoiceRepository, _transactionViewModel);
+
+    // A diferencia del resto de los view models, no depende de Supabase ni
+    // de haber iniciado sesión (son preferencias del dispositivo, no del
+    // usuario logueado) — se carga siempre, no dentro de _loadUserData().
+    _preferencesViewModel = PreferencesViewModel(PreferencesRepository());
+    _preferencesViewModel.loadPreferences();
 
     _authViewModel.addListener(_onAuthChanged);
     if (_authViewModel.isAuthenticated) {
@@ -165,6 +175,7 @@ class _LumaAppState extends State<LumaApp> {
     _monthlyBalanceViewModel.dispose();
     _serviceViewModel.dispose();
     _invoiceViewModel.dispose();
+    _preferencesViewModel.dispose();
     super.dispose();
   }
 
