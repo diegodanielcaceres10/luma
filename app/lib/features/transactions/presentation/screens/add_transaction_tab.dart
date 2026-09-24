@@ -220,9 +220,9 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Servicio no disponible. Intente más tarde o consulte a su administrador.',
+            'Servicio no disponible. Intente más tarde o consulte a su administrador. $e',
           ),
         ),
       );
