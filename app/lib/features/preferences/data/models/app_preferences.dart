@@ -13,10 +13,10 @@ const List<String> kSupportedLanguageCodes = ['es', 'en', 'pt'];
 /// reinstall. A diferencia del resto de los datos de la app (cuentas,
 /// categorías, etc.), no están pensadas para sincronizarse vía Supabase.
 ///
-/// Importante: por ahora esta clase solo se guarda y se lee. Ninguno de
-/// estos valores todavía cambia el comportamiento real de la app (moneda
-/// mostrada, idioma, tema, notificaciones o bloqueo biométrico) — eso queda
-/// para una tarea futura.
+/// Importante: moneda, idioma, tema y notificaciones por ahora solo se
+/// guardan — todavía no cambian nada del comportamiento real de la app.
+/// [biometricLockEnabled] es la excepción: sí se aplica de verdad, ver
+/// AppLockViewModel (feature `app_lock`).
 class AppPreferences {
   final String currencyCode;
   final String languageCode;
@@ -27,10 +27,10 @@ class AppPreferences {
   /// factura. Solo tiene sentido si [notificationsEnabled] es `true`.
   final int invoiceReminderDaysAhead;
 
-  /// Preferencia de bloqueo con biometría. Guarda únicamente la intención
-  /// del usuario: no valida capacidad del dispositivo ni dispara ningún
-  /// pedido real de Face ID/huella (eso requiere sumar `local_auth`, hoy
-  /// fuera de alcance).
+  /// Preferencia de bloqueo con biometría. Se aplica de verdad: cuando
+  /// está en `true` (y el dispositivo lo soporta), `AppLockViewModel`
+  /// bloquea la app al abrirla y al volver de segundo plano, pidiendo
+  /// Face ID/huella/PIN vía `local_auth` — ver feature `app_lock`.
   final bool biometricLockEnabled;
 
   const AppPreferences({

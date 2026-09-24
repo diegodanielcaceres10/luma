@@ -23,11 +23,17 @@ const _maxInvoiceReminderDays = 14;
 /// Pantalla de preferencias del usuario. Se abre como ruta propia (push)
 /// desde ProfileScreen — ver router.dart ('/profile/preferences').
 ///
-/// Importante: cada control guarda su valor al toque (no hay botón
-/// "Guardar"), pero ninguno todavía cambia el comportamiento real de la
-/// app — ver el comentario en PreferencesViewModel.
+/// Cada control guarda su valor al toque (no hay botón "Guardar"). De
+/// todas las preferencias, solo el bloqueo con biometría ya cambia el
+/// comportamiento real de la app (ver AppLockViewModel) — moneda, idioma,
+/// tema y notificaciones por ahora solo se guardan.
 class PreferencesScreen extends StatefulWidget {
   final PreferencesViewModel viewModel;
+
+  /// `true` si este dispositivo puede autenticar con biometría o con algún
+  /// otro método de bloqueo del SO (ver AppLockViewModel/BiometricService).
+  /// Si es `false`, el switch de biometría se muestra pero deshabilitado.
+  final bool isBiometricSupported;
 
   /// Se llama al tocar "atrás". Se recibe por parámetro (en vez de usar
   /// `context.goBack()` acá adentro) para seguir el mismo patrón de
@@ -37,6 +43,7 @@ class PreferencesScreen extends StatefulWidget {
   const PreferencesScreen({
     super.key,
     required this.viewModel,
+    required this.isBiometricSupported,
     required this.onBack,
   });
 
@@ -178,16 +185,21 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               child: _SwitchRow(
                 label: 'Bloqueo con biometría',
                 value: prefs.biometricLockEnabled,
-                onChanged: vm.setBiometricLockEnabled,
+                onChanged: widget.isBiometricSupported
+                    ? vm.setBiometricLockEnabled
+                    : null,
               ),
             ),
             const SizedBox(height: 8),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
-                'Por ahora esto solo guarda tu preferencia — todavía no '
-                'pide Face ID/huella ni bloquea la app al abrirla.',
-                style: TextStyle(
+                widget.isBiometricSupported
+                    ? 'Con esto activado, la app te va a pedir Face ID, '
+                        'huella o el PIN del dispositivo al abrirla y al '
+                        'volver de segundo plano después de un rato.'
+                    : 'No disponible en este dispositivo.',
+                style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.authTextFooter,
                 ),
@@ -286,7 +298,7 @@ class _Dropdown extends StatelessWidget {
 class _SwitchRow extends StatelessWidget {
   final String label;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
   final bool showDivider;
 
   const _SwitchRow({

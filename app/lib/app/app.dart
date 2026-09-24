@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/accounts/data/repositories/account_repository.dart';
 import '../features/accounts/data/services/account_service.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
+import '../features/app_lock/data/services/biometric_service.dart';
+import '../features/app_lock/presentation/view_models/app_lock_view_model.dart';
 import '../features/auth/data/repositories/auth_repository.dart';
 import '../features/auth/data/services/auth_service.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
@@ -41,7 +43,7 @@ class LumaApp extends StatefulWidget {
   State<LumaApp> createState() => _LumaAppState();
 }
 
-class _LumaAppState extends State<LumaApp> {
+class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
   late final AuthViewModel _authViewModel;
   late final AccountViewModel _accountViewModel;
   late final TransactionViewModel _transactionViewModel;
@@ -50,6 +52,8 @@ class _LumaAppState extends State<LumaApp> {
   late final ServiceViewModel _serviceViewModel;
   late final InvoiceViewModel _invoiceViewModel;
   late final PreferencesViewModel _preferencesViewModel;
+  late final BiometricService _biometricService;
+  late final AppLockViewModel _appLockViewModel;
   late final _router = buildAppRouter(
     authViewModel: _authViewModel,
     accountViewModel: _accountViewModel,
@@ -59,11 +63,13 @@ class _LumaAppState extends State<LumaApp> {
     serviceViewModel: _serviceViewModel,
     invoiceViewModel: _invoiceViewModel,
     preferencesViewModel: _preferencesViewModel,
+    appLockViewModel: _appLockViewModel,
   );
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final client = Supabase.instance.client;
 
     final authRepository = AuthRepository(AuthService(client));
@@ -97,6 +103,16 @@ class _LumaAppState extends State<LumaApp> {
     _preferencesViewModel = PreferencesViewModel(PreferencesRepository());
     _preferencesViewModel.loadPreferences();
 
+    // Tampoco depende de Supabase: el bloqueo es un gate local, sobre la
+    // sesión ya iniciada — ver AppLockViewModel.
+    _biometricService = BiometricService();
+    _appLockViewModel = AppLockViewModel(
+      biometricService: _biometricService,
+      preferencesViewModel: _preferencesViewModel,
+      authViewModel: _authViewModel,
+    );
+    _appLockViewModel.initialize();
+
     _authViewModel.addListener(_onAuthChanged);
     if (_authViewModel.isAuthenticated) {
       _loadUserData();
@@ -115,6 +131,20 @@ class _LumaAppState extends State<LumaApp> {
   void _onAuthChanged() {
     if (_authViewModel.isAuthenticated) {
       _loadUserData();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+        _appLockViewModel.onAppPaused();
+      case AppLifecycleState.resumed:
+        _appLockViewModel.onAppResumed();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        break;
     }
   }
 
@@ -167,6 +197,7 @@ class _LumaAppState extends State<LumaApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _authViewModel.removeListener(_onAuthChanged);
     _authViewModel.dispose();
     _accountViewModel.dispose();
@@ -176,6 +207,7 @@ class _LumaAppState extends State<LumaApp> {
     _serviceViewModel.dispose();
     _invoiceViewModel.dispose();
     _preferencesViewModel.dispose();
+    _appLockViewModel.dispose();
     super.dispose();
   }
 
