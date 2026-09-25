@@ -10,6 +10,7 @@ import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../data/models/transaction_entry.dart' show TransactionCategory;
 import '../export/statistics_pdf_builder.dart';
 import '../view_models/transaction_view_model.dart';
 
@@ -95,6 +96,61 @@ class _StatisticsTabState extends State<StatisticsTab> {
         .toList();
   }
 
+  /// Desglosa el gasto del mes en 3 baldes, para el segundo gráfico de
+  /// dona (debajo del de categorías): cuánto está categorizado, cuánto
+  /// son movimientos sin categoría y cuánto es el ajuste no declarado
+  /// (`uncontrolled_expenses_total`, cuando es un gasto). A diferencia
+  /// de [_CategoryDonutChart] de arriba (que solo cuenta transacciones),
+  /// acá el total incluye ese ajuste aunque no sea una transacción real.
+  ///
+  /// Solo entran los baldes con algo adentro, así el gráfico y la
+  /// leyenda no muestran una porción en cero.
+  List<CategoryTotal> _expenseTypeBreakdown(TransactionViewModel vm) {
+    final breakdown = vm.statisticsCategoryBreakdown;
+    final categorized = breakdown
+        .where((c) => c.category.id != null)
+        .fold<double>(0, (sum, c) => sum + c.amount);
+    final uncategorized = breakdown
+        .where((c) => c.category.id == null)
+        .fold<double>(0, (sum, c) => sum + c.amount);
+    final undeclared = vm.statisticsUncontrolledTotal < 0
+        ? -vm.statisticsUncontrolledTotal
+        : 0.0;
+
+    final total = categorized + uncategorized + undeclared;
+    double percentOf(double amount) => total > 0 ? (amount / total) * 100 : 0;
+
+    return [
+      if (categorized > 0)
+        CategoryTotal(
+          category: const TransactionCategory(
+            name: 'Categorizados',
+            color: '#4CBB7A',
+          ),
+          amount: categorized,
+          percent: percentOf(categorized),
+        ),
+      if (uncategorized > 0)
+        CategoryTotal(
+          category: const TransactionCategory(
+            name: 'No categorizados',
+            color: '#F59E0B',
+          ),
+          amount: uncategorized,
+          percent: percentOf(uncategorized),
+        ),
+      if (undeclared > 0)
+        CategoryTotal(
+          category: const TransactionCategory(
+            name: 'No declarados',
+            color: '#EF6F5B',
+          ),
+          amount: undeclared,
+          percent: percentOf(undeclared),
+        ),
+    ];
+  }
+
   Future<void> _pickMonth() async {
     final vm = widget.transactionViewModel;
 
@@ -167,6 +223,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
               );
 
         final breakdown = vm.statisticsCategoryBreakdown;
+        final expenseTypeBreakdown = _expenseTypeBreakdown(vm);
+        final expenseTypeTotal =
+            expenseTypeBreakdown.fold<double>(0, (sum, c) => sum + c.amount);
 
         if (vm.isStatisticsLoading && breakdown.isEmpty) {
           return ListView(
@@ -335,6 +394,50 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 ),
               ),
             ),
+            if (expenseTypeBreakdown.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Text(
+                'Categorizado, sin categoría y no declarado',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.authTextSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.authCardFill,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.authCardBorder),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _CategoryDonutChart(
+                        breakdown: expenseTypeBreakdown,
+                        total: expenseTypeTotal,
+                        currency: widget.currency,
+                        label: 'Gasto real',
+                      ),
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Column(
+                          children: expenseTypeBreakdown
+                              .map((c) => _CategoryLegendRow(
+                                    category: c,
+                                    currency: widget.currency,
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         );
       },
@@ -1009,10 +1112,16 @@ class _CategoryDonutChart extends StatelessWidget {
   final double total;
   final String currency;
 
+  /// Texto chico arriba del monto, en el centro de la dona. 'Total
+  /// gastos' para el desglose por categoría; otro texto para el
+  /// desglose categorizado/no categorizado/no declarado.
+  final String label;
+
   const _CategoryDonutChart({
     required this.breakdown,
     required this.total,
     required this.currency,
+    this.label = 'Total gastos',
   });
 
   @override
@@ -1036,10 +1145,10 @@ class _CategoryDonutChart extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Total gastos',
+                  Text(
+                    label,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.authTextSecondary,
                     ),
