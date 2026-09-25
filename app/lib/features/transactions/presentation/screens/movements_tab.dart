@@ -11,7 +11,7 @@ import '../view_models/transaction_view_model.dart';
 
 enum _TypeFilter { all, income, expense }
 
-enum _DateRangeFilter { today, thisWeek, last7Days, last15Days, thisMonth, all }
+enum _DateRangeFilter { today, thisWeek, last7Days, last15Days, all }
 
 /// Contenido de la pantalla "Movimientos" (ver router.dart/AppShellScreen,
 /// que ponen el Scaffold compartido con el header y el bottomNavigationBar).
@@ -127,8 +127,6 @@ class _MovementsTabState extends State<MovementsTab> {
         return _DateRangeFilter.last7Days;
       case 'last15':
         return _DateRangeFilter.last15Days;
-      case 'month':
-        return _DateRangeFilter.thisMonth;
       default:
         return _DateRangeFilter.all;
     }
@@ -146,8 +144,6 @@ class _MovementsTabState extends State<MovementsTab> {
         return 'last7';
       case _DateRangeFilter.last15Days:
         return 'last15';
-      case _DateRangeFilter.thisMonth:
-        return 'month';
     }
   }
 
@@ -319,8 +315,6 @@ class _MovementsTabState extends State<MovementsTab> {
       case _DateRangeFilter.last15Days:
         final start = today.subtract(const Duration(days: 14));
         return !txDate.isBefore(start) && !txDate.isAfter(today);
-      case _DateRangeFilter.thisMonth:
-        return t.date.year == now.year && t.date.month == now.month;
     }
   }
 
@@ -489,7 +483,6 @@ class _MovementsTabState extends State<MovementsTab> {
                       value: _DateRangeFilter.last15Days,
                       label: 'Últimos 15 días'
                     ),
-                    (value: _DateRangeFilter.thisMonth, label: 'Este mes'),
                   ],
                   selectedValue: _dateRange,
                   onChanged: (value) {
