@@ -73,6 +73,18 @@ class AppLockViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Vuelve a chequear si el dispositivo ya tiene biometría o algún
+  /// bloqueo de pantalla (PIN/patrón/contraseña) configurado. El chequeo
+  /// de [initialize] se hace una sola vez al arrancar y queda cacheado en
+  /// [isSupported] — si el usuario configura el bloqueo de pantalla
+  /// *mientras la app ya está abierta*, sin este refresh la preferencia
+  /// seguiría deshabilitada hasta reiniciar la app. Se llama, por ejemplo,
+  /// cada vez que se abre PreferencesScreen.
+  Future<void> refreshSupport() async {
+    _isSupported = await _biometricService.isSupported();
+    notifyListeners();
+  }
+
   /// Se llama desde `didChangeAppLifecycleState` cuando la app pasa a
   /// `paused` (segundo plano).
   void onAppPaused() {

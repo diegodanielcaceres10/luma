@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../app_lock/presentation/view_models/app_lock_view_model.dart';
 import '../../data/models/app_preferences.dart';
 import '../view_models/preferences_view_model.dart';
 
@@ -30,10 +31,12 @@ const _maxInvoiceReminderDays = 14;
 class PreferencesScreen extends StatefulWidget {
   final PreferencesViewModel viewModel;
 
-  /// `true` si este dispositivo puede autenticar con biometría o con algún
-  /// otro método de bloqueo del SO (ver AppLockViewModel/BiometricService).
-  /// Si es `false`, el switch de biometría se muestra pero deshabilitado.
-  final bool isBiometricSupported;
+  /// Se usa para saber si el dispositivo soporta biometría/bloqueo de
+  /// pantalla (`appLockViewModel.isSupported`) y para refrescar ese
+  /// chequeo al entrar a esta pantalla — ver `initState` y
+  /// `AppLockViewModel.refreshSupport`. Si no está soportado, el switch de
+  /// biometría se muestra pero deshabilitado.
+  final AppLockViewModel appLockViewModel;
 
   /// Se llama al tocar "atrás". Se recibe por parámetro (en vez de usar
   /// `context.goBack()` acá adentro) para seguir el mismo patrón de
@@ -43,7 +46,7 @@ class PreferencesScreen extends StatefulWidget {
   const PreferencesScreen({
     super.key,
     required this.viewModel,
-    required this.isBiometricSupported,
+    required this.appLockViewModel,
     required this.onBack,
   });
 
@@ -60,6 +63,14 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     // inicial la dispara una sola vez app.dart al arrancar la app, no cada
     // pantalla que los usa.
     widget.viewModel.addListener(_onViewModelChanged);
+
+    // Este sí se re-chequea cada vez que se abre la pantalla: a diferencia
+    // de las preferencias, "¿el dispositivo tiene bloqueo de pantalla
+    // configurado?" puede cambiar en cualquier momento (el usuario puede
+    // ir a Ajustes del sistema y configurarlo sin cerrar la app) — ver
+    // AppLockViewModel.refreshSupport.
+    widget.appLockViewModel.addListener(_onViewModelChanged);
+    widget.appLockViewModel.refreshSupport();
   }
 
   void _onViewModelChanged() {
@@ -69,6 +80,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   @override
   void dispose() {
     widget.viewModel.removeListener(_onViewModelChanged);
+    widget.appLockViewModel.removeListener(_onViewModelChanged);
     super.dispose();
   }
 
@@ -185,7 +197,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               child: _SwitchRow(
                 label: 'Bloqueo con biometría',
                 value: prefs.biometricLockEnabled,
-                onChanged: widget.isBiometricSupported
+                onChanged: widget.appLockViewModel.isSupported
                     ? vm.setBiometricLockEnabled
                     : null,
               ),
@@ -194,11 +206,14 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
-                widget.isBiometricSupported
+                widget.appLockViewModel.isSupported
                     ? 'Con esto activado, la app te va a pedir Face ID, '
                         'huella o el PIN del dispositivo al abrirla y al '
                         'volver de segundo plano después de un rato.'
-                    : 'No disponible en este dispositivo.',
+                    : 'Para activar esto, primero configurá un bloqueo de '
+                        'pantalla (PIN, patrón, huella o Face ID) en los '
+                        'ajustes de tu dispositivo. Después volvé a esta '
+                        'pantalla.',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.authTextFooter,

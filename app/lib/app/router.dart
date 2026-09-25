@@ -534,7 +534,7 @@ GoRouter buildAppRouter({
             builder: (context, state) => RoutedScreenScaffold(
               body: PreferencesScreen(
                 viewModel: preferencesViewModel,
-                isBiometricSupported: appLockViewModel.isSupported,
+                appLockViewModel: appLockViewModel,
                 onBack: () => context.goBack(),
               ),
             ),
