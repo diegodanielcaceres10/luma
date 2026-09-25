@@ -279,29 +279,15 @@ class _MovementsTabState extends State<MovementsTab> {
     }
   }
 
-  /// Movimientos visibles por cada grupo de mes (clave = la misma que
-  /// arma [_groupByMonth]). Empieza en 10 y crece de a 10 con "Ver más".
-  /// Un mes que no está acá todavía se muestra con el default de
-  /// [_visibleCountFor].
-  final Map<String, int> _visibleCountByMonth = {};
+  /// Movimientos visibles en la lista. Empieza en 10 y crece de a 10 con
+  /// "Ver más". Ya no hace falta agruparlos por mes (ver el diff que
+  /// borró [_groupByMonth]): `filtered` siempre queda acotado a un único
+  /// mes calendario por [_matchesMonth], el que ya se ve en
+  /// [_MonthSelectorPill], así que un segundo encabezado con el mismo
+  /// mes era redundante.
+  int _visibleCount = _pageSize;
 
   static const int _pageSize = 10;
-
-  int _visibleCountFor(String monthKey) =>
-      _visibleCountByMonth[monthKey] ?? _pageSize;
-
-  Map<String, List<TransactionEntry>> _groupByMonth(
-      List<TransactionEntry> transactions) {
-    final monthFormat = DateFormat('MMMM yyyy', 'es');
-    final Map<String, List<TransactionEntry>> grouped = {};
-
-    for (final t in transactions) {
-      final key = monthFormat.format(DateTime(t.date.year, t.date.month));
-      grouped.putIfAbsent(key, () => []).add(t);
-    }
-
-    return grouped;
-  }
 
   bool _matchesType(TransactionEntry t) {
     switch (_typeFilter) {
@@ -442,7 +428,6 @@ class _MovementsTabState extends State<MovementsTab> {
                 .toList();
           }
 
-          final grouped = _groupByMonth(filtered);
           final hasActiveFilters = _typeFilter != _TypeFilter.all ||
               _dateRange != _DateRangeFilter.all ||
               !_isCurrentMonth(_selectedMonth) ||
@@ -551,65 +536,48 @@ class _MovementsTabState extends State<MovementsTab> {
                     onClear: hasActiveFilters ? _pushClearFilters : null,
                   )
                 else
-                  for (final entry in grouped.entries) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8, top: 8),
-                      child: Text(
-                        _capitalize(entry.key),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.authTextSecondary,
-                        ),
-                      ),
-                    ),
-                    Builder(builder: (context) {
-                      final total = entry.value.length;
-                      final visibleCount =
-                          _visibleCountFor(entry.key).clamp(0, total);
-                      final visible = entry.value.take(visibleCount).toList();
-                      final remaining = total - visibleCount;
+                  Builder(builder: (context) {
+                    final total = filtered.length;
+                    final visibleCount = _visibleCount.clamp(0, total);
+                    final visible = filtered.take(visibleCount).toList();
+                    final remaining = total - visibleCount;
 
-                      return DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: AppColors.authCardFill,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.authCardBorder),
-                        ),
-                        child: Column(
-                          children: [
-                            ...List.generate(visible.length, (i) {
-                              return _MovementRow(
-                                movement: visible[i],
-                                currency: widget.currency,
-                                showDivider:
-                                    i != visible.length - 1 || remaining > 0,
-                              );
-                            }),
-                            if (remaining > 0)
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4),
-                                child: TextButton(
-                                  onPressed: () => setState(() {
-                                    _visibleCountByMonth[entry.key] =
-                                        visibleCount + _pageSize;
-                                  }),
-                                  child: Text(
-                                    'Ver más (${remaining > _pageSize ? _pageSize : remaining})',
-                                    style: const TextStyle(
-                                      color: AppColors.authAccent,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                    return DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: AppColors.authCardFill,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.authCardBorder),
+                      ),
+                      child: Column(
+                        children: [
+                          ...List.generate(visible.length, (i) {
+                            return _MovementRow(
+                              movement: visible[i],
+                              currency: widget.currency,
+                              showDivider:
+                                  i != visible.length - 1 || remaining > 0,
+                            );
+                          }),
+                          if (remaining > 0)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: TextButton(
+                                onPressed: () => setState(() {
+                                  _visibleCount = visibleCount + _pageSize;
+                                }),
+                                child: Text(
+                                  'Ver más (${remaining > _pageSize ? _pageSize : remaining})',
+                                  style: const TextStyle(
+                                    color: AppColors.authAccent,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 20),
-                  ],
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
               ],
             ),
           );
@@ -621,9 +589,6 @@ class _MovementsTabState extends State<MovementsTab> {
   String _categoryModelKey(TransactionCategory c) => c.id ?? c.name;
 
   String _accountModelKey(TransactionAccount a) => a.id ?? a.name;
-
-  String _capitalize(String text) =>
-      text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
 }
 
 /// Etiqueta chica sobre cada fila de chips (Período / Cuenta / Categoría),
