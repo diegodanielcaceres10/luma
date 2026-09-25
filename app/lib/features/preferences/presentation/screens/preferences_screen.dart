@@ -12,12 +12,6 @@ const _currencyLabels = {
   'ARS': 'ARS — Peso argentino',
 };
 
-const _languageLabels = {
-  'es': 'Español',
-  'en': 'English',
-  'pt': 'Português',
-};
-
 const _minInvoiceReminderDays = 1;
 const _maxInvoiceReminderDays = 14;
 
@@ -26,8 +20,8 @@ const _maxInvoiceReminderDays = 14;
 ///
 /// Cada control guarda su valor al toque (no hay botón "Guardar"). De
 /// todas las preferencias, solo el bloqueo con biometría ya cambia el
-/// comportamiento real de la app (ver AppLockViewModel) — moneda, idioma,
-/// tema y notificaciones por ahora solo se guardan.
+/// comportamiento real de la app (ver AppLockViewModel) — moneda, tema y
+/// notificaciones por ahora solo se guardan.
 class PreferencesScreen extends StatefulWidget {
   final PreferencesViewModel viewModel;
 
@@ -135,17 +129,6 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 items: kSupportedCurrencyCodes,
                 labelOf: (code) => _currencyLabels[code] ?? code,
                 onChanged: vm.setCurrencyCode,
-              ),
-            ),
-            const SizedBox(height: 20),
-            const _SectionLabel('Idioma'),
-            const SizedBox(height: 8),
-            _PreferenceCard(
-              child: _Dropdown(
-                value: prefs.languageCode,
-                items: kSupportedLanguageCodes,
-                labelOf: (code) => _languageLabels[code] ?? code,
-                onChanged: vm.setLanguageCode,
               ),
             ),
             const SizedBox(height: 20),

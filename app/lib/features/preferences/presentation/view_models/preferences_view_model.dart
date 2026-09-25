@@ -36,11 +36,6 @@ class PreferencesViewModel extends ChangeNotifier {
         () => _repository.setCurrencyCode(value),
       );
 
-  Future<void> setLanguageCode(String value) => _applyAndPersist(
-        (prefs) => prefs.copyWith(languageCode: value),
-        () => _repository.setLanguageCode(value),
-      );
-
   Future<void> setDarkThemeEnabled(bool value) => _applyAndPersist(
         (prefs) => prefs.copyWith(darkThemeEnabled: value),
         () => _repository.setDarkThemeEnabled(value),

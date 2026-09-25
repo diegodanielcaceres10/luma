@@ -396,25 +396,22 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: InkWell(
-                      onTap: _isSaving ? null : widget.onDone,
-                      borderRadius: BorderRadius.circular(20),
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.arrow_back_rounded,
-                            color: AppColors.authTextPrimary),
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: _isSaving ? null : widget.onDone,
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(Icons.arrow_back_rounded,
+                              color: AppColors.authTextPrimary),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      const Text('Actualizar saldo',
+                          style: AppTextStyles.authTitle),
+                    ],
                   ),
-                  if (account != null) ...[
-                    const SizedBox(height: 8),
-                    _AccountHeader(account: account),
-                  ],
-                  const SizedBox(height: 20),
-                  const Text('Actualizar saldo',
-                      style: AppTextStyles.authTitle),
                   const SizedBox(height: 8),
                   const Text(
                     'Ingresa el nuevo saldo de tu cuenta y agrega los movimientos '
@@ -422,6 +419,17 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
                     style: AppTextStyles.authSubtitle,
                   ),
                   if (account != null) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      account.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.authTextPrimary,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     _BalanceCard(
                       previousBalance: account.balance,
@@ -519,43 +527,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Header de la cuenta que se está actualizando: nombre y estado. El
-/// prototipo muestra además el tipo de cuenta ("Cuenta corriente"), pero
-/// hoy `accounts` no guarda ese dato, así que se muestra si está activa
-/// o inactiva, igual que la fila de la vista general.
-class _AccountHeader extends StatelessWidget {
-  final Account account;
-
-  const _AccountHeader({required this.account});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          account.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: AppColors.authTextPrimary,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          account.isActive ? 'Cuenta activa' : 'Cuenta inactiva',
-          style: const TextStyle(
-            fontSize: 15,
-            color: AppColors.authTextSecondary,
-          ),
-        ),
-      ],
     );
   }
 }
