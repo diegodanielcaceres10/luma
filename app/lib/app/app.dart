@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/accounts/data/repositories/account_repository.dart';
@@ -28,6 +29,7 @@ import '../features/transactions/data/services/transaction_service.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import 'router.dart';
 import 'theme/app_colors.dart';
+import 'theme/app_system_ui.dart';
 import 'theme/app_theme.dart';
 
 class LumaApp extends StatefulWidget {
@@ -222,6 +224,10 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: _router,
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: appStatusBarStyle,
+        child: child!,
+      ),
     );
   }
 }
