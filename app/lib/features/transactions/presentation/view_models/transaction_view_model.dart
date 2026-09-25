@@ -81,6 +81,15 @@ class TransactionViewModel extends ChangeNotifier {
   /// de volver a sumar transacciones una por una.
   double get netResult => totalIncome - totalExpenses;
 
+  /// [netResult] del mes en curso más los ajustes sin declarar de ese
+  /// mismo mes (`uncontrolled_expenses_total`, ver
+  /// [statisticsUncontrolledTotal]). Es lo que muestra la card "Balance
+  /// general del mes" del Dashboard: a diferencia de [netResult], sí
+  /// refleja los ajustes cargados desde "Actualizar saldo" que no
+  /// corresponden a ninguna transacción real.
+  double get netResultWithUncontrolled =>
+      netResult + _currentMonthUncontrolledTotal;
+
   /// Mismos totales que arriba pero del mes calendario anterior, cargados
   /// junto con el mes en curso en loadCurrentMonth(). Solo existen para
   /// alimentar las comparaciones "vs. mes anterior" de Estadísticas.

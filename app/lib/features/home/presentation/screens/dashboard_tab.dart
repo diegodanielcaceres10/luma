@@ -173,7 +173,7 @@ class _DashboardTabState extends State<DashboardTab> {
           isLoading: accountViewModel.isLoading,
           total: accountViewModel.totalBalance,
           currency: accountViewModel.primaryCurrency,
-          netResult: transactionViewModel.netResult,
+          netResult: transactionViewModel.netResultWithUncontrolled,
           isLoadingNetResult: transactionViewModel.isLoading,
           pendingAccountsCount: pendingAccounts.length,
           onCompletePendingBalances:
@@ -391,6 +391,10 @@ class _BalanceCard extends StatelessWidget {
   final bool isLoading;
   final double total;
   final String currency;
+
+  /// Ingresos - gastos del mes en curso, más los ajustes sin declarar de
+  /// ese mismo mes (ver
+  /// [TransactionViewModel.netResultWithUncontrolled]).
   final double netResult;
   final bool isLoadingNetResult;
   final int pendingAccountsCount;
@@ -493,7 +497,7 @@ class _BalanceCard extends StatelessWidget {
                       Text(
                         '${netResult >= 0 ? '+' : ''}'
                         '${formatCurrency(netResult, currency)} este mes '
-                        '(ingresos - gastos)',
+                        '(ingresos - gastos ± ajustes)',
                         style: TextStyle(
                           color: netResult >= 0
                               ? AppColors.authAccent
