@@ -57,6 +57,12 @@ import '../view_models/account_view_model.dart';
 /// curso (RPC `register_uncontrolled_adjustment`, ver
 /// [AccountViewModel.applyUncontrolledAdjustment]) — ver
 /// [_UpdateBalanceTabState._saveAndUpdateBalance].
+///
+/// Entrega 9: "Agregar movimiento" ahora abre primero
+/// [_MovementTypeSheet], para elegir entre Ingreso/Gasto/Transferencia/
+/// Factura de servicio. Los cuatro siguen abriendo el mismo
+/// [_AddMovementDialog] de siempre — la próxima entrega le da a cada
+/// tipo su propio formulario.
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` si el id
   /// de la URL (`/accounts/:id/balance`) no corresponde a ninguna cuenta
@@ -292,12 +298,22 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     }
   }
 
-  /// Popup que abre el botón "Agregar movimiento". Entrega 5: ya tiene los
-  /// campos (Monto, Categoría, Descripción y Fecha) delegados a
-  /// [_AddMovementDialog]; al guardar, el movimiento se agrega a
-  /// [_pendingMovements] y el popup se cierra solo. Todavía no hay lista
-  /// visible ni se persiste nada en la base.
-  Future<void> _showAddMovementDialog(BuildContext context) {
+  /// Bottom sheet que abre el botón "Agregar movimiento": elegir entre
+  /// Ingreso, Gasto, Transferencia y Factura de servicio ([_MovementType]).
+  /// Por ahora los cuatro abren el mismo formulario de siempre
+  /// ([_AddMovementDialog], con Monto/Categoría/Descripción/Fecha) — una
+  /// próxima entrega va a diferenciar cada uno con su propio formulario.
+  Future<void> _showAddMovementDialog(BuildContext context) async {
+    final type = await showModalBottomSheet<_MovementType>(
+      context: context,
+      backgroundColor: AppColors.authBackgroundBottom,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => const _MovementTypeSheet(),
+    );
+    if (type == null || !context.mounted) return;
+
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => _AddMovementDialog(
@@ -544,11 +560,132 @@ class _AccountHeader extends StatelessWidget {
   }
 }
 
+/// Los 4 tipos de movimiento que se pueden cargar desde "Agregar
+/// movimiento". Por ahora es solo la elección de [_MovementTypeSheet]:
+/// los cuatro abren el mismo [_AddMovementDialog] (ver
+/// [_UpdateBalanceTabState._showAddMovementDialog]) — una próxima entrega
+/// va a darle a cada uno su propio formulario.
+enum _MovementType { income, expense, transfer, invoice }
+
+/// Bottom sheet para elegir el tipo de movimiento a cargar. Mismos
+/// íconos y colores que las acciones rápidas del Dashboard (ver
+/// `_QuickActions` en dashboard_tab.dart), para que se reconozca el
+/// mismo tipo en los dos lados de la app.
+class _MovementTypeSheet extends StatelessWidget {
+  const _MovementTypeSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.authCardBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const Text(
+              'Agregar movimiento',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _MovementTypeOption(
+              icon: Icons.arrow_downward_rounded,
+              iconColor: AppColors.authIncome,
+              label: 'Ingreso',
+              onTap: () => Navigator.of(context).pop(_MovementType.income),
+            ),
+            _MovementTypeOption(
+              icon: Icons.arrow_upward_rounded,
+              iconColor: AppColors.authExpense,
+              label: 'Gasto',
+              onTap: () => Navigator.of(context).pop(_MovementType.expense),
+            ),
+            _MovementTypeOption(
+              icon: Icons.swap_horiz_rounded,
+              iconColor: AppColors.authAccent,
+              label: 'Transferencia',
+              onTap: () => Navigator.of(context).pop(_MovementType.transfer),
+            ),
+            _MovementTypeOption(
+              icon: Icons.request_page_outlined,
+              iconColor: AppColors.authAccent,
+              label: 'Factura de servicio',
+              onTap: () => Navigator.of(context).pop(_MovementType.invoice),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Una fila de [_MovementTypeSheet]: ícono con fondo tenue + label,
+/// tocable en todo el ancho.
+class _MovementTypeOption extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final VoidCallback onTap;
+
+  const _MovementTypeOption({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: iconColor.withValues(alpha: 0.18),
+              child: Icon(icon, size: 18, color: iconColor),
+            ),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Título de la sección "Movimientos para justificar la diferencia" y el
 /// botón "Agregar movimiento" del prototipo, en la misma fila.
 ///
-/// [onAddMovement] abre el popup de alta de movimiento (Entrega 4); el
-/// popup en sí todavía no tiene campos ni guarda nada.
+/// [onAddMovement] abre [_MovementTypeSheet] (Entrega 9: elegir tipo)
+/// y, sea cual sea el tipo elegido, el popup de alta de movimiento de
+/// siempre — el popup en sí todavía no distingue por tipo.
 class _MovementsSectionHeader extends StatelessWidget {
   final VoidCallback onAddMovement;
 
