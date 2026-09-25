@@ -120,15 +120,10 @@ class _StatisticsTabState extends State<StatisticsTab> {
     final total = categorized + uncategorized + undeclared;
     double percentOf(double amount) => total > 0 ? (amount / total) * 100 : 0;
 
-    // Estas 3 sí llevan un id (a diferencia de "Sin categoría" en el
-    // desglose real): la regla de "sin id, sin color" de la dona de
-    // arriba es para transacciones sin categorizar, no para estos
-    // baldes — acá los tres colores deben verse siempre.
     return [
       if (categorized > 0)
         CategoryTotal(
           category: const TransactionCategory(
-            id: 'expense-type-categorized',
             name: 'Categorizados',
             color: '#4CBB7A',
           ),
@@ -138,7 +133,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
       if (uncategorized > 0)
         CategoryTotal(
           category: const TransactionCategory(
-            id: 'expense-type-uncategorized',
             name: 'No categorizados',
             color: '#F59E0B',
           ),
@@ -148,7 +142,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
       if (undeclared > 0)
         CategoryTotal(
           category: const TransactionCategory(
-            id: 'expense-type-undeclared',
             name: 'No declarados',
             color: '#EF6F5B',
           ),
@@ -234,6 +227,21 @@ class _StatisticsTabState extends State<StatisticsTab> {
         final expenseTypeTotal =
             expenseTypeBreakdown.fold<double>(0, (sum, c) => sum + c.amount);
 
+        // Las cards de "Gastos" y "Balance del mes" también incluyen el
+        // ajuste sin declarar del mes (uncontrolled_expenses_total), no
+        // solo las transacciones cargadas: así reflejan el mismo gasto
+        // real que ya muestran la card "Sin declarar" (_UncontrolledCard)
+        // y el desglose "Categorizado, sin categoría y no declarado" de
+        // más abajo. Un ajuste positivo (ingreso no controlado) no se
+        // suma acá — no es un gasto — pero sí impacta el balance.
+        final uncontrolledExpensePart = vm.statisticsUncontrolledTotal < 0
+            ? -vm.statisticsUncontrolledTotal
+            : 0.0;
+        final statisticsExpensesTotal =
+            vm.statisticsExpenses + uncontrolledExpensePart;
+        final statisticsNetResultTotal =
+            vm.statisticsNetResult + vm.statisticsUncontrolledTotal;
+
         if (vm.isStatisticsLoading && breakdown.isEmpty) {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -289,8 +297,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
               const SizedBox(height: 20),
               _SummaryCardsRow(
                 income: vm.statisticsIncome,
-                expenses: vm.statisticsExpenses,
-                netResult: vm.statisticsNetResult,
+                expenses: statisticsExpensesTotal,
+                netResult: statisticsNetResultTotal,
                 incomeChangePercent: vm.statisticsIncomeChangePercent,
                 expenseChangePercent: vm.statisticsExpenseChangePercent,
                 netChangePercent: vm.statisticsNetResultChangePercent,
@@ -327,8 +335,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
             const SizedBox(height: 20),
             _SummaryCardsRow(
               income: vm.statisticsIncome,
-              expenses: vm.statisticsExpenses,
-              netResult: vm.statisticsNetResult,
+              expenses: statisticsExpensesTotal,
+              netResult: statisticsNetResultTotal,
               incomeChangePercent: vm.statisticsIncomeChangePercent,
               expenseChangePercent: vm.statisticsExpenseChangePercent,
               netChangePercent: vm.statisticsNetResultChangePercent,
@@ -1195,27 +1203,27 @@ class _DonutChartPainter extends CustomPainter {
     final radius = (size.shortestSide - strokeWidth) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
+    // Fondo de la dona, por si los porcentajes no suman 100% justo
+    // (redondeo) y queda un resto sin cubrir.
+    final backgroundPaint = Paint()
+      ..color = AppColors.authBackgroundTop
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawArc(rect, 0, 2 * pi, false, backgroundPaint);
+
     double startAngle = -pi / 2;
     for (final item in breakdown) {
       if (item.percent <= 0) continue;
+
       final sweepAngle = (item.percent / 100) * 2 * pi;
+      final paint = Paint()
+        ..color =
+            colorFromHex(item.category.color, fallback: AppColors.authAccent)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt;
 
-      // Los movimientos sin categoría (category.id == null, p. ej. "Sin
-      // categoría") no pintan ningún color propio: ese tramo queda
-      // transparente, para que el color solo destaque lo que sí está
-      // categorizado.
-      if (item.category.id != null) {
-        final paint = Paint()
-          ..color = colorFromHex(
-            item.category.color,
-            fallback: AppColors.authAccent,
-          )
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = strokeWidth
-          ..strokeCap = StrokeCap.butt;
-        canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
-      }
-
+      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
       startAngle += sweepAngle;
     }
   }
@@ -1236,9 +1244,6 @@ class _CategoryLegendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Mismo criterio que en la dona ([_DonutChartPainter]): sin
-    // categoría (id null) no lleva color propio, solo el contorno.
-    final hasColor = category.category.id != null;
     final color =
         colorFromHex(category.category.color, fallback: AppColors.authAccent);
 
@@ -1249,13 +1254,7 @@ class _CategoryLegendRow extends StatelessWidget {
           Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(
-              color: hasColor ? color : Colors.transparent,
-              shape: BoxShape.circle,
-              border: hasColor
-                  ? null
-                  : Border.all(color: AppColors.authTextSecondary, width: 1),
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
           Expanded(
