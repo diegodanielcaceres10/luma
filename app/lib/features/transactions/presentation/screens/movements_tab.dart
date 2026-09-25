@@ -33,7 +33,8 @@ class MovementsTab extends StatefulWidget {
   final String? initialAccount;
 
   /// Mes puntual elegido con el selector de mes (mismo control que el de
-  /// "Estadísticas"), en formato `YYYY-MM`. `null` es "todos los meses".
+  /// "Estadísticas"), en formato `YYYY-MM`. `null`, o un valor con formato
+  /// inválido, usan el mes en curso por default.
   final String? initialMonth;
 
   const MovementsTab({
@@ -60,10 +61,11 @@ class _MovementsTabState extends State<MovementsTab> {
   late String? _categoryKey;
   late String? _accountKey;
 
-  // null = "todos los meses". A diferencia de _dateRange (rangos
-  // relativos a hoy), este elige un mes calendario puntual — mismo
-  // selector que el de "Estadísticas" (ver _MonthSelectorPill).
-  late DateTime? _selectedMonth;
+  // A diferencia de _dateRange (rangos relativos a hoy), este elige un
+  // mes calendario puntual — mismo selector que el de "Estadísticas"
+  // (ver _MonthSelectorPill). Siempre tiene un valor: si no viene por la
+  // URL, arranca en el mes en curso.
+  late DateTime _selectedMonth;
 
   @override
   void initState() {
@@ -149,21 +151,36 @@ class _MovementsTabState extends State<MovementsTab> {
     }
   }
 
-  /// 'YYYY-MM' -> el 1º de ese mes, o `null` si falta el param o no
-  /// tiene el formato esperado (sin filtro, en vez de reventar con un
-  /// query param manipulado a mano).
-  static DateTime? _monthFromQuery(String? value) {
-    if (value == null) return null;
+  /// El 1º del mes en curso — default cuando no hay `?month=` en la URL
+  /// o cuando viene con un formato inválido.
+  static DateTime _currentMonth() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month);
+  }
+
+  static bool _isCurrentMonth(DateTime month) {
+    final current = _currentMonth();
+    return month.year == current.year && month.month == current.month;
+  }
+
+  /// 'YYYY-MM' -> el 1º de ese mes, o el mes en curso si falta el param
+  /// o no tiene el formato esperado (en vez de reventar con un query
+  /// param manipulado a mano).
+  static DateTime _monthFromQuery(String? value) {
+    if (value == null) return _currentMonth();
     final match = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(value);
-    if (match == null) return null;
+    if (match == null) return _currentMonth();
     final year = int.parse(match.group(1)!);
     final month = int.parse(match.group(2)!);
-    if (month < 1 || month > 12) return null;
+    if (month < 1 || month > 12) return _currentMonth();
     return DateTime(year, month);
   }
 
-  static String? _monthQueryValue(DateTime? month) {
-    if (month == null) return null;
+  /// El mes en curso es el default, así que no ensucia la URL — mismo
+  /// criterio que el resto de los filtros (p. ej. `_typeQueryValue`, que
+  /// tampoco agrega param para "Todos").
+  static String? _monthQueryValue(DateTime month) {
+    if (_isCurrentMonth(month)) return null;
     final mm = month.month.toString().padLeft(2, '0');
     return '${month.year}-$mm';
   }
@@ -176,7 +193,7 @@ class _MovementsTabState extends State<MovementsTab> {
     required _DateRangeFilter range,
     required String? categoryKey,
     required String? accountKey,
-    required DateTime? month,
+    required DateTime month,
   }) {
     final params = <String, String>{};
     final typeValue = _typeQueryValue(type);
@@ -227,7 +244,7 @@ class _MovementsTabState extends State<MovementsTab> {
         month: _selectedMonth,
       );
 
-  void _pushMonth(DateTime? value) => _pushFilters(
+  void _pushMonth(DateTime value) => _pushFilters(
         type: _typeFilter,
         range: _dateRange,
         categoryKey: _categoryKey,
@@ -240,16 +257,15 @@ class _MovementsTabState extends State<MovementsTab> {
         range: _DateRangeFilter.all,
         categoryKey: null,
         accountKey: null,
-        month: null,
+        month: _currentMonth(),
       );
 
-  /// Abre la hoja del selector de mes (mismo control que el de
-  /// "Estadísticas" — ver `_MonthPickerSheet` en statistics_tab.dart) y
-  /// hace push del mes elegido. `null` en el resultado es "el usuario
-  /// cerró la hoja sin tocar nada"; distinto de elegir "Todos los
-  /// meses", que sí devuelve un [_MonthSelection] con `month: null`.
+  /// Abre la hoja del selector de mes (mismo control y mismo mes en
+  /// curso por default que "Estadísticas" — ver `_MonthPickerSheet` en
+  /// statistics_tab.dart) y hace push del mes elegido. `null` en el
+  /// resultado es "el usuario cerró la hoja sin tocar nada".
   Future<void> _pickMonth() async {
-    final result = await showModalBottomSheet<_MonthSelection>(
+    final picked = await showModalBottomSheet<DateTime>(
       context: context,
       backgroundColor: AppColors.authBackgroundBottom,
       shape: const RoundedRectangleBorder(
@@ -258,8 +274,8 @@ class _MovementsTabState extends State<MovementsTab> {
       builder: (context) => _MonthPickerSheet(selectedMonth: _selectedMonth),
     );
 
-    if (result != null && mounted) {
-      _pushMonth(result.month);
+    if (picked != null && mounted) {
+      _pushMonth(picked);
     }
   }
 
@@ -322,13 +338,9 @@ class _MovementsTabState extends State<MovementsTab> {
     }
   }
 
-  /// Igual criterio que [_matchesDateRange]: `_selectedMonth == null` es
-  /// "todos los meses".
-  bool _matchesMonth(TransactionEntry t) {
-    final month = _selectedMonth;
-    if (month == null) return true;
-    return t.date.year == month.year && t.date.month == month.month;
-  }
+  bool _matchesMonth(TransactionEntry t) =>
+      t.date.year == _selectedMonth.year &&
+      t.date.month == _selectedMonth.month;
 
   String _categoryKeyOf(TransactionEntry t) => t.category.id ?? t.category.name;
 
@@ -433,7 +445,7 @@ class _MovementsTabState extends State<MovementsTab> {
           final grouped = _groupByMonth(filtered);
           final hasActiveFilters = _typeFilter != _TypeFilter.all ||
               _dateRange != _DateRangeFilter.all ||
-              _selectedMonth != null ||
+              !_isCurrentMonth(_selectedMonth) ||
               effectiveCategoryKey != null ||
               effectiveAccountKey != null;
 
@@ -484,7 +496,10 @@ class _MovementsTabState extends State<MovementsTab> {
                     (value: _DateRangeFilter.all, label: 'Todo'),
                     (value: _DateRangeFilter.today, label: 'Hoy'),
                     (value: _DateRangeFilter.thisWeek, label: 'Esta semana'),
-                    (value: _DateRangeFilter.last7Days, label: 'Últimos 7 días'),
+                    (
+                      value: _DateRangeFilter.last7Days,
+                      label: 'Últimos 7 días'
+                    ),
                     (
                       value: _DateRangeFilter.last15Days,
                       label: 'Últimos 15 días'
@@ -736,13 +751,12 @@ class _MovementRow extends StatelessWidget {
   }
 }
 
-/// Botón tipo pill que muestra el mes elegido (o "Todos los meses") y
-/// abre el selector. Mismo patrón visual que `_MonthSelectorPill` de
-/// statistics_tab.dart, adaptado acá porque ese es privado del otro
-/// archivo y "todos los meses" es un estado válido en Movimientos (a
-/// diferencia de Estadísticas, que siempre muestra un mes puntual).
+/// Botón tipo pill que muestra el mes elegido y abre el selector. Mismo
+/// patrón visual y mismo comportamiento (siempre un mes puntual, nunca
+/// "todos los meses") que `_MonthSelectorPill` de statistics_tab.dart;
+/// adaptado acá porque ese es privado del otro archivo.
 class _MonthSelectorPill extends StatelessWidget {
-  final DateTime? selectedMonth;
+  final DateTime selectedMonth;
   final VoidCallback onTap;
 
   const _MonthSelectorPill({
@@ -752,8 +766,6 @@ class _MonthSelectorPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final month = selectedMonth;
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -774,7 +786,7 @@ class _MonthSelectorPill extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              month == null ? 'Todos los meses' : _monthLabel(month),
+              _monthLabel(selectedMonth),
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -794,21 +806,11 @@ class _MonthSelectorPill extends StatelessWidget {
   }
 }
 
-/// Resultado de [_MonthPickerSheet]: `month` en `null` es "Todos los
-/// meses". Se distingue de "el usuario cerró la hoja sin elegir nada"
-/// porque en ese caso `Navigator.pop` no se llama con esta clase — el
-/// modal devuelve `null` directamente (ver [_MovementsTabState._pickMonth]).
-class _MonthSelection {
-  final DateTime? month;
-
-  const _MonthSelection(this.month);
-}
-
-/// Hoja del selector de mes. Igual estructura y estilo que
-/// `_MonthPickerSheet` de statistics_tab.dart, con un ítem extra al
-/// principio ("Todos los meses") para poder sacar el filtro.
+/// Hoja del selector de mes. Misma estructura y estilo que
+/// `_MonthPickerSheet` de statistics_tab.dart (siempre un mes puntual,
+/// sin opción de "Todos los meses").
 class _MonthPickerSheet extends StatelessWidget {
-  final DateTime? selectedMonth;
+  final DateTime selectedMonth;
 
   const _MonthPickerSheet({required this.selectedMonth});
 
@@ -859,45 +861,15 @@ class _MonthPickerSheet extends StatelessWidget {
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
-                  itemCount: months.length + 1,
+                  itemCount: months.length,
                   separatorBuilder: (_, __) => const Divider(
                     height: 1,
                     color: AppColors.authCardBorder,
                   ),
                   itemBuilder: (context, index) {
-                    if (index == 0) {
-                      final isSelected = selectedMonth == null;
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(
-                          'Todos los meses',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            color: isSelected
-                                ? AppColors.authAccent
-                                : AppColors.authTextPrimary,
-                          ),
-                        ),
-                        trailing: isSelected
-                            ? const Icon(
-                                Icons.check_rounded,
-                                color: AppColors.authAccent,
-                                size: 20,
-                              )
-                            : null,
-                        onTap: () => Navigator.of(context)
-                            .pop(const _MonthSelection(null)),
-                      );
-                    }
-
-                    final month = months[index - 1];
-                    final current = selectedMonth;
-                    final isSelected = current != null &&
-                        month.year == current.year &&
-                        month.month == current.month;
+                    final month = months[index];
+                    final isSelected = month.year == selectedMonth.year &&
+                        month.month == selectedMonth.month;
 
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -919,8 +891,7 @@ class _MonthPickerSheet extends StatelessWidget {
                               size: 20,
                             )
                           : null,
-                      onTap: () =>
-                          Navigator.of(context).pop(_MonthSelection(month)),
+                      onTap: () => Navigator.of(context).pop(month),
                     );
                   },
                 ),
