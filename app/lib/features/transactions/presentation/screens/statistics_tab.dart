@@ -1217,8 +1217,14 @@ class _DonutChartPainter extends CustomPainter {
 
       final sweepAngle = (item.percent / 100) * 2 * pi;
       final paint = Paint()
-        ..color =
-            colorFromHex(item.category.color, fallback: AppColors.authAccent)
+        // Sin categoría no tiene un color propio en la DB: en vez de
+        // caer en uno fijo (antes verde, que además coincidía con el de
+        // "Categorizados" del segundo gráfico), ese segmento queda
+        // transparente.
+        ..color = colorFromHex(
+          item.category.color,
+          fallback: Colors.transparent,
+        )
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.butt;
@@ -1244,8 +1250,11 @@ class _CategoryLegendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mismo criterio que en `_DonutChartPainter`: sin categoría, sin
+    // color propio en la DB, el puntito queda transparente en vez de
+    // caer en uno fijo.
     final color =
-        colorFromHex(category.category.color, fallback: AppColors.authAccent);
+        colorFromHex(category.category.color, fallback: Colors.transparent);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
