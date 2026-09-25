@@ -21,9 +21,9 @@ class MovementsTab extends StatefulWidget {
 
   /// Filtros con los que arranca esta instancia, tal cual vienen de la
   /// URL (`?type=income|expense&range=today|week|last7|last15|month
-  /// &category=<key>&account=<key>`; sin un query param es "sin ese
-  /// filtro"). Se leen una sola vez, al crear el State — tocar cualquier
-  /// chip hace push a una URL nueva con los cuatro filtros combinados,
+  /// &category=<key>&account=<key>&month=YYYY-MM`; sin un query param es
+  /// "sin ese filtro"). Se leen una sola vez, al crear el State — tocar
+  /// cualquier chip hace push a una URL nueva con los filtros combinados,
   /// en vez de cambiar el estado local, así que cada combinación queda
   /// como su propia entrada en el historial y se puede volver a la
   /// anterior con "atrás".
@@ -31,6 +31,10 @@ class MovementsTab extends StatefulWidget {
   final String? initialRange;
   final String? initialCategory;
   final String? initialAccount;
+
+  /// Mes puntual elegido con el selector de mes (mismo control que el de
+  /// "Estadísticas"), en formato `YYYY-MM`. `null` es "todos los meses".
+  final String? initialMonth;
 
   const MovementsTab({
     super.key,
@@ -40,6 +44,7 @@ class MovementsTab extends StatefulWidget {
     this.initialRange,
     this.initialCategory,
     this.initialAccount,
+    this.initialMonth,
   });
 
   @override
@@ -55,6 +60,11 @@ class _MovementsTabState extends State<MovementsTab> {
   late String? _categoryKey;
   late String? _accountKey;
 
+  // null = "todos los meses". A diferencia de _dateRange (rangos
+  // relativos a hoy), este elige un mes calendario puntual — mismo
+  // selector que el de "Estadísticas" (ver _MonthSelectorPill).
+  late DateTime? _selectedMonth;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +72,7 @@ class _MovementsTabState extends State<MovementsTab> {
     _dateRange = _rangeFromQuery(widget.initialRange);
     _categoryKey = widget.initialCategory;
     _accountKey = widget.initialAccount;
+    _selectedMonth = _monthFromQuery(widget.initialMonth);
     // Carga perezosa: el historial completo de transacciones recién se
     // pide al entrar a "Movimientos", no al arrancar. La pantalla se crea
     // de nuevo en cada visita (no se mantiene viva al cambiar de
@@ -138,14 +149,34 @@ class _MovementsTabState extends State<MovementsTab> {
     }
   }
 
-  /// Arma la URL con los cuatro filtros combinados (los tres que no
-  /// cambiaron quedan en su valor actual) y hace push — ver el doc de
+  /// 'YYYY-MM' -> el 1º de ese mes, o `null` si falta el param o no
+  /// tiene el formato esperado (sin filtro, en vez de reventar con un
+  /// query param manipulado a mano).
+  static DateTime? _monthFromQuery(String? value) {
+    if (value == null) return null;
+    final match = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(value);
+    if (match == null) return null;
+    final year = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    if (month < 1 || month > 12) return null;
+    return DateTime(year, month);
+  }
+
+  static String? _monthQueryValue(DateTime? month) {
+    if (month == null) return null;
+    final mm = month.month.toString().padLeft(2, '0');
+    return '${month.year}-$mm';
+  }
+
+  /// Arma la URL con los filtros combinados (los que no cambiaron
+  /// quedan en su valor actual) y hace push — ver el doc de
   /// [MovementsTab.initialType] y hermanos.
   void _pushFilters({
     required _TypeFilter type,
     required _DateRangeFilter range,
     required String? categoryKey,
     required String? accountKey,
+    required DateTime? month,
   }) {
     final params = <String, String>{};
     final typeValue = _typeQueryValue(type);
@@ -154,6 +185,8 @@ class _MovementsTabState extends State<MovementsTab> {
     if (rangeValue != null) params['range'] = rangeValue;
     if (categoryKey != null) params['category'] = categoryKey;
     if (accountKey != null) params['account'] = accountKey;
+    final monthValue = _monthQueryValue(month);
+    if (monthValue != null) params['month'] = monthValue;
 
     final uri = Uri(
       path: '/movements',
@@ -167,6 +200,7 @@ class _MovementsTabState extends State<MovementsTab> {
         range: _dateRange,
         categoryKey: _categoryKey,
         accountKey: _accountKey,
+        month: _selectedMonth,
       );
 
   void _pushRange(_DateRangeFilter value) => _pushFilters(
@@ -174,6 +208,7 @@ class _MovementsTabState extends State<MovementsTab> {
         range: value,
         categoryKey: _categoryKey,
         accountKey: _accountKey,
+        month: _selectedMonth,
       );
 
   void _pushCategory(String? value) => _pushFilters(
@@ -181,6 +216,7 @@ class _MovementsTabState extends State<MovementsTab> {
         range: _dateRange,
         categoryKey: value,
         accountKey: _accountKey,
+        month: _selectedMonth,
       );
 
   void _pushAccount(String? value) => _pushFilters(
@@ -188,6 +224,15 @@ class _MovementsTabState extends State<MovementsTab> {
         range: _dateRange,
         categoryKey: _categoryKey,
         accountKey: value,
+        month: _selectedMonth,
+      );
+
+  void _pushMonth(DateTime? value) => _pushFilters(
+        type: _typeFilter,
+        range: _dateRange,
+        categoryKey: _categoryKey,
+        accountKey: _accountKey,
+        month: value,
       );
 
   void _pushClearFilters() => _pushFilters(
@@ -195,7 +240,28 @@ class _MovementsTabState extends State<MovementsTab> {
         range: _DateRangeFilter.all,
         categoryKey: null,
         accountKey: null,
+        month: null,
       );
+
+  /// Abre la hoja del selector de mes (mismo control que el de
+  /// "Estadísticas" — ver `_MonthPickerSheet` en statistics_tab.dart) y
+  /// hace push del mes elegido. `null` en el resultado es "el usuario
+  /// cerró la hoja sin tocar nada"; distinto de elegir "Todos los
+  /// meses", que sí devuelve un [_MonthSelection] con `month: null`.
+  Future<void> _pickMonth() async {
+    final result = await showModalBottomSheet<_MonthSelection>(
+      context: context,
+      backgroundColor: AppColors.authBackgroundBottom,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _MonthPickerSheet(selectedMonth: _selectedMonth),
+    );
+
+    if (result != null && mounted) {
+      _pushMonth(result.month);
+    }
+  }
 
   /// Movimientos visibles por cada grupo de mes (clave = la misma que
   /// arma [_groupByMonth]). Empieza en 10 y crece de a 10 con "Ver más".
@@ -254,6 +320,14 @@ class _MovementsTabState extends State<MovementsTab> {
       case _DateRangeFilter.thisMonth:
         return t.date.year == now.year && t.date.month == now.month;
     }
+  }
+
+  /// Igual criterio que [_matchesDateRange]: `_selectedMonth == null` es
+  /// "todos los meses".
+  bool _matchesMonth(TransactionEntry t) {
+    final month = _selectedMonth;
+    if (month == null) return true;
+    return t.date.year == month.year && t.date.month == month.month;
   }
 
   String _categoryKeyOf(TransactionEntry t) => t.category.id ?? t.category.name;
@@ -321,8 +395,10 @@ class _MovementsTabState extends State<MovementsTab> {
             );
           }
 
-          final dateFiltered =
-              vm.allTransactions.where(_matchesDateRange).toList();
+          final dateFiltered = vm.allTransactions
+              .where(_matchesDateRange)
+              .where(_matchesMonth)
+              .toList();
           final typeFiltered = dateFiltered.where(_matchesType).toList();
           final categories = _visibleCategories(typeFiltered);
           final accounts = _visibleAccounts(typeFiltered);
@@ -357,6 +433,7 @@ class _MovementsTabState extends State<MovementsTab> {
           final grouped = _groupByMonth(filtered);
           final hasActiveFilters = _typeFilter != _TypeFilter.all ||
               _dateRange != _DateRangeFilter.all ||
+              _selectedMonth != null ||
               effectiveCategoryKey != null ||
               effectiveAccountKey != null;
 
@@ -367,13 +444,25 @@ class _MovementsTabState extends State<MovementsTab> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
-                const Text(
-                  'Movimientos',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.authTextPrimary,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Movimientos',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.authTextPrimary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    _MonthSelectorPill(
+                      selectedMonth: _selectedMonth,
+                      onTap: _pickMonth,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 FilterChipRow<_TypeFilter>(
@@ -645,4 +734,207 @@ class _MovementRow extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Botón tipo pill que muestra el mes elegido (o "Todos los meses") y
+/// abre el selector. Mismo patrón visual que `_MonthSelectorPill` de
+/// statistics_tab.dart, adaptado acá porque ese es privado del otro
+/// archivo y "todos los meses" es un estado válido en Movimientos (a
+/// diferencia de Estadísticas, que siempre muestra un mes puntual).
+class _MonthSelectorPill extends StatelessWidget {
+  final DateTime? selectedMonth;
+  final VoidCallback onTap;
+
+  const _MonthSelectorPill({
+    required this.selectedMonth,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final month = selectedMonth;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.authCardFill,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.authCardBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.calendar_today_outlined,
+              size: 15,
+              color: AppColors.authTextPrimary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              month == null ? 'Todos los meses' : _monthLabel(month),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 18,
+              color: AppColors.authTextSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Resultado de [_MonthPickerSheet]: `month` en `null` es "Todos los
+/// meses". Se distingue de "el usuario cerró la hoja sin elegir nada"
+/// porque en ese caso `Navigator.pop` no se llama con esta clase — el
+/// modal devuelve `null` directamente (ver [_MovementsTabState._pickMonth]).
+class _MonthSelection {
+  final DateTime? month;
+
+  const _MonthSelection(this.month);
+}
+
+/// Hoja del selector de mes. Igual estructura y estilo que
+/// `_MonthPickerSheet` de statistics_tab.dart, con un ítem extra al
+/// principio ("Todos los meses") para poder sacar el filtro.
+class _MonthPickerSheet extends StatelessWidget {
+  final DateTime? selectedMonth;
+
+  const _MonthPickerSheet({required this.selectedMonth});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month);
+    final months = List.generate(
+      12,
+      (i) => DateTime(currentMonth.year, currentMonth.month - i),
+    );
+
+    return SafeArea(
+      top: false,
+      // Mismo motivo que en statistics_tab.dart: acota el alto total de
+      // la hoja a una fracción de la pantalla para que no desborde en
+      // pantallas bajas.
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.authCardBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const Text(
+                'Elegí un mes',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.authTextPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: months.length + 1,
+                  separatorBuilder: (_, __) => const Divider(
+                    height: 1,
+                    color: AppColors.authCardBorder,
+                  ),
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      final isSelected = selectedMonth == null;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          'Todos los meses',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? AppColors.authAccent
+                                : AppColors.authTextPrimary,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(
+                                Icons.check_rounded,
+                                color: AppColors.authAccent,
+                                size: 20,
+                              )
+                            : null,
+                        onTap: () => Navigator.of(context)
+                            .pop(const _MonthSelection(null)),
+                      );
+                    }
+
+                    final month = months[index - 1];
+                    final current = selectedMonth;
+                    final isSelected = current != null &&
+                        month.year == current.year &&
+                        month.month == current.month;
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        _monthLabel(month),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected
+                              ? AppColors.authAccent
+                              : AppColors.authTextPrimary,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(
+                              Icons.check_rounded,
+                              color: AppColors.authAccent,
+                              size: 20,
+                            )
+                          : null,
+                      onTap: () =>
+                          Navigator.of(context).pop(_MonthSelection(month)),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 'septiembre 2025' -> 'Septiembre 2025'.
+String _monthLabel(DateTime date) {
+  final formatted = DateFormat('MMMM yyyy', 'es').format(date);
+  return formatted[0].toUpperCase() + formatted.substring(1);
 }

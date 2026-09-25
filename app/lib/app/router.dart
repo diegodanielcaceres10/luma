@@ -506,6 +506,7 @@ GoRouter buildAppRouter({
                 initialRange: state.uri.queryParameters['range'],
                 initialCategory: state.uri.queryParameters['category'],
                 initialAccount: state.uri.queryParameters['account'],
+                initialMonth: state.uri.queryParameters['month'],
               ),
             ),
           ),
