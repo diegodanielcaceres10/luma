@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../monthly_balances/data/repositories/monthly_balance_repository.dart';
 import '../../data/models/transaction_entry.dart';
 import '../../data/repositories/transaction_repository.dart';
 
@@ -16,8 +17,9 @@ class CategoryTotal {
 
 class TransactionViewModel extends ChangeNotifier {
   final TransactionRepository _repository;
+  final MonthlyBalanceRepository _monthlyBalanceRepository;
 
-  TransactionViewModel(this._repository);
+  TransactionViewModel(this._repository, this._monthlyBalanceRepository);
 
   bool _isLoading = false;
   bool _isLoadingAll = false;
@@ -39,6 +41,12 @@ class TransactionViewModel extends ChangeNotifier {
   List<TransactionEntry> _statisticsPreviousTransactions = [];
   bool _isLoadingStatistics = false;
   String? _statisticsErrorMessage;
+
+  // Acumulado (con signo) de `uncontrolled_expenses_total` del mes en
+  // curso y del mes elegido en Estadísticas, respectivamente — ver
+  // [statisticsUncontrolledTotal].
+  double _currentMonthUncontrolledTotal = 0;
+  double _statisticsUncontrolledTotal = 0;
 
   // Identifica la carga de mes más reciente: si el usuario cambia de mes
   // varias veces seguidas, una respuesta vieja que llega tarde no debe
@@ -206,22 +214,21 @@ class TransactionViewModel extends ChangeNotifier {
   List<CategoryTotal> get statisticsCategoryBreakdown =>
       _breakdownOf(_statisticsEntries);
 
-  /// Movimientos del mes elegido en Estadísticas sin categoría asignada
-  /// (`category.id == null`), sin contar transferencias — nunca tienen
-  /// categoría por diseño (ver [_breakdownOf]) y no son un gasto/ingreso
-  /// real, así que no cuentan como "sin categorizar".
-  List<TransactionEntry> get _statisticsUncategorizedEntries =>
-      _statisticsEntries
-          .where((t) => t.category.id == null && !t.isTransfer)
-          .toList();
+  /// Acumulado (con signo) de ajustes sin declarar del mes que muestra
+  /// Estadísticas — `monthly_account_balances.uncontrolled_expenses_total`
+  /// sumado entre todas las cuentas (ver
+  /// [MonthlyBalanceRepository.getUncontrolledExpensesTotal]). Puede ser
+  /// negativo (gasto no controlado) o positivo (ingreso no controlado).
+  /// Reemplaza a la vieja suma de transacciones sin categoría: los
+  /// ajustes de "Actualizar saldo" ya no generan ninguna transacción.
+  double get statisticsUncontrolledTotal => isStatisticsCurrentMonth
+      ? _currentMonthUncontrolledTotal
+      : _statisticsUncontrolledTotal;
 
-  /// Suma de esos movimientos (`amount` ya es la magnitud positiva, tanto
-  /// para ingresos como gastos — ver [TransactionEntry.amount]).
-  double get statisticsUncategorizedTotal => _statisticsUncategorizedEntries
-      .fold<double>(0, (sum, t) => sum + t.amount);
-
-  int get statisticsUncategorizedCount =>
-      _statisticsUncategorizedEntries.length;
+  /// `false` cuando el total es cero (o casi, por redondeo) — para no
+  /// mostrar la tarjeta de ajustes sin declarar sin nada que informar.
+  bool get statisticsHasUncontrolledTotal =>
+      statisticsUncontrolledTotal.abs() >= 0.005;
 
   /// Cambia el mes que muestra Estadísticas y carga sus datos (más los del
   /// mes previo, para los comparativos). Elegir el mes en curso no consulta
@@ -274,6 +281,14 @@ class TransactionViewModel extends ChangeNotifier {
       if (requestId != _statisticsRequestId) return;
       _statisticsTransactions = results[0];
       _statisticsPreviousTransactions = results[1];
+
+      _statisticsUncontrolledTotal =
+          await _monthlyBalanceRepository.getUncontrolledExpensesTotal(
+        month: month.month,
+        year: month.year,
+      );
+      if (requestId != _statisticsRequestId) return;
+
       _statisticsErrorMessage = null;
     } catch (error) {
       if (requestId != _statisticsRequestId) return;
@@ -301,6 +316,12 @@ class TransactionViewModel extends ChangeNotifier {
       ]);
       _transactions = results[0];
       _previousMonthTransactions = results[1];
+
+      _currentMonthUncontrolledTotal =
+          await _monthlyBalanceRepository.getUncontrolledExpensesTotal(
+        month: now.month,
+        year: now.year,
+      );
     } catch (error) {
       _errorMessage = 'No se pudieron cargar los movimientos.';
     } finally {

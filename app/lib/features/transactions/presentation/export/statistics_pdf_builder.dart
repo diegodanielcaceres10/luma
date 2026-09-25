@@ -33,8 +33,11 @@ class StatisticsPdfData {
   final double? expenseChangePercent;
   final double? netChangePercent;
   final List<CategoryTotal> breakdown;
-  final int uncategorizedCount;
-  final double uncategorizedTotal;
+
+  /// Acumulado (con signo) de ajustes sin declarar del mes —
+  /// `uncontrolled_expenses_total` sumado entre todas las cuentas. Ver
+  /// [TransactionViewModel.statisticsUncontrolledTotal].
+  final double uncontrolledTotal;
 
   const StatisticsPdfData({
     required this.month,
@@ -47,8 +50,7 @@ class StatisticsPdfData {
     required this.expenseChangePercent,
     required this.netChangePercent,
     required this.breakdown,
-    required this.uncategorizedCount,
-    required this.uncategorizedTotal,
+    required this.uncontrolledTotal,
   });
 
   /// 'luma-estadisticas-2026-08.pdf'.
@@ -136,9 +138,9 @@ class StatisticsPdfBuilder {
           _summaryRow(data),
           pw.SizedBox(height: 26),
           ..._expensesByCategory(data),
-          if (data.uncategorizedCount > 0) ...[
+          if (data.uncontrolledTotal.abs() >= 0.005) ...[
             pw.SizedBox(height: 22),
-            _uncategorizedNote(data),
+            _uncontrolledNote(data),
           ],
         ],
       ),
@@ -399,8 +401,8 @@ class StatisticsPdfBuilder {
     );
   }
 
-  static pw.Widget _uncategorizedNote(StatisticsPdfData data) {
-    final count = data.uncategorizedCount;
+  static pw.Widget _uncontrolledNote(StatisticsPdfData data) {
+    final isExpense = data.uncontrolledTotal < 0;
 
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),
@@ -416,7 +418,7 @@ class StatisticsPdfBuilder {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text(
-                  'Sin categoría',
+                  'Sin declarar',
                   style: const pw.TextStyle(
                     fontSize: 11,
                     fontWeight: pw.FontWeight.bold,
@@ -425,7 +427,9 @@ class StatisticsPdfBuilder {
                 ),
                 pw.SizedBox(height: 2),
                 pw.Text(
-                  count == 1 ? '1 movimiento' : '$count movimientos',
+                  isExpense
+                      ? 'Gasto no controlado este mes'
+                      : 'Ingreso no controlado este mes',
                   style: const pw.TextStyle(
                     fontSize: 9.5,
                     color: _textSecondary,
@@ -435,7 +439,7 @@ class StatisticsPdfBuilder {
             ),
           ),
           pw.Text(
-            formatCurrency(data.uncategorizedTotal, data.currency),
+            formatCurrency(data.uncontrolledTotal.abs(), data.currency),
             style: const pw.TextStyle(
               fontSize: 12,
               fontWeight: pw.FontWeight.bold,

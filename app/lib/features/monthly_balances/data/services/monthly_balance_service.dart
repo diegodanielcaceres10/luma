@@ -21,6 +21,29 @@ class MonthlyBalanceService {
     return (rows as List).map((row) => row['account_id'] as String).toSet();
   }
 
+  /// Suma de `uncontrolled_expenses_total` de todas las cuentas del
+  /// usuario para ese mes/año — el acumulado (con signo) de ajustes sin
+  /// declarar que dejó "Actualizar saldo" (ver
+  /// `AccountViewModel.applyUncontrolledAdjustment`). Se usa en
+  /// Estadísticas en vez de la vieja suma de transacciones sin
+  /// categoría, porque esos ajustes ya no generan ninguna transacción.
+  Future<double> fetchUncontrolledExpensesTotal({
+    required int month,
+    required int year,
+  }) async {
+    final rows = await _client
+        .from('monthly_account_balances')
+        .select('uncontrolled_expenses_total')
+        .eq('month', month)
+        .eq('year', year);
+
+    return (rows as List).fold<double>(
+      0,
+      (sum, row) =>
+          sum + (row['uncontrolled_expenses_total'] as num).toDouble(),
+    );
+  }
+
   Future<void> saveOpeningBalance({
     required String userId,
     required String accountId,

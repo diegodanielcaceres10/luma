@@ -35,4 +35,20 @@ class AccountRepository {
   Future<void> setActive({required String id, required bool isActive}) {
     return _service.setActive(id: id, isActive: isActive);
   }
+
+  Future<void> applyUncontrolledAdjustment({
+    required String userId,
+    required String accountId,
+    required double amount,
+    required int month,
+    required int year,
+  }) {
+    return _service.applyUncontrolledAdjustment(
+      userId: userId,
+      accountId: accountId,
+      amount: amount,
+      month: month,
+      year: year,
+    );
+  }
 }

@@ -50,10 +50,13 @@ import '../view_models/account_view_model.dart';
 /// verdad. Cada movimiento de [_UpdateBalanceTabState._pendingMovements]
 /// se inserta como una transacción real (`create_transaction`, el mismo
 /// RPC que usa [AddTransactionTab]), con `type`/`amount` derivados del
-/// signo que ya tenía el movimiento; si queda una parte de la diferencia
-/// sin cubrir, se agrega una transacción más sin categoría (ingreso o
-/// gasto no declarado). El propio RPC actualiza `accounts.balance` en la
-/// misma operación — acá no se hace ningún update aparte sobre la cuenta.
+/// signo que ya tenía el movimiento. Si queda una parte de la diferencia
+/// sin cubrir, ya no se crea una transacción sin categoría para ella:
+/// se ajusta `accounts.balance` directo y ese mismo monto se acumula en
+/// `monthly_account_balances.uncontrolled_expenses_total` del mes en
+/// curso (RPC `register_uncontrolled_adjustment`, ver
+/// [AccountViewModel.applyUncontrolledAdjustment]) — ver
+/// [_UpdateBalanceTabState._saveAndUpdateBalance].
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` si el id
   /// de la URL (`/accounts/:id/balance`) no corresponde a ninguna cuenta
@@ -70,8 +73,10 @@ class UpdateBalanceTab extends StatefulWidget {
   /// en cualquier sentido según la diferencia a justificar).
   final CategoryViewModel categoryViewModel;
 
-  /// Crea cada movimiento (y el ajuste no declarado, si hace falta) como
-  /// una transacción real al presionar "Guardar y actualizar saldo".
+  /// Crea cada movimiento de [_UpdateBalanceTabState._pendingMovements]
+  /// como una transacción real al presionar "Guardar y actualizar
+  /// saldo" (el resto sin cubrir ya no pasa por acá — ver
+  /// [AccountViewModel.applyUncontrolledAdjustment]).
   final TransactionViewModel transactionViewModel;
 
   /// Igual que en [AddTransactionTab]: puede venir `null` si todavía no
@@ -198,17 +203,19 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     return cents / 100;
   }
 
-  /// Acción del botón "Guardar y actualizar saldo". Entrega 8: inserta
-  /// cada movimiento de [_pendingMovements] como una transacción real
-  /// (`create_transaction`) y, si queda una parte de la diferencia sin
-  /// cubrir, una transacción más sin categoría para esa parte. El RPC ya
-  /// actualiza `accounts.balance` con cada insert — acá no se hace ningún
-  /// update aparte sobre la cuenta.
+  /// Acción del botón "Guardar y actualizar saldo". Inserta cada
+  /// movimiento de [_pendingMovements] como una transacción real
+  /// (`create_transaction`), de a uno y en orden, para poder distinguir
+  /// cuáles quedan guardadas si una falla a mitad de camino (esas se
+  /// sacan de [_pendingMovements] antes de mostrar el error, para no
+  /// duplicarlas si el usuario reintenta).
   ///
-  /// Se insertan de a una, en orden, para poder distinguir cuáles quedan
-  /// guardadas si una falla a mitad de camino: esas se sacan de
-  /// [_pendingMovements] antes de mostrar el error, para no duplicarlas
-  /// si el usuario reintenta.
+  /// Si queda una parte de la diferencia sin cubrir, ya no se crea una
+  /// transacción sin categoría para justificarla: se llama a
+  /// [AccountViewModel.applyUncontrolledAdjustment], que ajusta
+  /// `accounts.balance` directo y acumula ese mismo monto (con signo) en
+  /// `monthly_account_balances.uncontrolled_expenses_total` del mes en
+  /// curso, en una sola operación atómica.
   Future<void> _saveAndUpdateBalance() async {
     final account = widget.account;
     final remainder = _unjustifiedRemainder;
@@ -240,26 +247,29 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
       }
 
       if (remainder.abs() >= _kRemainderEpsilon) {
-        final success = await widget.transactionViewModel.createTransaction(
+        final now = DateTime.now();
+        final success =
+            await widget.accountViewModel.applyUncontrolledAdjustment(
           userId: userId,
           accountId: account.id,
-          categoryId: null,
-          type: remainder > 0 ? 'income' : 'expense',
-          amount: remainder.abs(),
-          description: 'Ajuste no declarado al actualizar el saldo',
-          date: DateTime.now(),
+          amount: remainder,
+          month: now.month,
+          year: now.year,
         );
         if (!success) {
           throw Exception(
-            widget.transactionViewModel.errorMessage ??
+            widget.accountViewModel.errorMessage ??
                 'No se pudo guardar el ajuste no declarado.',
           );
         }
+        // applyUncontrolledAdjustment ya recarga las cuentas (ver
+        // AccountViewModel._submit) con el balance ajustado.
+      } else {
+        // Sin resto que ajustar: igual hay que recargar, porque cada
+        // create_transaction del loop de arriba actualizó accounts.balance
+        // en la base sin pasar por este AccountViewModel.
+        await widget.accountViewModel.loadAccounts();
       }
-
-      // El saldo ya quedó actualizado en la base (cada create_transaction
-      // lo hizo); recargamos la lista de cuentas para que se vea acá.
-      await widget.accountViewModel.loadAccounts();
       if (!mounted) return;
 
       setState(() {
@@ -465,8 +475,9 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
                         ),
                         // Habilitado en cuanto hay un saldo nuevo válido — que
                         // los movimientos no cubran toda la diferencia ya NO lo
-                        // bloquea (ver [_MovementsSummaryCard]): lo que falte se
-                        // guarda como ingreso/gasto no declarado, sin categoría.
+                        // bloquea (ver [_MovementsSummaryCard]): lo que falte
+                        // se ajusta directo en el balance y se acumula en
+                        // uncontrolled_expenses_total (sin transacción).
                         onPressed: _difference == null || _isSaving
                             ? null
                             : _saveAndUpdateBalance,
@@ -617,7 +628,7 @@ String _formatMovementDate(DateTime date) {
 /// "no coincide"/"falta guardar un ajuste" por restos de redondeo de
 /// centavos. Se comparte entre [_MovementsSummaryCard] (qué mensaje
 /// mostrar) y [_UpdateBalanceTabState._saveAndUpdateBalance] (si hace
-/// falta crear la transacción de ajuste no declarado).
+/// falta aplicar el ajuste no declarado).
 const _kRemainderEpsilon = 0.005;
 
 /// Lista de movimientos ya cargados desde el popup "Agregar movimiento",
@@ -764,8 +775,8 @@ class _MovementListTile extends StatelessWidget {
 /// diferencia, en el mismo estilo de dos columnas separadas por una línea
 /// que usa [_DifferenceBox]. Que [remainder] no sea cero (o casi, por
 /// redondeo) ya no bloquea el botón "Guardar y actualizar saldo" — solo
-/// cambia el mensaje, para avisar que esa parte se va a guardar como un
-/// ingreso o gasto sin categoría.
+/// cambia el mensaje, para avisar que esa parte va a ajustar el balance
+/// directo como gasto/ingreso no controlado, sin quedar como movimiento.
 class _MovementsSummaryCard extends StatelessWidget {
   final double total;
 
@@ -808,14 +819,16 @@ class _MovementsSummaryCard extends StatelessWidget {
       tone = AppColors.authIncome;
       icon = Icons.priority_high_rounded;
       title = 'Diferencia sin justificar';
-      message = 'Se guardará como ingreso no declarado, sin categoría, '
-          'por ${formatCurrency(rem, currency)}.';
+      message = 'Se ajustará el balance por '
+          '${formatCurrency(rem, currency)} como ingreso no controlado, '
+          'sin registrar un movimiento.';
     } else {
       tone = AppColors.authExpense;
       icon = Icons.priority_high_rounded;
       title = 'Diferencia sin justificar';
-      message = 'Se guardará como gasto no declarado, sin categoría, '
-          'por ${formatCurrency(rem.abs(), currency)}.';
+      message = 'Se ajustará el balance por '
+          '${formatCurrency(rem.abs(), currency)} como gasto no '
+          'controlado, sin registrar un movimiento.';
     }
 
     return Container(

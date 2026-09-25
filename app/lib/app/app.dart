@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/accounts/data/repositories/account_repository.dart';
@@ -29,7 +28,6 @@ import '../features/transactions/data/services/transaction_service.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import 'router.dart';
 import 'theme/app_colors.dart';
-import 'theme/app_system_ui.dart';
 import 'theme/app_theme.dart';
 
 class LumaApp extends StatefulWidget {
@@ -80,17 +78,21 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     final accountRepository = AccountRepository(AccountService(client));
     _accountViewModel = AccountViewModel(accountRepository);
 
-    final transactionRepository =
-        TransactionRepository(TransactionService(client));
-    _transactionViewModel = TransactionViewModel(transactionRepository);
-
-    final categoryRepository = CategoryRepository(CategoryService(client));
-    _categoryViewModel = CategoryViewModel(categoryRepository);
-
+    // Se crea antes que TransactionViewModel porque este último la
+    // necesita para traer el total de ajustes no declarados
+    // (uncontrolled_expenses_total) de Estadísticas.
     final monthlyBalanceRepository =
         MonthlyBalanceRepository(MonthlyBalanceService(client));
     _monthlyBalanceViewModel =
         MonthlyBalanceViewModel(monthlyBalanceRepository);
+
+    final transactionRepository =
+        TransactionRepository(TransactionService(client));
+    _transactionViewModel =
+        TransactionViewModel(transactionRepository, monthlyBalanceRepository);
+
+    final categoryRepository = CategoryRepository(CategoryService(client));
+    _categoryViewModel = CategoryViewModel(categoryRepository);
 
     final serviceRepository = ServiceRepository(ServiceService(client));
     _serviceViewModel = ServiceViewModel(serviceRepository);
@@ -220,21 +222,6 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: _router,
-      // MaterialApp calcula su propio SystemUiOverlayStyle según el
-      // brightness del theme (con AppTheme.light, íconos oscuros) y lo
-      // vuelve a aplicar en cada frame — pisando cualquier valor fijado
-      // antes con SystemChrome.setSystemUIOverlayStyle (ver
-      // https://github.com/flutter/flutter/issues/171344). Como TODAS
-      // las pantallas de la app (login, el shell, las apiladas de
-      // RoutedScreenScaffold, LockScreen, el 404) comparten el mismo
-      // gradiente oscuro de marca detrás del status bar, alcanza con
-      // anidar acá un único AnnotatedRegion propio (ver
-      // app_system_ui.dart): al quedar más adentro que el de
-      // MaterialApp, es el que gana.
-      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
-        value: appStatusBarStyle,
-        child: child!,
-      ),
     );
   }
 }

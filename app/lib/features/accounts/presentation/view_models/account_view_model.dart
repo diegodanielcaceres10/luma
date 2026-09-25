@@ -100,7 +100,35 @@ class AccountViewModel extends ChangeNotifier {
     );
   }
 
-  Future<bool> _submit(Future<void> Function() action) async {
+  /// Ajusta el balance de la cuenta [accountId] en [amount] (puede ser
+  /// negativo o positivo) y acumula ese mismo monto en
+  /// `monthly_account_balances.uncontrolled_expenses_total` del mes/año
+  /// indicados — sin crear ninguna transacción. Lo usa "Actualizar
+  /// saldo" para la parte de la diferencia que ningún movimiento cargado
+  /// explica (ver `UpdateBalanceTab._saveAndUpdateBalance`).
+  Future<bool> applyUncontrolledAdjustment({
+    required String userId,
+    required String accountId,
+    required double amount,
+    required int month,
+    required int year,
+  }) async {
+    return _submit(
+      () => _repository.applyUncontrolledAdjustment(
+        userId: userId,
+        accountId: accountId,
+        amount: amount,
+        month: month,
+        year: year,
+      ),
+      genericErrorMessage: 'No se pudo guardar el ajuste no declarado.',
+    );
+  }
+
+  Future<bool> _submit(
+    Future<void> Function() action, {
+    String genericErrorMessage = 'No se pudo guardar la cuenta.',
+  }) async {
     _isSubmitting = true;
     _errorMessage = null;
     _submitError = null;
@@ -117,13 +145,13 @@ class AccountViewModel extends ChangeNotifier {
         _errorMessage = 'Ya existe una cuenta con ese nombre.';
       } else {
         _submitError = AccountSubmitError.generic;
-        _errorMessage = 'No se pudo guardar la cuenta.';
+        _errorMessage = genericErrorMessage;
       }
       notifyListeners();
       return false;
     } catch (_) {
       _submitError = AccountSubmitError.generic;
-      _errorMessage = 'No se pudo guardar la cuenta.';
+      _errorMessage = genericErrorMessage;
       notifyListeners();
       return false;
     } finally {
