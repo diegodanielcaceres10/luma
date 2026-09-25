@@ -68,48 +68,56 @@ class LockScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            hadFailedAttempt
-                                ? 'No pudimos confirmar tu identidad. '
-                                    'Te quedan $remainingAttempts '
-                                    '${remainingAttempts == 1 ? 'intento' : 'intentos'}.'
-                                : 'Confirmá tu identidad para continuar.',
+                            viewModel.deviceLostSupport
+                                ? 'Este dispositivo ya no tiene biometría ni '
+                                    'PIN/patrón configurado. Configurá un '
+                                    'método de desbloqueo en los ajustes del '
+                                    'sistema, o cerrá sesión — desactivamos '
+                                    'el bloqueo para que no vuelva a pasar.'
+                                : hadFailedAttempt
+                                    ? 'No pudimos confirmar tu identidad. '
+                                        'Te quedan $remainingAttempts '
+                                        '${remainingAttempts == 1 ? 'intento' : 'intentos'}.'
+                                    : 'Confirmá tu identidad para continuar.',
                             style: AppTextStyles.authSubtitle,
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 32),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: FilledButton(
-                              onPressed: viewModel.isAuthenticating
-                                  ? null
-                                  : viewModel.authenticate,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: AppColors.authAccent,
-                                foregroundColor:
-                                    AppColors.authBackgroundBottom,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                          if (!viewModel.deviceLostSupport)
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: FilledButton(
+                                onPressed: viewModel.isAuthenticating
+                                    ? null
+                                    : viewModel.authenticate,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.authAccent,
+                                  foregroundColor:
+                                      AppColors.authBackgroundBottom,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
                                 ),
+                                child: viewModel.isAuthenticating
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color:
+                                              AppColors.authBackgroundBottom,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Desbloquear',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                               ),
-                              child: viewModel.isAuthenticating
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: AppColors.authBackgroundBottom,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Desbloquear',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
                             ),
-                          ),
                           const SizedBox(height: 12),
                           TextButton(
                             onPressed: authViewModel.signOut,

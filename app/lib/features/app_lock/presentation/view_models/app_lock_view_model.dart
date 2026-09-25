@@ -39,6 +39,7 @@ class AppLockViewModel extends ChangeNotifier {
   bool _isSupported = false;
   bool _isLocked = false;
   bool _isAuthenticating = false;
+  bool _deviceLostSupport = false;
   int _failedAttempts = 0;
   DateTime? _pausedAt;
 
@@ -50,6 +51,12 @@ class AppLockViewModel extends ChangeNotifier {
   bool get isLocked => _isLocked;
   bool get isAuthenticating => _isAuthenticating;
   int get failedAttempts => _failedAttempts;
+
+  /// `true` si, al intentar desbloquear, se detectó que el dispositivo ya
+  /// no tiene ningún PIN/patrón/contraseña ni biometría configurada (por
+  /// ejemplo, el usuario los borró después de activar el bloqueo). En ese
+  /// caso no tiene sentido seguir pidiendo biometría — ver [authenticate].
+  bool get deviceLostSupport => _deviceLostSupport;
 
   bool get _lockPreferenceActive {
     return _isSupported && _preferencesViewModel.preferences.biometricLockEnabled;
@@ -88,14 +95,31 @@ class AppLockViewModel extends ChangeNotifier {
     }
   }
 
-  /// Dispara el prompt de biometría. Si se agotan los intentos
-  /// ([kAppLockMaxFailedAttempts]), cierra la sesión — reintentar sin
-  /// límite en la pantalla de bloqueo no es una opción razonable.
+  /// Dispara el prompt de biometría. Antes de pedirlo, re-chequea que el
+  /// dispositivo siga teniendo algún método configurado (PIN/patrón/
+  /// contraseña o biometría): si el usuario lo desconfiguró después de
+  /// activar el bloqueo, no tiene sentido gastar un intento — directamente
+  /// avisamos y desactivamos la preferencia para no volver a trabar la app
+  /// la próxima vez (ver [deviceLostSupport] y PreferencesScreen).
+  ///
+  /// Si el dispositivo sí sigue soportado pero la huella/cara no coincide
+  /// o el usuario cancela, cuenta como intento fallido. Al agotar
+  /// [kAppLockMaxFailedAttempts], cierra la sesión — reintentar sin límite
+  /// en la pantalla de bloqueo no es una opción razonable.
   Future<void> authenticate() async {
     if (_isAuthenticating) return;
 
     _isAuthenticating = true;
     notifyListeners();
+
+    final stillSupported = await _biometricService.isSupported();
+    if (!stillSupported) {
+      _deviceLostSupport = true;
+      _isAuthenticating = false;
+      await _preferencesViewModel.setBiometricLockEnabled(false);
+      notifyListeners();
+      return;
+    }
 
     final success = await _biometricService.authenticate();
 
