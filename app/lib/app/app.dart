@@ -77,8 +77,17 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     final authRepository = AuthRepository(AuthService(client));
     _authViewModel = AuthViewModel(authRepository);
 
+    // Se crea antes que AccountViewModel porque este último la necesita
+    // para la moneda elegida por el usuario (ver
+    // AccountViewModel.primaryCurrency). Tampoco depende de Supabase ni de
+    // haber iniciado sesión (son preferencias del dispositivo, no del
+    // usuario logueado) — se carga siempre, no dentro de _loadUserData().
+    _preferencesViewModel = PreferencesViewModel(PreferencesRepository());
+    _preferencesViewModel.loadPreferences();
+
     final accountRepository = AccountRepository(AccountService(client));
-    _accountViewModel = AccountViewModel(accountRepository);
+    _accountViewModel =
+        AccountViewModel(accountRepository, _preferencesViewModel);
 
     // Se crea antes que TransactionViewModel porque este último la
     // necesita para traer el total de ajustes no declarados
@@ -102,12 +111,6 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     final invoiceRepository = InvoiceRepository(InvoiceService(client));
     _invoiceViewModel =
         InvoiceViewModel(invoiceRepository, _transactionViewModel);
-
-    // A diferencia del resto de los view models, no depende de Supabase ni
-    // de haber iniciado sesión (son preferencias del dispositivo, no del
-    // usuario logueado) — se carga siempre, no dentro de _loadUserData().
-    _preferencesViewModel = PreferencesViewModel(PreferencesRepository());
-    _preferencesViewModel.loadPreferences();
 
     // Tampoco depende de Supabase: el bloqueo es un gate local, sobre la
     // sesión ya iniciada — ver AppLockViewModel.

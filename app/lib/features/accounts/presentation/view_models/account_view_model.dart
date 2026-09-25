@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../preferences/presentation/view_models/preferences_view_model.dart';
 import '../../data/models/account.dart';
 import '../../data/repositories/account_repository.dart';
 
@@ -7,8 +8,17 @@ enum AccountSubmitError { duplicate, generic }
 
 class AccountViewModel extends ChangeNotifier {
   final AccountRepository _repository;
+  final PreferencesViewModel _preferencesViewModel;
 
-  AccountViewModel(this._repository);
+  AccountViewModel(this._repository, this._preferencesViewModel) {
+    // La moneda vive en las preferencias del usuario (ver PreferencesScreen
+    // / PreferencesViewModel.setCurrencyCode), no en AccountViewModel — pero
+    // la mayoría de las pantallas ya escuchan a AccountViewModel para
+    // formatear montos (ver primaryCurrency). Reenviamos el cambio acá para
+    // que esas pantallas se actualicen solas al cambiar la moneda, sin
+    // tener que agregar PreferencesViewModel a cada una.
+    _preferencesViewModel.addListener(notifyListeners);
+  }
 
   bool _isLoading = false;
   bool _hasLoaded = false;
@@ -40,10 +50,9 @@ class AccountViewModel extends ChangeNotifier {
       .where((account) => account.isActive)
       .fold(0, (sum, account) => sum + account.balance);
 
-  //
-  // cuentas ya no tienen moneda propia (se removió para no mezclar
-  // cálculos), así que se usa un valor fijo hasta que exista esa config.
-  String get primaryCurrency => 'EUR';
+  // Cuentas ya no tienen moneda propia (se removió para no mezclar
+  // cálculos): se usa la moneda elegida en Preferencias para toda la app.
+  String get primaryCurrency => _preferencesViewModel.preferences.currencyCode;
 
   Future<void> loadAccounts() async {
     _isLoading = true;
@@ -158,5 +167,11 @@ class AccountViewModel extends ChangeNotifier {
       _isSubmitting = false;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _preferencesViewModel.removeListener(notifyListeners);
+    super.dispose();
   }
 }
