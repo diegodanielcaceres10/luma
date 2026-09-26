@@ -1431,64 +1431,41 @@ class _BalanceCard extends StatelessWidget {
         border: Border.all(color: AppColors.authCardBorder),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 5,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Saldo anterior (en la app)',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.authTextSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        formatCurrency(previousBalance, currency),
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.authTextPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 22,
-                  color: AppColors.authTextSecondary,
-                ),
-              ),
-              Expanded(
-                flex: 6,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Nuevo saldo actual',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.authTextSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    amountField,
-                  ],
-                ),
-              ),
-            ],
+          const Text(
+            'Saldo anterior (en la app)',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.authTextSecondary,
+            ),
           ),
+          const SizedBox(height: 6),
+          Text(
+            formatCurrency(previousBalance, currency),
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AppColors.authTextPrimary,
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Icon(
+              Icons.arrow_downward_rounded,
+              size: 22,
+              color: AppColors.authTextSecondary,
+            ),
+          ),
+          const Text(
+            'Nuevo saldo actual',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.authTextSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          amountField,
           const SizedBox(height: 16),
           _DifferenceBox(difference: difference, currency: currency),
         ],
