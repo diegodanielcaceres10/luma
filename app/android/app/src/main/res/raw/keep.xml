@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ic_notification solo se referencia desde Dart (por nombre de string, ver
+  LocalNotificationsService), nunca desde un layout o manifest — R8 no
+  puede verlo y, si algún día se activa shrinkResources en el build de
+  release, lo eliminaría por "no usado". Este archivo le dice explícitamente
+  que lo conserve.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_notification" />

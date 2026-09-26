@@ -1,3 +1,5 @@
+import 'dart:ui' show Color;
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../../../core/utils/currency_format.dart';
@@ -23,16 +25,29 @@ class LocalNotificationsService {
   static const _invoicesChannelDescription =
       'Avisa cuando una factura vence hoy';
 
+  /// Mismo verde que la hoja del logo (`authAccentDark` en
+  /// `AppColors`) — tiñe el círculo detrás del ícono chico en la barra de
+  /// estado y en la bandeja de notificaciones.
+  static const _brandColor = Color(0xFF1F7A4C);
+
   bool _initialized = false;
 
   /// Inicializa el plugin y crea (o actualiza) el canal de notificaciones
   /// en Android. Se puede llamar más de una vez sin problema: si ya se
   /// inicializó en esta instancia, no vuelve a hacer nada.
+  ///
+  /// El ícono chico usa `@drawable/ic_notification` (silueta blanca de la
+  /// hoja del logo, generada a partir de
+  /// `android/app/src/main/res/mipmap-*/ic_launcher_foreground.png`) en vez
+  /// de `@mipmap/ic_launcher`: Android ignora el color de un ícono de
+  /// notificación y solo usa su canal alfa, así que un ícono con fondo
+  /// opaco (como `ic_launcher.png`) termina viéndose como un círculo
+  /// blanco sin forma.
   Future<void> initialize() async {
     if (_initialized) return;
 
     const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_notification');
     await _plugin.initialize(
       const InitializationSettings(android: androidSettings),
     );
@@ -87,6 +102,11 @@ class LocalNotificationsService {
           channelDescription: _invoicesChannelDescription,
           importance: Importance.high,
           priority: Priority.high,
+          color: _brandColor,
+          // Ícono grande = el logo completo (a color), a la derecha del
+          // texto. El chico (arriba) es la silueta simple para la barra
+          // de estado — son recursos Android distintos a propósito.
+          largeIcon: DrawableResourceAndroidBitmap('ic_launcher'),
         ),
       ),
     );
