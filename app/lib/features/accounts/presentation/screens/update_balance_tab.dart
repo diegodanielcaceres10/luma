@@ -123,6 +123,13 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   /// de cada fila, para no dejar mutar la lista a mitad de un guardado.
   bool _isSaving = false;
 
+  /// Entrega 10: el formulario se separó en 3 pasos para no acumular todo
+  /// en una sola pantalla — 0: nuevo saldo y diferencia, 1: movimientos
+  /// que la justifican, 2: resumen y guardado. Se avanza y retrocede con
+  /// los botones "Siguiente"/"Atrás" de [_buildStepNav]; no hay validación
+  /// que bloquee el avance entre pasos.
+  int _currentStep = 0;
+
   void _addPendingMovement(PendingMovement movement) {
     setState(() => _pendingMovements.add(movement));
   }
@@ -152,6 +159,7 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     // instancia con otra cuenta, no queremos arrastrar un monto viejo.
     if (oldWidget.account?.id != widget.account?.id) {
       _newBalanceController.clear();
+      _currentStep = 0;
     }
   }
 
@@ -371,6 +379,148 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     );
   }
 
+  /// Contenido del paso actual ([_currentStep]) — ver el doc de ese campo
+  /// para la numeración. Devuelve la misma tarjeta de cada paso, tal cual
+  /// estaban antes de separar el formulario en pasos.
+  Widget _buildStepContent(
+    Account account,
+    String currency,
+    String currencySymbol,
+  ) {
+    switch (_currentStep) {
+      case 0:
+        return _BalanceCard(
+          previousBalance: account.balance,
+          currency: currency,
+          difference: _difference,
+          amountField: TextFormField(
+            controller: _newBalanceController,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+              signed: true,
+            ),
+            // Hasta 2 decimales, coma o punto, y un "-" opcional al
+            // inicio (una cuenta puede estar en descubierto).
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                RegExp(r'^-?\d*[.,]?\d{0,2}'),
+              ),
+            ],
+            cursorColor: AppColors.authAccent,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: AppColors.authTextPrimary,
+            ),
+            decoration: _amountDecoration(currencySymbol),
+            validator: (value) =>
+                _parseAmount(value) == null ? 'Ingresa un monto válido' : null,
+          ),
+        );
+      case 1:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _MovementsSectionHeader(
+              onAddMovement: () => _showAddMovementDialog(context),
+              enabled: !_isSaving,
+            ),
+            if (_pendingMovements.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _MovementsList(
+                movements: _pendingMovements,
+                currency: currency,
+                onDelete: _removePendingMovement,
+                enabled: !_isSaving,
+              ),
+            ],
+          ],
+        );
+      case 2:
+      default:
+        return _MovementsSummaryCard(
+          total: _pendingMovementsTotal,
+          remainder: _unjustifiedRemainder,
+          currency: currency,
+        );
+    }
+  }
+
+  /// "Atrás" (salvo en el paso 0, donde ya está la flecha de arriba para
+  /// salir) y, a la derecha, "Siguiente" (o "Guardar y actualizar saldo"
+  /// en el último paso — mismo botón y misma condición para habilitarlo
+  /// que tenía antes de separar el formulario en pasos).
+  Widget _buildStepNav() {
+    final isFirstStep = _currentStep == 0;
+    final isLastStep = _currentStep == 2;
+
+    final backButton = Expanded(
+      child: OutlinedButton(
+        onPressed: _isSaving ? null : () => setState(() => _currentStep -= 1),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.authTextPrimary,
+          side: const BorderSide(color: AppColors.authCardBorder),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        child:
+            const Text('Atrás', style: TextStyle(fontWeight: FontWeight.w700)),
+      ),
+    );
+
+    final nextButton = Expanded(
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.authAccent,
+          foregroundColor: AppColors.authBackgroundBottom,
+          disabledBackgroundColor: AppColors.authAccent.withValues(alpha: 0.4),
+          disabledForegroundColor:
+              AppColors.authBackgroundBottom.withValues(alpha: 0.6),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        onPressed: !isLastStep
+            ? (_isSaving ? null : () => setState(() => _currentStep += 1))
+            // Habilitado en cuanto hay un saldo nuevo válido — que los
+            // movimientos no cubran toda la diferencia ya NO lo bloquea
+            // (ver [_MovementsSummaryCard]): lo que falte se ajusta
+            // directo en el balance y se acumula en
+            // uncontrolled_expenses_total (sin transacción).
+            : (_difference == null || _isSaving ? null : _saveAndUpdateBalance),
+        child: !isLastStep
+            ? const Text('Siguiente',
+                style: TextStyle(fontWeight: FontWeight.w700))
+            : _isSaving
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.authBackgroundBottom,
+                    ),
+                  )
+                : const Text(
+                    'Guardar y actualizar saldo',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+      ),
+    );
+
+    if (isFirstStep) return nextButton;
+
+    return Row(
+      children: [
+        backButton,
+        const SizedBox(width: 12),
+        nextButton,
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final account = widget.account;
@@ -431,95 +581,9 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    _BalanceCard(
-                      previousBalance: account.balance,
-                      currency: currency,
-                      difference: _difference,
-                      amountField: TextFormField(
-                        controller: _newBalanceController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                          signed: true,
-                        ),
-                        // Hasta 2 decimales, coma o punto, y un "-" opcional al
-                        // inicio (una cuenta puede estar en descubierto).
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'^-?\d*[.,]?\d{0,2}'),
-                          ),
-                        ],
-                        cursorColor: AppColors.authAccent,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.authTextPrimary,
-                        ),
-                        decoration: _amountDecoration(currencySymbol),
-                        validator: (value) => _parseAmount(value) == null
-                            ? 'Ingresa un monto válido'
-                            : null,
-                      ),
-                    ),
+                    _buildStepContent(account, currency, currencySymbol),
                     const SizedBox(height: 24),
-                    _MovementsSectionHeader(
-                      onAddMovement: () => _showAddMovementDialog(context),
-                      enabled: !_isSaving,
-                    ),
-                    if (_pendingMovements.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      _MovementsList(
-                        movements: _pendingMovements,
-                        currency: currency,
-                        onDelete: _removePendingMovement,
-                        enabled: !_isSaving,
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    _MovementsSummaryCard(
-                      total: _pendingMovementsTotal,
-                      remainder: _unjustifiedRemainder,
-                      currency: currency,
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.authAccent,
-                          foregroundColor: AppColors.authBackgroundBottom,
-                          disabledBackgroundColor:
-                              AppColors.authAccent.withValues(alpha: 0.4),
-                          disabledForegroundColor: AppColors
-                              .authBackgroundBottom
-                              .withValues(alpha: 0.6),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        // Habilitado en cuanto hay un saldo nuevo válido — que
-                        // los movimientos no cubran toda la diferencia ya NO lo
-                        // bloquea (ver [_MovementsSummaryCard]): lo que falte
-                        // se ajusta directo en el balance y se acumula en
-                        // uncontrolled_expenses_total (sin transacción).
-                        onPressed: _difference == null || _isSaving
-                            ? null
-                            : _saveAndUpdateBalance,
-                        child: _isSaving
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.authBackgroundBottom,
-                                ),
-                              )
-                            : const Text(
-                                'Guardar y actualizar saldo',
-                                style: TextStyle(fontWeight: FontWeight.w700),
-                              ),
-                      ),
-                    ),
+                    _buildStepNav(),
                   ],
                 ],
               ),
