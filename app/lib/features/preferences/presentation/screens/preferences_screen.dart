@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -26,7 +27,9 @@ class PreferencesScreen extends StatefulWidget {
   /// pantalla (`appLockViewModel.isSupported`) y para refrescar ese
   /// chequeo al entrar a esta pantalla — ver `initState` y
   /// `AppLockViewModel.refreshSupport`. Si no está soportado, el switch de
-  /// biometría se muestra pero deshabilitado.
+  /// biometría se muestra pero deshabilitado. En web (`kIsWeb`), tanto
+  /// notificaciones como biometría se muestran siempre deshabilitadas
+  /// (no hay soporte nativo), con una leyenda propia que lo explica.
   final AppLockViewModel appLockViewModel;
 
   /// Se llama al tocar "atrás". Se recibe por parámetro (en vez de usar
@@ -145,9 +148,23 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               child: _SwitchRow(
                 label: 'Notificaciones habilitadas',
                 value: prefs.notificationsEnabled,
-                onChanged: vm.setNotificationsEnabled,
+                onChanged: kIsWeb ? null : vm.setNotificationsEnabled,
               ),
             ),
+            if (kIsWeb) ...[
+              const SizedBox(height: 8),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Las notificaciones no están disponibles en la versión '
+                  'web. Instalá la app en tu celular para activarlas.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.authTextFooter,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
             const _SectionLabel('Seguridad'),
             const SizedBox(height: 8),
@@ -155,23 +172,29 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               child: _SwitchRow(
                 label: 'Bloqueo con biometría',
                 value: prefs.biometricLockEnabled,
-                onChanged: widget.appLockViewModel.isSupported
-                    ? vm.setBiometricLockEnabled
-                    : null,
+                onChanged: kIsWeb
+                    ? null
+                    : (widget.appLockViewModel.isSupported
+                        ? vm.setBiometricLockEnabled
+                        : null),
               ),
             ),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
-                widget.appLockViewModel.isSupported
-                    ? 'Con esto activado, la app te va a pedir Face ID, '
-                        'huella o el PIN del dispositivo al abrirla y al '
-                        'volver de segundo plano después de un rato.'
-                    : 'Para activar esto, primero configurá un bloqueo de '
-                        'pantalla (PIN, patrón, huella o Face ID) en los '
-                        'ajustes de tu dispositivo. Después volvé a esta '
-                        'pantalla.',
+                kIsWeb
+                    ? 'El bloqueo con biometría no está disponible en la '
+                        'versión web. Instalá la app en tu celular para '
+                        'activarlo.'
+                    : widget.appLockViewModel.isSupported
+                        ? 'Con esto activado, la app te va a pedir Face ID, '
+                            'huella o el PIN del dispositivo al abrirla y al '
+                            'volver de segundo plano después de un rato.'
+                        : 'Para activar esto, primero configurá un bloqueo '
+                            'de pantalla (PIN, patrón, huella o Face ID) en '
+                            'los ajustes de tu dispositivo. Después volvé a '
+                            'esta pantalla.',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.authTextFooter,
@@ -304,4 +327,3 @@ class _SwitchRow extends StatelessWidget {
     );
   }
 }
-
