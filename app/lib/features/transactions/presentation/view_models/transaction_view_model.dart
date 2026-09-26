@@ -458,4 +458,36 @@ class TransactionViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Borra la transacción [transactionId] (el saldo de la cuenta se
+  /// revierte en el servidor, ver [TransactionRepository.delete] /
+  /// TransactionService.deleteTransaction) y recarga todo lo que puede
+  /// haber cambiado: el mes en curso, Estadísticas si está mostrando un
+  /// mes distinto, y el historial completo de "Movimientos" si ya se
+  /// había cargado. Devuelve true si se borró correctamente.
+  Future<bool> deleteTransaction({
+    required String userId,
+    required String transactionId,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.delete(userId: userId, transactionId: transactionId);
+      await loadCurrentMonth();
+      await _refreshStatisticsMonth();
+      if (_hasLoadedAll) {
+        await loadAllTransactions();
+      }
+      return true;
+    } catch (error) {
+      _errorMessage = 'No se pudo eliminar el movimiento.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
 }

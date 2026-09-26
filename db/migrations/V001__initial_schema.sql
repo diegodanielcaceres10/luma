@@ -113,20 +113,6 @@ create policy "users manage own invoices"
 create policy "users manage own monthly account balances"
   on monthly_account_balances for all using (auth.uid() = user_id);
 
-  -- ─── create_transaction (RPC) ──────────────────────────────
--- Inserta la fila en `transactions` y actualiza `accounts.balance` en la
--- misma transacción de Postgres: si algo falla (constraint, cuenta
--- inexistente, etc.) toda la función se revierte y no queda ni la
--- transacción ni el ajuste de saldo a medias.
---
--- p_is_transfer marca la fila como parte de una transferencia entre
--- cuentas propias (ver comentario en `transactions.is_transfer`); el
--- saldo se sigue actualizando según p_type ('income'/'expense') como
--- siempre — is_transfer solo la excluye de ingresos/gastos reales.
---
--- security invoker (default): corre con los permisos del usuario que
--- llama, así que las policies de RLS de `transactions` y `accounts`
--- siguen aplicando igual que con un insert/update directo.
 create or replace function public.create_transaction(
   p_user_id     uuid,
   p_account_id  uuid,
@@ -180,23 +166,6 @@ grant execute on function public.create_transaction(
   uuid, uuid, uuid, text, numeric, text, date, boolean
 ) to authenticated;
 
--- ─── register_uncontrolled_adjustment (RPC) ─────────────────
--- Usada por la pantalla "Actualizar saldo" (UpdateBalanceTab) para la
--- parte de la diferencia que ningún movimiento cargado explica: en vez
--- de crear una transacción sin categoría, ajusta `accounts.balance` en
--- p_amount directo y suma ese mismo monto (puede ser negativo o
--- positivo) a `monthly_account_balances.uncontrolled_expenses_total`
--- del mes/cuenta indicados — todo en una sola transacción de Postgres:
--- si algo falla, ninguno de los dos updates queda aplicado a medias.
---
--- Requiere que ya exista la fila de monthly_account_balances para ese
--- mes/cuenta: el flujo de "saldo de apertura pendiente" del cliente ya
--- obliga a cargarla antes de poder operar la cuenta ese mes.
---
--- security invoker (default): corre con los permisos del usuario que
--- llama, así que las policies de RLS de `accounts` y
--- `monthly_account_balances` siguen aplicando igual que con un update
--- directo.
 create or replace function public.register_uncontrolled_adjustment(
   p_user_id     uuid,
   p_account_id  uuid,
@@ -236,3 +205,51 @@ $$;
 grant execute on function public.register_uncontrolled_adjustment(
   uuid, uuid, numeric, integer, integer
 ) to authenticated;
+
+create or replace function public.delete_transaction(
+  p_user_id        uuid,
+  p_transaction_id uuid
+)
+returns void
+language plpgsql
+security invoker
+as $$
+declare
+  v_account_id uuid;
+  v_type       text;
+  v_amount     numeric(12, 2);
+  v_delta      numeric(12, 2);
+begin
+  select account_id, type, amount
+    into v_account_id, v_type, v_amount
+    from transactions
+   where id = p_transaction_id
+     and user_id = p_user_id;
+
+  if not found then
+    raise exception
+      'Transacción % no encontrada para este usuario', p_transaction_id;
+  end if;
+
+  if v_type = 'income' then
+    v_delta := -v_amount;
+  elsif v_type = 'expense' then
+    v_delta := v_amount;
+  else
+    raise exception 'Tipo de transacción inválido: %', v_type;
+  end if;
+
+  delete from transactions
+   where id = p_transaction_id
+     and user_id = p_user_id;
+
+  update accounts
+     set balance = balance + v_delta
+   where id = v_account_id
+     and user_id = p_user_id;
+
+  if not found then
+    raise exception 'Cuenta % no encontrada para este usuario', v_account_id;
+  end if;
+end;
+$$;

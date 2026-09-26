@@ -6,6 +6,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
+import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../data/models/transaction_entry.dart';
 import '../view_models/transaction_view_model.dart';
 
@@ -16,7 +17,9 @@ enum _DateRangeFilter { today, thisWeek, last7Days, last15Days, all }
 /// Contenido de la pantalla "Movimientos" (ver router.dart/AppShellScreen,
 /// que ponen el Scaffold compartido con el header y el bottomNavigationBar).
 class MovementsTab extends StatefulWidget {
+  final String userId;
   final TransactionViewModel transactionViewModel;
+  final AccountViewModel accountViewModel;
   final String currency;
 
   /// Filtros con los que arranca esta instancia, tal cual vienen de la
@@ -39,7 +42,9 @@ class MovementsTab extends StatefulWidget {
 
   const MovementsTab({
     super.key,
+    required this.userId,
     required this.transactionViewModel,
+    required this.accountViewModel,
     required this.currency,
     this.initialType,
     this.initialRange,
@@ -284,6 +289,96 @@ class _MovementsTabState extends State<MovementsTab> {
   int _visibleCount = _pageSize;
 
   static const int _pageSize = 10;
+
+  // Id del movimiento que se está borrando en este momento, o null si no
+  // hay ninguno en curso. Deshabilita el botón de esa fila mientras dura
+  // el pedido, para no disparar dos borrados del mismo movimiento con un
+  // doble tap.
+  String? _deletingId;
+
+  /// Confirma con el usuario antes de borrar (mismo patrón de AlertDialog
+  /// que `_confirmCancel` en invoices_tab.dart) y, si confirma, borra el
+  /// movimiento y refresca el saldo de la cuenta.
+  Future<void> _confirmDelete(TransactionEntry movement) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.authBackgroundTop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        title: const Text(
+          '¿Eliminar movimiento?',
+          style: TextStyle(
+            color: AppColors.authTextPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          '${movement.description?.isNotEmpty == true ? movement.description! : movement.category.name} · '
+          '${formatCurrency(movement.amount, widget.currency)}\n\n'
+          'El saldo de la cuenta se va a actualizar. Esta acción no se '
+          'puede deshacer.',
+          style: const TextStyle(color: AppColors.authTextSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              'Volver',
+              style: TextStyle(color: AppColors.authTextSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(
+                color: AppColors.authExpense,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _deleteMovement(movement);
+    }
+  }
+
+  Future<void> _deleteMovement(TransactionEntry movement) async {
+    setState(() => _deletingId = movement.id);
+
+    final success = await widget.transactionViewModel.deleteTransaction(
+      userId: widget.userId,
+      transactionId: movement.id,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      // El saldo de la cuenta se revirtió en el servidor junto con el
+      // borrado (RPC delete_transaction); acá solo recargamos la lista
+      // de cuentas para que el nuevo saldo se vea en pantalla — mismo
+      // criterio que _AddTransactionTabState._submit tras crear.
+      await widget.accountViewModel.loadAccounts();
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.transactionViewModel.errorMessage ??
+                'No se pudo eliminar el movimiento.',
+          ),
+        ),
+      );
+    }
+
+    if (mounted) setState(() => _deletingId = null);
+  }
 
   bool _matchesType(TransactionEntry t) {
     switch (_typeFilter) {
@@ -544,11 +639,14 @@ class _MovementsTabState extends State<MovementsTab> {
                       child: Column(
                         children: [
                           ...List.generate(visible.length, (i) {
+                            final movement = visible[i];
                             return _MovementRow(
-                              movement: visible[i],
+                              movement: movement,
                               currency: widget.currency,
                               showDivider:
                                   i != visible.length - 1 || remaining > 0,
+                              isDeleting: _deletingId == movement.id,
+                              onDelete: () => _confirmDelete(movement),
                             );
                           }),
                           if (remaining > 0)
@@ -647,10 +745,22 @@ class _MovementRow extends StatelessWidget {
   final String currency;
   final bool showDivider;
 
+  /// true mientras este movimiento puntual se está borrando — deshabilita
+  /// el botón y muestra un spinner en su lugar, para no disparar un
+  /// segundo borrado con un doble tap.
+  final bool isDeleting;
+
+  /// Pide confirmación y borra el movimiento (ver
+  /// `_MovementsTabState._confirmDelete`). null lo deja sin botón de
+  /// borrado (no se usa hoy, pero deja la fila reutilizable).
+  final VoidCallback? onDelete;
+
   const _MovementRow({
     required this.movement,
     required this.currency,
     required this.showDivider,
+    this.isDeleting = false,
+    this.onDelete,
   });
 
   @override
@@ -704,6 +814,34 @@ class _MovementRow extends StatelessWidget {
                           : AppColors.authExpense,
                 ),
               ),
+              if (onDelete != null) ...[
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: isDeleting
+                      ? const Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.authTextSecondary,
+                            ),
+                          ),
+                        )
+                      : IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: AppColors.authTextSecondary,
+                          ),
+                          tooltip: 'Eliminar movimiento',
+                          onPressed: onDelete,
+                        ),
+                ),
+              ],
             ],
           ),
         ),

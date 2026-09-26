@@ -35,4 +35,14 @@ class TransactionRepository {
       isTransfer: isTransfer,
     );
   }
+
+  Future<void> delete({
+    required String userId,
+    required String transactionId,
+  }) {
+    return _service.deleteTransaction(
+      userId: userId,
+      transactionId: transactionId,
+    );
+  }
 }

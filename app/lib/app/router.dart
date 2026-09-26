@@ -500,7 +500,9 @@ GoRouter buildAppRouter({
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
               child: MovementsTab(
+                userId: authViewModel.userId ?? '',
                 transactionViewModel: transactionViewModel,
+                accountViewModel: accountViewModel,
                 currency: accountViewModel.primaryCurrency,
                 initialType: state.uri.queryParameters['type'],
                 initialRange: state.uri.queryParameters['range'],

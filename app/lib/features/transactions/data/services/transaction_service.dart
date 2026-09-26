@@ -79,6 +79,21 @@ class TransactionService {
     return id as String;
   }
 
+  /// Borra la transacción [transactionId] y revierte su efecto en
+  /// `accounts.balance`. Llama al RPC `delete_transaction` (contraparte de
+  /// [createTransaction]) en vez de un delete directo: ese RPC borra la
+  /// fila y ajusta el saldo en una sola transacción de la base — si algo
+  /// falla, se revierte todo (ni se borra la fila ni se mueve el saldo).
+  Future<void> deleteTransaction({
+    required String userId,
+    required String transactionId,
+  }) async {
+    await _client.rpc('delete_transaction', params: {
+      'p_user_id': userId,
+      'p_transaction_id': transactionId,
+    });
+  }
+
   String _formatDate(DateTime date) {
     final y = date.year.toString().padLeft(4, '0');
     final m = date.month.toString().padLeft(2, '0');
