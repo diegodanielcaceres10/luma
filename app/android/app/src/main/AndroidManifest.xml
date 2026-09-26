@@ -4,6 +4,14 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Requerido por local_auth para el prompt de biometría. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!-- Notificación de "factura que vence hoy" (feature `notifications`).
+         Permiso en runtime desde Android 13/API 33 — se pide con
+         LocalNotificationsService.requestPermission(). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Para que WorkManager pueda re-agendar la tarea diaria después de
+         que el dispositivo reinicia (si no, el SO borra los jobs
+         pendientes al arrancar). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
         android:label="Luma"

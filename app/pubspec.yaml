@@ -25,6 +25,15 @@ dependencies:
   package_info_plus: ^9.0.0
   shared_preferences: ^2.5.5
   local_auth: ^3.0.2
+  # Notificación local de "factura que vence hoy" (feature `notifications`).
+  flutter_local_notifications: ^18.0.1
+  # Dispara la rutina diaria en background que revisa la condición de
+  # arriba — solo Android, ver NotificationSchedulerService. OJO: no bajar
+  # de 0.10.x — versiones 0.5.x/0.6.x son de antes de la reescritura del
+  # plugin (arquitectura federada) y no compilan con Flutter reciente
+  # (dependen de APIs del embedding v1 ya eliminadas: "shim",
+  # PluginRegistry.Registrar, etc.).
+  workmanager: ^0.10.0
 
 dev_dependencies:
   flutter_test:

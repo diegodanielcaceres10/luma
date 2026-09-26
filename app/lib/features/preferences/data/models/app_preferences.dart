@@ -8,10 +8,14 @@ const List<String> kSupportedCurrencyCodes = ['USD', 'EUR', 'BRL', 'ARS'];
 /// reinstall. A diferencia del resto de los datos de la app (cuentas,
 /// categorías, etc.), no están pensadas para sincronizarse vía Supabase.
 ///
-/// Importante: moneda, tema y notificaciones por ahora solo se guardan —
-/// todavía no cambian nada del comportamiento real de la app.
-/// [biometricLockEnabled] es la excepción: sí se aplica de verdad, ver
-/// AppLockViewModel (feature `app_lock`).
+/// Importante: moneda y tema por ahora solo se guardan — todavía no
+/// cambian nada del comportamiento real de la app. [biometricLockEnabled]
+/// y [notificationsEnabled] son la excepción: sí se aplican de verdad —
+/// ver AppLockViewModel (feature `app_lock`) y NotificationsViewModel /
+/// NotificationSchedulerService (feature `notifications`),
+/// respectivamente. [invoiceReminderDaysAhead] en cambio todavía es solo
+/// un valor guardado: la rutina diaria de notificaciones (Android) hoy
+/// solo avisa si el vencimiento es hoy, no con anticipación.
 class AppPreferences {
   final String currencyCode;
   final bool darkThemeEnabled;
@@ -41,7 +45,7 @@ class AppPreferences {
   const AppPreferences.defaults()
       : currencyCode = defaultCurrencyCode,
         darkThemeEnabled = false,
-        notificationsEnabled = true,
+        notificationsEnabled = false,
         invoiceReminderDaysAhead = defaultInvoiceReminderDaysAhead,
         biometricLockEnabled = false;
 

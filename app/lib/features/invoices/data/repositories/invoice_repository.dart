@@ -10,6 +10,10 @@ class InvoiceRepository {
     return _service.fetchAll();
   }
 
+  Future<List<Invoice>> getDueToday() {
+    return _service.fetchDueToday();
+  }
+
   Future<void> create({
     required String userId,
     required String serviceId,

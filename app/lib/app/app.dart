@@ -19,6 +19,7 @@ import '../features/invoices/presentation/view_models/invoice_view_model.dart';
 import '../features/monthly_balances/data/repositories/monthly_balance_repository.dart';
 import '../features/monthly_balances/data/services/monthly_balance_service.dart';
 import '../features/monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
+import '../features/notifications/presentation/view_models/notifications_view_model.dart';
 import '../features/preferences/data/repositories/preferences_repository.dart';
 import '../features/preferences/presentation/view_models/preferences_view_model.dart';
 import '../features/services/data/repositories/service_repository.dart';
@@ -56,6 +57,7 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
   late final PreferencesViewModel _preferencesViewModel;
   late final BiometricService _biometricService;
   late final AppLockViewModel _appLockViewModel;
+  late final NotificationsViewModel _notificationsViewModel;
   late final _router = buildAppRouter(
     authViewModel: _authViewModel,
     accountViewModel: _accountViewModel,
@@ -84,6 +86,15 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     // usuario logueado) — se carga siempre, no dentro de _loadUserData().
     _preferencesViewModel = PreferencesViewModel(PreferencesRepository());
     _preferencesViewModel.loadPreferences();
+
+    // Depende solo de _preferencesViewModel (para reaccionar al toggle de
+    // "Notificaciones habilitadas") — no de Supabase ni de la sesión, así
+    // que se puede armar ya. Igual que con `loadPreferences()`, no se
+    // espera esta llamada: si tarda, no hay razón para trabar el primer
+    // frame de la app por esto.
+    _notificationsViewModel =
+        NotificationsViewModel(preferencesViewModel: _preferencesViewModel);
+    _notificationsViewModel.initialize();
 
     final accountRepository = AccountRepository(AccountService(client));
     _accountViewModel =
@@ -217,6 +228,7 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     _invoiceViewModel.dispose();
     _preferencesViewModel.dispose();
     _appLockViewModel.dispose();
+    _notificationsViewModel.dispose();
     super.dispose();
   }
 
