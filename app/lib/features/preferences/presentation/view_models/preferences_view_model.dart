@@ -46,11 +46,6 @@ class PreferencesViewModel extends ChangeNotifier {
         () => _repository.setNotificationsEnabled(value),
       );
 
-  Future<void> setInvoiceReminderDaysAhead(int value) => _applyAndPersist(
-        (prefs) => prefs.copyWith(invoiceReminderDaysAhead: value),
-        () => _repository.setInvoiceReminderDaysAhead(value),
-      );
-
   Future<void> setBiometricLockEnabled(bool value) => _applyAndPersist(
         (prefs) => prefs.copyWith(biometricLockEnabled: value),
         () => _repository.setBiometricLockEnabled(value),

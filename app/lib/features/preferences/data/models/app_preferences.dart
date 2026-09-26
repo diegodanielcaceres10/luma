@@ -13,17 +13,11 @@ const List<String> kSupportedCurrencyCodes = ['USD', 'EUR', 'BRL', 'ARS'];
 /// y [notificationsEnabled] son la excepción: sí se aplican de verdad —
 /// ver AppLockViewModel (feature `app_lock`) y NotificationsViewModel /
 /// NotificationSchedulerService (feature `notifications`),
-/// respectivamente. [invoiceReminderDaysAhead] en cambio todavía es solo
-/// un valor guardado: la rutina diaria de notificaciones (Android) hoy
-/// solo avisa si el vencimiento es hoy, no con anticipación.
+/// respectivamente.
 class AppPreferences {
   final String currencyCode;
   final bool darkThemeEnabled;
   final bool notificationsEnabled;
-
-  /// Con cuántos días de anticipación avisar antes del vencimiento de una
-  /// factura. Solo tiene sentido si [notificationsEnabled] es `true`.
-  final int invoiceReminderDaysAhead;
 
   /// Preferencia de bloqueo con biometría. Se aplica de verdad: cuando
   /// está en `true` (y el dispositivo lo soporta), `AppLockViewModel`
@@ -35,33 +29,27 @@ class AppPreferences {
     required this.currencyCode,
     required this.darkThemeEnabled,
     required this.notificationsEnabled,
-    required this.invoiceReminderDaysAhead,
     required this.biometricLockEnabled,
   });
 
   static const defaultCurrencyCode = 'USD';
-  static const defaultInvoiceReminderDaysAhead = 3;
 
   const AppPreferences.defaults()
       : currencyCode = defaultCurrencyCode,
         darkThemeEnabled = false,
         notificationsEnabled = false,
-        invoiceReminderDaysAhead = defaultInvoiceReminderDaysAhead,
         biometricLockEnabled = false;
 
   AppPreferences copyWith({
     String? currencyCode,
     bool? darkThemeEnabled,
     bool? notificationsEnabled,
-    int? invoiceReminderDaysAhead,
     bool? biometricLockEnabled,
   }) {
     return AppPreferences(
       currencyCode: currencyCode ?? this.currencyCode,
       darkThemeEnabled: darkThemeEnabled ?? this.darkThemeEnabled,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
-      invoiceReminderDaysAhead:
-          invoiceReminderDaysAhead ?? this.invoiceReminderDaysAhead,
       biometricLockEnabled: biometricLockEnabled ?? this.biometricLockEnabled,
     );
   }

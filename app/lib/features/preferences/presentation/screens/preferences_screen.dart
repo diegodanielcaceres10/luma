@@ -12,9 +12,6 @@ const _currencyLabels = {
   'ARS': 'ARS — Peso argentino',
 };
 
-const _minInvoiceReminderDays = 1;
-const _maxInvoiceReminderDays = 14;
-
 /// Pantalla de preferencias del usuario. Se abre como ruta propia (push)
 /// desde ProfileScreen — ver router.dart ('/profile/preferences').
 ///
@@ -145,32 +142,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             const _SectionLabel('Notificaciones'),
             const SizedBox(height: 8),
             _PreferenceCard(
-              child: Column(
-                children: [
-                  _SwitchRow(
-                    label: 'Notificaciones habilitadas',
-                    value: prefs.notificationsEnabled,
-                    onChanged: vm.setNotificationsEnabled,
-                    showDivider: prefs.notificationsEnabled,
-                  ),
-                  if (prefs.notificationsEnabled)
-                    _StepperRow(
-                      label: 'Avisar con anticipación',
-                      valueLabel: prefs.invoiceReminderDaysAhead == 1
-                          ? '1 día'
-                          : '${prefs.invoiceReminderDaysAhead} días',
-                      onDecrement: prefs.invoiceReminderDaysAhead >
-                              _minInvoiceReminderDays
-                          ? () => vm.setInvoiceReminderDaysAhead(
-                              prefs.invoiceReminderDaysAhead - 1)
-                          : null,
-                      onIncrement: prefs.invoiceReminderDaysAhead <
-                              _maxInvoiceReminderDays
-                          ? () => vm.setInvoiceReminderDaysAhead(
-                              prefs.invoiceReminderDaysAhead + 1)
-                          : null,
-                    ),
-                ],
+              child: _SwitchRow(
+                label: 'Notificaciones habilitadas',
+                value: prefs.notificationsEnabled,
+                onChanged: vm.setNotificationsEnabled,
               ),
             ),
             const SizedBox(height: 20),
@@ -297,58 +272,11 @@ class _SwitchRow extends StatelessWidget {
   final String label;
   final bool value;
   final ValueChanged<bool>? onChanged;
-  final bool showDivider;
 
   const _SwitchRow({
     required this.label,
     required this.value,
     required this.onChanged,
-    this.showDivider = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          height: 56,
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AppColors.authTextPrimary,
-                  ),
-                ),
-              ),
-              Switch(
-                value: value,
-                activeThumbColor: AppColors.authAccent,
-                onChanged: onChanged,
-              ),
-            ],
-          ),
-        ),
-        if (showDivider)
-          const Divider(height: 1, color: AppColors.authCardBorder),
-      ],
-    );
-  }
-}
-
-class _StepperRow extends StatelessWidget {
-  final String label;
-  final String valueLabel;
-  final VoidCallback? onDecrement;
-  final VoidCallback? onIncrement;
-
-  const _StepperRow({
-    required this.label,
-    required this.valueLabel,
-    required this.onDecrement,
-    required this.onIncrement,
   });
 
   @override
@@ -366,32 +294,14 @@ class _StepperRow extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            onPressed: onDecrement,
-            icon: const Icon(Icons.remove_circle_outline_rounded),
-            color: AppColors.authTextSecondary,
-            disabledColor: AppColors.authTextFooter,
-          ),
-          SizedBox(
-            width: 56,
-            child: Text(
-              valueLabel,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: onIncrement,
-            icon: const Icon(Icons.add_circle_outline_rounded),
-            color: AppColors.authTextSecondary,
-            disabledColor: AppColors.authTextFooter,
+          Switch(
+            value: value,
+            activeThumbColor: AppColors.authAccent,
+            onChanged: onChanged,
           ),
         ],
       ),
     );
   }
 }
+

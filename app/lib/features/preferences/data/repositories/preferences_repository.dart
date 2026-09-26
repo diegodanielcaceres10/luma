@@ -20,8 +20,6 @@ class PreferencesRepository {
   static const _currencyCodeKey = 'preferences.currency_code';
   static const _darkThemeEnabledKey = 'preferences.dark_theme_enabled';
   static const _notificationsEnabledKey = 'preferences.notifications_enabled';
-  static const _invoiceReminderDaysAheadKey =
-      'preferences.invoice_reminder_days_ahead';
   static const _biometricLockEnabledKey = 'preferences.biometric_lock_enabled';
 
   /// Lee todas las preferencias guardadas. Cualquier valor ausente (primera
@@ -33,8 +31,6 @@ class PreferencesRepository {
     final currencyCode = await _prefs.getString(_currencyCodeKey);
     final darkThemeEnabled = await _prefs.getBool(_darkThemeEnabledKey);
     final notificationsEnabled = await _prefs.getBool(_notificationsEnabledKey);
-    final invoiceReminderDaysAhead =
-        await _prefs.getInt(_invoiceReminderDaysAheadKey);
     final biometricLockEnabled = await _prefs.getBool(_biometricLockEnabledKey);
 
     return AppPreferences(
@@ -42,8 +38,6 @@ class PreferencesRepository {
       darkThemeEnabled: darkThemeEnabled ?? defaults.darkThemeEnabled,
       notificationsEnabled:
           notificationsEnabled ?? defaults.notificationsEnabled,
-      invoiceReminderDaysAhead:
-          invoiceReminderDaysAhead ?? defaults.invoiceReminderDaysAhead,
       biometricLockEnabled:
           biometricLockEnabled ?? defaults.biometricLockEnabled,
     );
@@ -57,9 +51,6 @@ class PreferencesRepository {
 
   Future<void> setNotificationsEnabled(bool value) =>
       _prefs.setBool(_notificationsEnabledKey, value);
-
-  Future<void> setInvoiceReminderDaysAhead(int value) =>
-      _prefs.setInt(_invoiceReminderDaysAheadKey, value);
 
   Future<void> setBiometricLockEnabled(bool value) =>
       _prefs.setBool(_biometricLockEnabledKey, value);
