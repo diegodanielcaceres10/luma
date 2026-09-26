@@ -223,6 +223,28 @@ class _StatisticsTabState extends State<StatisticsTab> {
               );
 
         final breakdown = vm.statisticsCategoryBreakdown;
+        // El gráfico "Gastos por categoría" es justamente eso: por
+        // categoría. Los movimientos sin categoría ya tienen su propio
+        // lugar en el desglose "Categorizado, sin categoría y no
+        // declarado" de más abajo, así que acá no se muestran — ni en la
+        // lista ni en el total del centro de la dona.
+        final categorizedTotal = breakdown
+            .where((c) => c.category.id != null)
+            .fold<double>(0, (sum, c) => sum + c.amount);
+        // Los % de CategoryTotal vienen calculados contra el total de
+        // gastos del mes (incluye lo sin categorizar); acá se recalculan
+        // contra categorizedTotal para que la dona y su leyenda sumen
+        // 100% entre sí.
+        final categorizedBreakdown = breakdown
+            .where((c) => c.category.id != null)
+            .map((c) => CategoryTotal(
+                  category: c.category,
+                  amount: c.amount,
+                  percent: categorizedTotal > 0
+                      ? (c.amount / categorizedTotal) * 100
+                      : 0,
+                ))
+            .toList();
         final expenseTypeBreakdown = _expenseTypeBreakdown(vm);
         final expenseTypeTotal =
             expenseTypeBreakdown.fold<double>(0, (sum, c) => sum + c.amount);
@@ -304,13 +326,22 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 netChangePercent: vm.statisticsNetResultChangePercent,
                 currency: widget.currency,
               ),
-              if (budgetCard != null) ...[
-                const SizedBox(height: 10),
-                budgetCard,
-              ],
               if (uncontrolledCard != null) ...[
                 const SizedBox(height: 10),
                 uncontrolledCard,
+              ],
+              if (budgetCard != null) ...[
+                const SizedBox(height: 24),
+                const Text(
+                  'Presupuesto',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.authTextSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                budgetCard,
               ],
               Padding(
                 padding: const EdgeInsets.only(top: 40),
@@ -342,13 +373,22 @@ class _StatisticsTabState extends State<StatisticsTab> {
               netChangePercent: vm.statisticsNetResultChangePercent,
               currency: widget.currency,
             ),
-            if (budgetCard != null) ...[
-              const SizedBox(height: 10),
-              budgetCard,
-            ],
             if (uncontrolledCard != null) ...[
               const SizedBox(height: 10),
               uncontrolledCard,
+            ],
+            if (budgetCard != null) ...[
+              const SizedBox(height: 24),
+              const Text(
+                'Presupuesto',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.authTextSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              budgetCard,
             ],
             const SizedBox(height: 24),
             const Text(
@@ -361,7 +401,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
             ),
             const SizedBox(height: 4),
             Text(
-              formatCurrency(vm.statisticsExpenses, widget.currency),
+              formatCurrency(categorizedTotal, widget.currency),
               style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
@@ -390,14 +430,14 @@ class _StatisticsTabState extends State<StatisticsTab> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     _CategoryDonutChart(
-                      breakdown: breakdown,
-                      total: vm.statisticsExpenses,
+                      breakdown: categorizedBreakdown,
+                      total: categorizedTotal,
                       currency: widget.currency,
                     ),
                     const SizedBox(width: 18),
                     Expanded(
                       child: Column(
-                        children: breakdown
+                        children: categorizedBreakdown
                             .map((c) => _CategoryLegendRow(
                                   category: c,
                                   currency: widget.currency,
