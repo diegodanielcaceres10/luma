@@ -216,19 +216,129 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
         mimeType: picked.mimeType ?? 'image/jpeg',
       );
       if (!mounted) return;
-      _applyScanResult(result);
+
+      // La API ya respondió y el modal va a mostrar el resultado — no
+      // tiene sentido que el botón siga con el spinner de "escaneando"
+      // por detrás mientras la persona lo está revisando.
+      setState(() => _isScanning = false);
+
+      // El usuario confirma o descarta lo que devolvió la API antes de que
+      // toque el formulario — así el escaneo nunca completa campos sin que
+      // la persona vea primero qué se detectó.
+      final confirmed = await _showScanResultDialog(result);
+      if (confirmed == true && mounted) {
+        _applyScanResult(result);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
-            'Servicio no disponible. Intente más tarde o consulte a su administrador. $e',
+            'Servicio no disponible. Intente más tarde o consulte a su '
+            'administrador.',
           ),
         ),
       );
     } finally {
       if (mounted) setState(() => _isScanning = false);
     }
+  }
+
+  /// Muestra en un modal los datos que devolvió la API de escaneo, sin
+  /// tocar todavía el formulario. Devuelve `true` si la persona confirma
+  /// (y entonces corresponde precompletar el form) o `false`/`null` si
+  /// cancela (se descarta el resultado y el form queda como estaba).
+  Future<bool?> _showScanResultDialog(ReceiptScanResult result) {
+    final currency = widget.accountViewModel.primaryCurrency;
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.authBackgroundTop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        title: const Text(
+          'Datos leídos del ticket',
+          style: TextStyle(
+            color: AppColors.authTextPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _scanResultRow(
+              'Monto',
+              result.amount != null
+                  ? formatCurrency(result.amount!, currency)
+                  : 'No detectado',
+            ),
+            _scanResultRow(
+              'Descripción',
+              result.description ?? 'No detectada',
+            ),
+            _scanResultRow(
+              'Fecha',
+              result.date != null ? _formatDate(result.date!) : 'No detectada',
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Podés confirmarlos para precompletar el formulario, o '
+              'cancelar y cargarlos a mano.',
+              style:
+                  TextStyle(color: AppColors.authTextSecondary, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.authTextSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              'Confirmar',
+              style: TextStyle(
+                color: _accentColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scanResultRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 92, child: Text(label, style: _labelStyle)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: AppColors.authTextPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
   }
 
   void _applyScanResult(ReceiptScanResult result) {
@@ -242,21 +352,12 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
       if (result.date != null && !result.date!.isAfter(DateTime.now())) {
         _selectedDate = result.date!;
       }
-      if (result.categoryName != null) {
-        final categories = widget.categoryViewModel.byType(widget.type);
-        final normalized = result.categoryName!.toLowerCase();
-        for (final category in categories) {
-          if (category.name.toLowerCase() == normalized) {
-            _selectedCategory = category;
-            break;
-          }
-        }
-      }
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Datos leídos del ticket — revisá antes de guardar.'),
+        content:
+            Text('Datos aplicados al formulario — revisalos antes de guardar.'),
       ),
     );
   }

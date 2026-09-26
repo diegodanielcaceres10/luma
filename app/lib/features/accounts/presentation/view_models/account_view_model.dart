@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../preferences/presentation/view_models/preferences_view_model.dart';
 import '../../data/models/account.dart';
 import '../../data/repositories/account_repository.dart';
 
@@ -7,8 +8,17 @@ enum AccountSubmitError { duplicate, generic }
 
 class AccountViewModel extends ChangeNotifier {
   final AccountRepository _repository;
+  final PreferencesViewModel _preferencesViewModel;
 
-  AccountViewModel(this._repository);
+  AccountViewModel(this._repository, this._preferencesViewModel) {
+    // La moneda vive en las preferencias del usuario (ver PreferencesScreen
+    // / PreferencesViewModel.setCurrencyCode), no en AccountViewModel — pero
+    // la mayoría de las pantallas ya escuchan a AccountViewModel para
+    // formatear montos (ver primaryCurrency). Reenviamos el cambio acá para
+    // que esas pantallas se actualicen solas al cambiar la moneda, sin
+    // tener que agregar PreferencesViewModel a cada una.
+    _preferencesViewModel.addListener(notifyListeners);
+  }
 
   bool _isLoading = false;
   bool _hasLoaded = false;
@@ -40,10 +50,9 @@ class AccountViewModel extends ChangeNotifier {
       .where((account) => account.isActive)
       .fold(0, (sum, account) => sum + account.balance);
 
-  //
-  // cuentas ya no tienen moneda propia (se removió para no mezclar
-  // cálculos), así que se usa un valor fijo hasta que exista esa config.
-  String get primaryCurrency => 'EUR';
+  // Cuentas ya no tienen moneda propia (se removió para no mezclar
+  // cálculos): se usa la moneda elegida en Preferencias para toda la app.
+  String get primaryCurrency => _preferencesViewModel.preferences.currencyCode;
 
   Future<void> loadAccounts() async {
     _isLoading = true;
@@ -100,7 +109,35 @@ class AccountViewModel extends ChangeNotifier {
     );
   }
 
-  Future<bool> _submit(Future<void> Function() action) async {
+  /// Ajusta el balance de la cuenta [accountId] en [amount] (puede ser
+  /// negativo o positivo) y acumula ese mismo monto en
+  /// `monthly_account_balances.uncontrolled_expenses_total` del mes/año
+  /// indicados — sin crear ninguna transacción. Lo usa "Actualizar
+  /// saldo" para la parte de la diferencia que ningún movimiento cargado
+  /// explica (ver `UpdateBalanceTab._saveAndUpdateBalance`).
+  Future<bool> applyUncontrolledAdjustment({
+    required String userId,
+    required String accountId,
+    required double amount,
+    required int month,
+    required int year,
+  }) async {
+    return _submit(
+      () => _repository.applyUncontrolledAdjustment(
+        userId: userId,
+        accountId: accountId,
+        amount: amount,
+        month: month,
+        year: year,
+      ),
+      genericErrorMessage: 'No se pudo guardar el ajuste no declarado.',
+    );
+  }
+
+  Future<bool> _submit(
+    Future<void> Function() action, {
+    String genericErrorMessage = 'No se pudo guardar la cuenta.',
+  }) async {
     _isSubmitting = true;
     _errorMessage = null;
     _submitError = null;
@@ -117,18 +154,24 @@ class AccountViewModel extends ChangeNotifier {
         _errorMessage = 'Ya existe una cuenta con ese nombre.';
       } else {
         _submitError = AccountSubmitError.generic;
-        _errorMessage = 'No se pudo guardar la cuenta.';
+        _errorMessage = genericErrorMessage;
       }
       notifyListeners();
       return false;
     } catch (_) {
       _submitError = AccountSubmitError.generic;
-      _errorMessage = 'No se pudo guardar la cuenta.';
+      _errorMessage = genericErrorMessage;
       notifyListeners();
       return false;
     } finally {
       _isSubmitting = false;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _preferencesViewModel.removeListener(notifyListeners);
+    super.dispose();
   }
 }

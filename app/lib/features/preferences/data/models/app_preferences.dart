@@ -3,23 +3,21 @@
 /// PreferencesScreen.
 const List<String> kSupportedCurrencyCodes = ['USD', 'EUR', 'BRL', 'ARS'];
 
-/// Idiomas soportados hoy (lista fija). Código ISO 639-1. Por ahora solo se
-/// guarda la preferencia — no cambia el idioma real de la app (ver
-/// PreferencesViewModel).
-const List<String> kSupportedLanguageCodes = ['es', 'en', 'pt'];
-
 /// Preferencias del usuario que se guardan solo en este dispositivo (ver
 /// PreferencesRepository) — no viajan entre dispositivos ni sobreviven a un
 /// reinstall. A diferencia del resto de los datos de la app (cuentas,
 /// categorías, etc.), no están pensadas para sincronizarse vía Supabase.
 ///
-/// Importante: por ahora esta clase solo se guarda y se lee. Ninguno de
-/// estos valores todavía cambia el comportamiento real de la app (moneda
-/// mostrada, idioma, tema, notificaciones o bloqueo biométrico) — eso queda
-/// para una tarea futura.
+/// Importante: moneda y tema por ahora solo se guardan — todavía no
+/// cambian nada del comportamiento real de la app. [biometricLockEnabled]
+/// y [notificationsEnabled] son la excepción: sí se aplican de verdad —
+/// ver AppLockViewModel (feature `app_lock`) y NotificationsViewModel /
+/// NotificationSchedulerService (feature `notifications`),
+/// respectivamente. [invoiceReminderDaysAhead] en cambio todavía es solo
+/// un valor guardado: la rutina diaria de notificaciones (Android) hoy
+/// solo avisa si el vencimiento es hoy, no con anticipación.
 class AppPreferences {
   final String currencyCode;
-  final String languageCode;
   final bool darkThemeEnabled;
   final bool notificationsEnabled;
 
@@ -27,15 +25,14 @@ class AppPreferences {
   /// factura. Solo tiene sentido si [notificationsEnabled] es `true`.
   final int invoiceReminderDaysAhead;
 
-  /// Preferencia de bloqueo con biometría. Guarda únicamente la intención
-  /// del usuario: no valida capacidad del dispositivo ni dispara ningún
-  /// pedido real de Face ID/huella (eso requiere sumar `local_auth`, hoy
-  /// fuera de alcance).
+  /// Preferencia de bloqueo con biometría. Se aplica de verdad: cuando
+  /// está en `true` (y el dispositivo lo soporta), `AppLockViewModel`
+  /// bloquea la app al abrirla y al volver de segundo plano, pidiendo
+  /// Face ID/huella/PIN vía `local_auth` — ver feature `app_lock`.
   final bool biometricLockEnabled;
 
   const AppPreferences({
     required this.currencyCode,
-    required this.languageCode,
     required this.darkThemeEnabled,
     required this.notificationsEnabled,
     required this.invoiceReminderDaysAhead,
@@ -43,20 +40,17 @@ class AppPreferences {
   });
 
   static const defaultCurrencyCode = 'USD';
-  static const defaultLanguageCode = 'es';
   static const defaultInvoiceReminderDaysAhead = 3;
 
   const AppPreferences.defaults()
       : currencyCode = defaultCurrencyCode,
-        languageCode = defaultLanguageCode,
         darkThemeEnabled = false,
-        notificationsEnabled = true,
+        notificationsEnabled = false,
         invoiceReminderDaysAhead = defaultInvoiceReminderDaysAhead,
         biometricLockEnabled = false;
 
   AppPreferences copyWith({
     String? currencyCode,
-    String? languageCode,
     bool? darkThemeEnabled,
     bool? notificationsEnabled,
     int? invoiceReminderDaysAhead,
@@ -64,7 +58,6 @@ class AppPreferences {
   }) {
     return AppPreferences(
       currencyCode: currencyCode ?? this.currencyCode,
-      languageCode: languageCode ?? this.languageCode,
       darkThemeEnabled: darkThemeEnabled ?? this.darkThemeEnabled,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       invoiceReminderDaysAhead:

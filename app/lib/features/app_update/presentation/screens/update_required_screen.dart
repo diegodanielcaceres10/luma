@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_system_ui.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/widgets/luma_logo.dart';
 
@@ -27,11 +28,7 @@ class UpdateRequiredScreen extends StatelessWidget {
     return PopScope(
       canPop: false,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.light, // Android
-          statusBarBrightness: Brightness.dark, // iOS
-        ),
+        value: appStatusBarStyle,
         child: Scaffold(
           body: DecoratedBox(
             decoration: const BoxDecoration(

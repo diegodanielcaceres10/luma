@@ -36,7 +36,7 @@ class _AppVersionFooterState extends State<AppVersionFooter> {
       // info.version viene de pubspec.yaml (ej. "1.0.0"); buildNumber es el
       // "+N" (ej. "1"). Se muestran juntos para poder identificar el build
       // exacto instalado (útil en distribuciones de testing).
-      _versionLabel = 'v${info.version}+${info.buildNumber}';
+      _versionLabel = 'v${info.version}';
     });
   }
 

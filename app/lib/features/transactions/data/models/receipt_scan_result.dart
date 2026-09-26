@@ -9,14 +9,12 @@ class ReceiptScanResult {
   final double? amount;
   final DateTime? date;
   final String? description;
-  final String? categoryName;
 
   const ReceiptScanResult({
     this.type,
     this.amount,
     this.date,
     this.description,
-    this.categoryName,
   });
 
   factory ReceiptScanResult.fromMap(Map<String, dynamic> map) {
@@ -25,7 +23,6 @@ class ReceiptScanResult {
       amount: (map['amount'] as num?)?.toDouble(),
       date: _parseDate(map['date']),
       description: _cleanString(map['description']),
-      categoryName: _cleanString(map['category']),
     );
   }
 

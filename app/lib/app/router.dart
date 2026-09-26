@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart' show BuildContext, Widget;
+import 'package:flutter/widgets.dart' show BuildContext, Widget, Listenable;
 import 'package:go_router/go_router.dart';
 
 import '../core/navigation/app_back.dart';
@@ -9,6 +9,8 @@ import '../features/accounts/presentation/screens/accounts_overview_tab.dart';
 import '../features/accounts/presentation/screens/accounts_tab.dart';
 import '../features/accounts/presentation/screens/update_balance_tab.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
+import '../features/app_lock/presentation/screens/lock_screen.dart';
+import '../features/app_lock/presentation/view_models/app_lock_view_model.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
@@ -157,6 +159,7 @@ GoRouter buildAppRouter({
   required ServiceViewModel serviceViewModel,
   required InvoiceViewModel invoiceViewModel,
   required PreferencesViewModel preferencesViewModel,
+  required AppLockViewModel appLockViewModel,
 }) {
   // Por defecto, go_router SOLO refleja `context.go()` en la barra de
   // direcciones del navegador — un `context.push()` cambia de pantalla
@@ -173,14 +176,24 @@ GoRouter buildAppRouter({
     // app — hay que decirle explícitamente cuándo hacerlo.
     // AuthViewModel ya notifica en cada cambio de sesión (ver
     // `_onAuthStateChange`), así que reusamos ese mismo Listenable en vez
-    // de armar uno nuevo.
-    refreshListenable: authViewModel,
+    // de armar uno nuevo. Se le suma AppLockViewModel para que el
+    // `redirect` también se reevalúe cuando la app se bloquea/desbloquea.
+    refreshListenable: Listenable.merge([authViewModel, appLockViewModel]),
     redirect: (context, state) {
       final isAuthenticated = authViewModel.isAuthenticated;
       final isLoggingIn = state.matchedLocation == '/login';
 
       if (!isAuthenticated && !isLoggingIn) return '/login';
       if (isAuthenticated && isLoggingIn) return '/';
+
+      // Gate de bloqueo local (biometría), independiente del login — ver
+      // AppLockViewModel. Solo puede estar `true` si ya hay sesión, así
+      // que este chequeo va después de los dos de arriba.
+      final isLocked = appLockViewModel.isLocked;
+      final isLocking = state.matchedLocation == '/lock';
+      if (isAuthenticated && isLocked && !isLocking) return '/lock';
+      if (isAuthenticated && !isLocked && isLocking) return '/';
+
       return null;
     },
     // URLs que no coinciden con ninguna ruta. El `redirect` de arriba corre
@@ -194,6 +207,13 @@ GoRouter buildAppRouter({
       GoRoute(
         path: '/login',
         builder: (context, state) => LoginScreen(viewModel: authViewModel),
+      ),
+      GoRoute(
+        path: '/lock',
+        builder: (context, state) => LockScreen(
+          viewModel: appLockViewModel,
+          authViewModel: authViewModel,
+        ),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShellScreen(child: child),
@@ -486,6 +506,7 @@ GoRouter buildAppRouter({
                 initialRange: state.uri.queryParameters['range'],
                 initialCategory: state.uri.queryParameters['category'],
                 initialAccount: state.uri.queryParameters['account'],
+                initialMonth: state.uri.queryParameters['month'],
               ),
             ),
           ),
@@ -514,6 +535,7 @@ GoRouter buildAppRouter({
             builder: (context, state) => RoutedScreenScaffold(
               body: PreferencesScreen(
                 viewModel: preferencesViewModel,
+                appLockViewModel: appLockViewModel,
                 onBack: () => context.goBack(),
               ),
             ),

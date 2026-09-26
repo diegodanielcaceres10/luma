@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/accounts/data/repositories/account_repository.dart';
 import '../features/accounts/data/services/account_service.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
+import '../features/app_lock/data/services/biometric_service.dart';
+import '../features/app_lock/presentation/view_models/app_lock_view_model.dart';
 import '../features/auth/data/repositories/auth_repository.dart';
 import '../features/auth/data/services/auth_service.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
@@ -16,6 +19,7 @@ import '../features/invoices/presentation/view_models/invoice_view_model.dart';
 import '../features/monthly_balances/data/repositories/monthly_balance_repository.dart';
 import '../features/monthly_balances/data/services/monthly_balance_service.dart';
 import '../features/monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
+import '../features/notifications/presentation/view_models/notifications_view_model.dart';
 import '../features/preferences/data/repositories/preferences_repository.dart';
 import '../features/preferences/presentation/view_models/preferences_view_model.dart';
 import '../features/services/data/repositories/service_repository.dart';
@@ -26,6 +30,7 @@ import '../features/transactions/data/services/transaction_service.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import 'router.dart';
 import 'theme/app_colors.dart';
+import 'theme/app_system_ui.dart';
 import 'theme/app_theme.dart';
 
 class LumaApp extends StatefulWidget {
@@ -41,7 +46,7 @@ class LumaApp extends StatefulWidget {
   State<LumaApp> createState() => _LumaAppState();
 }
 
-class _LumaAppState extends State<LumaApp> {
+class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
   late final AuthViewModel _authViewModel;
   late final AccountViewModel _accountViewModel;
   late final TransactionViewModel _transactionViewModel;
@@ -50,6 +55,9 @@ class _LumaAppState extends State<LumaApp> {
   late final ServiceViewModel _serviceViewModel;
   late final InvoiceViewModel _invoiceViewModel;
   late final PreferencesViewModel _preferencesViewModel;
+  late final BiometricService _biometricService;
+  late final AppLockViewModel _appLockViewModel;
+  late final NotificationsViewModel _notificationsViewModel;
   late final _router = buildAppRouter(
     authViewModel: _authViewModel,
     accountViewModel: _accountViewModel,
@@ -59,30 +67,54 @@ class _LumaAppState extends State<LumaApp> {
     serviceViewModel: _serviceViewModel,
     invoiceViewModel: _invoiceViewModel,
     preferencesViewModel: _preferencesViewModel,
+    appLockViewModel: _appLockViewModel,
   );
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final client = Supabase.instance.client;
 
     final authRepository = AuthRepository(AuthService(client));
     _authViewModel = AuthViewModel(authRepository);
 
+    // Se crea antes que AccountViewModel porque este último la necesita
+    // para la moneda elegida por el usuario (ver
+    // AccountViewModel.primaryCurrency). Tampoco depende de Supabase ni de
+    // haber iniciado sesión (son preferencias del dispositivo, no del
+    // usuario logueado) — se carga siempre, no dentro de _loadUserData().
+    _preferencesViewModel = PreferencesViewModel(PreferencesRepository());
+    _preferencesViewModel.loadPreferences();
+
+    // Depende solo de _preferencesViewModel (para reaccionar al toggle de
+    // "Notificaciones habilitadas") — no de Supabase ni de la sesión, así
+    // que se puede armar ya. Igual que con `loadPreferences()`, no se
+    // espera esta llamada: si tarda, no hay razón para trabar el primer
+    // frame de la app por esto.
+    _notificationsViewModel =
+        NotificationsViewModel(preferencesViewModel: _preferencesViewModel);
+    _notificationsViewModel.initialize();
+
     final accountRepository = AccountRepository(AccountService(client));
-    _accountViewModel = AccountViewModel(accountRepository);
+    _accountViewModel =
+        AccountViewModel(accountRepository, _preferencesViewModel);
 
-    final transactionRepository =
-        TransactionRepository(TransactionService(client));
-    _transactionViewModel = TransactionViewModel(transactionRepository);
-
-    final categoryRepository = CategoryRepository(CategoryService(client));
-    _categoryViewModel = CategoryViewModel(categoryRepository);
-
+    // Se crea antes que TransactionViewModel porque este último la
+    // necesita para traer el total de ajustes no declarados
+    // (uncontrolled_expenses_total) de Estadísticas.
     final monthlyBalanceRepository =
         MonthlyBalanceRepository(MonthlyBalanceService(client));
     _monthlyBalanceViewModel =
         MonthlyBalanceViewModel(monthlyBalanceRepository);
+
+    final transactionRepository =
+        TransactionRepository(TransactionService(client));
+    _transactionViewModel =
+        TransactionViewModel(transactionRepository, monthlyBalanceRepository);
+
+    final categoryRepository = CategoryRepository(CategoryService(client));
+    _categoryViewModel = CategoryViewModel(categoryRepository);
 
     final serviceRepository = ServiceRepository(ServiceService(client));
     _serviceViewModel = ServiceViewModel(serviceRepository);
@@ -91,11 +123,15 @@ class _LumaAppState extends State<LumaApp> {
     _invoiceViewModel =
         InvoiceViewModel(invoiceRepository, _transactionViewModel);
 
-    // A diferencia del resto de los view models, no depende de Supabase ni
-    // de haber iniciado sesión (son preferencias del dispositivo, no del
-    // usuario logueado) — se carga siempre, no dentro de _loadUserData().
-    _preferencesViewModel = PreferencesViewModel(PreferencesRepository());
-    _preferencesViewModel.loadPreferences();
+    // Tampoco depende de Supabase: el bloqueo es un gate local, sobre la
+    // sesión ya iniciada — ver AppLockViewModel.
+    _biometricService = BiometricService();
+    _appLockViewModel = AppLockViewModel(
+      biometricService: _biometricService,
+      preferencesViewModel: _preferencesViewModel,
+      authViewModel: _authViewModel,
+    );
+    _appLockViewModel.initialize();
 
     _authViewModel.addListener(_onAuthChanged);
     if (_authViewModel.isAuthenticated) {
@@ -115,6 +151,20 @@ class _LumaAppState extends State<LumaApp> {
   void _onAuthChanged() {
     if (_authViewModel.isAuthenticated) {
       _loadUserData();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+        _appLockViewModel.onAppPaused();
+      case AppLifecycleState.resumed:
+        _appLockViewModel.onAppResumed();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        break;
     }
   }
 
@@ -167,6 +217,7 @@ class _LumaAppState extends State<LumaApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _authViewModel.removeListener(_onAuthChanged);
     _authViewModel.dispose();
     _accountViewModel.dispose();
@@ -176,6 +227,8 @@ class _LumaAppState extends State<LumaApp> {
     _serviceViewModel.dispose();
     _invoiceViewModel.dispose();
     _preferencesViewModel.dispose();
+    _appLockViewModel.dispose();
+    _notificationsViewModel.dispose();
     super.dispose();
   }
 
@@ -186,6 +239,10 @@ class _LumaAppState extends State<LumaApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: _router,
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: appStatusBarStyle,
+        child: child!,
+      ),
     );
   }
 }

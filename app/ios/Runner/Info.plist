@@ -45,6 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Requerido por local_auth para poder usar Face ID. -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Luma usa Face ID para desbloquear la app cuando activás el bloqueo con biometría en Preferencias.</string>
 	<!-- Deep link del callback de OAuth (Supabase). Debe coincidir con
 	     AuthService.oauthRedirectUrl. -->
 	<key>CFBundleURLTypes</key>

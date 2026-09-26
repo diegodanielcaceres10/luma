@@ -10,6 +10,7 @@ import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../data/models/transaction_entry.dart' show TransactionCategory;
 import '../export/statistics_pdf_builder.dart';
 import '../view_models/transaction_view_model.dart';
 
@@ -57,8 +58,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
       expenseChangePercent: vm.statisticsExpenseChangePercent,
       netChangePercent: vm.statisticsNetResultChangePercent,
       breakdown: List.of(vm.statisticsCategoryBreakdown),
-      uncategorizedCount: vm.statisticsUncategorizedCount,
-      uncategorizedTotal: vm.statisticsUncategorizedTotal,
+      uncontrolledTotal: vm.statisticsUncontrolledTotal,
     );
 
     setState(() => _isExportingPdf = true);
@@ -94,6 +94,61 @@ class _StatisticsTabState extends State<StatisticsTab> {
               spent: spentByCategoryId[category.id] ?? 0,
             ))
         .toList();
+  }
+
+  /// Desglosa el gasto del mes en 3 baldes, para el segundo gráfico de
+  /// dona (debajo del de categorías): cuánto está categorizado, cuánto
+  /// son movimientos sin categoría y cuánto es el ajuste no declarado
+  /// (`uncontrolled_expenses_total`, cuando es un gasto). A diferencia
+  /// de [_CategoryDonutChart] de arriba (que solo cuenta transacciones),
+  /// acá el total incluye ese ajuste aunque no sea una transacción real.
+  ///
+  /// Solo entran los baldes con algo adentro, así el gráfico y la
+  /// leyenda no muestran una porción en cero.
+  List<CategoryTotal> _expenseTypeBreakdown(TransactionViewModel vm) {
+    final breakdown = vm.statisticsCategoryBreakdown;
+    final categorized = breakdown
+        .where((c) => c.category.id != null)
+        .fold<double>(0, (sum, c) => sum + c.amount);
+    final uncategorized = breakdown
+        .where((c) => c.category.id == null)
+        .fold<double>(0, (sum, c) => sum + c.amount);
+    final undeclared = vm.statisticsUncontrolledTotal < 0
+        ? -vm.statisticsUncontrolledTotal
+        : 0.0;
+
+    final total = categorized + uncategorized + undeclared;
+    double percentOf(double amount) => total > 0 ? (amount / total) * 100 : 0;
+
+    return [
+      if (categorized > 0)
+        CategoryTotal(
+          category: const TransactionCategory(
+            name: 'Categorizados',
+            color: '#4CBB7A',
+          ),
+          amount: categorized,
+          percent: percentOf(categorized),
+        ),
+      if (uncategorized > 0)
+        CategoryTotal(
+          category: const TransactionCategory(
+            name: 'No categorizados',
+            color: '#F59E0B',
+          ),
+          amount: uncategorized,
+          percent: percentOf(uncategorized),
+        ),
+      if (undeclared > 0)
+        CategoryTotal(
+          category: const TransactionCategory(
+            name: 'No declarados',
+            color: '#EF6F5B',
+          ),
+          amount: undeclared,
+          percent: percentOf(undeclared),
+        ),
+    ];
   }
 
   Future<void> _pickMonth() async {
@@ -158,18 +213,34 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 currency: widget.currency,
               );
 
-        // Card aparte para los movimientos (ingresos o gastos, sin contar
-        // transferencias) que quedaron sin categoría asignada. No se
-        // muestra si no hay ninguno.
-        final uncategorizedCard = vm.statisticsUncategorizedCount == 0
+        // Card aparte para el acumulado de ajustes sin declarar del mes
+        // (uncontrolled_expenses_total). No se muestra si es cero.
+        final uncontrolledCard = !vm.statisticsHasUncontrolledTotal
             ? null
-            : _UncategorizedCard(
-                total: vm.statisticsUncategorizedTotal,
-                count: vm.statisticsUncategorizedCount,
+            : _UncontrolledCard(
+                total: vm.statisticsUncontrolledTotal,
                 currency: widget.currency,
               );
 
         final breakdown = vm.statisticsCategoryBreakdown;
+        final expenseTypeBreakdown = _expenseTypeBreakdown(vm);
+        final expenseTypeTotal =
+            expenseTypeBreakdown.fold<double>(0, (sum, c) => sum + c.amount);
+
+        // Las cards de "Gastos" y "Balance del mes" también incluyen el
+        // ajuste sin declarar del mes (uncontrolled_expenses_total), no
+        // solo las transacciones cargadas: así reflejan el mismo gasto
+        // real que ya muestran la card "Sin declarar" (_UncontrolledCard)
+        // y el desglose "Categorizado, sin categoría y no declarado" de
+        // más abajo. Un ajuste positivo (ingreso no controlado) no se
+        // suma acá — no es un gasto — pero sí impacta el balance.
+        final uncontrolledExpensePart = vm.statisticsUncontrolledTotal < 0
+            ? -vm.statisticsUncontrolledTotal
+            : 0.0;
+        final statisticsExpensesTotal =
+            vm.statisticsExpenses + uncontrolledExpensePart;
+        final statisticsNetResultTotal =
+            vm.statisticsNetResult + vm.statisticsUncontrolledTotal;
 
         if (vm.isStatisticsLoading && breakdown.isEmpty) {
           return ListView(
@@ -226,8 +297,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
               const SizedBox(height: 20),
               _SummaryCardsRow(
                 income: vm.statisticsIncome,
-                expenses: vm.statisticsExpenses,
-                netResult: vm.statisticsNetResult,
+                expenses: statisticsExpensesTotal,
+                netResult: statisticsNetResultTotal,
                 incomeChangePercent: vm.statisticsIncomeChangePercent,
                 expenseChangePercent: vm.statisticsExpenseChangePercent,
                 netChangePercent: vm.statisticsNetResultChangePercent,
@@ -237,9 +308,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 const SizedBox(height: 10),
                 budgetCard,
               ],
-              if (uncategorizedCard != null) ...[
+              if (uncontrolledCard != null) ...[
                 const SizedBox(height: 10),
-                uncategorizedCard,
+                uncontrolledCard,
               ],
               Padding(
                 padding: const EdgeInsets.only(top: 40),
@@ -264,8 +335,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
             const SizedBox(height: 20),
             _SummaryCardsRow(
               income: vm.statisticsIncome,
-              expenses: vm.statisticsExpenses,
-              netResult: vm.statisticsNetResult,
+              expenses: statisticsExpensesTotal,
+              netResult: statisticsNetResultTotal,
               incomeChangePercent: vm.statisticsIncomeChangePercent,
               expenseChangePercent: vm.statisticsExpenseChangePercent,
               netChangePercent: vm.statisticsNetResultChangePercent,
@@ -275,9 +346,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
               const SizedBox(height: 10),
               budgetCard,
             ],
-            if (uncategorizedCard != null) ...[
+            if (uncontrolledCard != null) ...[
               const SizedBox(height: 10),
-              uncategorizedCard,
+              uncontrolledCard,
             ],
             const SizedBox(height: 24),
             const Text(
@@ -338,6 +409,50 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 ),
               ),
             ),
+            if (expenseTypeBreakdown.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Text(
+                'Categorizado, sin categoría y no declarado',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.authTextSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.authCardFill,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.authCardBorder),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _CategoryDonutChart(
+                        breakdown: expenseTypeBreakdown,
+                        total: expenseTypeTotal,
+                        currency: widget.currency,
+                        label: 'Gasto real',
+                      ),
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Column(
+                          children: expenseTypeBreakdown
+                              .map((c) => _CategoryLegendRow(
+                                    category: c,
+                                    currency: widget.currency,
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         );
       },
@@ -727,23 +842,29 @@ class _BudgetCategoriesCard extends StatelessWidget {
   }
 }
 
-/// Card aparte para la suma de movimientos (ingresos o gastos, sin
-/// transferencias) sin categoría asignada — ayuda a notar cuánto del mes
-/// todavía no está clasificado. Solo aparece si hay al menos uno (ver
+/// Card aparte para el acumulado (con signo) de ajustes sin declarar del
+/// mes — `uncontrolled_expenses_total`, sumado entre todas las cuentas.
+/// Sale de "Actualizar saldo" cuando queda una diferencia sin cubrir por
+/// ningún movimiento cargado (ver
+/// `AccountViewModel.applyUncontrolledAdjustment`), y ya no corresponde a
+/// ninguna transacción real. Solo aparece si el total no es cero (ver
 /// [_StatisticsTabState.build]).
-class _UncategorizedCard extends StatelessWidget {
+class _UncontrolledCard extends StatelessWidget {
+  /// Con signo: negativo es gasto no controlado, positivo es ingreso no
+  /// controlado.
   final double total;
-  final int count;
   final String currency;
 
-  const _UncategorizedCard({
+  const _UncontrolledCard({
     required this.total,
-    required this.count,
     required this.currency,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isExpense = total < 0;
+    final tone = isExpense ? AppColors.authExpense : AppColors.authIncome;
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.authCardFill,
@@ -757,13 +878,11 @@ class _UncategorizedCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: AppColors.authTextSecondary.withValues(
-                alpha: 0.18,
-              ),
-              child: const Icon(
-                Icons.help_outline_rounded,
+              backgroundColor: tone.withValues(alpha: 0.18),
+              child: Icon(
+                Icons.priority_high_rounded,
                 size: 18,
-                color: AppColors.authTextSecondary,
+                color: tone,
               ),
             ),
             const SizedBox(width: 14),
@@ -772,7 +891,7 @@ class _UncategorizedCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Sin categoría',
+                    'Sin declarar',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -781,7 +900,9 @@ class _UncategorizedCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    count == 1 ? '1 movimiento' : '$count movimientos',
+                    isExpense
+                        ? 'Gasto no controlado este mes'
+                        : 'Ingreso no controlado este mes',
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.authTextFooter,
@@ -791,11 +912,11 @@ class _UncategorizedCard extends StatelessWidget {
               ),
             ),
             Text(
-              formatCurrency(total, currency),
-              style: const TextStyle(
+              formatCurrency(total.abs(), currency),
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.authTextPrimary,
+                color: tone,
               ),
             ),
           ],
@@ -1006,10 +1127,16 @@ class _CategoryDonutChart extends StatelessWidget {
   final double total;
   final String currency;
 
+  /// Texto chico arriba del monto, en el centro de la dona. 'Total
+  /// gastos' para el desglose por categoría; otro texto para el
+  /// desglose categorizado/no categorizado/no declarado.
+  final String label;
+
   const _CategoryDonutChart({
     required this.breakdown,
     required this.total,
     required this.currency,
+    this.label = 'Total gastos',
   });
 
   @override
@@ -1033,10 +1160,10 @@ class _CategoryDonutChart extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Total gastos',
+                  Text(
+                    label,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.authTextSecondary,
                     ),
@@ -1090,8 +1217,14 @@ class _DonutChartPainter extends CustomPainter {
 
       final sweepAngle = (item.percent / 100) * 2 * pi;
       final paint = Paint()
-        ..color =
-            colorFromHex(item.category.color, fallback: AppColors.authAccent)
+        // Sin categoría no tiene un color propio en la DB: en vez de
+        // caer en uno fijo (antes verde, que además coincidía con el de
+        // "Categorizados" del segundo gráfico), ese segmento queda
+        // transparente.
+        ..color = colorFromHex(
+          item.category.color,
+          fallback: Colors.transparent,
+        )
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.butt;
@@ -1117,8 +1250,11 @@ class _CategoryLegendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mismo criterio que en `_DonutChartPainter`: sin categoría, sin
+    // color propio en la DB, el puntito queda transparente en vez de
+    // caer en uno fijo.
     final color =
-        colorFromHex(category.category.color, fallback: AppColors.authAccent);
+        colorFromHex(category.category.color, fallback: Colors.transparent);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),

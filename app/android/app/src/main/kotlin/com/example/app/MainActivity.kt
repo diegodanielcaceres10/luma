@@ -1,5 +1,7 @@
 package com.example.app
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity: FlutterActivity()
+// local_auth requiere FragmentActivity para poder mostrar el prompt
+// biométrico nativo (ver setup en pub.dev/packages/local_auth).
+class MainActivity: FlutterFragmentActivity()

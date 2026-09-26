@@ -64,4 +64,31 @@ class AccountService {
   Future<void> setActive({required String id, required bool isActive}) async {
     await _client.from('accounts').update({'is_active': isActive}).eq('id', id);
   }
+
+  /// Ajusta `balance` en [amount] (puede ser negativo o positivo) y suma
+  /// ese mismo monto a `monthly_account_balances.uncontrolled_expenses_total`
+  /// del mes/año indicados, en una sola operación atómica.
+  ///
+  /// Lo usa "Actualizar saldo" para la parte de la diferencia que ningún
+  /// movimiento cargado explica: a diferencia de [createTransaction] en
+  /// `TransactionService`, esto no crea ninguna fila en `transactions`.
+  ///
+  /// Llama al RPC `register_uncontrolled_adjustment` en vez de hacer los
+  /// dos updates por separado: si algo falla, ninguno de los dos queda
+  /// aplicado a medias.
+  Future<void> applyUncontrolledAdjustment({
+    required String userId,
+    required String accountId,
+    required double amount,
+    required int month,
+    required int year,
+  }) async {
+    await _client.rpc('register_uncontrolled_adjustment', params: {
+      'p_user_id': userId,
+      'p_account_id': accountId,
+      'p_amount': amount,
+      'p_month': month,
+      'p_year': year,
+    });
+  }
 }

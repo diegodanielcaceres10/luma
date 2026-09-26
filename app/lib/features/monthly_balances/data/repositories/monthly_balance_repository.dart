@@ -12,6 +12,13 @@ class MonthlyBalanceRepository {
     return _service.fetchExistingAccountIds(month: month, year: year);
   }
 
+  Future<double> getUncontrolledExpensesTotal({
+    required int month,
+    required int year,
+  }) {
+    return _service.fetchUncontrolledExpensesTotal(month: month, year: year);
+  }
+
   Future<void> saveOpeningBalance({
     required String userId,
     required String accountId,

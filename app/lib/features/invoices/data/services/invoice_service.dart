@@ -47,6 +47,29 @@ class InvoiceService {
     });
   }
 
+  /// Facturas pendientes (ni pagadas ni canceladas) cuyo vencimiento es
+  /// exactamente hoy, según la fecha local del dispositivo. La usa la
+  /// rutina diaria de notificaciones (feature `notifications`,
+  /// `NotificationSchedulerService`) — no filtra por usuario porque RLS
+  /// (`auth.uid() = user_id`) ya se encarga de eso.
+  Future<List<Invoice>> fetchDueToday() async {
+    final now = DateTime.now();
+    final today = '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+
+    final rows = await _client
+        .from('invoices')
+        .select()
+        .eq('due_date', today)
+        .eq('paid', false)
+        .eq('cancelled', false);
+
+    return (rows as List)
+        .map((row) => Invoice.fromMap(row as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Edita una factura pendiente (servicio, mes, año, monto, vencimiento).
   /// No se usa sobre facturas pagadas o canceladas — la pantalla de
   /// edición no llega a mostrarse para esos casos (ver InvoicesTab).

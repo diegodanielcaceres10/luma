@@ -83,6 +83,7 @@ create table monthly_account_balances (
   month           integer not null check (month between 1 and 12),
   year            integer not null check (year >= 2000),
   opening_balance numeric(12, 2) not null,
+  uncontrolled_expenses_total numeric(12, 2) not null default 0,
   unique (account_id, month, year)
 );
 
@@ -177,4 +178,61 @@ $$;
 
 grant execute on function public.create_transaction(
   uuid, uuid, uuid, text, numeric, text, date, boolean
+) to authenticated;
+
+-- ─── register_uncontrolled_adjustment (RPC) ─────────────────
+-- Usada por la pantalla "Actualizar saldo" (UpdateBalanceTab) para la
+-- parte de la diferencia que ningún movimiento cargado explica: en vez
+-- de crear una transacción sin categoría, ajusta `accounts.balance` en
+-- p_amount directo y suma ese mismo monto (puede ser negativo o
+-- positivo) a `monthly_account_balances.uncontrolled_expenses_total`
+-- del mes/cuenta indicados — todo en una sola transacción de Postgres:
+-- si algo falla, ninguno de los dos updates queda aplicado a medias.
+--
+-- Requiere que ya exista la fila de monthly_account_balances para ese
+-- mes/cuenta: el flujo de "saldo de apertura pendiente" del cliente ya
+-- obliga a cargarla antes de poder operar la cuenta ese mes.
+--
+-- security invoker (default): corre con los permisos del usuario que
+-- llama, así que las policies de RLS de `accounts` y
+-- `monthly_account_balances` siguen aplicando igual que con un update
+-- directo.
+create or replace function public.register_uncontrolled_adjustment(
+  p_user_id     uuid,
+  p_account_id  uuid,
+  p_amount      numeric,
+  p_month       integer,
+  p_year        integer
+)
+returns void
+language plpgsql
+security invoker
+as $$
+begin
+  update accounts
+  set balance = balance + p_amount
+  where id = p_account_id
+    and user_id = p_user_id;
+
+  if not found then
+    raise exception 'Cuenta % no encontrada para este usuario', p_account_id;
+  end if;
+
+  update monthly_account_balances
+  set uncontrolled_expenses_total = uncontrolled_expenses_total + p_amount
+  where account_id = p_account_id
+    and user_id = p_user_id
+    and month = p_month
+    and year = p_year;
+
+  if not found then
+    raise exception
+      'No hay saldo de apertura cargado para la cuenta % en %/%',
+      p_account_id, p_month, p_year;
+  end if;
+end;
+$$;
+
+grant execute on function public.register_uncontrolled_adjustment(
+  uuid, uuid, numeric, integer, integer
 ) to authenticated;
