@@ -449,74 +449,96 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   /// "Atrás" (salvo en el paso 0, donde ya está la flecha de arriba para
   /// salir) y, a la derecha, "Siguiente" (o "Guardar y actualizar saldo"
   /// en el último paso — mismo botón y misma condición para habilitarlo
-  /// que tenía antes de separar el formulario en pasos).
+  /// que tenía antes de separar el formulario en pasos). En el paso 0,
+  /// además, un botón secundario para guardar directo sin pasar por los
+  /// pasos de movimientos — ver [_saveAndUpdateBalance].
   Widget _buildStepNav() {
     final isFirstStep = _currentStep == 0;
     final isLastStep = _currentStep == 2;
 
-    final backButton = Expanded(
-      child: OutlinedButton(
-        onPressed: _isSaving ? null : () => setState(() => _currentStep -= 1),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.authTextPrimary,
-          side: const BorderSide(color: AppColors.authCardBorder),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
+    final backButton = OutlinedButton(
+      onPressed: _isSaving ? null : () => setState(() => _currentStep -= 1),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.authTextPrimary,
+        side: const BorderSide(color: AppColors.authCardBorder),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
         ),
-        child:
-            const Text('Atrás', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
+      child: const Text('Atrás', style: TextStyle(fontWeight: FontWeight.w700)),
     );
 
-    final nextButton = Expanded(
-      child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.authAccent,
-          foregroundColor: AppColors.authBackgroundBottom,
-          disabledBackgroundColor: AppColors.authAccent.withValues(alpha: 0.4),
-          disabledForegroundColor:
-              AppColors.authBackgroundBottom.withValues(alpha: 0.6),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
+    final nextButton = FilledButton(
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.authAccent,
+        foregroundColor: AppColors.authBackgroundBottom,
+        disabledBackgroundColor: AppColors.authAccent.withValues(alpha: 0.4),
+        disabledForegroundColor:
+            AppColors.authBackgroundBottom.withValues(alpha: 0.6),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
         ),
-        onPressed: !isLastStep
-            ? (_isSaving ? null : () => setState(() => _currentStep += 1))
-            // Habilitado en cuanto hay un saldo nuevo válido — que los
-            // movimientos no cubran toda la diferencia ya NO lo bloquea
-            // (ver [_MovementsSummaryCard]): lo que falte se ajusta
-            // directo en el balance y se acumula en
-            // uncontrolled_expenses_total (sin transacción).
-            : (_difference == null || _isSaving ? null : _saveAndUpdateBalance),
-        child: !isLastStep
-            ? const Text('Siguiente',
-                style: TextStyle(fontWeight: FontWeight.w700))
-            : _isSaving
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.authBackgroundBottom,
-                    ),
-                  )
-                : const Text(
-                    'Guardar y actualizar saldo',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+      ),
+      onPressed: !isLastStep
+          ? (_isSaving ? null : () => setState(() => _currentStep += 1))
+          // Habilitado en cuanto hay un saldo nuevo válido — que los
+          // movimientos no cubran toda la diferencia ya NO lo bloquea
+          // (ver [_MovementsSummaryCard]): lo que falte se ajusta
+          // directo en el balance y se acumula en
+          // uncontrolled_expenses_total (sin transacción).
+          : (_difference == null || _isSaving ? null : _saveAndUpdateBalance),
+      child: !isLastStep
+          ? const Text('Siguiente',
+              style: TextStyle(fontWeight: FontWeight.w700))
+          : _isSaving
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.authBackgroundBottom,
                   ),
-      ),
+                )
+              : const Text(
+                  'Guardar y actualizar saldo',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
     );
 
-    if (isFirstStep) return nextButton;
+    if (isFirstStep) {
+      final diff = _difference;
+      return Column(
+        children: [
+          SizedBox(width: double.infinity, child: nextButton),
+          // Atajo para no pasar por los pasos de movimientos: guarda
+          // directo con toda la diferencia sin justificar (mismo botón
+          // y acción que "Guardar y actualizar saldo" del paso final,
+          // ver [_saveAndUpdateBalance]). Solo tiene sentido si hay una
+          // diferencia real que, de otro modo, habría que justificar.
+          if (diff != null && diff != 0) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _isSaving ? null : _saveAndUpdateBalance,
+              child: const Text(
+                'Guardar sin justificar movimientos',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.authTextSecondary,
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+    }
 
     return Row(
       children: [
-        backButton,
+        Expanded(child: backButton),
         const SizedBox(width: 12),
-        nextButton,
+        Expanded(child: nextButton),
       ],
     );
   }
@@ -1507,14 +1529,14 @@ class _DifferenceBox extends StatelessWidget {
       tone = AppColors.authIncome;
       icon = Icons.arrow_upward_rounded;
       valueText = '+${formatCurrency(diff, currency)}';
-      message = 'El nuevo saldo es mayor al anterior. '
-          'Agrega los movimientos que justifiquen la diferencia.';
+      message = 'El nuevo saldo es mayor al anterior. En la siguiente '
+          'pantalla podés cargar los movimientos que la justifiquen.';
     } else {
       tone = AppColors.authExpense;
       icon = Icons.arrow_downward_rounded;
       valueText = formatCurrency(diff, currency);
-      message = 'El nuevo saldo es menor al anterior. '
-          'Agrega los movimientos que justifiquen la diferencia.';
+      message = 'El nuevo saldo es menor al anterior. En la siguiente '
+          'pantalla podés cargar los movimientos que la justifiquen.';
     }
 
     return Container(
