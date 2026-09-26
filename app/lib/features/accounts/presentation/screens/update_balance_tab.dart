@@ -63,6 +63,12 @@ import '../view_models/account_view_model.dart';
 /// Factura de servicio. Los cuatro siguen abriendo el mismo
 /// [_AddMovementDialog] de siempre — la próxima entrega le da a cada
 /// tipo su propio formulario.
+///
+/// Entrega 11: Ingreso y Gasto ya abren [_AddMovementDialog] filtrado por
+/// el tipo elegido (categorías de ingreso o de gasto, según corresponda —
+/// ver [_AddMovementDialogState.build]). Transferencia y Factura de
+/// servicio, por ahora, no abren ningún formulario al elegirlas — quedan
+/// para una próxima entrega.
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` si el id
   /// de la URL (`/accounts/:id/balance`) no corresponde a ninguna cuenta
@@ -308,9 +314,11 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
 
   /// Bottom sheet que abre el botón "Agregar movimiento": elegir entre
   /// Ingreso, Gasto, Transferencia y Factura de servicio ([_MovementType]).
-  /// Por ahora los cuatro abren el mismo formulario de siempre
-  /// ([_AddMovementDialog], con Monto/Categoría/Descripción/Fecha) — una
-  /// próxima entrega va a diferenciar cada uno con su propio formulario.
+  /// Ingreso y Gasto abren [_AddMovementDialog] con las categorías
+  /// filtradas según ese mismo tipo (ver
+  /// [_AddMovementDialogState.build]). Transferencia y Factura de
+  /// servicio, por ahora, no hacen nada al elegirlas — quedan para una
+  /// próxima entrega, cada una con su propio formulario.
   Future<void> _showAddMovementDialog(BuildContext context) async {
     final type = await showModalBottomSheet<_MovementType>(
       context: context,
@@ -322,10 +330,25 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     );
     if (type == null || !context.mounted) return;
 
+    final String categoryType;
+    switch (type) {
+      case _MovementType.income:
+        categoryType = 'income';
+        break;
+      case _MovementType.expense:
+        categoryType = 'expense';
+        break;
+      case _MovementType.transfer:
+      case _MovementType.invoice:
+        // Sin acciones por ahora para estos dos tipos.
+        return;
+    }
+
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => _AddMovementDialog(
         categoryViewModel: widget.categoryViewModel,
+        categoryType: categoryType,
         onSave: _addPendingMovement,
       ),
     );
@@ -1291,16 +1314,23 @@ class PendingMovement {
 /// del saldo nuevo que queda atrás.
 ///
 /// El campo "Monto" solo pide la magnitud (siempre positiva): el signo
-/// final lo decide el tipo de la categoría elegida (gasto resta, ingreso
-/// suma — ver [_AddMovementDialogState._save]), así que no filtra las
-/// categorías por tipo: se listan todas mezcladas, diferenciadas por
-/// ícono y color.
+/// final lo decide [categoryType] (gasto resta, ingreso suma — ver
+/// [_AddMovementDialogState._save]).
 class _AddMovementDialog extends StatefulWidget {
   final CategoryViewModel categoryViewModel;
+
+  /// 'income' o 'expense' — con qué tipo se eligió abrir este popup (ver
+  /// [_UpdateBalanceTabState._showAddMovementDialog]). El selector de
+  /// categoría solo muestra las de este tipo, así que no hace falta que
+  /// el usuario elija entre categorías de otro sentido al que ya indicó
+  /// en [_MovementTypeSheet].
+  final String categoryType;
+
   final void Function(PendingMovement movement) onSave;
 
   const _AddMovementDialog({
     required this.categoryViewModel,
+    required this.categoryType,
     required this.onSave,
   });
 
@@ -1399,7 +1429,11 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = widget.categoryViewModel.categories;
+    final categories = widget.categoryViewModel.categories
+        .where((c) => c.type == widget.categoryType)
+        .toList();
+    final categoryTypeLabel =
+        widget.categoryType == 'income' ? 'ingreso' : 'gasto';
 
     return AlertDialog(
       backgroundColor: AppColors.authBackgroundTop,
@@ -1462,9 +1496,9 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                   ),
                 )
               else if (categories.isEmpty)
-                const Text(
-                  'No hay categorías todavía.',
-                  style: TextStyle(
+                Text(
+                  'No hay categorías de $categoryTypeLabel todavía.',
+                  style: const TextStyle(
                     color: AppColors.authExpense,
                     fontSize: 13,
                   ),
