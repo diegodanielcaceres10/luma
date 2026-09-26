@@ -459,10 +459,31 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
         );
       case 2:
       default:
-        return _MovementsSummaryCard(
-          total: _pendingMovementsTotal,
-          remainder: _unjustifiedRemainder,
-          currency: currency,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_pendingMovements.isNotEmpty) ...[
+              const Text(
+                'Movimientos cargados',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.authTextPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _MovementsReadOnlyList(
+                movements: _pendingMovements,
+                currency: currency,
+              ),
+              const SizedBox(height: 20),
+            ],
+            _MovementsSummaryCard(
+              total: _pendingMovementsTotal,
+              remainder: _unjustifiedRemainder,
+              currency: currency,
+            ),
+          ],
         );
     }
   }
@@ -979,6 +1000,93 @@ class _MovementListTile extends StatelessWidget {
             ),
             tooltip: 'Quitar',
             visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Versión de solo lectura de [_MovementsList] para el paso final (revisar
+/// y guardar): mismas filas de categoría + monto, pero sin el botón de
+/// tacho y sin descripción/fecha — ya se pudieron ver y editar en el paso
+/// anterior, acá alcanza con la categoría para reconocer cada movimiento.
+class _MovementsReadOnlyList extends StatelessWidget {
+  final List<PendingMovement> movements;
+  final String currency;
+
+  const _MovementsReadOnlyList({
+    required this.movements,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.authCardBorder),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < movements.length; i++) ...[
+            _MovementReadOnlyTile(movement: movements[i], currency: currency),
+            if (i < movements.length - 1)
+              const Divider(color: AppColors.authCardBorder, height: 1),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Fila de [_MovementsReadOnlyList]: solo categoría y monto con signo
+/// (mismo criterio de color que [_MovementListTile]).
+class _MovementReadOnlyTile extends StatelessWidget {
+  final PendingMovement movement;
+  final String currency;
+
+  const _MovementReadOnlyTile({
+    required this.movement,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = movement.amount;
+    final amountText = amount > 0
+        ? '+${formatCurrency(amount, currency)}'
+        : formatCurrency(amount, currency);
+    final amountColor =
+        amount > 0 ? AppColors.authIncome : AppColors.authExpense;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              movement.category.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            amountText,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: amountColor,
+            ),
           ),
         ],
       ),
