@@ -874,9 +874,14 @@ class _RecentMovements extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
-                      color: m.isIncome
-                          ? AppColors.authIncome
-                          : AppColors.authExpense,
+                      // Una transferencia no es ni ingreso ni gasto (ver
+                      // TransactionEntry.isTransfer): color neutro en vez
+                      // de authIncome/authExpense.
+                      color: m.isTransfer
+                          ? AppColors.authTransfer
+                          : m.isIncome
+                              ? AppColors.authIncome
+                              : AppColors.authExpense,
                     ),
                   ),
                   Text(

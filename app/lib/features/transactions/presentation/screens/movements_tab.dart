@@ -694,9 +694,14 @@ class _MovementRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: movement.isIncome
-                      ? AppColors.authIncome
-                      : AppColors.authExpense,
+                  // Una transferencia no es ni ingreso ni gasto (ver
+                  // TransactionEntry.isTransfer): color neutro en vez de
+                  // authIncome/authExpense.
+                  color: movement.isTransfer
+                      ? AppColors.authTransfer
+                      : movement.isIncome
+                          ? AppColors.authIncome
+                          : AppColors.authExpense,
                 ),
               ),
             ],
