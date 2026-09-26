@@ -79,6 +79,24 @@ class TransactionService {
     return id as String;
   }
 
+  /// Edita categoría, descripción y fecha de una transacción ya creada.
+  /// A propósito no permite tocar cuenta ni monto (ver comentario en
+  /// [TransactionViewModel.updateTransaction]): esos dos son los únicos
+  /// campos que afectan `accounts.balance`, así que un update directo acá
+  /// alcanza — no hace falta RPC ni tocar el saldo.
+  Future<void> updateTransaction({
+    required String transactionId,
+    String? categoryId,
+    String? description,
+    required DateTime date,
+  }) async {
+    await _client.from('transactions').update({
+      'category_id': categoryId,
+      'description': description,
+      'date': _formatDate(date),
+    }).eq('id', transactionId);
+  }
+
   /// Borra la transacción [transactionId] y revierte su efecto en
   /// `accounts.balance`. Llama al RPC `delete_transaction` (contraparte de
   /// [createTransaction]) en vez de un delete directo: ese RPC borra la

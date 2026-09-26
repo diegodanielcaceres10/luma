@@ -45,4 +45,18 @@ class TransactionRepository {
       transactionId: transactionId,
     );
   }
+
+  Future<void> update({
+    required String transactionId,
+    String? categoryId,
+    String? description,
+    required DateTime date,
+  }) {
+    return _service.updateTransaction(
+      transactionId: transactionId,
+      categoryId: categoryId,
+      description: description,
+      date: date,
+    );
+  }
 }

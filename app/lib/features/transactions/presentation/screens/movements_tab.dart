@@ -7,6 +7,8 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
+import '../../../categories/data/models/category.dart';
+import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/transaction_entry.dart';
 import '../view_models/transaction_view_model.dart';
 
@@ -20,6 +22,7 @@ class MovementsTab extends StatefulWidget {
   final String userId;
   final TransactionViewModel transactionViewModel;
   final AccountViewModel accountViewModel;
+  final CategoryViewModel categoryViewModel;
   final String currency;
 
   /// Filtros con los que arranca esta instancia, tal cual vienen de la
@@ -45,6 +48,7 @@ class MovementsTab extends StatefulWidget {
     required this.userId,
     required this.transactionViewModel,
     required this.accountViewModel,
+    required this.categoryViewModel,
     required this.currency,
     this.initialType,
     this.initialRange,
@@ -295,6 +299,49 @@ class _MovementsTabState extends State<MovementsTab> {
   // el pedido, para no disparar dos borrados del mismo movimiento con un
   // doble tap.
   String? _deletingId;
+
+  // Igual que [_deletingId] pero para el guardado de una edición.
+  String? _updatingId;
+
+  /// Abre el diálogo de edición (categoría, descripción y fecha — cuenta
+  /// y monto quedan fijos, ver [_EditMovementDialog]) y, si se confirma,
+  /// guarda los cambios.
+  Future<void> _openEditDialog(TransactionEntry movement) async {
+    final result = await showDialog<_EditMovementResult>(
+      context: context,
+      builder: (_) => _EditMovementDialog(
+        movement: movement,
+        categoryViewModel: widget.categoryViewModel,
+        currency: widget.currency,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    setState(() => _updatingId = movement.id);
+
+    final success = await widget.transactionViewModel.updateTransaction(
+      transactionId: movement.id,
+      categoryId: result.categoryId,
+      description: result.description,
+      date: result.date,
+    );
+
+    if (!mounted) return;
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.transactionViewModel.errorMessage ??
+                'No se pudo guardar los cambios.',
+          ),
+        ),
+      );
+    }
+
+    if (mounted) setState(() => _updatingId = null);
+  }
 
   /// Confirma con el usuario antes de borrar (mismo patrón de AlertDialog
   /// que `_confirmCancel` en invoices_tab.dart) y, si confirma, borra el
@@ -646,6 +693,8 @@ class _MovementsTabState extends State<MovementsTab> {
                               showDivider:
                                   i != visible.length - 1 || remaining > 0,
                               isDeleting: _deletingId == movement.id,
+                              isUpdating: _updatingId == movement.id,
+                              onEdit: () => _openEditDialog(movement),
                               onDelete: () => _confirmDelete(movement),
                             );
                           }),
@@ -746,9 +795,18 @@ class _MovementRow extends StatelessWidget {
   final bool showDivider;
 
   /// true mientras este movimiento puntual se está borrando — deshabilita
-  /// el botón y muestra un spinner en su lugar, para no disparar un
-  /// segundo borrado con un doble tap.
+  /// ambos botones y muestra un spinner en el de borrar, para no
+  /// disparar un segundo borrado con un doble tap.
   final bool isDeleting;
+
+  /// Igual que [isDeleting] pero para el guardado de una edición en
+  /// curso — spinner en el botón de editar.
+  final bool isUpdating;
+
+  /// Abre el diálogo de edición (ver
+  /// `_MovementsTabState._openEditDialog`). null lo deja sin botón de
+  /// editar.
+  final VoidCallback? onEdit;
 
   /// Pide confirmación y borra el movimiento (ver
   /// `_MovementsTabState._confirmDelete`). null lo deja sin botón de
@@ -760,6 +818,8 @@ class _MovementRow extends StatelessWidget {
     required this.currency,
     required this.showDivider,
     this.isDeleting = false,
+    this.isUpdating = false,
+    this.onEdit,
     this.onDelete,
   });
 
@@ -767,6 +827,10 @@ class _MovementRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('d MMM. yyyy', 'es');
     final sign = movement.isIncome ? '+' : '-';
+    // Mientras cualquiera de las dos acciones está en curso para esta
+    // fila, se deshabilita la otra también — no tiene sentido editar un
+    // movimiento que se está borrando, ni viceversa.
+    final isBusy = isDeleting || isUpdating;
 
     return Column(
       children: [
@@ -814,32 +878,22 @@ class _MovementRow extends StatelessWidget {
                           : AppColors.authExpense,
                 ),
               ),
+              if (onEdit != null) ...[
+                const SizedBox(width: 4),
+                _RowActionButton(
+                  icon: Icons.edit_outlined,
+                  tooltip: 'Editar movimiento',
+                  isLoading: isUpdating,
+                  onPressed: isBusy ? null : onEdit,
+                ),
+              ],
               if (onDelete != null) ...[
                 const SizedBox(width: 4),
-                SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: isDeleting
-                      ? const Center(
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.authTextSecondary,
-                            ),
-                          ),
-                        )
-                      : IconButton(
-                          padding: EdgeInsets.zero,
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            size: 20,
-                            color: AppColors.authTextSecondary,
-                          ),
-                          tooltip: 'Eliminar movimiento',
-                          onPressed: onDelete,
-                        ),
+                _RowActionButton(
+                  icon: Icons.delete_outline,
+                  tooltip: 'Eliminar movimiento',
+                  isLoading: isDeleting,
+                  onPressed: isBusy ? null : onDelete,
                 ),
               ],
             ],
@@ -848,6 +902,47 @@ class _MovementRow extends StatelessWidget {
         if (showDivider)
           const Divider(height: 1, color: AppColors.authCardBorder),
       ],
+    );
+  }
+}
+
+/// Botón chico de acción (editar/borrar) para una fila de [_MovementRow]:
+/// muestra un spinner en su lugar mientras [isLoading] es true.
+class _RowActionButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final bool isLoading;
+  final VoidCallback? onPressed;
+
+  const _RowActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: isLoading
+          ? const Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.authTextSecondary,
+                ),
+              ),
+            )
+          : IconButton(
+              padding: EdgeInsets.zero,
+              icon: Icon(icon, size: 20, color: AppColors.authTextSecondary),
+              tooltip: tooltip,
+              onPressed: onPressed,
+            ),
     );
   }
 }
@@ -1009,4 +1104,247 @@ class _MonthPickerSheet extends StatelessWidget {
 String _monthLabel(DateTime date) {
   final formatted = DateFormat('MMMM yyyy', 'es').format(date);
   return formatted[0].toUpperCase() + formatted.substring(1);
+}
+
+class _EditMovementResult {
+  final String? categoryId;
+  final String? description;
+  final DateTime date;
+
+  const _EditMovementResult({
+    required this.categoryId,
+    required this.description,
+    required this.date,
+  });
+}
+
+/// Diálogo de edición de un movimiento: solo permite cambiar categoría,
+/// descripción y fecha. Cuenta y monto se muestran fijos, sin control
+/// para cambiarlos — son los dos campos que afectan `accounts.balance`
+/// (ver [TransactionViewModel.updateTransaction]).
+///
+/// Si [TransactionEntry.isTransfer] es true no se muestra selector de
+/// categoría: una transferencia no pertenece a ninguna categoría de
+/// ingreso/gasto (ver comentario en `transactions.is_transfer`,
+/// V001__initial_schema.sql), así que ese campo queda fuera de lugar.
+class _EditMovementDialog extends StatefulWidget {
+  final TransactionEntry movement;
+  final CategoryViewModel categoryViewModel;
+  final String currency;
+
+  const _EditMovementDialog({
+    required this.movement,
+    required this.categoryViewModel,
+    required this.currency,
+  });
+
+  @override
+  State<_EditMovementDialog> createState() => _EditMovementDialogState();
+}
+
+class _EditMovementDialogState extends State<_EditMovementDialog> {
+  late final TextEditingController _descriptionController;
+  late DateTime _selectedDate;
+  Category? _selectedCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    _descriptionController = TextEditingController(
+      text: widget.movement.description ?? '',
+    );
+    _selectedDate = widget.movement.date;
+    _selectedCategory =
+        widget.categoryViewModel.categoryById(widget.movement.category.id);
+  }
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.authAccent,
+            onPrimary: AppColors.authBackgroundBottom,
+            surface: AppColors.authBackgroundBottom,
+            onSurface: AppColors.authTextPrimary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  void _confirm() {
+    Navigator.of(context).pop(
+      _EditMovementResult(
+        categoryId: _selectedCategory?.id,
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        date: _selectedDate,
+      ),
+    );
+  }
+
+  static const _fieldDecoration = InputDecoration(
+    filled: true,
+    fillColor: AppColors.authCardFill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authCardBorder),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authCardBorder),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authAccent),
+    ),
+    hintStyle: TextStyle(color: AppColors.authTextFooter),
+  );
+
+  static const _labelStyle = TextStyle(color: AppColors.authTextSecondary);
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final movement = widget.movement;
+    final categories = movement.isTransfer
+        ? const <Category>[]
+        : widget.categoryViewModel.byType(movement.type);
+    final sign = movement.isIncome ? '+' : '-';
+
+    return AlertDialog(
+      backgroundColor: AppColors.authBackgroundTop,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.authCardBorder),
+      ),
+      title: const Text(
+        'Editar movimiento',
+        style: TextStyle(
+          color: AppColors.authTextPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cuenta y monto, fijos — sin ningún control para editarlos
+            // (ver doc de la clase).
+            Text(
+              '${movement.account.name} · '
+              '$sign${formatCurrency(movement.amount, widget.currency)}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (!movement.isTransfer) ...[
+              const Text('Categoría', style: _labelStyle),
+              const SizedBox(height: 8),
+              if (categories.isEmpty)
+                const Text(
+                  'No hay categorías de este tipo. Se guardará sin '
+                  'categoría.',
+                  style: TextStyle(color: AppColors.authTextSecondary),
+                )
+              else
+                DropdownButtonFormField<Category>(
+                  initialValue: _selectedCategory,
+                  dropdownColor: AppColors.authBackgroundBottom,
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                  decoration: _fieldDecoration,
+                  hint: const Text(
+                    'Sin categoría',
+                    style: TextStyle(color: AppColors.authTextSecondary),
+                  ),
+                  items: [
+                    const DropdownMenuItem<Category>(
+                      value: null,
+                      child: Text(
+                        'Sin categoría',
+                        style: TextStyle(color: AppColors.authTextSecondary),
+                      ),
+                    ),
+                    ...categories.map(
+                      (c) => DropdownMenuItem<Category>(
+                        value: c,
+                        child: Text(c.name),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _selectedCategory = value),
+                ),
+              const SizedBox(height: 20),
+            ],
+            const Text('Descripción', style: _labelStyle),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _descriptionController,
+              style: const TextStyle(color: AppColors.authTextPrimary),
+              decoration: _fieldDecoration.copyWith(hintText: 'Opcional'),
+            ),
+            const SizedBox(height: 20),
+            const Text('Fecha', style: _labelStyle),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: _pickDate,
+              borderRadius: BorderRadius.circular(14),
+              child: InputDecorator(
+                decoration: _fieldDecoration,
+                child: Text(
+                  _formatDate(_selectedDate),
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(
+            'Cancelar',
+            style: TextStyle(color: AppColors.authTextSecondary),
+          ),
+        ),
+        TextButton(
+          onPressed: _confirm,
+          child: const Text(
+            'Guardar',
+            style: TextStyle(
+              color: AppColors.authAccent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }

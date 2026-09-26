@@ -503,6 +503,7 @@ GoRouter buildAppRouter({
                 userId: authViewModel.userId ?? '',
                 transactionViewModel: transactionViewModel,
                 accountViewModel: accountViewModel,
+                categoryViewModel: categoryViewModel,
                 currency: accountViewModel.primaryCurrency,
                 initialType: state.uri.queryParameters['type'],
                 initialRange: state.uri.queryParameters['range'],

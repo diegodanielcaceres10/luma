@@ -490,4 +490,45 @@ class TransactionViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Edita categoría, descripción y fecha de [transactionId]. Cuenta y
+  /// monto quedan fijos a propósito: son los dos campos que afectan
+  /// `accounts.balance` (ver create_transaction/delete_transaction en
+  /// V001/V002) — cambiarlos acá dejaría el saldo desactualizado sin
+  /// revertir/reaplicar el ajuste correspondiente, así que no se
+  /// exponen en este método. Al no tocar cuenta ni monto, el saldo no
+  /// cambia y no hace falta recargar [AccountViewModel] después.
+  /// Devuelve true si se guardó correctamente.
+  Future<bool> updateTransaction({
+    required String transactionId,
+    String? categoryId,
+    String? description,
+    required DateTime date,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.update(
+        transactionId: transactionId,
+        categoryId: categoryId,
+        description: description,
+        date: date,
+      );
+      await loadCurrentMonth();
+      await _refreshStatisticsMonth();
+      if (_hasLoadedAll) {
+        await loadAllTransactions();
+      }
+      return true;
+    } catch (error) {
+      _errorMessage = 'No se pudo guardar los cambios.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
 }
