@@ -418,6 +418,7 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
           ),
         );
       case 1:
+        final remainder = _unjustifiedRemainder;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -425,6 +426,26 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
               onAddMovement: () => _showAddMovementDialog(context),
               enabled: !_isSaving,
             ),
+            // Leyenda menor con lo que todavía falta justificar — mismo
+            // cálculo que usa la tarjeta de resumen del paso 2
+            // ([_unjustifiedRemainder]), para no tener que llegar hasta
+            // ahí para saber cuánto queda.
+            if (remainder != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                remainder == 0
+                    ? 'Ya justificaste toda la diferencia.'
+                    : 'Todavía falta justificar '
+                        '${remainder > 0 ? '+' : ''}'
+                        '${formatCurrency(remainder, currency)}.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: remainder == 0
+                      ? AppColors.authAccent
+                      : AppColors.authTextSecondary,
+                ),
+              ),
+            ],
             if (_pendingMovements.isNotEmpty) ...[
               const SizedBox(height: 12),
               _MovementsList(
