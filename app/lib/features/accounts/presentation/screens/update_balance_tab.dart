@@ -69,6 +69,16 @@ import '../view_models/account_view_model.dart';
 /// ver [_AddMovementDialogState.build]). Transferencia y Factura de
 /// servicio, por ahora, no abren ningún formulario al elegirlas — quedan
 /// para una próxima entrega.
+///
+/// Entrega 12: Transferencia ya abre [_AddTransferDialog] — elegir la
+/// otra cuenta, la dirección (entra/sale plata de [account]), Monto,
+/// Descripción y Fecha. Igual que Ingreso/Gasto, no se persiste al
+/// guardar el popup: se agrega a [_UpdateBalanceTabState._pendingMovements]
+/// como un [PendingMovement] de transferencia (ver
+/// [PendingMovement.otherAccountId]), y recién se crea de verdad al tocar
+/// "Guardar y actualizar saldo" — ver
+/// [_UpdateBalanceTabState._saveAndUpdateBalance]. Factura de servicio
+/// sigue sin abrir nada.
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` si el id
   /// de la URL (`/accounts/:id/balance`) no corresponde a ninguna cuenta
@@ -248,15 +258,33 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
 
     try {
       for (final movement in _pendingMovements) {
-        final success = await widget.transactionViewModel.createTransaction(
-          userId: userId,
-          accountId: account.id,
-          categoryId: movement.category.id,
-          type: movement.category.type,
-          amount: movement.amount.abs(),
-          description: movement.description,
-          date: movement.date,
-        );
+        final bool success;
+        if (movement.isTransfer) {
+          // amount ya viene con signo relativo a esta cuenta (ver
+          // [PendingMovement]): negativo si esta cuenta es el origen
+          // (sale plata), positivo si es el destino (entra plata).
+          final isOutgoing = movement.amount < 0;
+          success = await widget.transactionViewModel.createTransfer(
+            userId: userId,
+            originAccountId: isOutgoing ? account.id : movement.otherAccountId!,
+            destinationAccountId:
+                isOutgoing ? movement.otherAccountId! : account.id,
+            amount: movement.amount.abs(),
+            date: movement.date,
+            originDescription: movement.description,
+            destinationDescription: movement.description,
+          );
+        } else {
+          success = await widget.transactionViewModel.createTransaction(
+            userId: userId,
+            accountId: account.id,
+            categoryId: movement.category!.id,
+            type: movement.category!.type,
+            amount: movement.amount.abs(),
+            description: movement.description,
+            date: movement.date,
+          );
+        }
         if (!success) {
           throw Exception(
             widget.transactionViewModel.errorMessage ??
@@ -315,11 +343,14 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   /// Bottom sheet que abre el botón "Agregar movimiento": elegir entre
   /// Ingreso, Gasto, Transferencia y Factura de servicio ([_MovementType]).
   /// Ingreso y Gasto abren [_AddMovementDialog] con las categorías
-  /// filtradas según ese mismo tipo (ver
-  /// [_AddMovementDialogState.build]). Transferencia y Factura de
-  /// servicio, por ahora, no hacen nada al elegirlas — quedan para una
-  /// próxima entrega, cada una con su propio formulario.
+  /// filtradas según ese mismo tipo (ver [_AddMovementDialogState.build]).
+  /// Transferencia abre [_AddTransferDialog], para elegir la otra cuenta
+  /// y la dirección. Factura de servicio, por ahora, no hace nada al
+  /// elegirla — queda para una próxima entrega.
   Future<void> _showAddMovementDialog(BuildContext context) async {
+    final account = widget.account;
+    if (account == null) return;
+
     final type = await showModalBottomSheet<_MovementType>(
       context: context,
       backgroundColor: AppColors.authBackgroundBottom,
@@ -330,28 +361,32 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     );
     if (type == null || !context.mounted) return;
 
-    final String categoryType;
     switch (type) {
       case _MovementType.income:
-        categoryType = 'income';
-        break;
       case _MovementType.expense:
-        categoryType = 'expense';
-        break;
+        final categoryType =
+            type == _MovementType.income ? 'income' : 'expense';
+        return showDialog<void>(
+          context: context,
+          builder: (dialogContext) => _AddMovementDialog(
+            categoryViewModel: widget.categoryViewModel,
+            categoryType: categoryType,
+            onSave: _addPendingMovement,
+          ),
+        );
       case _MovementType.transfer:
+        return showDialog<void>(
+          context: context,
+          builder: (dialogContext) => _AddTransferDialog(
+            currentAccount: account,
+            accountViewModel: widget.accountViewModel,
+            onSave: _addPendingMovement,
+          ),
+        );
       case _MovementType.invoice:
-        // Sin acciones por ahora para estos dos tipos.
+        // Sin acciones por ahora — queda para una próxima entrega.
         return;
     }
-
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => _AddMovementDialog(
-        categoryViewModel: widget.categoryViewModel,
-        categoryType: categoryType,
-        onSave: _addPendingMovement,
-      ),
-    );
   }
 
   InputDecoration _amountDecoration(String currencySymbol) {
@@ -973,7 +1008,7 @@ class _MovementListTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  movement.category.name,
+                  movement.displayLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1092,7 +1127,7 @@ class _MovementReadOnlyTile extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              movement.category.name,
+              movement.displayLabel,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -1288,24 +1323,84 @@ class _MovementsSummaryCard extends StatelessWidget {
 }
 
 /// Movimiento cargado desde el popup "Agregar movimiento" mientras se
-/// termina de justificar la diferencia de saldo. [amount] ya viene con
-/// signo (negativo si [category] es de gasto, positivo si es de ingreso)
-/// — ver [_AddMovementDialogState._save]. Vive solo en memoria (ver
-/// [_UpdateBalanceTabState._pendingMovements]) — todavía no se persiste en
-/// la base.
+/// termina de justificar la diferencia de saldo. Vive solo en memoria
+/// (ver [_UpdateBalanceTabState._pendingMovements]) — todavía no se
+/// persiste en la base hasta tocar "Guardar y actualizar saldo" (ver
+/// [_UpdateBalanceTabState._saveAndUpdateBalance]).
+///
+/// Dos variantes, según qué se eligió en [_MovementTypeSheet] (mutuamente
+/// excluyentes: o [category] o [otherAccountId], nunca los dos):
+/// - Ingreso/Gasto: [category] no nulo, [otherAccountId] nulo. [amount]
+///   ya viene con signo (negativo si [category] es de gasto, positivo si
+///   es de ingreso) — ver [_AddMovementDialogState._save].
+/// - Transferencia: [otherAccountId]/[otherAccountName] identifican la
+///   otra cuenta de la transferencia, [category] nulo. [amount] ya viene
+///   con signo relativo a la cuenta que se está actualizando: negativo si
+///   esa cuenta es el origen (sale plata), positivo si es el destino
+///   (entra plata) — ver [_AddTransferDialogState._save].
 class PendingMovement {
   final double amount;
-  final Category category;
+  final Category? category;
+  final String? otherAccountId;
+  final String? otherAccountName;
   final String? description;
   final DateTime date;
 
   const PendingMovement({
     required this.amount,
-    required this.category,
     required this.date,
+    this.category,
+    this.otherAccountId,
+    this.otherAccountName,
     this.description,
-  });
+  }) : assert(
+          (category == null) != (otherAccountId == null),
+          'Un movimiento es de categoría o de transferencia, nunca los dos',
+        );
+
+  bool get isTransfer => otherAccountId != null;
+
+  /// Qué mostrar en vez del nombre de categoría en [_MovementListTile] y
+  /// [_MovementReadOnlyTile]: el nombre de la categoría, o de qué cuenta
+  /// viene / a qué cuenta va la transferencia, según el signo de [amount].
+  String get displayLabel {
+    final category = this.category;
+    if (category != null) return category.name;
+    return amount >= 0
+        ? 'Transferencia desde $otherAccountName'
+        : 'Transferencia a $otherAccountName';
+  }
 }
+
+/// Estilo del label de cada campo en los popups de "Agregar movimiento"
+/// ([_AddMovementDialog] y [_AddTransferDialog]) — "Monto", "Categoría",
+/// "Fecha", etc.
+const _kDialogLabelStyle = TextStyle(
+  fontSize: 13,
+  fontWeight: FontWeight.w600,
+  color: AppColors.authTextSecondary,
+);
+
+/// Decoración compartida por los campos de esos mismos dos popups.
+const _kDialogFieldDecoration = InputDecoration(
+  isDense: true,
+  filled: true,
+  fillColor: AppColors.authCardFill,
+  contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  hintStyle: TextStyle(color: AppColors.authTextFooter),
+  border: OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(14)),
+    borderSide: BorderSide(color: AppColors.authCardBorder),
+  ),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(14)),
+    borderSide: BorderSide(color: AppColors.authCardBorder),
+  ),
+  focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(14)),
+    borderSide: BorderSide(color: AppColors.authAccent),
+  ),
+);
 
 /// Contenido del popup "Agregar movimiento": Monto, Categoría, Descripción
 /// (opcional) y Fecha. Es un `StatefulWidget` propio (en vez de vivir en
@@ -1345,32 +1440,6 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
 
   Category? _selectedCategory;
   DateTime _selectedDate = DateTime.now();
-
-  static const _labelStyle = TextStyle(
-    fontSize: 13,
-    fontWeight: FontWeight.w600,
-    color: AppColors.authTextSecondary,
-  );
-
-  static const _fieldDecoration = InputDecoration(
-    isDense: true,
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    hintStyle: TextStyle(color: AppColors.authTextFooter),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-  );
 
   @override
   void dispose() {
@@ -1456,7 +1525,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Monto', style: _labelStyle),
+              const Text('Monto', style: _kDialogLabelStyle),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _amountController,
@@ -1472,7 +1541,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                   ),
                 ],
                 style: const TextStyle(color: AppColors.authTextPrimary),
-                decoration: _fieldDecoration.copyWith(hintText: '0,00'),
+                decoration: _kDialogFieldDecoration.copyWith(hintText: '0,00'),
                 validator: (value) {
                   final text = (value ?? '').trim().replaceAll(',', '.');
                   if (text.isEmpty) return 'Ingresa un monto';
@@ -1484,7 +1553,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              const Text('Categoría', style: _labelStyle),
+              const Text('Categoría', style: _kDialogLabelStyle),
               const SizedBox(height: 6),
               if (widget.categoryViewModel.isLoading)
                 const Padding(
@@ -1509,7 +1578,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                   isExpanded: true,
                   dropdownColor: AppColors.authBackgroundBottom,
                   style: const TextStyle(color: AppColors.authTextPrimary),
-                  decoration: _fieldDecoration,
+                  decoration: _kDialogFieldDecoration,
                   hint: const Text(
                     'Seleccioná una categoría',
                     style: TextStyle(color: AppColors.authTextSecondary),
@@ -1528,23 +1597,23 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                       value == null ? 'Seleccioná una categoría' : null,
                 ),
               const SizedBox(height: 16),
-              const Text('Descripción (opcional)', style: _labelStyle),
+              const Text('Descripción (opcional)', style: _kDialogLabelStyle),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _descriptionController,
                 style: const TextStyle(color: AppColors.authTextPrimary),
-                decoration: _fieldDecoration.copyWith(
+                decoration: _kDialogFieldDecoration.copyWith(
                   hintText: 'Ej: Retiro en efectivo',
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Fecha', style: _labelStyle),
+              const Text('Fecha', style: _kDialogLabelStyle),
               const SizedBox(height: 6),
               InkWell(
                 onTap: _pickDate,
                 borderRadius: BorderRadius.circular(14),
                 child: InputDecorator(
-                  decoration: _fieldDecoration,
+                  decoration: _kDialogFieldDecoration,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1582,6 +1651,288 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: categories.isEmpty ? null : _save,
+          child: const Text('Guardar'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Contenido del popup de transferencia que abre "Agregar movimiento" al
+/// elegir "Transferencia" en [_MovementTypeSheet]: elegir la otra cuenta,
+/// la dirección (si la plata entra o sale de [currentAccount]), Monto,
+/// Descripción (opcional) y Fecha.
+///
+/// Igual que [_AddMovementDialog], no persiste nada al tocar "Guardar":
+/// arma un [PendingMovement] de transferencia y lo agrega a
+/// [_UpdateBalanceTabState._pendingMovements] — recién se crea de verdad
+/// (dos transacciones vía `TransactionViewModel.createTransfer`) al tocar
+/// "Guardar y actualizar saldo", ver
+/// [_UpdateBalanceTabState._saveAndUpdateBalance].
+class _AddTransferDialog extends StatefulWidget {
+  /// Cuenta que se está actualizando en [UpdateBalanceTab] — una punta
+  /// fija de la transferencia; la otra la elige el usuario acá.
+  final Account currentAccount;
+
+  /// Para listar el resto de las cuentas activas como "otra cuenta" (ver
+  /// [AccountViewModel.activeAccounts]).
+  final AccountViewModel accountViewModel;
+
+  final void Function(PendingMovement movement) onSave;
+
+  const _AddTransferDialog({
+    required this.currentAccount,
+    required this.accountViewModel,
+    required this.onSave,
+  });
+
+  @override
+  State<_AddTransferDialog> createState() => _AddTransferDialogState();
+}
+
+class _AddTransferDialogState extends State<_AddTransferDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _amountController = TextEditingController();
+  final _descriptionController = TextEditingController();
+
+  String? _otherAccountId;
+
+  /// true: la plata entra a [UpdateBalanceTab.account] (es el destino).
+  /// false: la plata sale de esa cuenta (es el origen). Arranca en true
+  /// porque, en este flujo, cargar un ingreso es el caso más común (el
+  /// saldo real suele ser mayor al de la app por un traspaso recibido).
+  bool _isIncoming = true;
+
+  DateTime _selectedDate = DateTime.now();
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  /// Mismo rango de fechas que [_AddMovementDialogState._pickDate].
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.authAccent,
+            onPrimary: AppColors.authBackgroundBottom,
+            surface: AppColors.authBackgroundBottom,
+            onSurface: AppColors.authTextPrimary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _selectedDate = picked);
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    final otherAccountId = _otherAccountId;
+    if (otherAccountId == null) return;
+
+    final otherAccount = widget.accountViewModel.activeAccounts
+        .firstWhere((a) => a.id == otherAccountId);
+
+    final rawAmount = double.parse(_amountController.text.replaceAll(',', '.'));
+    // El signo lo pone la dirección elegida, no el usuario: el campo
+    // "Monto" solo pide la magnitud (siempre positiva) — mismo criterio
+    // que [_AddMovementDialogState._save].
+    final signedAmount = _isIncoming ? rawAmount : -rawAmount;
+
+    widget.onSave(
+      PendingMovement(
+        amount: signedAmount,
+        otherAccountId: otherAccount.id,
+        otherAccountName: otherAccount.name,
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        date: _selectedDate,
+      ),
+    );
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Todas las cuentas activas salvo la que se está actualizando — no
+    // tiene sentido transferir una cuenta a sí misma.
+    final otherAccounts = widget.accountViewModel.activeAccounts
+        .where((a) => a.id != widget.currentAccount.id)
+        .toList();
+
+    return AlertDialog(
+      backgroundColor: AppColors.authBackgroundTop,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.authCardBorder),
+      ),
+      title: const Text(
+        'Agregar transferencia',
+        style: TextStyle(
+          color: AppColors.authTextPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (otherAccounts.isEmpty)
+                const Text(
+                  'Necesitás al menos otra cuenta activa para cargar una '
+                  'transferencia.',
+                  style: TextStyle(color: AppColors.authExpense, fontSize: 13),
+                )
+              else ...[
+                const Text('Dirección', style: _kDialogLabelStyle),
+                const SizedBox(height: 6),
+                SegmentedButton<bool>(
+                  style: SegmentedButton.styleFrom(
+                    backgroundColor: AppColors.authCardFill,
+                    foregroundColor: AppColors.authTextSecondary,
+                    selectedBackgroundColor: AppColors.authAccent,
+                    selectedForegroundColor: AppColors.authBackgroundBottom,
+                    side: const BorderSide(color: AppColors.authCardBorder),
+                  ),
+                  segments: const [
+                    ButtonSegment(value: true, label: Text('Entra')),
+                    ButtonSegment(value: false, label: Text('Sale')),
+                  ],
+                  selected: {_isIncoming},
+                  onSelectionChanged: (selection) =>
+                      setState(() => _isIncoming = selection.first),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _isIncoming
+                      ? 'Otra cuenta (de dónde sale)'
+                      : 'Otra cuenta (a dónde va)',
+                  style: _kDialogLabelStyle,
+                ),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  initialValue: _otherAccountId,
+                  isExpanded: true,
+                  dropdownColor: AppColors.authBackgroundBottom,
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                  decoration: _kDialogFieldDecoration,
+                  hint: const Text(
+                    'Seleccioná una cuenta',
+                    style: TextStyle(color: AppColors.authTextSecondary),
+                  ),
+                  items: otherAccounts
+                      .map(
+                        (a) => DropdownMenuItem(
+                          value: a.id,
+                          child: Text(a.name, overflow: TextOverflow.ellipsis),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => setState(() => _otherAccountId = value),
+                  validator: (value) =>
+                      value == null ? 'Seleccioná una cuenta' : null,
+                ),
+                const SizedBox(height: 16),
+                const Text('Monto', style: _kDialogLabelStyle),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  // Solo magnitud, sin "-": el signo final lo pone la
+                  // dirección elegida arriba (ver [_save]).
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d*[.,]?\d{0,2}'),
+                    ),
+                  ],
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                  decoration:
+                      _kDialogFieldDecoration.copyWith(hintText: '0,00'),
+                  validator: (value) {
+                    final text = (value ?? '').trim().replaceAll(',', '.');
+                    if (text.isEmpty) return 'Ingresa un monto';
+                    final parsed = double.tryParse(text);
+                    if (parsed == null || parsed <= 0) {
+                      return 'Monto inválido';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Descripción (opcional)',
+                  style: _kDialogLabelStyle,
+                ),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _descriptionController,
+                  style: const TextStyle(color: AppColors.authTextPrimary),
+                  decoration: _kDialogFieldDecoration.copyWith(
+                    hintText: 'Ej: Traspaso entre cuentas propias',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Fecha', style: _kDialogLabelStyle),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: _pickDate,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InputDecorator(
+                    decoration: _kDialogFieldDecoration,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${_selectedDate.day.toString().padLeft(2, '0')}/'
+                          '${_selectedDate.month.toString().padLeft(2, '0')}/'
+                          '${_selectedDate.year}',
+                          style:
+                              const TextStyle(color: AppColors.authTextPrimary),
+                        ),
+                        const Icon(
+                          Icons.calendar_today_rounded,
+                          size: 18,
+                          color: AppColors.authTextSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(
+            'Cancelar',
+            style: TextStyle(color: AppColors.authTextSecondary),
+          ),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.authAccent,
+            foregroundColor: AppColors.authBackgroundBottom,
+          ),
+          onPressed: otherAccounts.isEmpty ? null : _save,
           child: const Text('Guardar'),
         ),
       ],
