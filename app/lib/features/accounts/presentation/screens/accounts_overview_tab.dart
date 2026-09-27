@@ -7,8 +7,8 @@ import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
 /// Contenido de la pestaña "Cuentas": resumen de saldos y las cuentas en
-/// lista, cada una con sus tres acciones — editar, actualizar saldo y
-/// activar/desactivar (ver [_AccountRow]).
+/// lista, cada una con sus cuatro acciones — ver detalle, editar,
+/// actualizar saldo y activar/desactivar (ver [_AccountRow]).
 ///
 /// Entrega 14: unifica lo que antes eran dos pantallas separadas
 /// (`AccountsTab`, sin resumen ni botón "atrás", con edición; y esta
@@ -20,20 +20,33 @@ import '../view_models/account_view_model.dart';
 /// - `/accounts-overview` (push desde el Dashboard, "Gestionar cuentas"):
 ///   con [onBack] — vuelve al Dashboard.
 ///
+/// Entrega 15: agrega [AccountViewScreen] — tocar una fila ya no va
+/// directo a editar, va al detalle de esa cuenta, desde donde también se
+/// puede editar y actualizar el saldo (ver [onOpenView]). El lápiz y el
+/// sync de la fila siguen siendo atajos directos, sin pasar por el
+/// detalle.
+///
 /// No tiene Scaffold propio — se muestra dentro de un RoutedScreenScaffold,
 /// debajo del header (menú + marca Luma + campana) y encima del
 /// bottomNavigationBar que pone AppShellScreen.
 class AccountsOverviewTab extends StatelessWidget {
   final AccountViewModel accountViewModel;
 
+  /// Abre el detalle de esa cuenta ([AccountViewScreen]) — se llama al
+  /// tocar la fila (ver [_AccountRow.onView]; el lápiz y el sync de la
+  /// fila son atajos que no pasan por acá).
+  final ValueChanged<Account> onOpenView;
+
   /// Abre el formulario de cuenta ([AccountFormTab]): alta nueva con
-  /// `null` (botón "+" del título) o edición de esa cuenta (tocar su
-  /// nombre en la lista — ver [_AccountRow.onEdit]).
+  /// `null` (botón "+" del título) o edición de esa cuenta (el lápiz de
+  /// la fila — ver [_AccountRow.onEdit] — o el botón "Editar cuenta" de
+  /// [AccountViewScreen]).
   final ValueChanged<Account?> onOpenForm;
 
   /// Abre la pantalla de actualización rápida de saldo para esa cuenta
   /// ([UpdateBalanceTab], distinta del formulario de edición) — se llama
-  /// al tocar el monto de la fila (ver [_AccountRow.onUpdateBalance]).
+  /// desde el ícono de sync de la fila (ver
+  /// [_AccountRow.onUpdateBalance]) o desde [AccountViewScreen].
   final ValueChanged<Account> onOpenUpdateBalance;
 
   /// Vuelve a la pantalla desde la que se abrió esta vista. `null` cuando
@@ -44,6 +57,7 @@ class AccountsOverviewTab extends StatelessWidget {
   const AccountsOverviewTab({
     super.key,
     required this.accountViewModel,
+    required this.onOpenView,
     required this.onOpenForm,
     required this.onOpenUpdateBalance,
     this.onBack,
@@ -129,6 +143,7 @@ class AccountsOverviewTab extends StatelessWidget {
                       return _AccountRow(
                         account: account,
                         currency: currency,
+                        onView: () => onOpenView(account),
                         onEdit: () => onOpenForm(account),
                         onUpdateBalance: () => onOpenUpdateBalance(account),
                         onActiveChanged: (value) =>
@@ -221,20 +236,27 @@ class _TotalCard extends StatelessWidget {
   }
 }
 
-/// Cada fila de la lista tiene tres acciones independientes, cada una con
-/// su propio `InkWell` (en vez de una sola para toda la fila, como antes
-/// en cualquiera de las dos pantallas que unifica esta — ver el doc de
-/// [AccountsOverviewTab]):
-/// - Tocar el nombre / "Cuenta activa-inactiva" (con el lápiz de guía):
-///   [onEdit] — abre [AccountFormTab] para esa cuenta.
-/// - Tocar el monto (con el ícono de sync de guía): [onUpdateBalance] —
-///   abre [UpdateBalanceTab].
+/// Cada fila de la lista tiene cuatro acciones:
+/// - Tocar la fila (nombre, "Cuenta activa-inactiva" o el monto):
+///   [onView] — abre [AccountViewScreen], el detalle completo de esa
+///   cuenta (desde ahí también se puede editar y actualizar el saldo).
+/// - El lápiz: [onEdit] — atajo directo a [AccountFormTab], sin pasar
+///   por el detalle.
+/// - El ícono de sync: [onUpdateBalance] — atajo directo a
+///   [UpdateBalanceTab], sin pasar por el detalle.
 /// - El `Switch`: [onActiveChanged] — activa/desactiva la cuenta in situ,
-///   sin pasar por el formulario (mismo `AccountViewModel.toggleActive`
-///   de antes).
+///   sin pasar por ningún formulario (mismo
+///   `AccountViewModel.toggleActive` de antes).
+///
+/// El lápiz y el sync son `IconButton`, no zonas de texto: al tener cada
+/// uno su propio `GestureDetector` interno, Flutter les da prioridad
+/// sobre el `InkWell` de toda la fila cuando se toca justo sobre ellos —
+/// mismo motivo por el que el `Switch` tampoco dispara [onView] al
+/// tocarlo.
 class _AccountRow extends StatelessWidget {
   final Account account;
   final String currency;
+  final VoidCallback onView;
   final VoidCallback onEdit;
   final VoidCallback onUpdateBalance;
   final ValueChanged<bool> onActiveChanged;
@@ -243,6 +265,7 @@ class _AccountRow extends StatelessWidget {
   const _AccountRow({
     required this.account,
     required this.currency,
+    required this.onView,
     required this.onEdit,
     required this.onUpdateBalance,
     required this.onActiveChanged,
@@ -259,95 +282,78 @@ class _AccountRow extends StatelessWidget {
           opacity: isActive ? 1 : 0.5,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: onEdit,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 10,
-                      ),
-                      child: Row(
+            child: InkWell(
+              onTap: onView,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 6,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  account.name,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.authTextPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  isActive
-                                      ? 'Cuenta activa'
-                                      : 'Cuenta inactiva',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.authTextSecondary,
-                                  ),
-                                ),
-                              ],
+                          Text(
+                            account.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.authTextPrimary,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          // Solo indica que esta zona lleva a editar — el
-                          // tap real es de todo el InkWell de arriba.
-                          const Icon(
-                            Icons.edit_rounded,
-                            color: AppColors.authTextSecondary,
-                            size: 18,
+                          const SizedBox(height: 2),
+                          Text(
+                            isActive ? 'Cuenta activa' : 'Cuenta inactiva',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.authTextSecondary,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ),
-                InkWell(
-                  onTap: onUpdateBalance,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 10,
+                    const SizedBox(width: 6),
+                    Text(
+                      formatCurrency(account.balance, currency),
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.authTextPrimary,
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          formatCurrency(account.balance, currency),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.authTextPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        // Solo indica que esta zona lleva a actualizar el
-                        // saldo — el tap real es de todo este InkWell.
-                        const Icon(
-                          Icons.sync_rounded,
-                          color: AppColors.authAccent,
-                          size: 18,
-                        ),
-                      ],
+                    IconButton(
+                      onPressed: onEdit,
+                      tooltip: 'Editar cuenta',
+                      icon: const Icon(Icons.edit_rounded),
+                      iconSize: 18,
+                      color: AppColors.authTextSecondary,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(8),
                     ),
-                  ),
+                    IconButton(
+                      onPressed: onUpdateBalance,
+                      tooltip: 'Actualizar saldo',
+                      icon: const Icon(Icons.sync_rounded),
+                      iconSize: 18,
+                      color: AppColors.authAccent,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(8),
+                    ),
+                    Switch(
+                      value: isActive,
+                      activeTrackColor: AppColors.authAccent,
+                      onChanged: onActiveChanged,
+                    ),
+                  ],
                 ),
-                Switch(
-                  value: isActive,
-                  activeTrackColor: AppColors.authAccent,
-                  onChanged: onActiveChanged,
-                ),
-              ],
+              ),
             ),
           ),
         ),

@@ -5,6 +5,7 @@ import '../core/navigation/app_back.dart';
 import '../core/navigation/entity_route_guard.dart';
 import '../features/accounts/data/models/account.dart';
 import '../features/accounts/presentation/screens/account_form_tab.dart';
+import '../features/accounts/presentation/screens/account_view_screen.dart';
 import '../features/accounts/presentation/screens/accounts_overview_tab.dart';
 import '../features/accounts/presentation/screens/update_balance_tab.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
@@ -200,8 +201,7 @@ GoRouter buildAppRouter({
     // cualquier URL inválida termina en '/login', así que esta pantalla
     // solo la ve quien ya está autenticado. Va por fuera del shell (sin
     // header ni bottom nav).
-    errorBuilder: (context, state) =>
-        NotFoundScreen(location: state.uri.path),
+    errorBuilder: (context, state) => NotFoundScreen(location: state.uri.path),
     routes: [
       GoRoute(
         path: '/login',
@@ -240,8 +240,8 @@ GoRouter buildAppRouter({
                 // navegación — misma cuenta que usaba el
                 // Dashboard (ver dashboard_tab.dart).
                 pendingAccounts: monthlyBalanceViewModel.checked
-                    ? monthlyBalanceViewModel.pendingAccounts(
-                        accountViewModel.activeAccounts)
+                    ? monthlyBalanceViewModel
+                        .pendingAccounts(accountViewModel.activeAccounts)
                     : const [],
                 monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
@@ -294,6 +294,8 @@ GoRouter buildAppRouter({
             builder: (context, state) => RoutedScreenScaffold(
               body: AccountsOverviewTab(
                 accountViewModel: accountViewModel,
+                onOpenView: (account) =>
+                    context.push('/accounts/${account.id}'),
                 onOpenForm: (account) => account == null
                     ? context.push('/accounts/new')
                     : context.push('/accounts/${account.id}/edit'),
@@ -312,6 +314,29 @@ GoRouter buildAppRouter({
                   monthlyBalanceViewModel.checkCurrentMonth();
                   context.goBack();
                 },
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/accounts/:id',
+            // Declarada después de '/accounts/new': go_router prueba las
+            // rutas en el orden en que están acá, así que '/accounts/new'
+            // gana esa URL exacta antes de que ':id' la capture como
+            // "new" — mismo motivo por el que no hace falta cuidar el
+            // orden contra '/accounts/:id/edit' y '/accounts/:id/balance'
+            // (tienen un segmento más, no compiten por la misma URL).
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _accountGuard(
+                accountViewModel,
+                state.pathParameters['id'],
+                (context, account) => AccountViewScreen(
+                  account: account,
+                  accountViewModel: accountViewModel,
+                  onEdit: () => context.push('/accounts/${account.id}/edit'),
+                  onUpdateBalance: () =>
+                      context.push('/accounts/${account.id}/balance'),
+                  onBack: () => context.goBack(),
+                ),
               ),
             ),
           ),
@@ -360,6 +385,8 @@ GoRouter buildAppRouter({
               body: AccountsOverviewTab(
                 accountViewModel: accountViewModel,
                 onBack: () => context.goBack(),
+                onOpenView: (account) =>
+                    context.push('/accounts/${account.id}'),
                 onOpenForm: (account) => account == null
                     ? context.push('/accounts/new')
                     : context.push('/accounts/${account.id}/edit'),
