@@ -338,6 +338,8 @@ GoRouter buildAppRouter({
                   account: account,
                   accountViewModel: accountViewModel,
                   categoryViewModel: categoryViewModel,
+                  serviceViewModel: serviceViewModel,
+                  invoiceViewModel: invoiceViewModel,
                   transactionViewModel: transactionViewModel,
                   userId: authViewModel.userId,
                   onDone: () => context.goBack(),

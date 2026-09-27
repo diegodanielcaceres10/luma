@@ -7,6 +7,9 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../invoices/data/models/invoice.dart';
+import '../../../invoices/presentation/view_models/invoice_view_model.dart';
+import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
@@ -79,6 +82,17 @@ import '../view_models/account_view_model.dart';
 /// "Guardar y actualizar saldo" — ver
 /// [_UpdateBalanceTabState._saveAndUpdateBalance]. Factura de servicio
 /// sigue sin abrir nada.
+///
+/// Entrega 13: Factura de servicio ya funciona — [_SelectPendingInvoiceSheet]
+/// lista las facturas pendientes (ver [Invoice.isPending]) para elegir
+/// cuál pagar, y [_AddInvoiceDialog] confirma monto y fecha (el servicio y
+/// su categoría se resuelven solos — ver [ServiceViewModel.serviceById] /
+/// [CategoryViewModel.categoryById] — y si el servicio no tiene categoría
+/// o fue eliminado, se avisa y no se puede seguir). Igual que
+/// Ingreso/Gasto/Transferencia, no se persiste al guardar el popup: se
+/// agrega a [_UpdateBalanceTabState._pendingMovements] como un
+/// [PendingMovement] de factura, y recién se registra el pago de verdad
+/// (`InvoiceViewModel.payInvoice`) al tocar "Guardar y actualizar saldo".
 class UpdateBalanceTab extends StatefulWidget {
   /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` si el id
   /// de la URL (`/accounts/:id/balance`) no corresponde a ninguna cuenta
@@ -94,6 +108,16 @@ class UpdateBalanceTab extends StatefulWidget {
   /// movimiento" (tanto de ingreso como de gasto: el movimiento puede ir
   /// en cualquier sentido según la diferencia a justificar).
   final CategoryViewModel categoryViewModel;
+
+  /// Para resolver el servicio de cada factura en
+  /// [_SelectPendingInvoiceSheet] (nombre a mostrar y, a partir de su
+  /// `categoryId`, la categoría con la que se registra el pago).
+  final ServiceViewModel serviceViewModel;
+
+  /// Lista de dónde sale [_SelectPendingInvoiceSheet] (solo las
+  /// pendientes, ver [Invoice.isPending]) y con el que se registra el
+  /// pago de verdad al guardar — ver [InvoiceViewModel.payInvoice].
+  final InvoiceViewModel invoiceViewModel;
 
   /// Crea cada movimiento de [_UpdateBalanceTabState._pendingMovements]
   /// como una transacción real al presionar "Guardar y actualizar
@@ -115,6 +139,8 @@ class UpdateBalanceTab extends StatefulWidget {
     required this.account,
     required this.accountViewModel,
     required this.categoryViewModel,
+    required this.serviceViewModel,
+    required this.invoiceViewModel,
     required this.transactionViewModel,
     required this.userId,
     required this.onDone,
@@ -258,38 +284,48 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
 
     try {
       for (final movement in _pendingMovements) {
-        final bool success;
-        if (movement.isTransfer) {
+        final bool success = switch (movement) {
+          CategoryPendingMovement(:final category) =>
+            await widget.transactionViewModel.createTransaction(
+              userId: userId,
+              accountId: account.id,
+              categoryId: category.id,
+              type: category.type,
+              amount: movement.amount.abs(),
+              description: movement.description,
+              date: movement.date,
+            ),
           // amount ya viene con signo relativo a esta cuenta (ver
-          // [PendingMovement]): negativo si esta cuenta es el origen
-          // (sale plata), positivo si es el destino (entra plata).
-          final isOutgoing = movement.amount < 0;
-          success = await widget.transactionViewModel.createTransfer(
-            userId: userId,
-            originAccountId: isOutgoing ? account.id : movement.otherAccountId!,
-            destinationAccountId:
-                isOutgoing ? movement.otherAccountId! : account.id,
-            amount: movement.amount.abs(),
-            date: movement.date,
-            originDescription: movement.description,
-            destinationDescription: movement.description,
-          );
-        } else {
-          success = await widget.transactionViewModel.createTransaction(
-            userId: userId,
-            accountId: account.id,
-            categoryId: movement.category!.id,
-            type: movement.category!.type,
-            amount: movement.amount.abs(),
-            description: movement.description,
-            date: movement.date,
-          );
-        }
+          // [TransferPendingMovement]): negativo si esta cuenta es el
+          // origen (sale plata), positivo si es el destino (entra plata).
+          TransferPendingMovement(:final otherAccountId) =>
+            await widget.transactionViewModel.createTransfer(
+              userId: userId,
+              originAccountId:
+                  movement.amount < 0 ? account.id : otherAccountId,
+              destinationAccountId:
+                  movement.amount < 0 ? otherAccountId : account.id,
+              amount: movement.amount.abs(),
+              date: movement.date,
+              originDescription: movement.description,
+              destinationDescription: movement.description,
+            ),
+          InvoicePendingMovement(:final invoice, :final category) =>
+            await widget.invoiceViewModel.payInvoice(
+              invoice: invoice,
+              userId: userId,
+              accountId: account.id,
+              categoryId: category.id,
+              amount: movement.amount.abs(),
+              description: movement.description,
+              date: movement.date,
+            ),
+        };
         if (!success) {
-          throw Exception(
-            widget.transactionViewModel.errorMessage ??
-                'No se pudo guardar un movimiento.',
-          );
+          final errorMessage = movement is InvoicePendingMovement
+              ? widget.invoiceViewModel.errorMessage
+              : widget.transactionViewModel.errorMessage;
+          throw Exception(errorMessage ?? 'No se pudo guardar un movimiento.');
         }
         saved.add(movement);
       }
@@ -345,8 +381,9 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   /// Ingreso y Gasto abren [_AddMovementDialog] con las categorías
   /// filtradas según ese mismo tipo (ver [_AddMovementDialogState.build]).
   /// Transferencia abre [_AddTransferDialog], para elegir la otra cuenta
-  /// y la dirección. Factura de servicio, por ahora, no hace nada al
-  /// elegirla — queda para una próxima entrega.
+  /// y la dirección. Factura de servicio abre primero
+  /// [_SelectPendingInvoiceSheet] (para elegir cuál) y, si tiene categoría
+  /// resuelta, [_AddInvoiceDialog] para confirmar monto y fecha.
   Future<void> _showAddMovementDialog(BuildContext context) async {
     final account = widget.account;
     if (account == null) return;
@@ -384,9 +421,63 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
           ),
         );
       case _MovementType.invoice:
-        // Sin acciones por ahora — queda para una próxima entrega.
-        return;
+        return _showAddInvoiceFlow(context);
     }
+  }
+
+  /// Segunda mitad del caso "Factura de servicio" de
+  /// [_showAddMovementDialog]: elegir cuál pagar (dejando afuera las que
+  /// ya estén cargadas en [_pendingMovements], para no poder pagarla dos
+  /// veces sin guardar primero) y, si el servicio tiene categoría
+  /// resuelta, confirmar monto y fecha.
+  Future<void> _showAddInvoiceFlow(BuildContext context) async {
+    final alreadyQueuedIds = _pendingMovements
+        .whereType<InvoicePendingMovement>()
+        .map((m) => m.invoice.id)
+        .toSet();
+    final pendingInvoices = widget.invoiceViewModel.invoices
+        .where((i) => i.isPending && !alreadyQueuedIds.contains(i.id))
+        .toList();
+
+    final invoice = await showModalBottomSheet<Invoice>(
+      context: context,
+      backgroundColor: AppColors.authBackgroundBottom,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _SelectPendingInvoiceSheet(
+        invoices: pendingInvoices,
+        serviceViewModel: widget.serviceViewModel,
+        currency: widget.accountViewModel.primaryCurrency,
+      ),
+    );
+    if (invoice == null || !context.mounted) return;
+
+    final service = widget.serviceViewModel.serviceById(invoice.serviceId);
+    final serviceName = service?.name ?? 'Servicio eliminado';
+    final category =
+        widget.categoryViewModel.categoryById(service?.categoryId);
+    if (category == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'El servicio no tiene categoría o fue eliminado; no se puede '
+            'registrar el pago.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _AddInvoiceDialog(
+        invoice: invoice,
+        serviceName: serviceName,
+        category: category,
+        onSave: _addPendingMovement,
+      ),
+    );
   }
 
   InputDecoration _amountDecoration(String currencySymbol) {
@@ -1326,50 +1417,87 @@ class _MovementsSummaryCard extends StatelessWidget {
 /// termina de justificar la diferencia de saldo. Vive solo en memoria
 /// (ver [_UpdateBalanceTabState._pendingMovements]) — todavía no se
 /// persiste en la base hasta tocar "Guardar y actualizar saldo" (ver
-/// [_UpdateBalanceTabState._saveAndUpdateBalance]).
+/// [_UpdateBalanceTabState._saveAndUpdateBalance], que hace `switch` sobre
+/// las tres subclases de acá abajo para saber cómo persistir cada una).
 ///
-/// Dos variantes, según qué se eligió en [_MovementTypeSheet] (mutuamente
-/// excluyentes: o [category] o [otherAccountId], nunca los dos):
-/// - Ingreso/Gasto: [category] no nulo, [otherAccountId] nulo. [amount]
-///   ya viene con signo (negativo si [category] es de gasto, positivo si
-///   es de ingreso) — ver [_AddMovementDialogState._save].
-/// - Transferencia: [otherAccountId]/[otherAccountName] identifican la
-///   otra cuenta de la transferencia, [category] nulo. [amount] ya viene
-///   con signo relativo a la cuenta que se está actualizando: negativo si
-///   esa cuenta es el origen (sale plata), positivo si es el destino
-///   (entra plata) — ver [_AddTransferDialogState._save].
-class PendingMovement {
+/// [amount] ya viene con signo, relativo a la cuenta que se está
+/// actualizando — quien arma cada subclase (los `_save` de sus popups) es
+/// responsable de ponerlo bien; ver el doc de cada una.
+sealed class PendingMovement {
   final double amount;
-  final Category? category;
-  final String? otherAccountId;
-  final String? otherAccountName;
   final String? description;
   final DateTime date;
 
   const PendingMovement({
     required this.amount,
     required this.date,
-    this.category,
-    this.otherAccountId,
-    this.otherAccountName,
     this.description,
-  }) : assert(
-          (category == null) != (otherAccountId == null),
-          'Un movimiento es de categoría o de transferencia, nunca los dos',
-        );
-
-  bool get isTransfer => otherAccountId != null;
+  });
 
   /// Qué mostrar en vez del nombre de categoría en [_MovementListTile] y
-  /// [_MovementReadOnlyTile]: el nombre de la categoría, o de qué cuenta
-  /// viene / a qué cuenta va la transferencia, según el signo de [amount].
-  String get displayLabel {
-    final category = this.category;
-    if (category != null) return category.name;
-    return amount >= 0
-        ? 'Transferencia desde $otherAccountName'
-        : 'Transferencia a $otherAccountName';
-  }
+  /// [_MovementReadOnlyTile].
+  String get displayLabel;
+}
+
+/// Ingreso o Gasto con una categoría — el caso más simple. [amount] ya
+/// viene con signo (negativo si [category] es de gasto, positivo si es de
+/// ingreso) — ver [_AddMovementDialogState._save].
+class CategoryPendingMovement extends PendingMovement {
+  final Category category;
+
+  const CategoryPendingMovement({
+    required super.amount,
+    required super.date,
+    required this.category,
+    super.description,
+  });
+
+  @override
+  String get displayLabel => category.name;
+}
+
+/// Transferencia con otra cuenta. [amount] ya viene con signo relativo a
+/// la cuenta que se está actualizando: negativo si esa cuenta es el
+/// origen (sale plata), positivo si es el destino (entra plata) — ver
+/// [_AddTransferDialogState._save].
+class TransferPendingMovement extends PendingMovement {
+  final String otherAccountId;
+  final String otherAccountName;
+
+  const TransferPendingMovement({
+    required super.amount,
+    required super.date,
+    required this.otherAccountId,
+    required this.otherAccountName,
+    super.description,
+  });
+
+  @override
+  String get displayLabel => amount >= 0
+      ? 'Transferencia desde $otherAccountName'
+      : 'Transferencia a $otherAccountName';
+}
+
+/// Pago de una factura de servicio pendiente. [amount] siempre negativo
+/// (pagar una factura es siempre un gasto) — ver
+/// [_AddInvoiceDialogState._save]. [category] es la del servicio
+/// ([Service.categoryId]), con la que se registra el gasto.
+class InvoicePendingMovement extends PendingMovement {
+  final Invoice invoice;
+  final Category category;
+  final String serviceName;
+
+  const InvoicePendingMovement({
+    required super.amount,
+    required super.date,
+    required this.invoice,
+    required this.category,
+    required this.serviceName,
+    super.description,
+  });
+
+  @override
+  String get displayLabel => 'Factura · $serviceName';
 }
 
 /// Estilo del label de cada campo en los popups de "Agregar movimiento"
@@ -1484,7 +1612,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
         _selectedCategory!.type == 'expense' ? -rawAmount : rawAmount;
 
     widget.onSave(
-      PendingMovement(
+      CategoryPendingMovement(
         amount: signedAmount,
         category: _selectedCategory!,
         description: _descriptionController.text.trim().isEmpty
@@ -1749,7 +1877,7 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
     final signedAmount = _isIncoming ? rawAmount : -rawAmount;
 
     widget.onSave(
-      PendingMovement(
+      TransferPendingMovement(
         amount: signedAmount,
         otherAccountId: otherAccount.id,
         otherAccountName: otherAccount.name,
@@ -1842,7 +1970,8 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
                         ),
                       )
                       .toList(),
-                  onChanged: (value) => setState(() => _otherAccountId = value),
+                  onChanged: (value) =>
+                      setState(() => _otherAccountId = value),
                   validator: (value) =>
                       value == null ? 'Seleccioná una cuenta' : null,
                 ),
@@ -1902,8 +2031,8 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
                           '${_selectedDate.day.toString().padLeft(2, '0')}/'
                           '${_selectedDate.month.toString().padLeft(2, '0')}/'
                           '${_selectedDate.year}',
-                          style:
-                              const TextStyle(color: AppColors.authTextPrimary),
+                          style: const TextStyle(
+                              color: AppColors.authTextPrimary),
                         ),
                         const Icon(
                           Icons.calendar_today_rounded,
@@ -1933,6 +2062,336 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: otherAccounts.isEmpty ? null : _save,
+          child: const Text('Guardar'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Bottom sheet que abre "Agregar movimiento" al elegir "Factura de
+/// servicio": lista las facturas pendientes recibidas en [invoices] (ya
+/// filtradas por [_UpdateBalanceTabState._showAddInvoiceFlow] — ni
+/// pagadas ni canceladas, y sin las que ya estén cargadas en esta misma
+/// pantalla) para elegir cuál pagar. Tocar una la devuelve como resultado
+/// del `showModalBottomSheet`; si no hay ninguna, solo muestra un aviso.
+class _SelectPendingInvoiceSheet extends StatelessWidget {
+  final List<Invoice> invoices;
+  final ServiceViewModel serviceViewModel;
+  final String currency;
+
+  const _SelectPendingInvoiceSheet({
+    required this.invoices,
+    required this.serviceViewModel,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.authCardBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const Text(
+              'Facturas pendientes',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            if (invoices.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'No hay facturas pendientes para pagar.',
+                  style: TextStyle(color: AppColors.authTextSecondary),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(top: 8),
+                  itemCount: invoices.length,
+                  separatorBuilder: (_, __) => const Divider(
+                    color: AppColors.authCardBorder,
+                    height: 1,
+                  ),
+                  itemBuilder: (context, i) {
+                    final invoice = invoices[i];
+                    final service =
+                        serviceViewModel.serviceById(invoice.serviceId);
+                    final serviceName = service?.name ?? 'Servicio eliminado';
+                    final dueDate = invoice.dueDate;
+                    final monthYear =
+                        '${_kMonthAbbreviations[invoice.month - 1]} '
+                        '${invoice.year}';
+                    return InkWell(
+                      onTap: () => Navigator.of(context).pop(invoice),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    serviceName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.authTextPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    dueDate == null
+                                        ? monthYear
+                                        : '$monthYear · vence '
+                                            '${_formatMovementDate(dueDate)}',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.authTextSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              formatCurrency(invoice.amount, currency),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.authTextPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Popup que confirma el pago de la factura elegida en
+/// [_SelectPendingInvoiceSheet]: monto (precargado con el importe de la
+/// factura, editable — puede haber variado respecto al aproximado) y
+/// fecha de pago. El servicio y la categoría ya vienen resueltos (ver
+/// [_UpdateBalanceTabState._showAddInvoiceFlow]) y se muestran fijos, no
+/// hay selector de cuenta (siempre es la que se está actualizando en
+/// [UpdateBalanceTab]).
+///
+/// Igual que los otros popups de "Agregar movimiento", no persiste nada
+/// al guardar: arma un [InvoicePendingMovement] y lo agrega a
+/// [_UpdateBalanceTabState._pendingMovements] — recién se registra el
+/// pago de verdad al tocar "Guardar y actualizar saldo", ver
+/// [_UpdateBalanceTabState._saveAndUpdateBalance].
+class _AddInvoiceDialog extends StatefulWidget {
+  final Invoice invoice;
+  final String serviceName;
+  final Category category;
+  final void Function(PendingMovement movement) onSave;
+
+  const _AddInvoiceDialog({
+    required this.invoice,
+    required this.serviceName,
+    required this.category,
+    required this.onSave,
+  });
+
+  @override
+  State<_AddInvoiceDialog> createState() => _AddInvoiceDialogState();
+}
+
+class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _amountController;
+  DateTime _selectedDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(
+      text: widget.invoice.amount.toStringAsFixed(2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  /// Mismo rango de fechas que [_AddMovementDialogState._pickDate].
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.authAccent,
+            onPrimary: AppColors.authBackgroundBottom,
+            surface: AppColors.authBackgroundBottom,
+            onSurface: AppColors.authTextPrimary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _selectedDate = picked);
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final amount = double.parse(
+      _amountController.text.trim().replaceAll(',', '.'),
+    );
+
+    widget.onSave(
+      InvoicePendingMovement(
+        // Pagar una factura siempre es un gasto: resta del saldo.
+        amount: -amount,
+        date: _selectedDate,
+        invoice: widget.invoice,
+        category: widget.category,
+        serviceName: widget.serviceName,
+        description: 'Factura · ${widget.serviceName}',
+      ),
+    );
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.authBackgroundTop,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.authCardBorder),
+      ),
+      title: const Text(
+        'Pagar factura',
+        style: TextStyle(
+          color: AppColors.authTextPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${widget.serviceName} · ${widget.category.name}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.authTextPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Monto a pagar', style: _kDialogLabelStyle),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _amountController,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r'^\d*[.,]?\d{0,2}'),
+                  ),
+                ],
+                style: const TextStyle(color: AppColors.authTextPrimary),
+                decoration: _kDialogFieldDecoration.copyWith(hintText: '0,00'),
+                validator: (value) {
+                  final text = (value ?? '').trim().replaceAll(',', '.');
+                  if (text.isEmpty) return 'Ingresa un monto';
+                  final parsed = double.tryParse(text);
+                  if (parsed == null || parsed <= 0) return 'Monto inválido';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text('Fecha de pago', style: _kDialogLabelStyle),
+              const SizedBox(height: 6),
+              InkWell(
+                onTap: _pickDate,
+                borderRadius: BorderRadius.circular(14),
+                child: InputDecorator(
+                  decoration: _kDialogFieldDecoration,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${_selectedDate.day.toString().padLeft(2, '0')}/'
+                        '${_selectedDate.month.toString().padLeft(2, '0')}/'
+                        '${_selectedDate.year}',
+                        style: const TextStyle(
+                          color: AppColors.authTextPrimary,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.calendar_today_rounded,
+                        size: 18,
+                        color: AppColors.authTextSecondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(
+            'Cancelar',
+            style: TextStyle(color: AppColors.authTextSecondary),
+          ),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.authAccent,
+            foregroundColor: AppColors.authBackgroundBottom,
+          ),
+          onPressed: _save,
           child: const Text('Guardar'),
         ),
       ],
