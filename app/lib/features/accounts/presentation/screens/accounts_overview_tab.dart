@@ -225,9 +225,10 @@ class _TotalCard extends StatelessWidget {
 /// su propio `InkWell` (en vez de una sola para toda la fila, como antes
 /// en cualquiera de las dos pantallas que unifica esta — ver el doc de
 /// [AccountsOverviewTab]):
-/// - Tocar el nombre / "Cuenta activa-inactiva": [onEdit] — abre
-///   [AccountFormTab] para esa cuenta.
-/// - Tocar el monto: [onUpdateBalance] — abre [UpdateBalanceTab].
+/// - Tocar el nombre / "Cuenta activa-inactiva" (con el lápiz de guía):
+///   [onEdit] — abre [AccountFormTab] para esa cuenta.
+/// - Tocar el monto (con el ícono de sync de guía): [onUpdateBalance] —
+///   abre [UpdateBalanceTab].
 /// - El `Switch`: [onActiveChanged] — activa/desactiva la cuenta in situ,
 ///   sin pasar por el formulario (mismo `AccountViewModel.toggleActive`
 ///   de antes).
@@ -269,25 +270,41 @@ class _AccountRow extends StatelessWidget {
                         horizontal: 4,
                         vertical: 10,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Text(
-                            account.name,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.authTextPrimary,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  account.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.authTextPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isActive
+                                      ? 'Cuenta activa'
+                                      : 'Cuenta inactiva',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.authTextSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            isActive ? 'Cuenta activa' : 'Cuenta inactiva',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.authTextSecondary,
-                            ),
+                          const SizedBox(width: 8),
+                          // Solo indica que esta zona lleva a editar — el
+                          // tap real es de todo el InkWell de arriba.
+                          const Icon(
+                            Icons.edit_rounded,
+                            color: AppColors.authTextSecondary,
+                            size: 18,
                           ),
                         ],
                       ),
@@ -314,8 +331,10 @@ class _AccountRow extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 6),
+                        // Solo indica que esta zona lleva a actualizar el
+                        // saldo — el tap real es de todo este InkWell.
                         const Icon(
-                          Icons.price_change_rounded,
+                          Icons.sync_rounded,
                           color: AppColors.authAccent,
                           size: 18,
                         ),
