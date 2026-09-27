@@ -6,15 +6,16 @@ import { Title } from '@angular/platform-browser';
   selector: 'app-terms-of-service',
   imports: [RouterLink],
   templateUrl: './terms-of-service.html',
-  styleUrl: './terms-of-service.css'
 })
 export class TermsOfService {
   private readonly titleService = inject(Title);
 
+  protected readonly year = new Date().getFullYear();
+
   protected readonly lastUpdated = new Date().toLocaleDateString('es-AR', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   });
 
   constructor() {
