@@ -6,7 +6,9 @@
   </header>
 
   <!-- Hero -->
-  <section class="mx-auto grid max-w-7xl items-center gap-12 px-6 pt-12 pb-20 lg:grid-cols-2 lg:gap-8 lg:px-12 lg:pt-16">
+  <section
+    class="mx-auto grid max-w-7xl items-center gap-12 px-6 pt-12 pb-20 lg:grid-cols-2 lg:gap-8 lg:px-12 lg:pt-16"
+  >
     <div class="text-center lg:text-left">
       <p class="mb-4 text-sm font-semibold tracking-widest text-emerald-500 uppercase">
         Tu dinero, más simple
@@ -17,9 +19,8 @@
         <span class="text-emerald-600">siempre.</span>
       </h1>
       <p class="mx-auto mt-6 max-w-md text-lg text-neutral-500 lg:mx-0">
-        Luma es una app personal de finanzas, creada para ayudarte a entender
-        tus gastos, organizar tus ingresos y alcanzar tus objetivos. Todo en
-        un solo lugar.
+        Luma es una app personal de finanzas, creada para ayudarte a entender tus gastos, organizar
+        tus ingresos y alcanzar tus objetivos. Todo en un solo lugar.
       </p>
       <div class="mt-8 flex justify-center lg:justify-start">
         <a
@@ -51,36 +52,78 @@
     <div class="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
       @for (feature of features; track feature.title) {
         <div>
-          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+          <div
+            class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600"
+          >
             @switch (feature.icon) {
               @case ('flow') {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-6 w-6"
+                >
                   <path d="M4 7h13m0 0-3-3m3 3-3 3" />
                   <path d="M20 17H7m0 0 3 3m-3-3 3-3" />
                 </svg>
               }
               @case ('bar-chart') {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-6 w-6"
+                >
                   <path d="M5 20V10" />
                   <path d="M12 20V4" />
                   <path d="M19 20v-7" />
                 </svg>
               }
               @case ('trend-up') {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-6 w-6"
+                >
                   <path d="M4 16l5-5 4 4 7-8" />
                   <path d="M15 6h5v5" />
                 </svg>
               }
               @case ('bank') {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-6 w-6"
+                >
                   <path d="M3 10 12 4l9 6" />
                   <path d="M5 10v8m4-8v8m6-8v8m4-8v8" />
                   <path d="M3 21h18" />
                 </svg>
               }
               @case ('repeat') {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-6 w-6"
+                >
                   <path d="M17 2 21 6l-4 4" />
                   <path d="M3 12v-2a4 4 0 0 1 4-4h14" />
                   <path d="M7 22 3 18l4-4" />
@@ -88,7 +131,15 @@
                 </svg>
               }
               @case ('document') {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-6 w-6"
+                >
                   <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
                   <path d="M14 3v5h5" />
                   <path d="M9 13h6M9 17h6" />
@@ -103,22 +154,49 @@
     </div>
   </section>
 
-  <!-- Stack -->
-  <section class="border-t border-neutral-200 py-12 text-center">
-    <p class="text-sm text-neutral-500">
-      Construida con Flutter · Supabase · PostgreSQL
-    </p>
-  </section>
+  <footer>
+    <div
+      class="h-px bg-gradient-to-r from-neutral-900 via-emerald-600 to-transparent"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-6 sm:flex-row lg:px-12"
+    >
+      <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <a routerLink="/" class="flex items-center gap-2">
+          <img src="logo.png" alt="Luma" class="h-6 w-6" />
+          <span class="text-base font-bold text-neutral-900">Luma</span>
+        </a>
+        <span class="hidden h-4 w-px bg-neutral-300 sm:inline-block" aria-hidden="true"></span>
+        <span class="text-sm text-neutral-500">Por Diego Daniel Caceres</span>
+        <a
+          href="#"
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700"
+        >
+          Ver portfolio
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
 
-  <footer class="flex flex-col items-center gap-2 px-6 py-8 text-center text-xs text-neutral-400">
-    <div class="flex gap-4">
-      <a routerLink="/privacidad" class="text-neutral-600 underline underline-offset-2 hover:text-neutral-900">
-        Política de privacidad
-      </a>
-      <a routerLink="/condiciones" class="text-neutral-600 underline underline-offset-2 hover:text-neutral-900">
-        Condiciones del servicio
-      </a>
+      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+        <a
+          routerLink="/privacidad"
+          class="text-sm text-neutral-600 underline-offset-2 hover:text-neutral-900 hover:underline"
+        >
+          Política de privacidad
+        </a>
+        <a
+          routerLink="/condiciones"
+          class="text-sm text-neutral-600 underline-offset-2 hover:text-neutral-900 hover:underline"
+        >
+          Términos de servicio
+        </a>
+        <span class="text-xs text-neutral-400"
+          >© {{ year }} Luma. Todos los derechos reservados.</span
+        >
+      </div>
     </div>
-    <span>© {{ year }} Luma — Proyecto personal y educativo</span>
   </footer>
 </main>
