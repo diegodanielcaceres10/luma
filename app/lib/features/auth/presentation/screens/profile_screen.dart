@@ -10,8 +10,8 @@ class ProfileScreen extends StatelessWidget {
 
   /// Navega a la pantalla de preferencias ('/profile/preferences' — ver
   /// router.dart). Se recibe por callback, igual que el resto de la
-  /// navegación de esta app (ver AccountsTab.onAdd, etc.), para no atar
-  /// esta pantalla a go_router directamente.
+  /// navegación de esta app (ver AccountsOverviewTab.onOpenForm, etc.),
+  /// para no atar esta pantalla a go_router directamente.
   final VoidCallback onOpenPreferences;
 
   const ProfileScreen({

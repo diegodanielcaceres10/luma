@@ -6,7 +6,6 @@ import '../core/navigation/entity_route_guard.dart';
 import '../features/accounts/data/models/account.dart';
 import '../features/accounts/presentation/screens/account_form_tab.dart';
 import '../features/accounts/presentation/screens/accounts_overview_tab.dart';
-import '../features/accounts/presentation/screens/accounts_tab.dart';
 import '../features/accounts/presentation/screens/update_balance_tab.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
 import '../features/app_lock/presentation/screens/lock_screen.dart';
@@ -283,15 +282,23 @@ GoRouter buildAppRouter({
             ),
           ),
           // ---- Cuentas ----
+          // '/accounts' (pestaña del drawer) y '/accounts-overview' (push
+          // desde el Dashboard) muestran la misma pantalla
+          // (AccountsOverviewTab) — solo cambia si se pasa onBack, ver su
+          // doc. Repetir el widget en dos rutas en vez de una es a
+          // propósito: '/accounts' es una pestaña de primer nivel del
+          // shell (navegación por tab, no por push), así que necesita su
+          // propia ruta aunque construya la misma pantalla.
           GoRoute(
             path: '/accounts',
             builder: (context, state) => RoutedScreenScaffold(
-              body: AccountsTab(
+              body: AccountsOverviewTab(
                 accountViewModel: accountViewModel,
-                onAdd: () => context.push('/accounts/new'),
                 onOpenForm: (account) => account == null
                     ? context.push('/accounts/new')
                     : context.push('/accounts/${account.id}/edit'),
+                onOpenUpdateBalance: (account) =>
+                    context.push('/accounts/${account.id}/balance'),
               ),
             ),
           ),
