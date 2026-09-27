@@ -6,15 +6,16 @@ import { Title } from '@angular/platform-browser';
   selector: 'app-privacy-policy',
   imports: [RouterLink],
   templateUrl: './privacy-policy.html',
-  styleUrl: './privacy-policy.css'
 })
 export class PrivacyPolicy {
   private readonly titleService = inject(Title);
 
+  protected readonly year = new Date().getFullYear();
+
   protected readonly lastUpdated = new Date().toLocaleDateString('es-AR', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   });
 
   constructor() {
