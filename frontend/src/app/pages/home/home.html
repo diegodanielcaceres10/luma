@@ -1,8 +1,95 @@
 <main class="min-h-screen bg-[#F7F8F4] text-neutral-900">
   <!-- Top bar -->
-  <header class="mx-auto flex max-w-7xl items-center gap-2 px-6 pt-8 lg:px-12">
-    <img src="logo.png" alt="Luma" class="h-8 w-8" />
-    <span class="text-xl font-bold">Luma</span>
+  <header class="relative mx-auto flex max-w-7xl items-center justify-between px-6 pt-8 lg:px-12">
+    <a routerLink="/" (click)="closeMenu()" class="flex items-center gap-2">
+      <img src="logo.png" alt="Luma" class="h-8 w-8" />
+      <span class="text-xl font-bold">Luma</span>
+    </a>
+
+    <nav class="hidden items-center gap-8 text-sm font-medium text-neutral-600 lg:flex">
+      <a routerLink="/" class="transition hover:text-neutral-900">Inicio</a>
+      <a routerLink="/privacidad" class="transition hover:text-neutral-900"
+        >Política de privacidad</a
+      >
+      <a routerLink="/condiciones" class="transition hover:text-neutral-900"
+        >Términos de servicio</a
+      >
+    </nav>
+
+    <div class="flex items-center gap-3">
+      <a
+        href="https://github.com/diegodanielcaceres10/luma"
+        target="_blank"
+        rel="noopener"
+        class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+      >
+        Ver en GitHub
+        <svg viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4" aria-hidden="true">
+          <path
+            d="M12 0C5.37 0 0 5.373 0 12c0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.386-1.333-1.756-1.333-1.756-1.089-.744.084-.729.084-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23a11.5 11.5 0 0 1 3.003-.404c1.019.005 2.045.138 3.003.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.61-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.627-5.373-12-12-12z"
+          />
+        </svg>
+      </a>
+
+      <button
+        type="button"
+        (click)="toggleMenu()"
+        class="inline-flex h-9 w-9 items-center justify-center rounded-full text-neutral-700 transition hover:bg-neutral-900/5 lg:hidden"
+        [attr.aria-expanded]="menuOpen()"
+        aria-controls="mobile-menu"
+        aria-label="Abrir menú"
+      >
+        @if (!menuOpen()) {
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            class="h-6 w-6"
+          >
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        } @else {
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            class="h-6 w-6"
+          >
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        }
+      </button>
+    </div>
+
+    @if (menuOpen()) {
+      <nav
+        id="mobile-menu"
+        class="absolute inset-x-6 top-full z-10 mt-2 flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 shadow-lg lg:hidden"
+      >
+        <a
+          routerLink="/"
+          (click)="closeMenu()"
+          class="px-5 py-3 transition hover:bg-neutral-50 hover:text-neutral-900"
+          >Inicio</a
+        >
+        <a
+          routerLink="/privacidad"
+          (click)="closeMenu()"
+          class="border-t border-neutral-100 px-5 py-3 transition hover:bg-neutral-50 hover:text-neutral-900"
+          >Política de privacidad</a
+        >
+        <a
+          routerLink="/condiciones"
+          (click)="closeMenu()"
+          class="border-t border-neutral-100 px-5 py-3 transition hover:bg-neutral-50 hover:text-neutral-900"
+          >Términos de servicio</a
+        >
+      </nav>
+    }
   </header>
 
   <!-- Hero -->
@@ -10,7 +97,12 @@
     class="mx-auto grid max-w-7xl items-center gap-12 px-6 pt-12 pb-20 lg:grid-cols-2 lg:gap-8 lg:px-12 lg:pt-16"
   >
     <div class="text-center lg:text-left">
-      <p class="mb-4 text-sm font-semibold tracking-widest text-emerald-500 uppercase">
+      <p
+        class="mb-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold tracking-widest text-emerald-700 uppercase"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" class="h-3.5 w-3.5" aria-hidden="true">
+          <path d="M12 2l1.8 5.7L19.5 9l-5.7 1.8L12 16.5l-1.8-5.7L4.5 9l5.7-1.3L12 2z" />
+        </svg>
         Tu dinero, más simple
       </p>
       <h1 class="text-4xl leading-[1.1] font-bold tracking-tight sm:text-5xl">
@@ -27,10 +119,34 @@
           href="https://github.com/diegodanielcaceres10/luma"
           target="_blank"
           rel="noopener"
-          class="rounded-full bg-emerald-500 px-6 py-2.5 font-medium text-white transition hover:bg-emerald-600"
+          class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-6 py-2.5 font-medium text-white transition hover:bg-emerald-600"
         >
           Ver en GitHub
+          <svg viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4" aria-hidden="true">
+            <path
+              d="M12 0C5.37 0 0 5.373 0 12c0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.386-1.333-1.756-1.333-1.756-1.089-.744.084-.729.084-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23a11.5 11.5 0 0 1 3.003-.404c1.019.005 2.045.138 3.003.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.61-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.627-5.373-12-12-12z"
+            />
+          </svg>
         </a>
+      </div>
+      <div
+        class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-neutral-600 lg:justify-start"
+      >
+        @for (item of ['100% Open Source', 'Tu información, en tus manos']; track item) {
+          <span class="inline-flex items-center gap-1.5">
+            <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4 flex-none text-emerald-500">
+              <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.15" />
+              <path
+                d="M8 12.5l2.5 2.5L16 9.5"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            {{ item }}
+          </span>
+        }
       </div>
     </div>
 
