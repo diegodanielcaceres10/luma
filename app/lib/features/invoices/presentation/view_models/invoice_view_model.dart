@@ -37,6 +37,16 @@ class InvoiceViewModel extends ChangeNotifier {
   /// por ejemplo, como badge en el acceso rápido del Dashboard.
   int get pendingCount => _invoices.where((i) => i.isPending).length;
 
+  /// Cantidad de facturas pendientes (ni pagadas ni canceladas) cuyo mes y
+  /// año corresponden al mes en curso. Se usa en el BalanceCard del
+  /// Dashboard.
+  int get pendingCountForCurrentMonth {
+    final now = DateTime.now();
+    return _invoices
+        .where((i) => i.isPending && i.month == now.month && i.year == now.year)
+        .length;
+  }
+
   bool isCancelling(String invoiceId) => _cancellingIds.contains(invoiceId);
   bool isPaying(String invoiceId) => _payingIds.contains(invoiceId);
 

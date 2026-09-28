@@ -159,6 +159,8 @@ class _DashboardTabState extends State<DashboardTab> {
 
     final pendingInvoicesTotal = widget.invoiceViewModel
         .pendingAmountForCurrentMonth(widget.serviceViewModel.activeServices);
+    final pendingInvoicesCount =
+        widget.invoiceViewModel.pendingCountForCurrentMonth;
 
     return ListView(
       key: const ValueKey('dashboard-content'),
@@ -180,6 +182,7 @@ class _DashboardTabState extends State<DashboardTab> {
               pendingAccounts.isEmpty ? null : widget.onOpenMonthlyBalances,
           onManageAccounts: widget.onManageAccounts,
           pendingInvoicesTotal: pendingInvoicesTotal,
+          pendingInvoicesCount: pendingInvoicesCount,
           isLoadingPendingInvoices: widget.invoiceViewModel.isLoading ||
               widget.serviceViewModel.isLoading,
         ),
@@ -401,6 +404,9 @@ class _BalanceCard extends StatelessWidget {
   final VoidCallback? onCompletePendingBalances;
   final VoidCallback onManageAccounts;
   final double pendingInvoicesTotal;
+
+  /// Facturas pendientes (ni pagadas ni canceladas) del mes en curso.
+  final int pendingInvoicesCount;
   final bool isLoadingPendingInvoices;
 
   const _BalanceCard({
@@ -413,6 +419,7 @@ class _BalanceCard extends StatelessWidget {
     this.pendingAccountsCount = 0,
     this.onCompletePendingBalances,
     this.pendingInvoicesTotal = 0,
+    this.pendingInvoicesCount = 0,
     this.isLoadingPendingInvoices = false,
   });
 
@@ -496,7 +503,7 @@ class _BalanceCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${netResult >= 0 ? '+' : ''}'
-                        '${formatCurrency(netResult, currency)} este mes '
+                        '${formatCurrency(netResult, currency)} este mes'
                         '(ingresos - gastos ± ajustes)',
                         style: TextStyle(
                           color: netResult >= 0
@@ -518,26 +525,48 @@ class _BalanceCard extends StatelessWidget {
                   color: Colors.white70,
                 ),
               ),
-            ] else if (pendingInvoicesTotal > 0) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.receipt_long_rounded,
-                      color: Colors.white70, size: 16),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Servicios pendientes de pagar: '
-                      '${formatCurrency(pendingInvoicesTotal, currency)}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+            ] else ...[
+              if (pendingInvoicesTotal > 0) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.receipt_long_rounded,
+                        color: Colors.white70, size: 16),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Servicios pendientes de pagar: '
+                        '${formatCurrency(pendingInvoicesTotal, currency)}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
+              if (pendingInvoicesCount > 0) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.request_page_outlined,
+                        color: Colors.white70, size: 16),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Facturas por pagar: $pendingInvoicesCount',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
             if (pendingAccountsCount > 0) ...[
               const SizedBox(height: 16),
