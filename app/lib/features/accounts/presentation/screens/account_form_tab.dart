@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart'
     show AccountSubmitError, AccountViewModel;
@@ -137,27 +138,14 @@ class _AccountFormTabState extends State<AccountFormTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: isSubmitting ? null : widget.onDone,
-                        borderRadius: BorderRadius.circular(20),
-                        child: const Padding(
-                          padding: EdgeInsets.all(4),
-                          child: Icon(Icons.arrow_back_rounded,
-                              color: AppColors.authTextPrimary),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isEditing ? 'Editar cuenta' : 'Nueva cuenta',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.authTextPrimary,
-                        ),
-                      ),
-                    ],
+                  ScreenHeader(
+                    title: _isEditing ? 'Editar cuenta' : 'Nueva cuenta',
+                    subtitle: _isEditing
+                        ? 'Modifica el nombre de tu cuenta.'
+                        : 'Registra una cuenta para llevar tu saldo.',
+                    size: ScreenHeaderSize.compact,
+                    onBack: widget.onDone,
+                    backEnabled: !isSubmitting,
                   ),
                   const SizedBox(height: 20),
                   const Text('Nombre',
