@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/data/models/invoice.dart';
@@ -455,8 +455,7 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
 
     final service = widget.serviceViewModel.serviceById(invoice.serviceId);
     final serviceName = service?.name ?? 'Servicio eliminado';
-    final category =
-        widget.categoryViewModel.categoryById(service?.categoryId);
+    final category = widget.categoryViewModel.categoryById(service?.categoryId);
     if (category == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -759,27 +758,13 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: _isSaving ? null : widget.onDone,
-                        borderRadius: BorderRadius.circular(20),
-                        child: const Padding(
-                          padding: EdgeInsets.all(4),
-                          child: Icon(Icons.arrow_back_rounded,
-                              color: AppColors.authTextPrimary),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('Actualizar saldo',
-                          style: AppTextStyles.authTitle),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Ingresa el nuevo saldo de tu cuenta y agrega los movimientos '
-                    'que justifiquen la diferencia.',
-                    style: AppTextStyles.authSubtitle,
+                  ScreenHeader(
+                    title: 'Actualizar saldo',
+                    subtitle:
+                        'Ingresa el nuevo saldo de tu cuenta y agrega los movimientos '
+                        'que justifiquen la diferencia.',
+                    onBack: widget.onDone,
+                    backEnabled: !_isSaving,
                   ),
                   if (account != null) ...[
                     const SizedBox(height: 20),
@@ -1970,8 +1955,7 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
                         ),
                       )
                       .toList(),
-                  onChanged: (value) =>
-                      setState(() => _otherAccountId = value),
+                  onChanged: (value) => setState(() => _otherAccountId = value),
                   validator: (value) =>
                       value == null ? 'Seleccioná una cuenta' : null,
                 ),
@@ -2031,8 +2015,8 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
                           '${_selectedDate.day.toString().padLeft(2, '0')}/'
                           '${_selectedDate.month.toString().padLeft(2, '0')}/'
                           '${_selectedDate.year}',
-                          style: const TextStyle(
-                              color: AppColors.authTextPrimary),
+                          style:
+                              const TextStyle(color: AppColors.authTextPrimary),
                         ),
                         const Icon(
                           Icons.calendar_today_rounded,
