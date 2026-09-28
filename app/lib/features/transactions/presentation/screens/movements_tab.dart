@@ -338,7 +338,7 @@ class _MovementsTabState extends State<MovementsTab> {
   }
 
   /// Confirma con el usuario antes de borrar (mismo patrón de AlertDialog
-  /// que `_confirmCancel` en invoices_tab.dart) y, si confirma, borra el
+  /// que `_confirmCancel` en invoice_view_screen.dart) y, si confirma, borra el
   /// movimiento y refresca el saldo de la cuenta.
   Future<void> _confirmDelete(TransactionEntry movement) async {
     final confirmed = await showDialog<bool>(

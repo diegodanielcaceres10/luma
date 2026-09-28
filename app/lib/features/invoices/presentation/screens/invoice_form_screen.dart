@@ -1,30 +1,25 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../../services/data/models/service.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../data/models/invoice.dart';
+import '../utils/month_names.dart';
 import '../view_models/invoice_view_model.dart';
 
-/// Contenido de la pestaña "Nueva factura" / "Editar factura". No tiene
-/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
-/// del header y encima del bottomNavigationBar que pone AppShellScreen.
-///
-/// Si [invoice] viene nulo, es un alta nueva. Si viene con valor, es
-/// edición — pagar o cancelar no se tocan acá, se manejan desde la lista,
-/// y una factura pagada o cancelada no llega a mostrar esta pantalla (ver
-/// InvoicesTab).
-class InvoiceFormTab extends StatefulWidget {
+/// Creates an invoice, or edits it when [invoice] is provided. Paying or
+/// cancelling is done from the view screen, and only pending invoices can
+/// be edited.
+class InvoiceFormScreen extends StatefulWidget {
   final String userId;
   final InvoiceViewModel invoiceViewModel;
   final ServiceViewModel serviceViewModel;
   final Invoice? invoice;
 
-  /// Se llama tras guardar con éxito, o al cancelar, para volver a
-  /// "Facturas".
   final VoidCallback onDone;
 
-  const InvoiceFormTab({
+  const InvoiceFormScreen({
     super.key,
     required this.userId,
     required this.invoiceViewModel,
@@ -34,28 +29,13 @@ class InvoiceFormTab extends StatefulWidget {
   });
 
   @override
-  State<InvoiceFormTab> createState() => _InvoiceFormTabState();
+  State<InvoiceFormScreen> createState() => _InvoiceFormScreenState();
 }
 
-class _InvoiceFormTabState extends State<InvoiceFormTab> {
+class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   late final TextEditingController _yearController;
-
-  static const _monthNames = [
-    'enero',
-    'febrero',
-    'marzo',
-    'abril',
-    'mayo',
-    'junio',
-    'julio',
-    'agosto',
-    'septiembre',
-    'octubre',
-    'noviembre',
-    'diciembre',
-  ];
 
   String? _selectedServiceId;
   int? _selectedMonth;
@@ -182,8 +162,6 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
   @override
   Widget build(BuildContext context) {
     final isSubmitting = widget.invoiceViewModel.isSubmitting;
-    // La lista de servicios "activos" es la misma que usa el resto de la
-    // app para elegir un servicio al generar movimientos.
     final services = widget.serviceViewModel.activeServices;
 
     return SafeArea(
@@ -202,27 +180,11 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: isSubmitting ? null : widget.onDone,
-                        borderRadius: BorderRadius.circular(20),
-                        child: const Padding(
-                          padding: EdgeInsets.all(4),
-                          child: Icon(Icons.arrow_back_rounded,
-                              color: AppColors.authTextPrimary),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isEditing ? 'Editar factura' : 'Nueva factura',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.authTextPrimary,
-                        ),
-                      ),
-                    ],
+                  ScreenHeader(
+                    title: _isEditing ? 'Editar factura' : 'Nueva factura',
+                    size: ScreenHeaderSize.compact,
+                    onBack: widget.onDone,
+                    backEnabled: !isSubmitting,
                   ),
                   const SizedBox(height: 20),
                   const Text('Servicio',
@@ -238,10 +200,9 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
                       initialValue: _selectedServiceId,
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
-                      // DropdownButtonFormField no pinta su placeholder
-                      // desde decoration.hintText/hintStyle — lo hace a
-                      // través de este parámetro. Por eso el color se
-                      // fija acá y no en la decoration.
+                      // DropdownButtonFormField ignores decoration.hintText /
+                      // hintStyle for its placeholder, so the color is set
+                      // here instead.
                       hint: const Text(
                         'Seleccioná un servicio',
                         style: TextStyle(color: AppColors.authTextSecondary),
@@ -260,10 +221,9 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
                           : (value) {
                               setState(() {
                                 _selectedServiceId = value;
-                                // Precarga el monto aproximado del
-                                // servicio, solo si todavía no se tocó
-                                // el campo — para no pisar un valor que
-                                // el usuario ya haya escrito a mano.
+                                // Prefill the service's approximate amount
+                                // only if the field is still empty, to not
+                                // overwrite what the user typed.
                                 if (_amountController.text.trim().isEmpty) {
                                   final service = services.firstWhere(
                                     (s) => s.id == value,
@@ -294,7 +254,7 @@ class _InvoiceFormTabState extends State<InvoiceFormTab> {
                         .map(
                           (month) => DropdownMenuItem<int?>(
                             value: month,
-                            child: Text(_monthNames[month - 1]),
+                            child: Text(kMonthNames[month - 1]),
                           ),
                         )
                         .toList(),

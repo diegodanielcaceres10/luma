@@ -24,22 +24,19 @@ class InvoiceViewModel extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
 
-  /// `true` una vez que la lista se cargó con éxito al menos una vez. Sirve
-  /// para distinguir "todavía no llegaron" de "llegaron y esta no existe"
-  /// (ver EntityRouteGuard, usado por `/invoices/:id/edit`).
+  /// `true` once the list has loaded successfully at least once, to tell
+  /// "not loaded yet" apart from "loaded and missing" (see EntityRouteGuard).
   bool get hasLoaded => _hasLoaded;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
   InvoiceSubmitError? get submitError => _submitError;
   List<Invoice> get invoices => _invoices;
 
-  /// Cantidad de facturas pendientes (ni pagadas ni canceladas). Se usa,
-  /// por ejemplo, como badge en el acceso rápido del Dashboard.
+  /// Number of pending invoices, e.g. for the Dashboard quick-access badge.
   int get pendingCount => _invoices.where((i) => i.isPending).length;
 
-  /// Cantidad de facturas pendientes (ni pagadas ni canceladas) cuyo mes y
-  /// año corresponden al mes en curso. Se usa en el BalanceCard del
-  /// Dashboard.
+  /// Number of pending invoices for the current month, used by the
+  /// Dashboard BalanceCard.
   int get pendingCountForCurrentMonth {
     final now = DateTime.now();
     return _invoices
@@ -50,12 +47,10 @@ class InvoiceViewModel extends ChangeNotifier {
   bool isCancelling(String invoiceId) => _cancellingIds.contains(invoiceId);
   bool isPaying(String invoiceId) => _payingIds.contains(invoiceId);
 
-  /// Lo que falta pagar este mes por servicios recurrentes, para el
-  /// BalanceCard del Dashboard: de los [activeServices] recibidos, deja
-  /// afuera los que ya tengan su factura del mes pagada o cancelada, y
-  /// suma el resto — el monto de la factura pendiente si ya se generó, o
-  /// el aproximado del servicio si todavía no existe factura para este
-  /// mes.
+  /// Amount still to pay this month for recurring services (Dashboard
+  /// BalanceCard). Skips [activeServices] whose invoice for this month is
+  /// paid or cancelled; for the rest it adds the pending invoice amount, or
+  /// the service's approximate amount if no invoice exists yet.
   double pendingAmountForCurrentMonth(List<Service> activeServices) {
     final now = DateTime.now();
     var total = 0.0;
@@ -76,7 +71,7 @@ class InvoiceViewModel extends ChangeNotifier {
       } else if (invoiceThisMonth.isPending) {
         total += invoiceThisMonth.amount;
       }
-      // Pagada o cancelada: no suma, ya está resuelta para este mes.
+      // Paid or cancelled: already resolved for this month.
     }
 
     return total;
@@ -98,8 +93,8 @@ class InvoiceViewModel extends ChangeNotifier {
     }
   }
 
-  /// Alta de una factura. Activar/inactivar (marcarla pagada) se maneja
-  /// aparte, desde la lista — ver [payInvoice] y [cancelInvoice].
+  /// Paying and cancelling are handled separately: see [payInvoice] and
+  /// [cancelInvoice].
   Future<bool> createInvoice({
     required String userId,
     required String serviceId,
@@ -145,9 +140,7 @@ class InvoiceViewModel extends ChangeNotifier {
     }
   }
 
-  /// Edita una factura pendiente (servicio, mes, año, monto, vencimiento).
-  /// Solo aplica a pendientes — una factura pagada o cancelada no llega a
-  /// mostrar esta acción (ver InvoicesTab).
+  /// Edits a pending invoice. Paid or cancelled invoices cannot be edited.
   Future<bool> updateInvoice({
     required String id,
     required String serviceId,
@@ -193,9 +186,8 @@ class InvoiceViewModel extends ChangeNotifier {
     }
   }
 
-  /// Cierra el flujo de una factura pendiente desde la lista, sin pasar
-  /// por el formulario. Una factura ya pagada no llega a mostrar esta
-  /// acción — la protege además el constraint de la tabla.
+  /// Closes a pending invoice without paying it. Paid invoices are also
+  /// protected by a table constraint.
   Future<bool> cancelInvoice(String invoiceId) async {
     _cancellingIds.add(invoiceId);
     _errorMessage = null;
@@ -215,20 +207,15 @@ class InvoiceViewModel extends ChangeNotifier {
     }
   }
 
-  /// Registra el pago de una factura pendiente: crea la transacción de
-  /// gasto vinculada a la categoría del servicio (con el monto que se
-  /// haya confirmado, que puede diferir del importe original de la
-  /// factura, y la fecha elegida en el diálogo de pago — si no se pasa
-  /// ninguna, se usa la fecha actual) y marca la factura como pagada
-  /// apuntando a esa transacción. Una factura ya pagada o cancelada no
-  /// llega a mostrar esta acción — la protege además el constraint de la
-  /// tabla.
+  /// Pays a pending invoice: creates the expense transaction linked to the
+  /// service's category (with the confirmed amount, which may differ from
+  /// the invoice amount, on the chosen date, defaulting to today) and marks
+  /// the invoice as paid pointing to that transaction. Paid or cancelled
+  /// invoices are also protected by a table constraint.
   ///
-  /// La transacción se crea a través de [TransactionViewModel] (y no
-  /// directo contra el repositorio) para que recargue sus propias listas
-  /// — de lo contrario el Dashboard y Movimientos, que leen de esa misma
-  /// instancia, no se enteran del gasto nuevo hasta la próxima recarga
-  /// manual.
+  /// The transaction goes through [TransactionViewModel] (not the repository)
+  /// so it reloads its own lists; otherwise the Dashboard and Movements
+  /// would not see the new expense until a manual reload.
   Future<bool> payInvoice({
     required Invoice invoice,
     required String userId,

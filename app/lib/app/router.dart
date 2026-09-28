@@ -23,8 +23,9 @@ import '../features/home/presentation/screens/app_shell_screen.dart';
 import '../features/home/presentation/screens/home_shell.dart';
 import '../features/home/presentation/screens/routed_screen_scaffold.dart';
 import '../features/invoices/data/models/invoice.dart';
-import '../features/invoices/presentation/screens/invoice_form_tab.dart';
-import '../features/invoices/presentation/screens/invoices_tab.dart';
+import '../features/invoices/presentation/screens/invoice_form_screen.dart';
+import '../features/invoices/presentation/screens/invoice_view_screen.dart';
+import '../features/invoices/presentation/screens/invoices_screen.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
 import '../features/monthly_balances/presentation/screens/monthly_balance_tab.dart';
 import '../features/monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
@@ -510,22 +511,20 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/invoices',
             // Sin transición: cambiar de filtro hace push (para que
-            // "atrás" vuelva al filtro anterior — ver InvoicesTab), pero
+            // "atrás" vuelva al filtro anterior — ver InvoicesScreen), pero
             // sigue siendo la misma pantalla, así que no debe animar
             // como si fuera una pantalla nueva.
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
               child: RoutedScreenScaffold(
-                body: InvoicesTab(
-                  userId: authViewModel.userId ?? '',
+                body: InvoicesScreen(
                   invoiceViewModel: invoiceViewModel,
                   serviceViewModel: serviceViewModel,
-                  categoryViewModel: categoryViewModel,
-                  accountViewModel: accountViewModel,
-                  onAdd: () => context.push('/invoices/new'),
-                  onEdit: (invoice) =>
-                      context.push('/invoices/${invoice.id}/edit'),
-                  // Cada push crea un InvoicesTab nuevo, así que alcanza
+                  currency: accountViewModel.primaryCurrency,
+                  onOpenView: (invoice) =>
+                      context.push('/invoices/${invoice.id}'),
+                  onOpenForm: () => context.push('/invoices/new'),
+                  // Cada push crea un InvoicesScreen nuevo, así que alcanza
                   // con leer el query param una vez, al construir.
                   initialFilter: state.uri.queryParameters['filter'],
                   initialMonth: state.uri.queryParameters['month'],
@@ -536,11 +535,33 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/invoices/new',
             builder: (context, state) => RoutedScreenScaffold(
-              body: InvoiceFormTab(
+              body: InvoiceFormScreen(
                 userId: authViewModel.userId ?? '',
                 invoiceViewModel: invoiceViewModel,
                 serviceViewModel: serviceViewModel,
                 onDone: () => context.goBack(),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/invoices/:id',
+            // Declared after '/invoices/new' so that exact URL wins over
+            // ':id'.
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _invoiceGuard(
+                invoiceViewModel,
+                state.pathParameters['id'],
+                (context, invoice) => InvoiceViewScreen(
+                  userId: authViewModel.userId ?? '',
+                  invoice: invoice,
+                  invoiceViewModel: invoiceViewModel,
+                  serviceViewModel: serviceViewModel,
+                  categoryViewModel: categoryViewModel,
+                  accountViewModel: accountViewModel,
+                  currency: accountViewModel.primaryCurrency,
+                  onEdit: () => context.push('/invoices/${invoice.id}/edit'),
+                  onBack: () => context.goBack(),
+                ),
               ),
             ),
           ),
@@ -552,7 +573,7 @@ GoRouter buildAppRouter({
               body: _invoiceGuard(
                 invoiceViewModel,
                 state.pathParameters['id'],
-                (context, invoice) => InvoiceFormTab(
+                (context, invoice) => InvoiceFormScreen(
                   userId: authViewModel.userId ?? '',
                   invoiceViewModel: invoiceViewModel,
                   serviceViewModel: serviceViewModel,
