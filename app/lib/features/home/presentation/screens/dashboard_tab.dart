@@ -162,7 +162,8 @@ class _DashboardTabState extends State<DashboardTab> {
     final box = _fabKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.attached) return;
     final fabRect = box.localToGlobal(Offset.zero) & box.size;
-    final pendingInvoicesCount = widget.invoiceViewModel.pendingCount;
+    final pendingInvoicesCount =
+        widget.invoiceViewModel.pendingCountForCurrentMonth;
 
     final options = [
       _QuickActionOption(
@@ -570,7 +571,8 @@ class _BalanceCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${netResult >= 0 ? '+' : ''}'
-                        '${formatCurrency(netResult, currency)} este mes',
+                        '${formatCurrency(netResult, currency)} este mes '
+                        '(ingresos - gastos ± ajustes)',
                         style: TextStyle(
                           color: netResult >= 0
                               ? AppColors.authAccent
