@@ -1,12 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/month_filter_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -49,7 +49,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
     final vm = widget.transactionViewModel;
     final data = StatisticsPdfData(
       month: vm.statisticsMonth,
-      monthLabel: _monthLabel(vm.statisticsMonth),
+      monthLabel: formatMonthLabel(vm.statisticsMonth),
       currency: widget.currency,
       income: vm.statisticsIncome,
       expenses: vm.statisticsExpenses,
@@ -151,27 +151,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
     ];
   }
 
-  Future<void> _pickMonth() async {
-    final vm = widget.transactionViewModel;
-
-    final picked = await showModalBottomSheet<DateTime>(
-      context: context,
-      backgroundColor: AppColors.authBackgroundBottom,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) =>
-          _MonthPickerSheet(selectedMonth: vm.statisticsMonth),
-    );
-
-    // El mes elegido vive en el TransactionViewModel (no en este State):
-    // desde ahí se cargan los datos de ese mes y el ListenableBuilder de
-    // abajo repinta todo el cuerpo cuando llegan.
-    if (picked != null && mounted) {
-      vm.loadStatisticsMonth(picked);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -184,7 +163,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
         final isCurrentMonth = vm.isStatisticsCurrentMonth;
         // 'Septiembre 2025' -> 'septiembre 2025', para usarlo dentro de una
         // frase ("gastados en septiembre 2025").
-        final monthInSentence = _monthLabel(month).toLowerCase();
+        final monthInSentence = formatMonthLabel(month).toLowerCase();
 
         // El PDF es un resumen del mes cerrado: no se ofrece en el mes en
         // curso (todavía no terminó) ni mientras carga, si falló la carga o
@@ -196,7 +175,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
 
         final header = _StatisticsHeader(
           selectedMonth: month,
-          onTapMonthSelector: _pickMonth,
+          onMonthChanged: vm.loadStatisticsMonth,
           onExportPdf: canExportPdf ? _exportPdf : null,
           isExportingPdf: _isExportingPdf,
         );
@@ -521,7 +500,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
 /// Título de la pantalla, subtítulo y selector de mes.
 class _StatisticsHeader extends StatelessWidget {
   final DateTime selectedMonth;
-  final VoidCallback onTapMonthSelector;
+
+  /// Se llama con el mes elegido en el filtro del header.
+  final ValueChanged<DateTime> onMonthChanged;
 
   /// `null` oculta el botón "Exportar PDF" (mes en curso, cargando, etc.).
   final VoidCallback? onExportPdf;
@@ -529,7 +510,7 @@ class _StatisticsHeader extends StatelessWidget {
 
   const _StatisticsHeader({
     required this.selectedMonth,
-    required this.onTapMonthSelector,
+    required this.onMonthChanged,
     this.onExportPdf,
     this.isExportingPdf = false,
   });
@@ -543,9 +524,9 @@ class _StatisticsHeader extends StatelessWidget {
           title: 'Estadísticas',
           subtitle:
               'Analiza tus ingresos, gastos y mantén el control de tus finanzas.',
-          action: _MonthSelectorPill(
+          action: MonthFilterButton(
             selectedMonth: selectedMonth,
-            onTap: onTapMonthSelector,
+            onChanged: onMonthChanged,
           ),
         ),
         if (onExportPdf != null) ...[
@@ -574,58 +555,6 @@ class _StatisticsHeader extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-/// Botón tipo pill que muestra el mes elegido y abre el selector.
-class _MonthSelectorPill extends StatelessWidget {
-  final DateTime selectedMonth;
-  final VoidCallback onTap;
-
-  const _MonthSelectorPill({
-    required this.selectedMonth,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.authCardFill,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.authCardBorder),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.calendar_today_outlined,
-              size: 15,
-              color: AppColors.authTextPrimary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _monthLabel(selectedMonth),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-            const SizedBox(width: 2),
-            const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              size: 18,
-              color: AppColors.authTextSecondary,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -1051,113 +980,6 @@ class _BudgetCategoryRow extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Hoja inferior para elegir uno de los últimos 12 meses.
-class _MonthPickerSheet extends StatelessWidget {
-  final DateTime selectedMonth;
-
-  const _MonthPickerSheet({required this.selectedMonth});
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final currentMonth = DateTime(now.year, now.month);
-    final months = List.generate(
-      12,
-      (i) => DateTime(currentMonth.year, currentMonth.month - i),
-    );
-
-    return SafeArea(
-      top: false,
-      // Acota el alto total de la hoja (handle + título + lista) a una
-      // fracción de la pantalla. Antes solo se limitaba la lista a un %
-      // fijo por su cuenta, sin contar el resto del contenido, así que en
-      // pantallas bajas el conjunto terminaba pidiendo más alto del que
-      // el modal tenía disponible (RenderFlex overflow).
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.7,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.authCardBorder,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const Text(
-                'Elegí un mes',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              // Flexible (no un % fijo propio): toma lo que quede del alto
-              // ya acotado arriba, así nunca desborda a la lista le
-              // sobra o falta espacio según el resto del contenido.
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: months.length,
-                  separatorBuilder: (_, __) => const Divider(
-                    height: 1,
-                    color: AppColors.authCardBorder,
-                  ),
-                  itemBuilder: (context, index) {
-                    final month = months[index];
-                    final isSelected = month.year == selectedMonth.year &&
-                        month.month == selectedMonth.month;
-
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        _monthLabel(month),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected
-                              ? AppColors.authAccent
-                              : AppColors.authTextPrimary,
-                        ),
-                      ),
-                      trailing: isSelected
-                          ? const Icon(
-                              Icons.check_rounded,
-                              color: AppColors.authAccent,
-                              size: 20,
-                            )
-                          : null,
-                      onTap: () => Navigator.of(context).pop(month),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 'septiembre 2025' -> 'Septiembre 2025'.
-String _monthLabel(DateTime date) {
-  final formatted = DateFormat('MMMM yyyy', 'es').format(date);
-  return formatted[0].toUpperCase() + formatted.substring(1);
 }
 
 /// Gráfico de dona con el total de gastos en el centro. Cada segmento usa
