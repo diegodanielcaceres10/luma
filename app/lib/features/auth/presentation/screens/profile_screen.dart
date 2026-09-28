@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_version_footer.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../view_models/auth_view_model.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -25,41 +26,11 @@ class ProfileScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 32,
-              backgroundColor: AppColors.authAccentDark.withValues(alpha: 0.35),
-              child: Text(
-                viewModel.initials,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    viewModel.displayName,
-                    style: AppTextStyles.authTitle.copyWith(fontSize: 20),
-                  ),
-                  const SizedBox(height: 4),
-                  if (viewModel.email != null)
-                    Text(
-                      viewModel.email!,
-                      style: AppTextStyles.authSubtitle.copyWith(fontSize: 14),
-                    ),
-                ],
-              ),
-            ),
-          ],
+        const ScreenHeader(
+          title: 'Perfil',
+          subtitle: 'Tus datos y preferencias de la app.',
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 24),
         _ProfileCard(
           children: [
             _ProfileRow(
@@ -156,10 +127,6 @@ class _ProfileRow extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.authTextFooter,
               ),
             ],
           ),
