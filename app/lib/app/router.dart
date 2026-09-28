@@ -15,8 +15,9 @@ import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
 import '../features/categories/data/models/category.dart';
-import '../features/categories/presentation/screens/categories_tab.dart';
-import '../features/categories/presentation/screens/category_form_tab.dart';
+import '../features/categories/presentation/screens/categories_screen.dart';
+import '../features/categories/presentation/screens/category_form_screen.dart';
+import '../features/categories/presentation/screens/category_view_screen.dart';
 import '../features/categories/presentation/view_models/category_view_model.dart';
 import '../features/home/presentation/screens/app_shell_screen.dart';
 import '../features/home/presentation/screens/home_shell.dart';
@@ -396,21 +397,42 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/categories',
             builder: (context, state) => RoutedScreenScaffold(
-              body: CategoriesTab(
+              body: CategoriesScreen(
                 categoryViewModel: categoryViewModel,
-                onAdd: () => context.push('/categories/new'),
-                onEdit: (category) =>
-                    context.push('/categories/${category.id}/edit'),
+                onOpenView: (category) =>
+                    context.push('/categories/${category.id}'),
+                onOpenForm: (category) => category == null
+                    ? context.push('/categories/new')
+                    : context.push('/categories/${category.id}/edit'),
               ),
             ),
           ),
           GoRoute(
             path: '/categories/new',
             builder: (context, state) => RoutedScreenScaffold(
-              body: CategoryFormTab(
+              body: CategoryFormScreen(
                 userId: authViewModel.userId ?? '',
                 categoryViewModel: categoryViewModel,
                 onDone: () => context.goBack(),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/categories/:id',
+            // Declared after '/categories/new' so that exact URL wins over
+            // ':id'.
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _categoryGuard(
+                categoryViewModel,
+                state.pathParameters['id'],
+                (context, category) => CategoryViewScreen(
+                  category: category,
+                  categoryViewModel: categoryViewModel,
+                  currency: accountViewModel.primaryCurrency,
+                  onEdit: () =>
+                      context.push('/categories/${category.id}/edit'),
+                  onBack: () => context.goBack(),
+                ),
               ),
             ),
           ),
@@ -420,7 +442,7 @@ GoRouter buildAppRouter({
               body: _categoryGuard(
                 categoryViewModel,
                 state.pathParameters['id'],
-                (context, category) => CategoryFormTab(
+                (context, category) => CategoryFormScreen(
                   userId: authViewModel.userId ?? '',
                   categoryViewModel: categoryViewModel,
                   category: category,

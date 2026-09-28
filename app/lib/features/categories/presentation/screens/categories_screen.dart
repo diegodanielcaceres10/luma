@@ -3,26 +3,26 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/category.dart';
 import '../view_models/category_view_model.dart';
 
-/// Contenido de la pestaña "Categorías". Es una ruta de primer nivel del
-/// drawer sin AppBar propio (ver RoutedScreenScaffold): vive dentro del
-/// Scaffold del AppShellScreen, que pone el header y el
-/// bottomNavigationBar. El "+" para crear va alineado con el título de
-/// acá abajo, no en ninguna barra superior.
-class CategoriesTab extends StatelessWidget {
+class CategoriesScreen extends StatelessWidget {
   final CategoryViewModel categoryViewModel;
-  final ValueChanged<Category> onEdit;
 
-  /// Abre el formulario de alta ("+" del título).
-  final VoidCallback onAdd;
+  final ValueChanged<Category> onOpenView;
 
-  const CategoriesTab({
+  /// Receives `null` to create a new category.
+  final ValueChanged<Category?> onOpenForm;
+
+  final VoidCallback? onBack;
+
+  const CategoriesScreen({
     super.key,
     required this.categoryViewModel,
-    required this.onEdit,
-    required this.onAdd,
+    required this.onOpenView,
+    required this.onOpenForm,
+    this.onBack,
   });
 
   @override
@@ -32,39 +32,34 @@ class CategoriesTab extends StatelessWidget {
       child: ListenableBuilder(
         listenable: categoryViewModel,
         builder: (context, _) {
-          if (categoryViewModel.isLoading &&
-              categoryViewModel.categories.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.authAccent),
-            );
-          }
-
           final expenses = categoryViewModel.byType('expense');
           final incomes = categoryViewModel.byType('income');
+          final isInitialLoad = categoryViewModel.isLoading &&
+              categoryViewModel.categories.isEmpty;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              Row(
-                children: [
-                  const Text(
-                    'Categorías',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.authTextPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: onAdd,
-                    icon: const Icon(Icons.add_rounded),
-                    color: AppColors.authTextPrimary,
-                  ),
-                ],
+              ScreenHeader(
+                title: 'Categorías',
+                size: ScreenHeaderSize.compact,
+                onBack: onBack,
+                action: HeaderAddButton(
+                  tooltip: 'Nueva categoría',
+                  onPressed: () => onOpenForm(null),
+                ),
               ),
               const SizedBox(height: 16),
-              if (expenses.isEmpty && incomes.isEmpty)
+              if (isInitialLoad)
+                const Padding(
+                  padding: EdgeInsets.only(top: 40),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.authAccent,
+                    ),
+                  ),
+                )
+              else if (expenses.isEmpty && incomes.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(top: 40),
                   child: Text(
@@ -76,12 +71,12 @@ class CategoriesTab extends StatelessWidget {
               else ...[
                 if (expenses.isNotEmpty) ...[
                   const _SectionLabel('Gastos'),
-                  _CategoryGroup(categories: expenses, onTap: onEdit),
+                  _CategoryGroup(categories: expenses, onTap: onOpenView),
                   const SizedBox(height: 20),
                 ],
                 if (incomes.isNotEmpty) ...[
                   const _SectionLabel('Ingresos'),
-                  _CategoryGroup(categories: incomes, onTap: onEdit),
+                  _CategoryGroup(categories: incomes, onTap: onOpenView),
                 ],
               ],
             ],
@@ -175,6 +170,7 @@ class _CategoryRow extends StatelessWidget {
                 Expanded(
                   child: Text(
                     category.name,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,

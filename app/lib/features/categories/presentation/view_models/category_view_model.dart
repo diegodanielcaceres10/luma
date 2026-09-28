@@ -15,9 +15,8 @@ class CategoryViewModel extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
 
-  /// `true` una vez que la lista se cargó con éxito al menos una vez. Sirve
-  /// para distinguir "todavía no llegaron" de "llegaron y esta no existe"
-  /// (ver EntityRouteGuard).
+  /// `true` once the list has loaded successfully at least once, to tell
+  /// "not loaded yet" apart from "loaded and missing" (see EntityRouteGuard).
   bool get hasLoaded => _hasLoaded;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
@@ -26,8 +25,7 @@ class CategoryViewModel extends ChangeNotifier {
   List<Category> byType(String type) =>
       _categories.where((c) => c.type == type).toList();
 
-  /// Busca una categoría por id — útil para features que solo guardan el
-  /// `category_id` (ej. servicios) y necesitan mostrar nombre/color.
+  /// Looks up a category by id, for features that only store `category_id`.
   Category? categoryById(String? id) {
     if (id == null) return null;
     for (final category in _categories) {
@@ -36,8 +34,7 @@ class CategoryViewModel extends ChangeNotifier {
     return null;
   }
 
-  /// Categorías de gasto con presupuesto asignado — reemplaza a la vieja
-  /// tabla `budgets`.
+  /// Expense categories that have a budget assigned.
   List<Category> get budgetedCategories =>
       _categories.where((c) => c.type == 'expense' && c.hasBudget).toList();
 
@@ -51,10 +48,8 @@ class CategoryViewModel extends ChangeNotifier {
 
     try {
       _categories = await _repository.getAll();
-      // Mismo caso que en cuentas (ver AccountViewModel.loadAccounts): el
-      // `order('name')` de Supabase/Postgres distingue mayúsculas de
-      // minúsculas, así que se reordena acá sin distinguirlas para que
-      // quede alfabético de verdad.
+      // Postgres `order('name')` is case-sensitive; re-sort ignoring case
+      // (same as AccountViewModel.loadAccounts).
       _categories.sort(
         (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
       );
@@ -103,7 +98,7 @@ class CategoryViewModel extends ChangeNotifier {
         ));
   }
 
-  /// Asigna o edita el presupuesto de una categoría de gasto existente.
+  /// Sets or edits the budget of an existing expense category.
   Future<bool> setCategoryBudget({
     required String categoryId,
     required double amount,
@@ -115,7 +110,7 @@ class CategoryViewModel extends ChangeNotifier {
         ));
   }
 
-  /// Quita el presupuesto de una categoría, sin borrar la categoría.
+  /// Removes a category's budget without deleting the category.
   Future<bool> clearCategoryBudget(String categoryId) async {
     return _submit(() => _repository.updateBudget(
           id: categoryId,

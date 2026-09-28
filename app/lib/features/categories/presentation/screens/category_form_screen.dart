@@ -1,34 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// `show` porque el paquete también exporta `colorFromHex` / `colorToHex`, que
-// chocarían con los de category_visuals.dart (los que usa el resto de la app).
+// `show` because the package also exports `colorFromHex` / `colorToHex`,
+// which would clash with the ones in category_visuals.dart.
 import 'package:flutter_colorpicker/flutter_colorpicker.dart'
     show ColorPicker, PaletteType;
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/category.dart';
 import '../view_models/category_view_model.dart';
 
-/// Contenido de la pestaña "Nueva categoría" / "Editar categoría". No tiene
-/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
-/// del header y encima del bottomNavigationBar que pone AppShellScreen.
-///
-/// El tipo ('expense' o 'income') no se puede editar como un campo más del
-/// formulario: en una edición ([category] no nulo) queda fijo al de la
-/// categoría; en un alta nueva, antes de mostrar el formulario se pide
-/// elegirlo con [_buildTypeChooser] y ya no se puede volver a cambiar.
-class CategoryFormTab extends StatefulWidget {
+/// The type ('expense' or 'income') is not a regular form field: when editing
+/// it is fixed to the category's type; when creating, it is chosen first in
+/// [_buildTypeChooser] and cannot be changed afterwards.
+class CategoryFormScreen extends StatefulWidget {
   final String userId;
   final CategoryViewModel categoryViewModel;
   final Category? category;
   final String initialType;
 
-  /// Se llama tras guardar o eliminar con éxito, o al cancelar, para volver
-  /// a "Categorías".
   final VoidCallback onDone;
 
-  const CategoryFormTab({
+  const CategoryFormScreen({
     super.key,
     required this.userId,
     required this.categoryViewModel,
@@ -38,10 +32,10 @@ class CategoryFormTab extends StatefulWidget {
   });
 
   @override
-  State<CategoryFormTab> createState() => _CategoryFormTabState();
+  State<CategoryFormScreen> createState() => _CategoryFormScreenState();
 }
 
-class _CategoryFormTabState extends State<CategoryFormTab> {
+class _CategoryFormScreenState extends State<CategoryFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _budgetController = TextEditingController();
@@ -50,9 +44,8 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
   late String _selectedColor;
   late bool _hasBudget;
 
-  /// `true` cuando ya se conoce el tipo y corresponde mostrar el formulario:
-  /// siempre en edición (el tipo ya es el de la categoría existente); recién
-  /// tras elegirlo en [_buildTypeChooser] cuando es un alta nueva.
+  /// Whether the form can be shown: always when editing, only after picking
+  /// a type in [_buildTypeChooser] when creating.
   late bool _typeSelected;
 
   bool get _isEditing => widget.category != null;
@@ -92,9 +85,6 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     if (mounted) setState(() {});
   }
 
-  /// Fija el tipo elegido en [_buildTypeChooser] y pasa a mostrar el
-  /// formulario. Solo se llama en un alta nueva — en edición el tipo ya
-  /// viene fijo desde [initState].
   void _selectType(String type) {
     setState(() {
       _type = type;
@@ -114,8 +104,7 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     if (!_formKey.currentState!.validate()) return;
 
     final vm = widget.categoryViewModel;
-    // El presupuesto solo aplica a gastos — si el tipo es 'income', se
-    // ignora aunque el switch haya quedado prendido de un cambio previo.
+    // Budgets only apply to expenses; ignore the switch for income.
     final effectiveHasBudget = _type == 'expense' && _hasBudget;
     final effectiveBudgetAmount =
         effectiveHasBudget ? double.parse(_budgetController.text.trim()) : null;
@@ -149,9 +138,6 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     }
   }
 
-  /// Abre el selector de color libre. Si el usuario confirma, el color
-  /// elegido queda como `_selectedColor` (en formato '#RRGGBB', el mismo que
-  /// ya se guarda en `categories.color`).
   Future<void> _openCustomColorPicker() async {
     final picked = await showModalBottomSheet<String>(
       context: context,
@@ -174,8 +160,7 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
   Widget _buildColorDot({required String hex, required VoidCallback? onTap}) {
     final color = colorFromHex(hex);
     final isSelected = hex == _selectedColor;
-    // Con colores libres puede haber tonos muy claros: el check blanco fijo
-    // no se vería, así que se elige según el brillo del color.
+    // Custom colors can be very light, so pick the check color by brightness.
     final checkColor =
         ThemeData.estimateBrightnessForColor(color) == Brightness.light
             ? Colors.black87
@@ -201,7 +186,6 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     );
   }
 
-  /// Botón "+" al final de la fila de colores: abre el selector libre.
   Widget _buildAddColorButton({required VoidCallback? onTap}) {
     return Tooltip(
       message: 'Color personalizado',
@@ -228,43 +212,6 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     );
   }
 
-  /// Fila con la flecha para volver (llama a [onBack]) y el título del
-  /// paso actual. Se repite igual en el selector de tipo y en el
-  /// formulario.
-  Widget _buildHeader({
-    required String title,
-    required VoidCallback? onBack,
-  }) {
-    return Row(
-      children: [
-        InkWell(
-          onTap: onBack,
-          borderRadius: BorderRadius.circular(20),
-          child: const Padding(
-            padding: EdgeInsets.all(4),
-            child: Icon(Icons.arrow_back_rounded,
-                color: AppColors.authTextPrimary),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.authTextPrimary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Botón grande para elegir el tipo en [_buildTypeChooser]: un tono
-  /// (rojo para gasto, verde para ingreso) para que se distinga de un
-  /// vistazo, igual que ya se usa en el resto de la app para diferenciar
-  /// gastos de ingresos.
   Widget _buildTypeOption({
     required String type,
     required String label,
@@ -307,17 +254,17 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
     );
   }
 
-  /// Primer paso de un alta nueva: elegir si la categoría es de gasto o de
-  /// ingreso. Una vez elegido no hay forma de volver a cambiarlo — no es un
-  /// campo del formulario, así que [_type] queda fijo para el resto del
-  /// flujo (ver [_selectType]).
   Widget _buildTypeChooser() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(title: 'Nueva categoría', onBack: widget.onDone),
+          ScreenHeader(
+            title: 'Nueva categoría',
+            size: ScreenHeaderSize.compact,
+            onBack: widget.onDone,
+          ),
           const SizedBox(height: 20),
           const Text(
             '¿Es una categoría de gastos o de ingresos?',
@@ -357,9 +304,11 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
-                _buildHeader(
+                ScreenHeader(
                   title: _isEditing ? 'Editar categoría' : 'Nueva categoría',
-                  onBack: isSubmitting ? null : widget.onDone,
+                  size: ScreenHeaderSize.compact,
+                  onBack: widget.onDone,
+                  backEnabled: !isSubmitting,
                 ),
                 const SizedBox(height: 20),
                 const Text('Nombre',
@@ -392,9 +341,8 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
                             ? null
                             : () => setState(() => _selectedColor = hex),
                       ),
-                    // Color libre ya elegido (no está en la paleta rápida):
-                    // se muestra seleccionado y, al tocarlo, reabre el
-                    // selector para ajustarlo.
+                    // Custom color outside the quick palette: shown as selected
+                    // and reopens the picker when tapped.
                     if (!kCategoryColors.contains(_selectedColor))
                       _buildColorDot(
                         hex: _selectedColor,
@@ -493,10 +441,8 @@ class _CategoryFormTabState extends State<CategoryFormTab> {
   }
 }
 
-/// Bottom sheet para elegir un color libre: área de saturación/brillo con
-/// slider de tono (paquete `flutter_colorpicker`) más un campo hexadecimal.
-/// Devuelve el color elegido como '#RRGGBB' al confirmar, o `null` si se
-/// cancela / se cierra el sheet.
+/// Bottom sheet to pick a custom color. Returns '#RRGGBB' on confirm, or
+/// `null` if dismissed.
 class _CustomColorSheet extends StatefulWidget {
   final Color initialColor;
 
@@ -507,8 +453,8 @@ class _CustomColorSheet extends StatefulWidget {
 }
 
 class _CustomColorSheetState extends State<_CustomColorSheet> {
-  // Se guarda el HSV (y no solo el Color) porque al pasar por RGB se pierde
-  // el tono en grises/negro/blanco y el slider "saltaría" al arrastrar.
+  // Keep the HSV (not just the Color): going through RGB loses the hue for
+  // grays/black/white and the slider would jump while dragging.
   late HSVColor _hsv;
   late final TextEditingController _hexController;
 
@@ -526,7 +472,7 @@ class _CustomColorSheetState extends State<_CustomColorSheet> {
     super.dispose();
   }
 
-  /// 'RRGGBB' (sin el '#'), que es lo que muestra el campo de texto.
+  /// 'RRGGBB' without the '#', as shown in the text field.
   String _hexDigits(Color color) => colorToHex(color).substring(1);
 
   void _onPickerChanged(HSVColor hsv) {
@@ -537,8 +483,7 @@ class _CustomColorSheetState extends State<_CustomColorSheet> {
   }
 
   void _onHexChanged(String value) {
-    // Se actualiza recién cuando el código está completo, para no pisar lo
-    // que el usuario está escribiendo.
+    // Only update once the code is complete, to not overwrite typing.
     if (value.length != 6) return;
     final parsed = int.tryParse(value, radix: 16);
     if (parsed == null) return;
@@ -570,7 +515,7 @@ class _CustomColorSheetState extends State<_CustomColorSheet> {
   @override
   Widget build(BuildContext context) {
     final color = _hsv.toColor();
-    // Sobre el fondo oscuro de la app, un tono casi negro no se distingue.
+    // Near-black tones are hard to see on the app's dark background.
     final isTooDark = color.computeLuminance() < 0.05;
 
     return SafeArea(
@@ -613,7 +558,7 @@ class _CustomColorSheetState extends State<_CustomColorSheet> {
                   onColorChanged: (_) {},
                   onHsvColorChanged: _onPickerChanged,
                   paletteType: PaletteType.hsvWithHue,
-                  // Se guarda '#RRGGBB': sin canal alfa.
+                  // Stored as '#RRGGBB': no alpha channel.
                   enableAlpha: false,
                   labelTypes: const [],
                   displayThumbColor: true,
