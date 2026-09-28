@@ -6,22 +6,14 @@ import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart'
     show AccountSubmitError, AccountViewModel;
 
-/// Contenido de la pestaña "Nueva cuenta" / "Editar cuenta". No tiene
-/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
-/// del header y encima del bottomNavigationBar que pone AppShellScreen.
-///
-/// Si [account] viene nulo, es un alta nueva (con saldo inicial editable).
-/// Si viene con valor, es edición — el saldo no se toca desde acá, se
-/// mantiene a través de los movimientos.
-class AccountFormTab extends StatefulWidget {
+class AccountFormScreen extends StatefulWidget {
   final String userId;
   final AccountViewModel accountViewModel;
   final Account? account;
 
-  /// Se llama tras guardar con éxito, o al cancelar, para volver a "Cuentas".
   final VoidCallback onDone;
 
-  const AccountFormTab({
+  const AccountFormScreen({
     super.key,
     required this.userId,
     required this.accountViewModel,
@@ -30,10 +22,10 @@ class AccountFormTab extends StatefulWidget {
   });
 
   @override
-  State<AccountFormTab> createState() => _AccountFormTabState();
+  State<AccountFormScreen> createState() => _AccountFormScreenState();
 }
 
-class _AccountFormTabState extends State<AccountFormTab> {
+class _AccountFormScreenState extends State<AccountFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _balanceController = TextEditingController();
@@ -64,7 +56,6 @@ class _AccountFormTabState extends State<AccountFormTab> {
     _nameController.text = account?.name ?? '';
     _balanceController.text =
         account != null ? account.balance.toStringAsFixed(2) : '';
-    // Re-build whenever isSubmitting or errorMessage changes.
     widget.accountViewModel.addListener(_onViewModelChanged);
   }
 
@@ -102,7 +93,6 @@ class _AccountFormTabState extends State<AccountFormTab> {
     } else {
       final isDuplicate = vm.submitError == AccountSubmitError.duplicate;
       if (isDuplicate) {
-        // Highlight the name field so the user knows what to change.
         _formKey.currentState!.validate();
       }
       ScaffoldMessenger.of(context).showSnackBar(
@@ -127,7 +117,6 @@ class _AccountFormTabState extends State<AccountFormTab> {
         key: _formKey,
         child: Column(
           children: [
-            // Thin progress bar across the top while saving.
             if (isSubmitting)
               const LinearProgressIndicator(
                 backgroundColor: AppColors.authCardBorder,

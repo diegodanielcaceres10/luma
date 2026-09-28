@@ -7,51 +7,16 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
-/// Contenido de la pestaña "Cuentas": resumen de saldos y las cuentas en
-/// lista. Cada fila solo lleva al detalle de la cuenta (ver [_AccountRow]).
-///
-/// Entrega 14: unifica lo que antes eran dos pantallas separadas
-/// (`AccountsTab`, sin resumen ni botón "atrás", con edición; y esta
-/// misma, con resumen y botón "atrás", sin edición) en una sola — misma
-/// visual para las dos rutas que la abren, [onBack] es lo único que
-/// cambia entre ellas:
-/// - `/accounts` (pestaña del drawer): sin [onBack] — no hay a dónde
-///   volver, es una pestaña de primer nivel.
-/// - `/accounts-overview` (push desde el Dashboard, "Gestionar cuentas"):
-///   con [onBack] — vuelve al Dashboard.
-///
-/// Entrega 15: agrega [AccountViewScreen] — tocar una fila ya no va
-/// directo a editar, va al detalle de esa cuenta, desde donde también se
-/// puede editar y actualizar el saldo (ver [onOpenView]).
-///
-/// Entrega 16: la fila deja de tener atajos propios (lápiz de edición,
-/// ícono de actualizar saldo y switch de activa/inactiva): todo eso vive
-/// ahora únicamente en [AccountViewScreen], y la fila solo lleva hasta
-/// ahí. Por eso ya no existe `onOpenUpdateBalance` en esta clase.
-///
-/// No tiene Scaffold propio — se muestra dentro de un RoutedScreenScaffold,
-/// debajo del header (menú + marca Luma + campana) y encima del
-/// bottomNavigationBar que pone AppShellScreen.
-class AccountsOverviewTab extends StatelessWidget {
+class AccountsScreen extends StatelessWidget {
   final AccountViewModel accountViewModel;
 
-  /// Abre el detalle de esa cuenta ([AccountViewScreen]) — se llama al
-  /// tocar la fila (ver [_AccountRow.onView]). Es la única acción de la
-  /// fila.
   final ValueChanged<Account> onOpenView;
 
-  /// Abre el formulario de cuenta ([AccountFormTab]) para un alta nueva
-  /// (botón "+" del título, siempre con `null`). La edición de una cuenta
-  /// existente ya no pasa por acá: se abre desde el botón "Editar cuenta"
-  /// de [AccountViewScreen].
   final ValueChanged<Account?> onOpenForm;
 
-  /// Vuelve a la pantalla desde la que se abrió esta vista. `null` cuando
-  /// esta vista es la pestaña de primer nivel "Cuentas" (no hay a dónde
-  /// volver) — en ese caso no se dibuja el botón "atrás".
   final VoidCallback? onBack;
 
-  const AccountsOverviewTab({
+  const AccountsScreen({
     super.key,
     required this.accountViewModel,
     required this.onOpenView,
@@ -76,6 +41,7 @@ class AccountsOverviewTab extends StatelessWidget {
                 title: 'Cuentas',
                 subtitle: 'Gestiona tus cuentas, actualiza saldos y mantén '
                     'todo en orden.',
+                size: ScreenHeaderSize.compact,
                 onBack: onBack,
                 action: HeaderAddButton(
                   tooltip: 'Nueva cuenta',
@@ -209,10 +175,6 @@ class _TotalCard extends StatelessWidget {
   }
 }
 
-/// Fila de una cuenta en la lista: nombre, "Cuenta activa/inactiva" (solo
-/// informativo) y saldo. Tocar cualquier parte de la fila llama a
-/// [onView] (abre [AccountViewScreen]) — no tiene otras acciones: editar,
-/// actualizar el saldo y activar/desactivar se hacen desde el detalle.
 class _AccountRow extends StatelessWidget {
   final Account account;
   final String currency;

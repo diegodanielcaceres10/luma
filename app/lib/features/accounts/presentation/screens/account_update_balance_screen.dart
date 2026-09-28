@@ -14,127 +14,24 @@ import '../../../transactions/presentation/view_models/transaction_view_model.da
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
-/// Contenido de la nueva pestaña "Actualizar saldo": pantalla aparte del
-/// formulario de edición de cuenta, pensada para cargar el saldo real de la
-/// cuenta (ej. desde el resumen del banco) y descubrir, a partir de la
-/// diferencia con el saldo actual, los movimientos que la explican — en vez
-/// de pisar el campo `balance` directamente. Se abre al tocar la fila de la
-/// cuenta en [AccountsOverviewTab].
-///
-/// No tiene Scaffold propio — se muestra dentro de un RoutedScreenScaffold,
-/// debajo del header (menú + marca Luma + campana) y encima del
-/// bottomNavigationBar que pone AppShellScreen.
-///
-/// Entrega 4: agrega el popup de "Agregar movimiento" que abre el botón de
-/// la Entrega 3 — por ahora solo título, "Cancelar" y "Guardar", todavía
-/// sin campos ni guardado real. La lista de movimientos, los totales y el
-/// botón "Guardar y actualizar saldo" quedan para una próxima entrega — hoy
-/// no se envía nada a la cuenta.
-///
-/// Entrega 5: el popup ahora tiene los campos para cargar un movimiento
-/// (Monto, Categoría, Descripción y Fecha). Al tocar "Guardar" se valida y
-/// se agrega a [_UpdateBalanceTabState._pendingMovements], solo en memoria
-/// — todavía no hay lista visible ni se persiste nada en la base.
-///
-/// Entrega 6: agrega el listado de movimientos cargados (bajo "Agregar
-/// movimiento"), con la fila categoría/descripción/fecha, el monto con
-/// signo y un botón para quitarlo — todo sobre [_pendingMovements], en
-/// memoria. El total y el botón "Guardar y actualizar saldo" del
-/// prototipo quedan para una próxima entrega.
-///
-/// Entrega 7: agrega el footer final — [_MovementsSummaryCard] con el
-/// total de movimientos y el estado de la diferencia, y el botón
-/// "Guardar y actualizar saldo". Que el total no cubra toda la diferencia
-/// ya no bloquea el botón: esa parte se guardará como un ingreso o gasto
-/// sin categoría (mensaje que muestra la propia tarjeta). El botón
-/// todavía no persiste nada — ver [_UpdateBalanceTabState._saveAndUpdateBalance].
-///
-/// Entrega 8: el botón "Guardar y actualizar saldo" ya persiste de
-/// verdad. Cada movimiento de [_UpdateBalanceTabState._pendingMovements]
-/// se inserta como una transacción real (`create_transaction`, el mismo
-/// RPC que usa [AddTransactionTab]), con `type`/`amount` derivados del
-/// signo que ya tenía el movimiento. Si queda una parte de la diferencia
-/// sin cubrir, ya no se crea una transacción sin categoría para ella:
-/// se ajusta `accounts.balance` directo y ese mismo monto se acumula en
-/// `monthly_account_balances.uncontrolled_expenses_total` del mes en
-/// curso (RPC `register_uncontrolled_adjustment`, ver
-/// [AccountViewModel.applyUncontrolledAdjustment]) — ver
-/// [_UpdateBalanceTabState._saveAndUpdateBalance].
-///
-/// Entrega 9: "Agregar movimiento" ahora abre primero
-/// [_MovementTypeSheet], para elegir entre Ingreso/Gasto/Transferencia/
-/// Factura de servicio. Los cuatro siguen abriendo el mismo
-/// [_AddMovementDialog] de siempre — la próxima entrega le da a cada
-/// tipo su propio formulario.
-///
-/// Entrega 11: Ingreso y Gasto ya abren [_AddMovementDialog] filtrado por
-/// el tipo elegido (categorías de ingreso o de gasto, según corresponda —
-/// ver [_AddMovementDialogState.build]). Transferencia y Factura de
-/// servicio, por ahora, no abren ningún formulario al elegirlas — quedan
-/// para una próxima entrega.
-///
-/// Entrega 12: Transferencia ya abre [_AddTransferDialog] — elegir la
-/// otra cuenta, la dirección (entra/sale plata de [account]), Monto,
-/// Descripción y Fecha. Igual que Ingreso/Gasto, no se persiste al
-/// guardar el popup: se agrega a [_UpdateBalanceTabState._pendingMovements]
-/// como un [PendingMovement] de transferencia (ver
-/// [PendingMovement.otherAccountId]), y recién se crea de verdad al tocar
-/// "Guardar y actualizar saldo" — ver
-/// [_UpdateBalanceTabState._saveAndUpdateBalance]. Factura de servicio
-/// sigue sin abrir nada.
-///
-/// Entrega 13: Factura de servicio ya funciona — [_SelectPendingInvoiceSheet]
-/// lista las facturas pendientes (ver [Invoice.isPending]) para elegir
-/// cuál pagar, y [_AddInvoiceDialog] confirma monto y fecha (el servicio y
-/// su categoría se resuelven solos — ver [ServiceViewModel.serviceById] /
-/// [CategoryViewModel.categoryById] — y si el servicio no tiene categoría
-/// o fue eliminado, se avisa y no se puede seguir). Igual que
-/// Ingreso/Gasto/Transferencia, no se persiste al guardar el popup: se
-/// agrega a [_UpdateBalanceTabState._pendingMovements] como un
-/// [PendingMovement] de factura, y recién se registra el pago de verdad
-/// (`InvoiceViewModel.payInvoice`) al tocar "Guardar y actualizar saldo".
-class UpdateBalanceTab extends StatefulWidget {
-  /// Cuenta cuyo saldo se va a actualizar. Puede llegar en `null` si el id
-  /// de la URL (`/accounts/:id/balance`) no corresponde a ninguna cuenta
-  /// cargada.
+class AccountUpdateBalanceScreen extends StatefulWidget {
   final Account? account;
 
-  /// Se usa para leer [AccountViewModel.primaryCurrency] (formato de los
-  /// montos) y, tras guardar, recargar la lista para que el nuevo saldo (ya
-  /// actualizado por el RPC) se vea en pantalla.
   final AccountViewModel accountViewModel;
 
-  /// Categorías disponibles para el selector del popup "Agregar
-  /// movimiento" (tanto de ingreso como de gasto: el movimiento puede ir
-  /// en cualquier sentido según la diferencia a justificar).
   final CategoryViewModel categoryViewModel;
 
-  /// Para resolver el servicio de cada factura en
-  /// [_SelectPendingInvoiceSheet] (nombre a mostrar y, a partir de su
-  /// `categoryId`, la categoría con la que se registra el pago).
   final ServiceViewModel serviceViewModel;
 
-  /// Lista de dónde sale [_SelectPendingInvoiceSheet] (solo las
-  /// pendientes, ver [Invoice.isPending]) y con el que se registra el
-  /// pago de verdad al guardar — ver [InvoiceViewModel.payInvoice].
   final InvoiceViewModel invoiceViewModel;
 
-  /// Crea cada movimiento de [_UpdateBalanceTabState._pendingMovements]
-  /// como una transacción real al presionar "Guardar y actualizar
-  /// saldo" (el resto sin cubrir ya no pasa por acá — ver
-  /// [AccountViewModel.applyUncontrolledAdjustment]).
   final TransactionViewModel transactionViewModel;
 
-  /// Igual que en [AddTransactionTab]: puede venir `null` si todavía no
-  /// cargó la sesión; en ese caso se manda como cadena vacía al crear las
-  /// transacciones (la policy de RLS de todos modos las rechazaría).
   final String? userId;
 
-  /// Vuelve a la vista general de "Cuentas", de donde siempre se abre
-  /// esta pantalla.
   final VoidCallback onDone;
 
-  const UpdateBalanceTab({
+  const AccountUpdateBalanceScreen({
     super.key,
     required this.account,
     required this.accountViewModel,
@@ -147,38 +44,23 @@ class UpdateBalanceTab extends StatefulWidget {
   });
 
   @override
-  State<UpdateBalanceTab> createState() => _UpdateBalanceTabState();
+  State<AccountUpdateBalanceScreen> createState() => _AccountUpdateBalanceScreenState();
 }
 
-class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
+class _AccountUpdateBalanceScreenState extends State<AccountUpdateBalanceScreen> {
   final _formKey = GlobalKey<FormState>();
   final _newBalanceController = TextEditingController();
 
-  /// Movimientos cargados desde el popup, solo en memoria. Entrega 5: se
-  /// guardan acá para una próxima entrega que los muestre en una lista y
-  /// los use para actualizar el saldo; por ahora no se renderizan ni se
-  /// envían a la base.
   final List<PendingMovement> _pendingMovements = [];
 
-  /// true mientras [_saveAndUpdateBalance] está insertando transacciones.
-  /// Deshabilita el botón (con spinner), "Agregar movimiento" y el tacho
-  /// de cada fila, para no dejar mutar la lista a mitad de un guardado.
   bool _isSaving = false;
 
-  /// Entrega 10: el formulario se separó en 3 pasos para no acumular todo
-  /// en una sola pantalla — 0: nuevo saldo y diferencia, 1: movimientos
-  /// que la justifican, 2: resumen y guardado. Se avanza y retrocede con
-  /// los botones "Siguiente"/"Atrás" de [_buildStepNav]; no hay validación
-  /// que bloquee el avance entre pasos.
   int _currentStep = 0;
 
   void _addPendingMovement(PendingMovement movement) {
     setState(() => _pendingMovements.add(movement));
   }
 
-  /// Saca un movimiento de la lista en memoria (botón de tacho en cada
-  /// fila). Entrega 6: solo quita el ítem de [_pendingMovements] — no hay
-  /// nada que deshacer en la base porque todavía no se persiste nada.
   void _removePendingMovement(PendingMovement movement) {
     setState(() => _pendingMovements.remove(movement));
   }
@@ -186,7 +68,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   @override
   void initState() {
     super.initState();
-    // Repinta en cada tecla para que la diferencia se recalcule en vivo.
     _newBalanceController.addListener(_onNewBalanceChanged);
   }
 
@@ -195,10 +76,8 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   }
 
   @override
-  void didUpdateWidget(UpdateBalanceTab oldWidget) {
+  void didUpdateWidget(AccountUpdateBalanceScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Cada ruta crea su propio State, pero por si alguna vez se reusa la
-    // instancia con otra cuenta, no queremos arrastrar un monto viejo.
     if (oldWidget.account?.id != widget.account?.id) {
       _newBalanceController.clear();
       _currentStep = 0;
@@ -212,19 +91,16 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     super.dispose();
   }
 
-  /// Convierte lo escrito en el campo a número. Acepta coma o punto como
-  /// separador decimal (el teclado numérico en español suele ofrecer coma).
-  /// `null` si está vacío o no es un número válido.
   double? _parseAmount(String? raw) {
     final text = (raw ?? '').trim().replaceAll(',', '.');
     if (text.isEmpty) return null;
     return double.tryParse(text);
   }
 
-  /// La diferencia (nuevo − anterior) que después habrá que justificar con
-  /// movimientos. `null` mientras el campo esté vacío o no sea un número
-  /// válido. Se redondea a centavos para que la resta de dobles no deje
-  /// restos tipo 499,99999… ni impida detectar el caso "sin diferencia".
+  /// The difference (new − previous) that will later have to be justified
+  /// with movements. `null` while the field is empty or not a valid number.
+  /// Rounded to cents so the double subtraction doesn't leave remainders like
+  /// 499.99999… or prevent detecting the "no difference" case.
   double? get _difference {
     final currentBalance = widget.account?.balance;
     if (currentBalance == null) return null;
@@ -236,8 +112,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     return cents / 100;
   }
 
-  /// Suma de los movimientos cargados (ya con signo — ver [PendingMovement]).
-  /// Redondeada a centavos, mismo motivo que en [_difference].
   double get _pendingMovementsTotal {
     final cents = _pendingMovements.fold<int>(
       0,
@@ -246,11 +120,10 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     return cents / 100;
   }
 
-  /// Parte de la diferencia que los movimientos cargados no cubren.
-  /// `null` mientras no haya una diferencia calculable (ver [_difference]).
-  /// Positivo: falta un ingreso; negativo: falta un gasto; cero (o muy
-  /// cerca, por redondeo de centavos): los movimientos ya la justifican
-  /// por completo.
+  /// Part of the difference that the loaded movements don't cover. `null`
+  /// while there is no computable difference (see [_difference]). Positive:
+  /// an income is missing; negative: an expense is missing; zero (or very
+  /// close, due to cent rounding): the movements fully justify it.
   double? get _unjustifiedRemainder {
     final diff = _difference;
     if (diff == null) return null;
@@ -259,19 +132,18 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     return cents / 100;
   }
 
-  /// Acción del botón "Guardar y actualizar saldo". Inserta cada
-  /// movimiento de [_pendingMovements] como una transacción real
-  /// (`create_transaction`), de a uno y en orden, para poder distinguir
-  /// cuáles quedan guardadas si una falla a mitad de camino (esas se
-  /// sacan de [_pendingMovements] antes de mostrar el error, para no
-  /// duplicarlas si el usuario reintenta).
+  /// Handler for the "Save and update balance" button. Inserts each entry of
+  /// [_pendingMovements] as a real transaction, one at a time and in order,
+  /// so it is known which ones were persisted if one fails midway (those are
+  /// removed from [_pendingMovements] before the error is shown, so a retry
+  /// doesn't duplicate them).
   ///
-  /// Si queda una parte de la diferencia sin cubrir, ya no se crea una
-  /// transacción sin categoría para justificarla: se llama a
-  /// [AccountViewModel.applyUncontrolledAdjustment], que ajusta
-  /// `accounts.balance` directo y acumula ese mismo monto (con signo) en
-  /// `monthly_account_balances.uncontrolled_expenses_total` del mes en
-  /// curso, en una sola operación atómica.
+  /// If part of the difference is still uncovered, no uncategorized
+  /// transaction is created to justify it: [AccountViewModel.applyUncontrolledAdjustment]
+  /// is called instead. It adjusts `accounts.balance` directly and
+  /// accumulates the same (signed) amount into
+  /// `monthly_account_balances.uncontrolled_expenses_total` for the current
+  /// month, in a single atomic operation.
   Future<void> _saveAndUpdateBalance() async {
     final account = widget.account;
     final remainder = _unjustifiedRemainder;
@@ -295,9 +167,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
               description: movement.description,
               date: movement.date,
             ),
-          // amount ya viene con signo relativo a esta cuenta (ver
-          // [TransferPendingMovement]): negativo si esta cuenta es el
-          // origen (sale plata), positivo si es el destino (entra plata).
           TransferPendingMovement(:final otherAccountId) =>
             await widget.transactionViewModel.createTransfer(
               userId: userId,
@@ -346,12 +215,7 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
                 'No se pudo guardar el ajuste no declarado.',
           );
         }
-        // applyUncontrolledAdjustment ya recarga las cuentas (ver
-        // AccountViewModel._submit) con el balance ajustado.
       } else {
-        // Sin resto que ajustar: igual hay que recargar, porque cada
-        // create_transaction del loop de arriba actualizó accounts.balance
-        // en la base sin pasar por este AccountViewModel.
         await widget.accountViewModel.loadAccounts();
       }
       if (!mounted) return;
@@ -376,14 +240,13 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     }
   }
 
-  /// Bottom sheet que abre el botón "Agregar movimiento": elegir entre
-  /// Ingreso, Gasto, Transferencia y Factura de servicio ([_MovementType]).
-  /// Ingreso y Gasto abren [_AddMovementDialog] con las categorías
-  /// filtradas según ese mismo tipo (ver [_AddMovementDialogState.build]).
-  /// Transferencia abre [_AddTransferDialog], para elegir la otra cuenta
-  /// y la dirección. Factura de servicio abre primero
-  /// [_SelectPendingInvoiceSheet] (para elegir cuál) y, si tiene categoría
-  /// resuelta, [_AddInvoiceDialog] para confirmar monto y fecha.
+  /// Opens the bottom sheet behind the "Add movement" button to pick between
+  /// Income, Expense, Transfer and Service invoice ([_MovementType]). Income
+  /// and Expense open [_AddMovementDialog] with categories filtered by that
+  /// type. Transfer opens [_AddTransferDialog] to choose the other account
+  /// and the direction. Service invoice first opens
+  /// [_SelectPendingInvoiceSheet] to pick one and, if its category resolves,
+  /// [_AddInvoiceDialog] to confirm amount and date.
   Future<void> _showAddMovementDialog(BuildContext context) async {
     final account = widget.account;
     if (account == null) return;
@@ -425,11 +288,10 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     }
   }
 
-  /// Segunda mitad del caso "Factura de servicio" de
-  /// [_showAddMovementDialog]: elegir cuál pagar (dejando afuera las que
-  /// ya estén cargadas en [_pendingMovements], para no poder pagarla dos
-  /// veces sin guardar primero) y, si el servicio tiene categoría
-  /// resuelta, confirmar monto y fecha.
+  /// Second half of the "Service invoice" case of [_showAddMovementDialog]:
+  /// pick which invoice to pay (excluding those already queued in
+  /// [_pendingMovements], so one can't be paid twice before saving) and, if
+  /// the service has a resolved category, confirm amount and date.
   Future<void> _showAddInvoiceFlow(BuildContext context) async {
     final alreadyQueuedIds = _pendingMovements
         .whereType<InvoicePendingMovement>()
@@ -492,8 +354,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
       hintText: '0,00',
       hintStyle: const TextStyle(color: AppColors.authTextFooter),
       contentPadding: const EdgeInsets.symmetric(vertical: 12),
-      // prefixIcon (y no prefixText) para que el símbolo se vea siempre,
-      // incluso con el campo vacío y sin foco.
       prefixIcon: Padding(
         padding: const EdgeInsets.only(left: 14, right: 6),
         child: Text(
@@ -506,7 +366,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
         ),
       ),
       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-      // Botón para vaciar el campo, solo cuando hay algo escrito.
       suffixIcon: _newBalanceController.text.isEmpty
           ? null
           : IconButton(
@@ -527,9 +386,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     );
   }
 
-  /// Contenido del paso actual ([_currentStep]) — ver el doc de ese campo
-  /// para la numeración. Devuelve la misma tarjeta de cada paso, tal cual
-  /// estaban antes de separar el formulario en pasos.
   Widget _buildStepContent(
     Account account,
     String currency,
@@ -547,8 +403,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
               decimal: true,
               signed: true,
             ),
-            // Hasta 2 decimales, coma o punto, y un "-" opcional al
-            // inicio (una cuenta puede estar en descubierto).
             inputFormatters: [
               FilteringTextInputFormatter.allow(
                 RegExp(r'^-?\d*[.,]?\d{0,2}'),
@@ -574,10 +428,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
               onAddMovement: () => _showAddMovementDialog(context),
               enabled: !_isSaving,
             ),
-            // Leyenda menor con lo que todavía falta justificar — mismo
-            // cálculo que usa la tarjeta de resumen del paso 2
-            // ([_unjustifiedRemainder]), para no tener que llegar hasta
-            // ahí para saber cuánto queda.
             if (remainder != null) ...[
               const SizedBox(height: 4),
               Text(
@@ -636,12 +486,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
     }
   }
 
-  /// "Atrás" (salvo en el paso 0, donde ya está la flecha de arriba para
-  /// salir) y, a la derecha, "Siguiente" (o "Guardar y actualizar saldo"
-  /// en el último paso — mismo botón y misma condición para habilitarlo
-  /// que tenía antes de separar el formulario en pasos). En el paso 0,
-  /// además, un botón secundario para guardar directo sin pasar por los
-  /// pasos de movimientos — ver [_saveAndUpdateBalance].
   Widget _buildStepNav() {
     final isFirstStep = _currentStep == 0;
     final isLastStep = _currentStep == 2;
@@ -673,11 +517,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
       ),
       onPressed: !isLastStep
           ? (_isSaving ? null : () => setState(() => _currentStep += 1))
-          // Habilitado en cuanto hay un saldo nuevo válido — que los
-          // movimientos no cubran toda la diferencia ya NO lo bloquea
-          // (ver [_MovementsSummaryCard]): lo que falte se ajusta
-          // directo en el balance y se acumula en
-          // uncontrolled_expenses_total (sin transacción).
           : (_difference == null || _isSaving ? null : _saveAndUpdateBalance),
       child: !isLastStep
           ? const Text('Siguiente',
@@ -702,11 +541,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
       return Column(
         children: [
           SizedBox(width: double.infinity, child: nextButton),
-          // Atajo para no pasar por los pasos de movimientos: guarda
-          // directo con toda la diferencia sin justificar (mismo botón
-          // y acción que "Guardar y actualizar saldo" del paso final,
-          // ver [_saveAndUpdateBalance]). Solo tiene sentido si hay una
-          // diferencia real que, de otro modo, habría que justificar.
           if (diff != null && diff != 0) ...[
             const SizedBox(height: 8),
             TextButton(
@@ -746,8 +580,6 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
         key: _formKey,
         child: Column(
           children: [
-            // Barra de progreso fina arriba mientras se guardan las
-            // transacciones — mismo criterio que usa AddTransactionTab.
             if (_isSaving)
               const LinearProgressIndicator(
                 backgroundColor: AppColors.authCardBorder,
@@ -763,6 +595,7 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
                     subtitle:
                         'Ingresa el nuevo saldo de tu cuenta y agrega los movimientos '
                         'que justifiquen la diferencia.',
+                    size: ScreenHeaderSize.compact,
                     onBack: widget.onDone,
                     backEnabled: !_isSaving,
                   ),
@@ -793,17 +626,8 @@ class _UpdateBalanceTabState extends State<UpdateBalanceTab> {
   }
 }
 
-/// Los 4 tipos de movimiento que se pueden cargar desde "Agregar
-/// movimiento". Por ahora es solo la elección de [_MovementTypeSheet]:
-/// los cuatro abren el mismo [_AddMovementDialog] (ver
-/// [_UpdateBalanceTabState._showAddMovementDialog]) — una próxima entrega
-/// va a darle a cada uno su propio formulario.
 enum _MovementType { income, expense, transfer, invoice }
 
-/// Bottom sheet para elegir el tipo de movimiento a cargar. Mismos
-/// íconos y colores que las acciones rápidas del Dashboard (ver
-/// `_QuickActions` en dashboard_tab.dart), para que se reconozca el
-/// mismo tipo en los dos lados de la app.
 class _MovementTypeSheet extends StatelessWidget {
   const _MovementTypeSheet();
 
@@ -868,8 +692,6 @@ class _MovementTypeSheet extends StatelessWidget {
   }
 }
 
-/// Una fila de [_MovementTypeSheet]: ícono con fondo tenue + label,
-/// tocable en todo el ancho.
 class _MovementTypeOption extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
@@ -913,18 +735,9 @@ class _MovementTypeOption extends StatelessWidget {
   }
 }
 
-/// Título de la sección "Movimientos para justificar la diferencia" y el
-/// botón "Agregar movimiento" del prototipo, en la misma fila.
-///
-/// [onAddMovement] abre [_MovementTypeSheet] (Entrega 9: elegir tipo)
-/// y, sea cual sea el tipo elegido, el popup de alta de movimiento de
-/// siempre — el popup en sí todavía no distingue por tipo.
 class _MovementsSectionHeader extends StatelessWidget {
   final VoidCallback onAddMovement;
 
-  /// false mientras se está guardando ([_UpdateBalanceTabState._isSaving]):
-  /// deshabilita el botón para no agregar movimientos a mitad de un
-  /// guardado.
   final bool enabled;
 
   const _MovementsSectionHeader({
@@ -970,10 +783,6 @@ class _MovementsSectionHeader extends StatelessWidget {
   }
 }
 
-/// Abreviaturas de mes en español (3 letras, sin punto), para mostrar la
-/// fecha de cada movimiento igual que en el prototipo ("12 sep 2025").
-/// [DateFormat] de `intl` agrega un punto ("sept.") con el locale 'es', así
-/// que se arma a mano en vez de depender de eso.
 const _kMonthAbbreviations = [
   'ene',
   'feb',
@@ -994,25 +803,13 @@ String _formatMovementDate(DateTime date) {
   return '${date.day} $month ${date.year}';
 }
 
-/// Umbral bajo el cual una diferencia se considera "cero" — evita falsos
-/// "no coincide"/"falta guardar un ajuste" por restos de redondeo de
-/// centavos. Se comparte entre [_MovementsSummaryCard] (qué mensaje
-/// mostrar) y [_UpdateBalanceTabState._saveAndUpdateBalance] (si hace
-/// falta aplicar el ajuste no declarado).
 const _kRemainderEpsilon = 0.005;
 
-/// Lista de movimientos ya cargados desde el popup "Agregar movimiento",
-/// dentro de una sola tarjeta con separadores entre filas — igual que en
-/// el prototipo. Entrega 6: solo el listado; el total y el botón "Guardar
-/// y actualizar saldo" del prototipo quedan para una próxima entrega.
 class _MovementsList extends StatelessWidget {
   final List<PendingMovement> movements;
   final String currency;
   final void Function(PendingMovement movement) onDelete;
 
-  /// false mientras se está guardando ([_UpdateBalanceTabState._isSaving]):
-  /// deshabilita el tacho de cada fila para no mutar la lista a mitad de
-  /// un guardado.
   final bool enabled;
 
   const _MovementsList({
@@ -1048,15 +845,10 @@ class _MovementsList extends StatelessWidget {
   }
 }
 
-/// Una fila de [_MovementsList]: círculo con el color/ícono de la
-/// categoría, categoría + descripción + fecha, monto con signo (mismo
-/// criterio de color que [_DifferenceBox]: verde si suma, rojo si resta) y
-/// el botón para sacarlo de la lista.
 class _MovementListTile extends StatelessWidget {
   final PendingMovement movement;
   final String currency;
 
-  /// `null` deshabilita el botón de tacho (mientras se está guardando).
   final VoidCallback? onDelete;
 
   const _MovementListTile({
@@ -1141,10 +933,6 @@ class _MovementListTile extends StatelessWidget {
   }
 }
 
-/// Versión de solo lectura de [_MovementsList] para el paso final (revisar
-/// y guardar): mismas filas de categoría + monto, pero sin el botón de
-/// tacho y sin descripción/fecha — ya se pudieron ver y editar en el paso
-/// anterior, acá alcanza con la categoría para reconocer cada movimiento.
 class _MovementsReadOnlyList extends StatelessWidget {
   final List<PendingMovement> movements;
   final String currency;
@@ -1176,8 +964,6 @@ class _MovementsReadOnlyList extends StatelessWidget {
   }
 }
 
-/// Fila de [_MovementsReadOnlyList]: solo categoría y monto con signo
-/// (mismo criterio de color que [_MovementListTile]).
 class _MovementReadOnlyTile extends StatelessWidget {
   final PendingMovement movement;
   final String currency;
@@ -1228,18 +1014,9 @@ class _MovementReadOnlyTile extends StatelessWidget {
   }
 }
 
-/// Footer con el total de los movimientos cargados y el estado de la
-/// diferencia, en el mismo estilo de dos columnas separadas por una línea
-/// que usa [_DifferenceBox]. Que [remainder] no sea cero (o casi, por
-/// redondeo) ya no bloquea el botón "Guardar y actualizar saldo" — solo
-/// cambia el mensaje, para avisar que esa parte va a ajustar el balance
-/// directo como gasto/ingreso no controlado, sin quedar como movimiento.
 class _MovementsSummaryCard extends StatelessWidget {
   final double total;
 
-  /// Parte de la diferencia sin cubrir por los movimientos. `null`
-  /// mientras no haya un saldo nuevo válido (ver
-  /// [_UpdateBalanceTabState._unjustifiedRemainder]).
   final double? remainder;
   final String currency;
 
@@ -1249,8 +1026,6 @@ class _MovementsSummaryCard extends StatelessWidget {
     required this.currency,
   });
 
-  /// Umbral bajo el cual se considera "sin diferencia" — evita falsos
-  /// "no coincide" por restos de redondeo de centavos.
   static const _epsilon = _kRemainderEpsilon;
 
   @override
@@ -1398,16 +1173,6 @@ class _MovementsSummaryCard extends StatelessWidget {
   }
 }
 
-/// Movimiento cargado desde el popup "Agregar movimiento" mientras se
-/// termina de justificar la diferencia de saldo. Vive solo en memoria
-/// (ver [_UpdateBalanceTabState._pendingMovements]) — todavía no se
-/// persiste en la base hasta tocar "Guardar y actualizar saldo" (ver
-/// [_UpdateBalanceTabState._saveAndUpdateBalance], que hace `switch` sobre
-/// las tres subclases de acá abajo para saber cómo persistir cada una).
-///
-/// [amount] ya viene con signo, relativo a la cuenta que se está
-/// actualizando — quien arma cada subclase (los `_save` de sus popups) es
-/// responsable de ponerlo bien; ver el doc de cada una.
 sealed class PendingMovement {
   final double amount;
   final String? description;
@@ -1419,14 +1184,9 @@ sealed class PendingMovement {
     this.description,
   });
 
-  /// Qué mostrar en vez del nombre de categoría en [_MovementListTile] y
-  /// [_MovementReadOnlyTile].
   String get displayLabel;
 }
 
-/// Ingreso o Gasto con una categoría — el caso más simple. [amount] ya
-/// viene con signo (negativo si [category] es de gasto, positivo si es de
-/// ingreso) — ver [_AddMovementDialogState._save].
 class CategoryPendingMovement extends PendingMovement {
   final Category category;
 
@@ -1441,10 +1201,6 @@ class CategoryPendingMovement extends PendingMovement {
   String get displayLabel => category.name;
 }
 
-/// Transferencia con otra cuenta. [amount] ya viene con signo relativo a
-/// la cuenta que se está actualizando: negativo si esa cuenta es el
-/// origen (sale plata), positivo si es el destino (entra plata) — ver
-/// [_AddTransferDialogState._save].
 class TransferPendingMovement extends PendingMovement {
   final String otherAccountId;
   final String otherAccountName;
@@ -1463,10 +1219,6 @@ class TransferPendingMovement extends PendingMovement {
       : 'Transferencia a $otherAccountName';
 }
 
-/// Pago de una factura de servicio pendiente. [amount] siempre negativo
-/// (pagar una factura es siempre un gasto) — ver
-/// [_AddInvoiceDialogState._save]. [category] es la del servicio
-/// ([Service.categoryId]), con la que se registra el gasto.
 class InvoicePendingMovement extends PendingMovement {
   final Invoice invoice;
   final Category category;
@@ -1485,16 +1237,12 @@ class InvoicePendingMovement extends PendingMovement {
   String get displayLabel => 'Factura · $serviceName';
 }
 
-/// Estilo del label de cada campo en los popups de "Agregar movimiento"
-/// ([_AddMovementDialog] y [_AddTransferDialog]) — "Monto", "Categoría",
-/// "Fecha", etc.
 const _kDialogLabelStyle = TextStyle(
   fontSize: 13,
   fontWeight: FontWeight.w600,
   color: AppColors.authTextSecondary,
 );
 
-/// Decoración compartida por los campos de esos mismos dos popups.
 const _kDialogFieldDecoration = InputDecoration(
   isDense: true,
   filled: true,
@@ -1515,23 +1263,9 @@ const _kDialogFieldDecoration = InputDecoration(
   ),
 );
 
-/// Contenido del popup "Agregar movimiento": Monto, Categoría, Descripción
-/// (opcional) y Fecha. Es un `StatefulWidget` propio (en vez de vivir en
-/// [_UpdateBalanceTabState]) porque necesita su propio `Form` y controllers
-/// que se descartan al cerrar el popup, sin interferir con el formulario
-/// del saldo nuevo que queda atrás.
-///
-/// El campo "Monto" solo pide la magnitud (siempre positiva): el signo
-/// final lo decide [categoryType] (gasto resta, ingreso suma — ver
-/// [_AddMovementDialogState._save]).
 class _AddMovementDialog extends StatefulWidget {
   final CategoryViewModel categoryViewModel;
 
-  /// 'income' o 'expense' — con qué tipo se eligió abrir este popup (ver
-  /// [_UpdateBalanceTabState._showAddMovementDialog]). El selector de
-  /// categoría solo muestra las de este tipo, así que no hace falta que
-  /// el usuario elija entre categorías de otro sentido al que ya indicó
-  /// en [_MovementTypeSheet].
   final String categoryType;
 
   final void Function(PendingMovement movement) onSave;
@@ -1561,9 +1295,6 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
     super.dispose();
   }
 
-  /// Mismo rango de fechas que usa [AddTransactionTab]: hasta hoy, sin
-  /// límite hacia atrás salvo el año 2020 (arranque razonable para no
-  /// scrollear de más en el picker).
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -1590,9 +1321,6 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
     if (_selectedCategory == null) return;
 
     final rawAmount = double.parse(_amountController.text.replaceAll(',', '.'));
-    // El signo lo pone la categoría, no el usuario: si es de gasto resta
-    // del saldo, si es de ingreso suma. El campo "Monto" solo pide la
-    // magnitud (siempre positiva).
     final signedAmount =
         _selectedCategory!.type == 'expense' ? -rawAmount : rawAmount;
 
@@ -1646,8 +1374,6 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                // Solo magnitud, sin "-": el signo final lo pone el tipo
-                // de la categoría elegida (ver [_save]).
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(
                     RegExp(r'^\d*[.,]?\d{0,2}'),
@@ -1771,24 +1497,9 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
   }
 }
 
-/// Contenido del popup de transferencia que abre "Agregar movimiento" al
-/// elegir "Transferencia" en [_MovementTypeSheet]: elegir la otra cuenta,
-/// la dirección (si la plata entra o sale de [currentAccount]), Monto,
-/// Descripción (opcional) y Fecha.
-///
-/// Igual que [_AddMovementDialog], no persiste nada al tocar "Guardar":
-/// arma un [PendingMovement] de transferencia y lo agrega a
-/// [_UpdateBalanceTabState._pendingMovements] — recién se crea de verdad
-/// (dos transacciones vía `TransactionViewModel.createTransfer`) al tocar
-/// "Guardar y actualizar saldo", ver
-/// [_UpdateBalanceTabState._saveAndUpdateBalance].
 class _AddTransferDialog extends StatefulWidget {
-  /// Cuenta que se está actualizando en [UpdateBalanceTab] — una punta
-  /// fija de la transferencia; la otra la elige el usuario acá.
   final Account currentAccount;
 
-  /// Para listar el resto de las cuentas activas como "otra cuenta" (ver
-  /// [AccountViewModel.activeAccounts]).
   final AccountViewModel accountViewModel;
 
   final void Function(PendingMovement movement) onSave;
@@ -1810,10 +1521,6 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
 
   String? _otherAccountId;
 
-  /// true: la plata entra a [UpdateBalanceTab.account] (es el destino).
-  /// false: la plata sale de esa cuenta (es el origen). Arranca en true
-  /// porque, en este flujo, cargar un ingreso es el caso más común (el
-  /// saldo real suele ser mayor al de la app por un traspaso recibido).
   bool _isIncoming = true;
 
   DateTime _selectedDate = DateTime.now();
@@ -1825,7 +1532,6 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
     super.dispose();
   }
 
-  /// Mismo rango de fechas que [_AddMovementDialogState._pickDate].
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -1856,9 +1562,6 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
         .firstWhere((a) => a.id == otherAccountId);
 
     final rawAmount = double.parse(_amountController.text.replaceAll(',', '.'));
-    // El signo lo pone la dirección elegida, no el usuario: el campo
-    // "Monto" solo pide la magnitud (siempre positiva) — mismo criterio
-    // que [_AddMovementDialogState._save].
     final signedAmount = _isIncoming ? rawAmount : -rawAmount;
 
     widget.onSave(
@@ -1877,8 +1580,6 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // Todas las cuentas activas salvo la que se está actualizando — no
-    // tiene sentido transferir una cuenta a sí misma.
     final otherAccounts = widget.accountViewModel.activeAccounts
         .where((a) => a.id != widget.currentAccount.id)
         .toList();
@@ -1967,8 +1668,6 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  // Solo magnitud, sin "-": el signo final lo pone la
-                  // dirección elegida arriba (ver [_save]).
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(
                       RegExp(r'^\d*[.,]?\d{0,2}'),
@@ -2053,12 +1752,6 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
   }
 }
 
-/// Bottom sheet que abre "Agregar movimiento" al elegir "Factura de
-/// servicio": lista las facturas pendientes recibidas en [invoices] (ya
-/// filtradas por [_UpdateBalanceTabState._showAddInvoiceFlow] — ni
-/// pagadas ni canceladas, y sin las que ya estén cargadas en esta misma
-/// pantalla) para elegir cuál pagar. Tocar una la devuelve como resultado
-/// del `showModalBottomSheet`; si no hay ninguna, solo muestra un aviso.
 class _SelectPendingInvoiceSheet extends StatelessWidget {
   final List<Invoice> invoices;
   final ServiceViewModel serviceViewModel;
@@ -2184,19 +1877,6 @@ class _SelectPendingInvoiceSheet extends StatelessWidget {
   }
 }
 
-/// Popup que confirma el pago de la factura elegida en
-/// [_SelectPendingInvoiceSheet]: monto (precargado con el importe de la
-/// factura, editable — puede haber variado respecto al aproximado) y
-/// fecha de pago. El servicio y la categoría ya vienen resueltos (ver
-/// [_UpdateBalanceTabState._showAddInvoiceFlow]) y se muestran fijos, no
-/// hay selector de cuenta (siempre es la que se está actualizando en
-/// [UpdateBalanceTab]).
-///
-/// Igual que los otros popups de "Agregar movimiento", no persiste nada
-/// al guardar: arma un [InvoicePendingMovement] y lo agrega a
-/// [_UpdateBalanceTabState._pendingMovements] — recién se registra el
-/// pago de verdad al tocar "Guardar y actualizar saldo", ver
-/// [_UpdateBalanceTabState._saveAndUpdateBalance].
 class _AddInvoiceDialog extends StatefulWidget {
   final Invoice invoice;
   final String serviceName;
@@ -2233,7 +1913,6 @@ class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
     super.dispose();
   }
 
-  /// Mismo rango de fechas que [_AddMovementDialogState._pickDate].
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -2264,7 +1943,6 @@ class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
 
     widget.onSave(
       InvoicePendingMovement(
-        // Pagar una factura siempre es un gasto: resta del saldo.
         amount: -amount,
         date: _selectedDate,
         invoice: widget.invoice,
@@ -2383,9 +2061,6 @@ class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
   }
 }
 
-/// Tarjeta principal del prototipo: saldo anterior → nuevo saldo (campo
-/// recibido por parámetro, porque el controller vive en el State) y, debajo,
-/// la caja con la diferencia.
 class _BalanceCard extends StatelessWidget {
   final double previousBalance;
   final String currency;
@@ -2453,10 +2128,7 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
-/// Caja "Diferencia": monto con signo y color según sea menor, mayor o igual
-/// al saldo anterior, más un mensaje que explica qué sigue.
 class _DifferenceBox extends StatelessWidget {
-  /// `null` mientras el nuevo saldo esté vacío o no sea válido.
   final double? difference;
   final String currency;
 
@@ -2516,8 +2188,6 @@ class _DifferenceBox extends StatelessWidget {
             child: Icon(icon, color: tone, size: 22),
           ),
           const SizedBox(width: 12),
-          // Ancho máximo acotado: si el monto es muy grande se achica (en
-          // vez de desbordar) y el mensaje conserva su espacio a la derecha.
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 130),
             child: Column(

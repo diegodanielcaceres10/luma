@@ -6,29 +6,8 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
-/// Opciones del menú de tres puntos del header de [AccountViewScreen].
 enum _AccountAction { edit, updateBalance }
 
-/// Detalle de una cuenta: sus datos (nombre, saldo, estado) y, desde el
-/// menú de tres puntos del header ([HeaderMenuButton]), entrar a editarla
-/// ([AccountFormTab], "Editar cuenta") o actualizar su saldo
-/// ([UpdateBalanceTab], "Actualizar saldo").
-///
-/// Se llega tocando una fila en [AccountsOverviewTab], que no tiene otros
-/// atajos: editar y actualizar el saldo se hacen únicamente desde el menú
-/// de esta pantalla, y el estado activa/inactiva desde su `Switch`.
-///
-/// [account] es la foto de la cuenta al momento de navegar acá (la
-/// resuelve `_accountGuard` en router.dart, una sola vez — no se
-/// actualiza sola). Como se puede volver a esta pantalla después de
-/// editar o actualizar el saldo (al hacer "atrás" desde esos formularios,
-/// esta sigue siendo la misma instancia en la pila de navegación), esta
-/// clase vuelve a buscarla por id en [accountViewModel] en cada rebuild
-/// (ver [_currentAccount]) para no quedarse mostrando datos viejos.
-///
-/// No tiene Scaffold propio — se muestra dentro de un RoutedScreenScaffold,
-/// debajo del header y encima del bottomNavigationBar que pone
-/// AppShellScreen.
 class AccountViewScreen extends StatelessWidget {
   final Account account;
   final AccountViewModel accountViewModel;
@@ -45,12 +24,6 @@ class AccountViewScreen extends StatelessWidget {
     required this.onBack,
   });
 
-  /// Ver el doc de la clase: [account] puede haber quedado vieja si se
-  /// volvió acá después de editar o actualizar el saldo, así que se
-  /// busca de nuevo por id en la lista actual del view model. Si ya no
-  /// está (se borró desde otro lado), se muestra la última foto conocida
-  /// en vez de romper — `_accountGuard` se encarga de sacar de acá si
-  /// corresponde.
   Account _currentAccount() {
     for (final a in accountViewModel.accounts) {
       if (a.id == account.id) return a;

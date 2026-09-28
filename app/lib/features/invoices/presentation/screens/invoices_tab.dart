@@ -296,7 +296,7 @@ class _InvoicesTabState extends State<InvoicesTab> {
       // El saldo de la cuenta se actualizó en el servidor junto con la
       // transacción de gasto; acá solo recargamos la lista de cuentas
       // para que el nuevo saldo se vea en pantalla (ver
-      // AccountsOverviewTab).
+      // AccountsScreen).
       await widget.accountViewModel.loadAccounts();
     }
 

@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../core/navigation/app_back.dart';
 import '../core/navigation/entity_route_guard.dart';
 import '../features/accounts/data/models/account.dart';
-import '../features/accounts/presentation/screens/account_form_tab.dart';
+import '../features/accounts/presentation/screens/account_form_screen.dart';
+import '../features/accounts/presentation/screens/account_update_balance_screen.dart';
 import '../features/accounts/presentation/screens/account_view_screen.dart';
-import '../features/accounts/presentation/screens/accounts_overview_tab.dart';
-import '../features/accounts/presentation/screens/update_balance_tab.dart';
+import '../features/accounts/presentation/screens/accounts_screen.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
 import '../features/app_lock/presentation/screens/lock_screen.dart';
 import '../features/app_lock/presentation/view_models/app_lock_view_model.dart';
@@ -285,7 +285,7 @@ GoRouter buildAppRouter({
           // ---- Cuentas ----
           // '/accounts' (pestaña del drawer) y '/accounts-overview' (push
           // desde el Dashboard) muestran la misma pantalla
-          // (AccountsOverviewTab) — solo cambia si se pasa onBack, ver su
+          // (AccountsScreen) — solo cambia si se pasa onBack, ver su
           // doc. Repetir el widget en dos rutas en vez de una es a
           // propósito: '/accounts' es una pestaña de primer nivel del
           // shell (navegación por tab, no por push), así que necesita su
@@ -293,7 +293,7 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/accounts',
             builder: (context, state) => RoutedScreenScaffold(
-              body: AccountsOverviewTab(
+              body: AccountsScreen(
                 accountViewModel: accountViewModel,
                 onOpenView: (account) =>
                     context.push('/accounts/${account.id}'),
@@ -306,7 +306,7 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/accounts/new',
             builder: (context, state) => RoutedScreenScaffold(
-              body: AccountFormTab(
+              body: AccountFormScreen(
                 userId: authViewModel.userId ?? '',
                 accountViewModel: accountViewModel,
                 onDone: () {
@@ -347,7 +347,7 @@ GoRouter buildAppRouter({
               body: _accountGuard(
                 accountViewModel,
                 state.pathParameters['id'],
-                (context, account) => AccountFormTab(
+                (context, account) => AccountFormScreen(
                   userId: authViewModel.userId ?? '',
                   accountViewModel: accountViewModel,
                   account: account,
@@ -365,7 +365,7 @@ GoRouter buildAppRouter({
               body: _accountGuard(
                 accountViewModel,
                 state.pathParameters['id'],
-                (context, account) => UpdateBalanceTab(
+                (context, account) => AccountUpdateBalanceScreen(
                   account: account,
                   accountViewModel: accountViewModel,
                   categoryViewModel: categoryViewModel,
@@ -381,7 +381,7 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/accounts-overview',
             builder: (context, state) => RoutedScreenScaffold(
-              body: AccountsOverviewTab(
+              body: AccountsScreen(
                 accountViewModel: accountViewModel,
                 onBack: () => context.goBack(),
                 onOpenView: (account) =>
