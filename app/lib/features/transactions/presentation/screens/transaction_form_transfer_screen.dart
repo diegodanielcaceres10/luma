@@ -5,24 +5,20 @@ import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
-import '../../../transactions/presentation/view_models/transaction_view_model.dart';
+import '../view_models/transaction_view_model.dart';
 
-/// Contenido de la pestaña "Transferencia entre cuentas". No tiene
-/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
-/// del header y encima del bottomNavigationBar que pone AppShellScreen.
-///
-/// Al guardar, se crean dos transacciones sin categoría: un 'expense'
-/// en la cuenta de origen y un 'income' en la de destino, ambas con el
-/// mismo monto y la fecha elegida en el campo "Fecha".
-class TransferFormTab extends StatefulWidget {
+/// Form to transfer money between own accounts. Saving creates an expense on
+/// the origin account and an income on the destination (see
+/// [TransactionViewModel.createTransfer]).
+class TransactionFormTransferScreen extends StatefulWidget {
   final String? userId;
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
 
-  /// Se llama al volver atrás o al guardar con éxito.
+  /// Called after saving or going back.
   final VoidCallback onDone;
 
-  const TransferFormTab({
+  const TransactionFormTransferScreen({
     super.key,
     required this.userId,
     required this.accountViewModel,
@@ -31,10 +27,12 @@ class TransferFormTab extends StatefulWidget {
   });
 
   @override
-  State<TransferFormTab> createState() => _TransferFormTabState();
+  State<TransactionFormTransferScreen> createState() =>
+      _TransactionFormTransferScreenState();
 }
 
-class _TransferFormTabState extends State<TransferFormTab> {
+class _TransactionFormTransferScreenState
+    extends State<TransactionFormTransferScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
 
@@ -113,9 +111,7 @@ class _TransferFormTabState extends State<TransferFormTab> {
     if (!mounted) return;
 
     if (success) {
-      // El saldo de ambas cuentas se actualizó en el servidor junto con
-      // cada transacción (RPC create_transaction); acá solo recargamos la
-      // lista de cuentas para que los nuevos saldos se vean en pantalla.
+      // Balances changed server-side; reload accounts to show them.
       await widget.accountViewModel.loadAccounts();
       if (!mounted) return;
       widget.onDone();
@@ -142,11 +138,8 @@ class _TransferFormTabState extends State<TransferFormTab> {
           final accounts = widget.accountViewModel.activeAccounts;
           final isSubmitting = widget.transactionViewModel.isSubmitting;
 
-          // Cada select excluye la cuenta ya elegida en el otro — así no
-          // se puede transferir una cuenta a sí misma. Si la cuenta
-          // elegida en un select deja de estar disponible en el otro
-          // (porque la acaban de elegir ahí), se limpia para no dejar un
-          // valor que ya no está entre las opciones.
+          // Each dropdown excludes the account picked in the other one, and a
+          // selection that is no longer available is cleared.
           final originOptions = accounts
               .where((Account a) => a.id != _destinationAccountId)
               .toList();
@@ -157,7 +150,6 @@ class _TransferFormTabState extends State<TransferFormTab> {
             key: _formKey,
             child: Column(
               children: [
-                // Barra de progreso fina arriba mientras se guarda.
                 if (isSubmitting)
                   const LinearProgressIndicator(
                     backgroundColor: AppColors.authCardBorder,

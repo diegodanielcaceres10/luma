@@ -38,9 +38,9 @@ import '../features/services/presentation/screens/services_screen.dart';
 import '../features/services/presentation/view_models/service_view_model.dart';
 import '../features/transactions/presentation/screens/statistics_screen.dart';
 import '../features/transactions/presentation/screens/transaction_form_screen.dart';
+import '../features/transactions/presentation/screens/transaction_form_transfer_screen.dart';
 import '../features/transactions/presentation/screens/transactions_screen.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
-import '../features/transfers/presentation/screens/transfer_form_tab.dart';
 import 'not_found_screen.dart';
 
 /// Guards de las rutas con `:id` (ver [EntityRouteGuard]): si el id no
@@ -277,7 +277,7 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/transfer',
             builder: (context, state) => RoutedScreenScaffold(
-              body: TransferFormTab(
+              body: TransactionFormTransferScreen(
                 userId: authViewModel.userId,
                 accountViewModel: accountViewModel,
                 transactionViewModel: transactionViewModel,
