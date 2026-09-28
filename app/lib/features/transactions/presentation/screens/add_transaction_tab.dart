@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/data/models/category.dart';
@@ -444,30 +445,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     return result == true;
   }
 
-  Widget _buildHeader({required bool isBusy, required VoidCallback onBack}) {
-    return Row(
-      children: [
-        InkWell(
-          onTap: isBusy ? null : onBack,
-          borderRadius: BorderRadius.circular(20),
-          child: const Padding(
-            padding: EdgeInsets.all(4),
-            child: Icon(Icons.arrow_back_rounded,
-                color: AppColors.authTextPrimary),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          _isIncome ? 'Añadir ingreso' : 'Añadir gasto',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.authTextPrimary,
-          ),
-        ),
-      ],
-    );
-  }
+  String get _title => _isIncome ? 'Añadir ingreso' : 'Añadir gasto';
 
   @override
   Widget build(BuildContext context) {
@@ -487,7 +465,13 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: [
-          _buildHeader(isBusy: isBusy, onBack: widget.onDone),
+          ScreenHeader(
+            title: _title,
+            subtitle: 'Elige cómo quieres registrar tu '
+                '${_isIncome ? 'ingreso' : 'gasto'}.',
+            onBack: widget.onDone,
+            backEnabled: !isBusy,
+          ),
           const SizedBox(height: 16),
           _EntryModeCard(
             icon: Icons.document_scanner_rounded,
@@ -533,7 +517,14 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  _buildHeader(isBusy: isBusy, onBack: _handleFormBack),
+                  ScreenHeader(
+                    title: _title,
+                    subtitle: 'Completa los datos del '
+                        '${_isIncome ? 'ingreso' : 'gasto'}.',
+                    size: ScreenHeaderSize.compact,
+                    onBack: _handleFormBack,
+                    backEnabled: !isBusy,
+                  ),
                   const SizedBox(height: 16),
                   const Text('Monto', style: _labelStyle),
                   const SizedBox(height: 8),
