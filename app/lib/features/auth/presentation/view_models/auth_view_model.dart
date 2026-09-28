@@ -63,8 +63,7 @@ class AuthViewModel extends ChangeNotifier {
         'description=${error.description} details=${error.details}',
       );
       debugPrintStack(stackTrace: stackTrace);
-      // El detalle (código/descripción) queda solo en consola; en pantalla
-      // se muestra un mensaje genérico.
+      // Details stay in the console; the UI shows a generic message.
       _errorMessage = _googleSignInErrorMessage(error);
       notifyListeners();
     } on AuthException catch (error, stackTrace) {
