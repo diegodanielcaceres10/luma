@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -65,6 +68,10 @@ class _DashboardTabState extends State<DashboardTab> {
   // el dashboard con el spinner, para eso quedan los spinners de cada
   // sección.
   bool _initialLoadDone = false;
+
+  // Para leer dónde quedó el botón flotante y dibujar el "×" del overlay
+  // exactamente encima.
+  final GlobalKey _fabKey = GlobalKey();
 
   /// `true` cuando todos los datos que usa el dashboard terminaron de
   /// cargar. Las cuentas se validan con `hasLoaded` porque antes de que
@@ -148,6 +155,67 @@ class _DashboardTabState extends State<DashboardTab> {
     );
   }
 
+  /// Abre el menú de acciones rápidas: un overlay sobre toda la pantalla
+  /// (root navigator, para cubrir también el header y el bottom nav del
+  /// shell) con el fondo blureado y las 4 opciones.
+  void _openQuickActions() {
+    final box = _fabKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached) return;
+    final fabRect = box.localToGlobal(Offset.zero) & box.size;
+    final pendingInvoicesCount = widget.invoiceViewModel.pendingCount;
+
+    final options = [
+      _QuickActionOption(
+        icon: Icons.arrow_downward_rounded,
+        iconColor: AppColors.authIncome,
+        title: 'Agregar ingreso',
+        subtitle: 'Sumá dinero a tu cuenta',
+        onTap: () => widget.onOpenAddTransaction('income'),
+      ),
+      _QuickActionOption(
+        icon: Icons.arrow_upward_rounded,
+        iconColor: AppColors.authExpense,
+        title: 'Agregar gasto',
+        subtitle: 'Registrá un nuevo gasto',
+        onTap: () => widget.onOpenAddTransaction('expense'),
+      ),
+      _QuickActionOption(
+        icon: Icons.request_page_outlined,
+        iconColor: AppColors.authAccent,
+        title: 'Facturas por pagar',
+        subtitle: pendingInvoicesCount > 0
+            ? '$pendingInvoicesCount pendiente'
+                '${pendingInvoicesCount == 1 ? '' : 's'} este mes'
+            : 'Revisá el estado de tus facturas',
+        onTap: widget.onGoToInvoices,
+      ),
+      _QuickActionOption(
+        icon: Icons.swap_horiz_rounded,
+        iconColor: AppColors.authAccent,
+        title: 'Transferencias entre cuentas',
+        subtitle: 'Movés dinero de una cuenta a otra',
+        onTap: widget.onGoToTransfers,
+      ),
+    ];
+
+    showGeneralDialog<void>(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: true,
+      barrierLabel: 'Cerrar acciones rápidas',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 250),
+      // El overlay anima su propio blur, opciones y botón con `animation`.
+      transitionBuilder: (_, __, ___, child) => child,
+      pageBuilder: (dialogContext, animation, _) => _QuickActionsOverlay(
+        animation: animation,
+        fabRect: fabRect,
+        options: options,
+        onClose: () => Navigator.of(dialogContext).pop(),
+      ),
+    );
+  }
+
   Widget _buildContent(List<Account> activeAccounts) {
     final accountViewModel = widget.accountViewModel;
     final transactionViewModel = widget.transactionViewModel;
@@ -162,50 +230,54 @@ class _DashboardTabState extends State<DashboardTab> {
     final pendingInvoicesCount =
         widget.invoiceViewModel.pendingCountForCurrentMonth;
 
-    return ListView(
+    return Stack(
       key: const ValueKey('dashboard-content'),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       children: [
-        _GreetingRow(
-          initials: widget.authViewModel.initials,
-          firstName: widget.authViewModel.displayName.split(' ').first,
+        Positioned.fill(
+          child: ListView(
+            // Padding inferior extra para que el botón flotante no tape el
+            // último movimiento.
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
+            children: [
+              _GreetingRow(
+                initials: widget.authViewModel.initials,
+                firstName: widget.authViewModel.displayName.split(' ').first,
+              ),
+              const SizedBox(height: 20),
+              _BalanceCard(
+                isLoading: accountViewModel.isLoading,
+                total: accountViewModel.totalBalance,
+                currency: accountViewModel.primaryCurrency,
+                netResult: transactionViewModel.netResultWithUncontrolled,
+                isLoadingNetResult: transactionViewModel.isLoading,
+                pendingAccountsCount: pendingAccounts.length,
+                onCompletePendingBalances: pendingAccounts.isEmpty
+                    ? null
+                    : widget.onOpenMonthlyBalances,
+                onManageAccounts: widget.onManageAccounts,
+                pendingInvoicesTotal: pendingInvoicesTotal,
+                pendingInvoicesCount: pendingInvoicesCount,
+                isLoadingPendingInvoices: widget.invoiceViewModel.isLoading ||
+                    widget.serviceViewModel.isLoading,
+              ),
+              const SizedBox(height: 28),
+              _SectionHeader(
+                title: 'Últimos movimientos',
+                onSeeAll: widget.onSeeAllMovements,
+              ),
+              const SizedBox(height: 8),
+              _RecentMovements(
+                isLoading: transactionViewModel.isLoading,
+                movements: transactionViewModel.recentMovements,
+                currency: accountViewModel.primaryCurrency,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 20),
-        _BalanceCard(
-          isLoading: accountViewModel.isLoading,
-          total: accountViewModel.totalBalance,
-          currency: accountViewModel.primaryCurrency,
-          netResult: transactionViewModel.netResultWithUncontrolled,
-          isLoadingNetResult: transactionViewModel.isLoading,
-          pendingAccountsCount: pendingAccounts.length,
-          onCompletePendingBalances:
-              pendingAccounts.isEmpty ? null : widget.onOpenMonthlyBalances,
-          onManageAccounts: widget.onManageAccounts,
-          pendingInvoicesTotal: pendingInvoicesTotal,
-          pendingInvoicesCount: pendingInvoicesCount,
-          isLoadingPendingInvoices: widget.invoiceViewModel.isLoading ||
-              widget.serviceViewModel.isLoading,
-        ),
-        const SizedBox(height: 28),
-        const _SectionHeader(title: 'Acciones rápidas'),
-        const SizedBox(height: 12),
-        _QuickActions(
-          onAddIncome: () => widget.onOpenAddTransaction('income'),
-          onAddExpense: () => widget.onOpenAddTransaction('expense'),
-          onGoToInvoices: widget.onGoToInvoices,
-          onGoToTransfers: widget.onGoToTransfers,
-          pendingInvoicesCount: widget.invoiceViewModel.pendingCount,
-        ),
-        const SizedBox(height: 28),
-        _SectionHeader(
-          title: 'Últimos movimientos',
-          onSeeAll: widget.onSeeAllMovements,
-        ),
-        const SizedBox(height: 8),
-        _RecentMovements(
-          isLoading: transactionViewModel.isLoading,
-          movements: transactionViewModel.recentMovements,
-          currency: accountViewModel.primaryCurrency,
+        Positioned(
+          right: 20,
+          bottom: 20,
+          child: _AddFab(key: _fabKey, onPressed: _openQuickActions),
         ),
       ],
     );
@@ -503,7 +575,7 @@ class _BalanceCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${netResult >= 0 ? '+' : ''}'
-                        '${formatCurrency(netResult, currency)} este mes'
+                        '${formatCurrency(netResult, currency)} este mes '
                         '(ingresos - gastos ± ajustes)',
                         style: TextStyle(
                           color: netResult >= 0
@@ -666,175 +738,220 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _QuickActions extends StatelessWidget {
-  final VoidCallback onAddIncome;
-  final VoidCallback onAddExpense;
-  final VoidCallback onGoToInvoices;
-  final VoidCallback onGoToTransfers;
-  final int pendingInvoicesCount;
-
-  const _QuickActions({
-    required this.onAddIncome,
-    required this.onAddExpense,
-    required this.onGoToInvoices,
-    required this.onGoToTransfers,
-    this.pendingInvoicesCount = 0,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.arrow_downward_rounded,
-                iconColor: AppColors.authIncome,
-                title: 'Agregar ingreso',
-                subtitle: 'Sumá dinero a tu cuenta',
-                onTap: onAddIncome,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.arrow_upward_rounded,
-                iconColor: AppColors.authExpense,
-                title: 'Agregar gasto',
-                subtitle: 'Registrá un nuevo gasto',
-                onTap: onAddExpense,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _QuickActionCard(
-          icon: Icons.request_page_outlined,
-          iconColor: AppColors.authAccent,
-          title: 'Facturas por pagar',
-          subtitle: pendingInvoicesCount > 0
-              ? '$pendingInvoicesCount pendiente${pendingInvoicesCount == 1 ? '' : 's'} este mes'
-              : 'Revisá el estado de tus facturas',
-          onTap: onGoToInvoices,
-          isFullWidth: true,
-        ),
-        const SizedBox(height: 12),
-        _QuickActionCard(
-          icon: Icons.swap_horiz_rounded,
-          iconColor: AppColors.authAccent,
-          title: 'Transferencias entre cuentas',
-          subtitle: 'Movés dinero de una cuenta a otra',
-          onTap: onGoToTransfers,
-          isFullWidth: true,
-        ),
-      ],
-    );
-  }
-}
-
-class _QuickActionCard extends StatelessWidget {
+/// Una opción del menú de acciones rápidas.
+class _QuickActionOption {
   final IconData icon;
   final Color iconColor;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final bool isFullWidth;
 
-  const _QuickActionCard({
+  const _QuickActionOption({
     required this.icon,
     required this.iconColor,
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.isFullWidth = false,
+  });
+}
+
+/// Botón flotante circular verde con un "+". El overlay de acciones rápidas
+/// lo redibuja en la misma posición con [rotation] para convertirlo en "×".
+class _AddFab extends StatelessWidget {
+  static const double size = 56;
+
+  final VoidCallback onPressed;
+
+  /// Giro del ícono, en radianes.
+  final double rotation;
+
+  const _AddFab({super.key, required this.onPressed, this.rotation = 0});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Acciones rápidas',
+      child: Material(
+        color: AppColors.authAccent,
+        shape: const CircleBorder(),
+        elevation: 6,
+        shadowColor: Colors.black54,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onPressed,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Center(
+              child: Transform.rotate(
+                angle: rotation,
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: AppColors.authBackgroundBottom,
+                  size: 30,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Menú de acciones rápidas: fondo blureado sobre toda la pantalla, las
+/// opciones apiladas sobre el botón y el botón en su lugar, ya como "×".
+/// Tocar el fondo, el botón o una opción lo cierra.
+class _QuickActionsOverlay extends StatelessWidget {
+  final Animation<double> animation;
+
+  /// Posición del botón flotante en coordenadas de pantalla.
+  final Rect fabRect;
+  final List<_QuickActionOption> options;
+  final VoidCallback onClose;
+
+  const _QuickActionsOverlay({
+    required this.animation,
+    required this.fabRect,
+    required this.options,
+    required this.onClose,
   });
 
   @override
   Widget build(BuildContext context) {
-    final card = Material(
-      color: AppColors.authCardFill,
+    final screen = MediaQuery.sizeOf(context);
+
+    return Material(
+      type: MaterialType.transparency,
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, _) {
+          final t = Curves.easeOut.transform(animation.value);
+
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onClose,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10 * t, sigmaY: 10 * t),
+                    child: ColoredBox(
+                      color: Colors.black.withValues(alpha: 0.45 * t),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: screen.width - fabRect.right,
+                bottom: screen.height - fabRect.top + 16,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    for (var i = 0; i < options.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 12),
+                      _buildOption(i),
+                    ],
+                  ],
+                ),
+              ),
+              Positioned(
+                left: fabRect.left,
+                top: fabRect.top,
+                child: _AddFab(
+                  rotation: t * math.pi / 4,
+                  onPressed: onClose,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Entrada escalonada: la opción más cercana al botón aparece primero.
+  Widget _buildOption(int index) {
+    final option = options[index];
+    final start = 0.1 * (options.length - 1 - index);
+    final progress = Interval(
+      start,
+      start + 0.6,
+      curve: Curves.easeOutCubic,
+    ).transform(animation.value);
+
+    return Opacity(
+      opacity: progress,
+      child: Transform.translate(
+        offset: Offset(0, 16 * (1 - progress)),
+        child: _QuickActionPill(
+          option: option,
+          onTap: () {
+            onClose();
+            option.onTap();
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionPill extends StatelessWidget {
+  final _QuickActionOption option;
+  final VoidCallback onTap;
+
+  const _QuickActionPill({required this.option, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.authBackgroundTop,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          width: isFullWidth ? double.infinity : null,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppColors.authCardBorder),
           ),
-          child: isFullWidth
-              ? Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: iconColor.withValues(alpha: 0.85),
-                      child: Icon(icon, color: Colors.white, size: 18),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    option.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.authTextPrimary,
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.authTextPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            subtitle,
-                            style: AppTextStyles.authSubtitle
-                                .copyWith(fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right_rounded,
-                        color: AppColors.authTextFooter, size: 18),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: iconColor.withValues(alpha: 0.85),
-                          child: Icon(icon, color: Colors.white, size: 18),
-                        ),
-                        const Spacer(),
-                        const Icon(Icons.chevron_right_rounded,
-                            color: AppColors.authTextFooter, size: 18),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.authTextPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: AppTextStyles.authSubtitle.copyWith(fontSize: 12),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    option.subtitle,
+                    style: AppTextStyles.authSubtitle.copyWith(fontSize: 12),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 14),
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: option.iconColor.withValues(alpha: 0.85),
+                child: Icon(option.icon, color: Colors.white, size: 18),
+              ),
+            ],
+          ),
         ),
       ),
     );
-
-    return card;
   }
 }
 
