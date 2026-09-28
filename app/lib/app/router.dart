@@ -201,7 +201,8 @@ GoRouter buildAppRouter({
     // cualquier URL inválida termina en '/login', así que esta pantalla
     // solo la ve quien ya está autenticado. Va por fuera del shell (sin
     // header ni bottom nav).
-    errorBuilder: (context, state) => NotFoundScreen(location: state.uri.path),
+    errorBuilder: (context, state) =>
+        NotFoundScreen(location: state.uri.path),
     routes: [
       GoRoute(
         path: '/login',
@@ -240,8 +241,8 @@ GoRouter buildAppRouter({
                 // navegación — misma cuenta que usaba el
                 // Dashboard (ver dashboard_tab.dart).
                 pendingAccounts: monthlyBalanceViewModel.checked
-                    ? monthlyBalanceViewModel
-                        .pendingAccounts(accountViewModel.activeAccounts)
+                    ? monthlyBalanceViewModel.pendingAccounts(
+                        accountViewModel.activeAccounts)
                     : const [],
                 monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
@@ -299,8 +300,6 @@ GoRouter buildAppRouter({
                 onOpenForm: (account) => account == null
                     ? context.push('/accounts/new')
                     : context.push('/accounts/${account.id}/edit'),
-                onOpenUpdateBalance: (account) =>
-                    context.push('/accounts/${account.id}/balance'),
               ),
             ),
           ),
@@ -390,8 +389,6 @@ GoRouter buildAppRouter({
                 onOpenForm: (account) => account == null
                     ? context.push('/accounts/new')
                     : context.push('/accounts/${account.id}/edit'),
-                onOpenUpdateBalance: (account) =>
-                    context.push('/accounts/${account.id}/balance'),
               ),
             ),
           ),

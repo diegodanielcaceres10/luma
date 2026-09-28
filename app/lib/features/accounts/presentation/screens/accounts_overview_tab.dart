@@ -7,8 +7,7 @@ import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
 /// Contenido de la pestaña "Cuentas": resumen de saldos y las cuentas en
-/// lista, cada una con sus cuatro acciones — ver detalle, editar,
-/// actualizar saldo y activar/desactivar (ver [_AccountRow]).
+/// lista. Cada fila solo lleva al detalle de la cuenta (ver [_AccountRow]).
 ///
 /// Entrega 14: unifica lo que antes eran dos pantallas separadas
 /// (`AccountsTab`, sin resumen ni botón "atrás", con edición; y esta
@@ -22,9 +21,12 @@ import '../view_models/account_view_model.dart';
 ///
 /// Entrega 15: agrega [AccountViewScreen] — tocar una fila ya no va
 /// directo a editar, va al detalle de esa cuenta, desde donde también se
-/// puede editar y actualizar el saldo (ver [onOpenView]). El lápiz y el
-/// sync de la fila siguen siendo atajos directos, sin pasar por el
-/// detalle.
+/// puede editar y actualizar el saldo (ver [onOpenView]).
+///
+/// Entrega 16: la fila deja de tener atajos propios (lápiz de edición,
+/// ícono de actualizar saldo y switch de activa/inactiva): todo eso vive
+/// ahora únicamente en [AccountViewScreen], y la fila solo lleva hasta
+/// ahí. Por eso ya no existe `onOpenUpdateBalance` en esta clase.
 ///
 /// No tiene Scaffold propio — se muestra dentro de un RoutedScreenScaffold,
 /// debajo del header (menú + marca Luma + campana) y encima del
@@ -33,21 +35,15 @@ class AccountsOverviewTab extends StatelessWidget {
   final AccountViewModel accountViewModel;
 
   /// Abre el detalle de esa cuenta ([AccountViewScreen]) — se llama al
-  /// tocar la fila (ver [_AccountRow.onView]; el lápiz y el sync de la
-  /// fila son atajos que no pasan por acá).
+  /// tocar la fila (ver [_AccountRow.onView]). Es la única acción de la
+  /// fila.
   final ValueChanged<Account> onOpenView;
 
-  /// Abre el formulario de cuenta ([AccountFormTab]): alta nueva con
-  /// `null` (botón "+" del título) o edición de esa cuenta (el lápiz de
-  /// la fila — ver [_AccountRow.onEdit] — o el botón "Editar cuenta" de
-  /// [AccountViewScreen]).
+  /// Abre el formulario de cuenta ([AccountFormTab]) para un alta nueva
+  /// (botón "+" del título, siempre con `null`). La edición de una cuenta
+  /// existente ya no pasa por acá: se abre desde el botón "Editar cuenta"
+  /// de [AccountViewScreen].
   final ValueChanged<Account?> onOpenForm;
-
-  /// Abre la pantalla de actualización rápida de saldo para esa cuenta
-  /// ([UpdateBalanceTab], distinta del formulario de edición) — se llama
-  /// desde el ícono de sync de la fila (ver
-  /// [_AccountRow.onUpdateBalance]) o desde [AccountViewScreen].
-  final ValueChanged<Account> onOpenUpdateBalance;
 
   /// Vuelve a la pantalla desde la que se abrió esta vista. `null` cuando
   /// esta vista es la pestaña de primer nivel "Cuentas" (no hay a dónde
@@ -59,7 +55,6 @@ class AccountsOverviewTab extends StatelessWidget {
     required this.accountViewModel,
     required this.onOpenView,
     required this.onOpenForm,
-    required this.onOpenUpdateBalance,
     this.onBack,
   });
 
@@ -144,10 +139,6 @@ class AccountsOverviewTab extends StatelessWidget {
                         account: account,
                         currency: currency,
                         onView: () => onOpenView(account),
-                        onEdit: () => onOpenForm(account),
-                        onUpdateBalance: () => onOpenUpdateBalance(account),
-                        onActiveChanged: (value) =>
-                            accountViewModel.toggleActive(account.id, value),
                         showDivider: i != accounts.length - 1,
                       );
                     }),
@@ -236,39 +227,20 @@ class _TotalCard extends StatelessWidget {
   }
 }
 
-/// Cada fila de la lista tiene cuatro acciones:
-/// - Tocar la fila (nombre, "Cuenta activa-inactiva" o el monto):
-///   [onView] — abre [AccountViewScreen], el detalle completo de esa
-///   cuenta (desde ahí también se puede editar y actualizar el saldo).
-/// - El lápiz: [onEdit] — atajo directo a [AccountFormTab], sin pasar
-///   por el detalle.
-/// - El ícono de sync: [onUpdateBalance] — atajo directo a
-///   [UpdateBalanceTab], sin pasar por el detalle.
-/// - El `Switch`: [onActiveChanged] — activa/desactiva la cuenta in situ,
-///   sin pasar por ningún formulario (mismo
-///   `AccountViewModel.toggleActive` de antes).
-///
-/// El lápiz y el sync son `IconButton`, no zonas de texto: al tener cada
-/// uno su propio `GestureDetector` interno, Flutter les da prioridad
-/// sobre el `InkWell` de toda la fila cuando se toca justo sobre ellos —
-/// mismo motivo por el que el `Switch` tampoco dispara [onView] al
-/// tocarlo.
+/// Fila de una cuenta en la lista: nombre, "Cuenta activa/inactiva" (solo
+/// informativo) y saldo. Tocar cualquier parte de la fila llama a
+/// [onView] (abre [AccountViewScreen]) — no tiene otras acciones: editar,
+/// actualizar el saldo y activar/desactivar se hacen desde el detalle.
 class _AccountRow extends StatelessWidget {
   final Account account;
   final String currency;
   final VoidCallback onView;
-  final VoidCallback onEdit;
-  final VoidCallback onUpdateBalance;
-  final ValueChanged<bool> onActiveChanged;
   final bool showDivider;
 
   const _AccountRow({
     required this.account,
     required this.currency,
     required this.onView,
-    required this.onEdit,
-    required this.onUpdateBalance,
-    required this.onActiveChanged,
     required this.showDivider,
   });
 
@@ -325,31 +297,6 @@ class _AccountRow extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: AppColors.authTextPrimary,
                       ),
-                    ),
-                    IconButton(
-                      onPressed: onEdit,
-                      tooltip: 'Editar cuenta',
-                      icon: const Icon(Icons.edit_rounded),
-                      iconSize: 18,
-                      color: AppColors.authTextSecondary,
-                      visualDensity: VisualDensity.compact,
-                      constraints: const BoxConstraints(),
-                      padding: const EdgeInsets.all(8),
-                    ),
-                    IconButton(
-                      onPressed: onUpdateBalance,
-                      tooltip: 'Actualizar saldo',
-                      icon: const Icon(Icons.sync_rounded),
-                      iconSize: 18,
-                      color: AppColors.authAccent,
-                      visualDensity: VisualDensity.compact,
-                      constraints: const BoxConstraints(),
-                      padding: const EdgeInsets.all(8),
-                    ),
-                    Switch(
-                      value: isActive,
-                      activeTrackColor: AppColors.authAccent,
-                      onChanged: onActiveChanged,
                     ),
                   ],
                 ),
