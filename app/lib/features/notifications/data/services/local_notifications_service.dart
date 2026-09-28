@@ -5,7 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../../../../core/utils/currency_format.dart';
 
 /// Wrapper fino sobre `flutter_local_notifications`, mismo criterio que
-/// `BiometricService` (feature `app_lock`): aísla el plugin para que el
+/// `BiometricService` (feature `home`): aísla el plugin para que el
 /// resto de la app no dependa de su API directamente.
 ///
 /// A diferencia de `BiometricService`, esta clase se instancia tanto desde

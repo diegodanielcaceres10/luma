@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../app_lock/presentation/view_models/app_lock_view_model.dart';
+import '../../../home/presentation/view_models/app_lock_view_model.dart';
 import '../../data/models/app_preferences.dart';
 import '../view_models/preferences_view_model.dart';
 

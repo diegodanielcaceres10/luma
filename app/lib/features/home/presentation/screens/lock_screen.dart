@@ -6,11 +6,11 @@ import '../../../../core/widgets/luma_logo.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../view_models/app_lock_view_model.dart';
 
-/// Pantalla de bloqueo ('/lock' — ver router.dart). Va por fuera del
-/// shell, igual que LoginScreen y NotFoundScreen: sin header, sin bottom
-/// nav. Solo se llega acá si `AppLockViewModel.isLocked` es `true`, lo que
-/// a su vez solo pasa si el dispositivo soporta biometría Y el usuario la
-/// activó en Preferencias (ver AppLockViewModel).
+/// Lock screen ('/lock' — see router.dart). Lives outside the shell, like
+/// LoginScreen and NotFoundScreen: no header, no bottom nav. It is only
+/// reached when `AppLockViewModel.isLocked` is `true`, which in turn only
+/// happens if the device supports biometrics AND the user enabled it in
+/// Preferences (see AppLockViewModel).
 class LockScreen extends StatelessWidget {
   final AppLockViewModel viewModel;
   final AuthViewModel authViewModel;

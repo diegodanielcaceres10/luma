@@ -9,8 +9,6 @@ import '../features/accounts/presentation/screens/account_update_balance_screen.
 import '../features/accounts/presentation/screens/account_view_screen.dart';
 import '../features/accounts/presentation/screens/accounts_screen.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
-import '../features/app_lock/presentation/screens/lock_screen.dart';
-import '../features/app_lock/presentation/view_models/app_lock_view_model.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
@@ -21,7 +19,9 @@ import '../features/categories/presentation/screens/category_view_screen.dart';
 import '../features/categories/presentation/view_models/category_view_model.dart';
 import '../features/home/presentation/screens/app_shell_screen.dart';
 import '../features/home/presentation/screens/home_shell.dart';
+import '../features/home/presentation/screens/lock_screen.dart';
 import '../features/home/presentation/screens/routed_screen_scaffold.dart';
+import '../features/home/presentation/view_models/app_lock_view_model.dart';
 import '../features/invoices/data/models/invoice.dart';
 import '../features/invoices/presentation/screens/invoice_form_screen.dart';
 import '../features/invoices/presentation/screens/invoice_view_screen.dart';

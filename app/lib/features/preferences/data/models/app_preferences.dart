@@ -11,7 +11,7 @@ const List<String> kSupportedCurrencyCodes = ['USD', 'EUR', 'BRL', 'ARS'];
 /// Importante: moneda y tema por ahora solo se guardan — todavía no
 /// cambian nada del comportamiento real de la app. [biometricLockEnabled]
 /// y [notificationsEnabled] son la excepción: sí se aplican de verdad —
-/// ver AppLockViewModel (feature `app_lock`) y NotificationsViewModel /
+/// ver AppLockViewModel (feature `home`) y NotificationsViewModel /
 /// NotificationSchedulerService (feature `notifications`),
 /// respectivamente.
 class AppPreferences {
@@ -22,7 +22,7 @@ class AppPreferences {
   /// Preferencia de bloqueo con biometría. Se aplica de verdad: cuando
   /// está en `true` (y el dispositivo lo soporta), `AppLockViewModel`
   /// bloquea la app al abrirla y al volver de segundo plano, pidiendo
-  /// Face ID/huella/PIN vía `local_auth` — ver feature `app_lock`.
+  /// Face ID/huella/PIN vía `local_auth` — ver feature `home`.
   final bool biometricLockEnabled;
 
   const AppPreferences({
