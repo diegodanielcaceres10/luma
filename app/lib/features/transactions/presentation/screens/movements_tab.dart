@@ -170,6 +170,14 @@ class _MovementsTabState extends State<MovementsTab> {
     return month.year == current.year && month.month == current.month;
   }
 
+  /// Los rangos de [_DateRangeFilter] son relativos a hoy, así que solo
+  /// tienen sentido en el mes en curso: en cualquier otro mes el filtro
+  /// "Período" se oculta y su valor se ignora ("Todo"). Sin esto, un
+  /// `?range=` que llegue por URL con un mes pasado dejaría la lista
+  /// filtrada sin ningún control visible para deshacerlo.
+  _DateRangeFilter get _effectiveDateRange =>
+      _isCurrentMonth(_selectedMonth) ? _dateRange : _DateRangeFilter.all;
+
   /// 'YYYY-MM' -> el 1º de ese mes, o el mes en curso si falta el param
   /// o no tiene el formato esperado (en vez de reventar con un query
   /// param manipulado a mano).
@@ -251,9 +259,12 @@ class _MovementsTabState extends State<MovementsTab> {
         month: _selectedMonth,
       );
 
+  // Fuera del mes en curso el filtro "Período" no aplica (ver
+  // [_effectiveDateRange]), así que se resetea a "Todo" para no dejar un
+  // `range=` colgado en la URL.
   void _pushMonth(DateTime value) => _pushFilters(
         type: _typeFilter,
-        range: _dateRange,
+        range: _isCurrentMonth(value) ? _dateRange : _DateRangeFilter.all,
         categoryKey: _categoryKey,
         accountKey: _accountKey,
         month: value,
@@ -425,7 +436,7 @@ class _MovementsTabState extends State<MovementsTab> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final txDate = DateTime(t.date.year, t.date.month, t.date.day);
-    switch (_dateRange) {
+    switch (_effectiveDateRange) {
       case _DateRangeFilter.all:
         return true;
       case _DateRangeFilter.today:
@@ -548,7 +559,7 @@ class _MovementsTabState extends State<MovementsTab> {
           }
 
           final hasActiveFilters = _typeFilter != _TypeFilter.all ||
-              _dateRange != _DateRangeFilter.all ||
+              _effectiveDateRange != _DateRangeFilter.all ||
               !_isCurrentMonth(_selectedMonth) ||
               effectiveCategoryKey != null ||
               effectiveAccountKey != null;
@@ -580,28 +591,30 @@ class _MovementsTabState extends State<MovementsTab> {
                     if (value != _typeFilter) _pushType(value);
                   },
                 ),
-                const SizedBox(height: 12),
-                const _FilterSectionLabel('Período'),
-                const SizedBox(height: 6),
-                FilterChipRow<_DateRangeFilter>(
-                  options: const [
-                    (value: _DateRangeFilter.all, label: 'Todo'),
-                    (value: _DateRangeFilter.today, label: 'Hoy'),
-                    (value: _DateRangeFilter.thisWeek, label: 'Esta semana'),
-                    (
-                      value: _DateRangeFilter.last7Days,
-                      label: 'Últimos 7 días'
-                    ),
-                    (
-                      value: _DateRangeFilter.last15Days,
-                      label: 'Últimos 15 días'
-                    ),
-                  ],
-                  selectedValue: _dateRange,
-                  onChanged: (value) {
-                    if (value != _dateRange) _pushRange(value);
-                  },
-                ),
+                if (_isCurrentMonth(_selectedMonth)) ...[
+                  const SizedBox(height: 12),
+                  const _FilterSectionLabel('Período'),
+                  const SizedBox(height: 6),
+                  FilterChipRow<_DateRangeFilter>(
+                    options: const [
+                      (value: _DateRangeFilter.all, label: 'Todo'),
+                      (value: _DateRangeFilter.today, label: 'Hoy'),
+                      (value: _DateRangeFilter.thisWeek, label: 'Esta semana'),
+                      (
+                        value: _DateRangeFilter.last7Days,
+                        label: 'Últimos 7 días'
+                      ),
+                      (
+                        value: _DateRangeFilter.last15Days,
+                        label: 'Últimos 15 días'
+                      ),
+                    ],
+                    selectedValue: _dateRange,
+                    onChanged: (value) {
+                      if (value != _dateRange) _pushRange(value);
+                    },
+                  ),
+                ],
                 if (accounts.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   const _FilterSectionLabel('Cuenta'),
