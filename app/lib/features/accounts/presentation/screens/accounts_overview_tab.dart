@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
@@ -71,34 +72,15 @@ class AccountsOverviewTab extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              Row(
-                children: [
-                  if (onBack != null) ...[
-                    InkWell(
-                      onTap: onBack,
-                      borderRadius: BorderRadius.circular(20),
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.arrow_back_rounded,
-                            color: AppColors.authTextPrimary),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  const Text('Cuentas', style: AppTextStyles.authTitle),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => onOpenForm(null),
-                    icon: const Icon(Icons.add_rounded),
-                    color: AppColors.authTextPrimary,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Gestiona tus cuentas, actualiza saldos y mantén todo en '
-                'orden.',
-                style: AppTextStyles.authSubtitle,
+              ScreenHeader(
+                title: 'Cuentas',
+                subtitle: 'Gestiona tus cuentas, actualiza saldos y mantén '
+                    'todo en orden.',
+                onBack: onBack,
+                action: HeaderAddButton(
+                  tooltip: 'Nueva cuenta',
+                  onPressed: () => onOpenForm(null),
+                ),
               ),
               const SizedBox(height: 24),
               _TotalCard(

@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
-/// Detalle de una cuenta: sus datos (nombre, saldo, estado) y, desde acá,
-/// entrar a editarla ([AccountFormTab], botón "Editar cuenta") o
-/// actualizar su saldo ([UpdateBalanceTab], botón "Actualizar saldo").
+/// Opciones del menú de tres puntos del header de [AccountViewScreen].
+enum _AccountAction { edit, updateBalance }
+
+/// Detalle de una cuenta: sus datos (nombre, saldo, estado) y, desde el
+/// menú de tres puntos del header ([HeaderMenuButton]), entrar a editarla
+/// ([AccountFormTab], "Editar cuenta") o actualizar su saldo
+/// ([UpdateBalanceTab], "Actualizar saldo").
 ///
-/// Se llega tocando una fila en [AccountsOverviewTab] (el lápiz y el
-/// ícono de sync de esa fila siguen siendo atajos directos a
-/// edición/actualización sin pasar por acá — ver su doc; esta pantalla es
-/// la vista completa, con esos mismos dos accesos más el estado
-/// activa/inactiva).
+/// Se llega tocando una fila en [AccountsOverviewTab], que no tiene otros
+/// atajos: editar y actualizar el saldo se hacen únicamente desde el menú
+/// de esta pantalla, y el estado activa/inactiva desde su `Switch`.
 ///
 /// [account] es la foto de la cuenta al momento de navegar acá (la
 /// resuelve `_accountGuard` en router.dart, una sola vez — no se
@@ -68,32 +71,28 @@ class AccountViewScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              Row(
-                children: [
-                  InkWell(
-                    onTap: onBack,
-                    borderRadius: BorderRadius.circular(20),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(
-                        Icons.arrow_back_rounded,
-                        color: AppColors.authTextPrimary,
-                      ),
+              ScreenHeader(
+                title: current.name,
+                size: ScreenHeaderSize.compact,
+                onBack: onBack,
+                action: HeaderMenuButton<_AccountAction>(
+                  items: const [
+                    HeaderMenuItem(
+                      value: _AccountAction.edit,
+                      label: 'Editar cuenta',
+                      icon: Icons.edit_rounded,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      current.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.authTextPrimary,
-                      ),
+                    HeaderMenuItem(
+                      value: _AccountAction.updateBalance,
+                      label: 'Actualizar saldo',
+                      icon: Icons.sync_rounded,
                     ),
-                  ),
-                ],
+                  ],
+                  onSelected: (action) => switch (action) {
+                    _AccountAction.edit => onEdit(),
+                    _AccountAction.updateBalance => onUpdateBalance(),
+                  },
+                ),
               ),
               const SizedBox(height: 24),
               Container(
@@ -157,34 +156,6 @@ class AccountViewScreen extends StatelessWidget {
                       ],
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 28),
-              OutlinedButton.icon(
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_rounded),
-                label: const Text('Editar cuenta'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.authTextPrimary,
-                  side: const BorderSide(color: AppColors.authCardBorder),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: onUpdateBalance,
-                icon: const Icon(Icons.sync_rounded),
-                label: const Text('Actualizar saldo'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.authAccent,
-                  foregroundColor: AppColors.authBackgroundBottom,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
                 ),
               ),
             ],
