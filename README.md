@@ -30,12 +30,11 @@ luma/
 
 ### Features (`app/lib/features`)
 
-- `accounts` — cuentas del usuario (bancos, efectivo, tarjetas, etc.)
+- `accounts` — cuentas del usuario (bancos, efectivo, tarjetas, etc.) y sus balances mensuales
 - `auth` — login / registro (Supabase Auth + Google Sign-In)
 - `categories` — categorías de ingresos/gastos (color, ícono/emoji)
 - `home` — dashboard / pantalla de inicio
 - `invoices` — facturas asociadas a servicios
-- `monthly_balances` — balances mensuales por cuenta
 - `services` — servicios recurrentes (suscripciones, facturas, etc.)
 - `transactions` — movimientos (ingresos y gastos)
 - `transfers` — transferencias entre cuentas

@@ -5,10 +5,12 @@ import '../core/navigation/app_back.dart';
 import '../core/navigation/entity_route_guard.dart';
 import '../features/accounts/data/models/account.dart';
 import '../features/accounts/presentation/screens/account_form_screen.dart';
+import '../features/accounts/presentation/screens/account_monthly_balance_screen.dart';
 import '../features/accounts/presentation/screens/account_update_balance_screen.dart';
 import '../features/accounts/presentation/screens/account_view_screen.dart';
 import '../features/accounts/presentation/screens/accounts_screen.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
+import '../features/accounts/presentation/view_models/monthly_balance_view_model.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
@@ -27,8 +29,6 @@ import '../features/invoices/presentation/screens/invoice_form_screen.dart';
 import '../features/invoices/presentation/screens/invoice_view_screen.dart';
 import '../features/invoices/presentation/screens/invoices_screen.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
-import '../features/monthly_balances/presentation/screens/monthly_balance_tab.dart';
-import '../features/monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../features/preferences/presentation/screens/preferences_screen.dart';
 import '../features/preferences/presentation/view_models/preferences_view_model.dart';
 import '../features/services/data/models/service.dart';
@@ -238,7 +238,7 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/monthly-balance',
             builder: (context, state) => RoutedScreenScaffold(
-              body: MonthlyBalanceTab(
+              body: AccountMonthlyBalanceScreen(
                 userId: authViewModel.userId ?? '',
                 // Se recalcula acá mismo en vez de viajar por la
                 // navegación — misma cuenta que usaba el

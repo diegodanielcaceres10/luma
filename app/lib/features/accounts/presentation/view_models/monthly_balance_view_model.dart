@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../accounts/data/models/account.dart';
+import '../../data/models/account.dart';
 import '../../data/repositories/monthly_balance_repository.dart';
 
 class MonthlyBalanceViewModel extends ChangeNotifier {
@@ -18,23 +18,21 @@ class MonthlyBalanceViewModel extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
 
-  /// Recién después de la primera verificación tiene sentido mostrar (o
-  /// no) la alerta — antes de eso no sabemos si falta algo o no.
+  /// True after the first check; before that it is unknown whether any
+  /// balance is missing.
   bool get checked => _checked;
 
   int get currentMonth => DateTime.now().month;
   int get currentYear => DateTime.now().year;
 
-  /// De las cuentas activas recibidas, cuáles todavía no tienen saldo
-  /// inicial cargado para el mes en curso.
+  /// Active accounts without an opening balance for the current month.
   List<Account> pendingAccounts(List<Account> activeAccounts) {
     return activeAccounts
         .where((account) => !_accountIdsWithBalance.contains(account.id))
         .toList();
   }
 
-  /// Verifica contra Supabase qué cuentas ya tienen saldo inicial este
-  /// mes. Se llama al iniciar el Home/Dashboard.
+  /// Loads which accounts already have an opening balance this month.
   Future<void> checkCurrentMonth() async {
     _isLoading = true;
     notifyListeners();
@@ -46,8 +44,7 @@ class MonthlyBalanceViewModel extends ChangeNotifier {
       );
       _checked = true;
     } catch (_) {
-      // Si falla la verificación no bloqueamos el dashboard — se
-      // reintenta la próxima vez que se abra la app o se refresque.
+      // A failed check must not block the dashboard; it is retried later.
     } finally {
       _isLoading = false;
       notifyListeners();

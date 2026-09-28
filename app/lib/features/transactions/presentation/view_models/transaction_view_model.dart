@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../../../monthly_balances/data/repositories/monthly_balance_repository.dart';
+import '../../../accounts/data/repositories/monthly_balance_repository.dart';
 import '../../data/models/transaction_entry.dart';
 import '../../data/repositories/transaction_repository.dart';
 

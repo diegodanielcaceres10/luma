@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../accounts/presentation/view_models/account_view_model.dart';
+import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
-import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import 'dashboard_screen.dart';

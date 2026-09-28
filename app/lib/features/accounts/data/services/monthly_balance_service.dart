@@ -5,9 +5,7 @@ class MonthlyBalanceService {
 
   MonthlyBalanceService(this._client);
 
-  /// IDs de las cuentas que ya tienen saldo inicial cargado para ese
-  /// mes/año. Se usa para saber qué cuentas todavía necesitan que el
-  /// usuario complete el dato a mano.
+  /// IDs of the accounts that already have an opening balance for the month.
   Future<Set<String>> fetchExistingAccountIds({
     required int month,
     required int year,
@@ -21,12 +19,8 @@ class MonthlyBalanceService {
     return (rows as List).map((row) => row['account_id'] as String).toSet();
   }
 
-  /// Suma de `uncontrolled_expenses_total` de todas las cuentas del
-  /// usuario para ese mes/año — el acumulado (con signo) de ajustes sin
-  /// declarar que dejó "Actualizar saldo" (ver
-  /// `AccountViewModel.applyUncontrolledAdjustment`). Se usa en
-  /// Estadísticas en vez de la vieja suma de transacciones sin
-  /// categoría, porque esos ajustes ya no generan ninguna transacción.
+  /// Signed sum of `uncontrolled_expenses_total` across all accounts for the
+  /// month (see `AccountViewModel.applyUncontrolledAdjustment`).
   Future<double> fetchUncontrolledExpensesTotal({
     required int month,
     required int year,

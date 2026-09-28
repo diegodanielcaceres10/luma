@@ -2,20 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/screen_header.dart';
-import '../../../accounts/data/models/account.dart';
+import '../../data/models/account.dart';
 import '../view_models/monthly_balance_view_model.dart';
 
-/// Contenido de la pestaña "Saldos iniciales". No tiene Scaffold propio —
-/// se muestra dentro de un RoutedScreenScaffold. Se llega acá desde el aviso en
-/// el card de balance del Dashboard, para cargar a mano el saldo inicial
-/// del mes en curso de cada cuenta que todavía no lo tiene.
-class MonthlyBalanceTab extends StatefulWidget {
+/// Form to enter the current month's opening balance for each account that
+/// lacks one. Reached from the Dashboard balance card notice.
+class AccountMonthlyBalanceScreen extends StatefulWidget {
   final String userId;
   final List<Account> pendingAccounts;
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final VoidCallback onDone;
 
-  const MonthlyBalanceTab({
+  const AccountMonthlyBalanceScreen({
     super.key,
     required this.userId,
     required this.pendingAccounts,
@@ -24,10 +22,12 @@ class MonthlyBalanceTab extends StatefulWidget {
   });
 
   @override
-  State<MonthlyBalanceTab> createState() => _MonthlyBalanceTabState();
+  State<AccountMonthlyBalanceScreen> createState() =>
+      _AccountMonthlyBalanceScreenState();
 }
 
-class _MonthlyBalanceTabState extends State<MonthlyBalanceTab> {
+class _AccountMonthlyBalanceScreenState
+    extends State<AccountMonthlyBalanceScreen> {
   final _formKey = GlobalKey<FormState>();
   late final Map<String, TextEditingController> _controllers;
 
