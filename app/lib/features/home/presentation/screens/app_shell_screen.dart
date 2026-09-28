@@ -5,8 +5,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
 import '../widgets/luma_header.dart';
 
-/// Accesos compartidos entre el bottom nav y el drawer: (ícono, texto,
-/// ruta). Son las 4 entradas fijas del bottom nav — ver router.dart.
+/// Shortcuts shared between the bottom nav and the drawer: (icon, label,
+/// route). These are the 4 fixed bottom nav entries — see router.dart.
 const _navItems = [
   (Icons.home_rounded, 'Inicio', '/'),
   (Icons.trending_up_rounded, 'Movimientos', '/movements'),
@@ -14,10 +14,9 @@ const _navItems = [
   (Icons.person_outline_rounded, 'Perfil', '/profile'),
 ];
 
-/// Índice del bottom nav que corresponde a una ruta. Movimientos,
-/// Estadísticas y Perfil se resaltan por prefijo; cualquier otra ruta
-/// (el Dashboard, Cuentas, Categorías, Servicios, Facturas, formularios,
-/// etc.) cuenta como "Inicio", igual que antes.
+/// Bottom nav index that corresponds to a route. Movements, Statistics and
+/// Profile are highlighted by prefix; any other route (the Dashboard,
+/// Accounts, Categories, Services, Invoices, forms, etc.) counts as "Home".
 int _navIndexFor(String path) {
   for (var i = 1; i < _navItems.length; i++) {
     final base = _navItems[i].$3;
@@ -26,36 +25,36 @@ int _navIndexFor(String path) {
   return 0;
 }
 
-/// Scaffold compartido (drawer, header, bottom nav) de un `ShellRoute`
-/// común: hay UN solo Navigator y UNA sola pila para toda la app. Bottom
-/// nav y drawer navegan con `context.push`, así que cada pantalla que se
-/// abre se apila y "atrás" (botón del navegador o del dispositivo)
-/// vuelve siempre a la pantalla anterior, en el mismo orden en que se
-/// visitaron — sin manejo de "atrás" a mano.
+/// Shared scaffold (drawer, header, bottom nav) of a common `ShellRoute`:
+/// there is ONE Navigator and ONE stack for the whole app. Bottom nav and
+/// drawer navigate with `context.push`, so every screen that is opened gets
+/// stacked and "back" (browser or device button) always returns to the
+/// previous screen, in the same order they were visited — with no manual
+/// "back" handling.
 ///
-/// Tocar el destino en el que ya estás no hace nada, para no apilar la
-/// misma pantalla dos veces seguidas.
+/// Tapping the destination you are already on does nothing, to avoid
+/// stacking the same screen twice in a row.
 class AppShellScreen extends StatelessWidget {
-  /// El Navigator del `ShellRoute`: la pantalla actual y las apiladas.
+  /// The `ShellRoute` Navigator: the current screen and the stacked ones.
   final Widget child;
 
   const AppShellScreen({super.key, required this.child});
 
   Widget? _headerAction(int navIndex) {
     switch (navIndex) {
-      case 0: // Inicio
+      case 0: // Home
         return const IconButton(
           onPressed: null,
           icon: Icon(Icons.notifications_none_rounded),
           color: AppColors.authTextPrimary,
         );
-      case 3: // Perfil
+      case 3: // Profile
         return const IconButton(
           onPressed: null,
           icon: Icon(Icons.settings_outlined),
           color: AppColors.authTextPrimary,
         );
-      default: // Movimientos, Estadísticas
+      default: // Movements, Statistics
         return null;
     }
   }
@@ -65,9 +64,9 @@ class AppShellScreen extends StatelessWidget {
     final uri = GoRouterState.of(context).uri;
     final navIndex = _navIndexFor(uri.path);
 
-    // Se compara contra la ubicación completa (con query params) para que
-    // tocar "Facturas" estando en '/invoices?filter=pending' sí abra el
-    // listado sin filtrar.
+    // Compared against the full location (with query params) so that tapping
+    // "Invoices" while on '/invoices?filter=pending' does open the unfiltered
+    // list.
     void navigateTo(String target) {
       if (uri.toString() == target) return;
       context.push(target);
@@ -171,10 +170,10 @@ class _BottomNav extends StatelessWidget {
 }
 
 class _AppDrawer extends StatelessWidget {
-  /// Ruta actual (sin query params).
+  /// Current route (without query params).
   final String location;
 
-  /// Navega (con `push`) a la ruta pedida — ver [AppShellScreen].
+  /// Navigates (with `push`) to the requested route — see [AppShellScreen].
   final ValueChanged<String> onNavigate;
 
   const _AppDrawer({
@@ -182,8 +181,8 @@ class _AppDrawer extends StatelessWidget {
     required this.onNavigate,
   });
 
-  /// `true` si la ubicación actual es esa base o una sub-ruta suya
-  /// (ej. '/accounts/new' o '/accounts/abc/edit' cuentan como "Cuentas").
+  /// `true` if the current location is that base or one of its sub-routes
+  /// (e.g. '/accounts/new' or '/accounts/abc/edit' count as "Accounts").
   bool _isActive(String base) =>
       location == base || location.startsWith('$base/');
 
@@ -225,11 +224,11 @@ class _AppDrawer extends StatelessWidget {
     final isCategories = _isActive('/categories');
     final isServices = _isActive('/services');
     final isInvoices = _isActive('/invoices');
-    // "Inicio" solo se resalta cuando ninguna de las otras cuatro rutas
-    // es la que está activa — si no, se quedaba marcado "Inicio" mientras
-    // se navegaba por Cuentas, Categorías, etc.
-    // Saldo inicial, nueva transacción y transferencia sí siguen contando
-    // como "Inicio", tal como antes.
+    // "Home" is only highlighted when none of the other four routes is
+    // active — otherwise "Home" stayed marked while navigating through
+    // Accounts, Categories, etc.
+    // Initial balance, new transaction and transfer do keep counting as
+    // "Home".
     final isHome = navIndex == 0 &&
         !isAccounts &&
         !isCategories &&
@@ -261,7 +260,7 @@ class _AppDrawer extends StatelessWidget {
             ),
             const Divider(height: 1, color: AppColors.authCardBorder),
             const SizedBox(height: 8),
-            // Inicio
+            // Home
             _tile(
               context,
               icon: _navItems[0].$1,
@@ -269,10 +268,9 @@ class _AppDrawer extends StatelessWidget {
               isSelected: isHome,
               onTap: () => onNavigate(_navItems[0].$3),
             ),
-            // Cuentas, Categorías, Servicios y Facturas: destinos propios
-            // del drawer. Se abren con `push` (vía `onNavigate`) para que
-            // se apilen en el historial único y "atrás" vuelva a la
-            // pantalla desde la que se abrieron.
+            // Accounts, Categories, Services and Invoices: drawer-only destinations.
+            // They are opened with `push` (via `onNavigate`) so they stack in the
+            // single history and "back" returns to the screen they were opened from.
             _tile(
               context,
               icon: Icons.account_balance_wallet_outlined,
@@ -301,7 +299,7 @@ class _AppDrawer extends StatelessWidget {
               isSelected: isInvoices,
               onTap: () => onNavigate('/invoices'),
             ),
-            // Movimientos, Estadísticas, Perfil
+            // Movements, Statistics, Profile
             ...List.generate(_navItems.length - 1, (i) {
               final index = i + 1;
               final item = _navItems[index];

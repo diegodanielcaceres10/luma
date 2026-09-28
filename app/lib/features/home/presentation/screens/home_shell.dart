@@ -8,10 +8,10 @@ import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
-import 'dashboard_tab.dart';
+import 'dashboard_screen.dart';
 
-/// Ruta '/': el Dashboard. Conecta sus acciones con el resto de las
-/// pantallas, que son rutas propias abiertas con `context.push` (ver
+/// Route '/': the Dashboard. Connects its actions with the rest of the
+/// screens, which are routes of their own opened with `context.push` (see
 /// router.dart).
 class HomeBranchScreen extends StatelessWidget {
   final AuthViewModel authViewModel;
@@ -35,7 +35,7 @@ class HomeBranchScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardTab(
+    return DashboardScreen(
       authViewModel: authViewModel,
       accountViewModel: accountViewModel,
       transactionViewModel: transactionViewModel,

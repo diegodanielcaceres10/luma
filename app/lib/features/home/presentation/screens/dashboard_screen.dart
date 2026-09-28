@@ -17,14 +17,14 @@ import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../../transactions/data/models/transaction_entry.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 
-/// Contenido de la pestaña "Inicio". No tiene Scaffold propio — se muestra
-/// dentro del Scaffold de AppShellScreen, que pone el header y el
+/// Content of the "Home" screen. It has no Scaffold of its own — it is
+/// shown inside AppShellScreen's Scaffold, which provides the header and the
 /// bottomNavigationBar.
 ///
-/// Mientras no lleguen todos los datos iniciales muestra solo un spinner.
-/// Después, según las cuentas activas, muestra el card para crear la primera
-/// cuenta o el resto del contenido.
-class DashboardTab extends StatefulWidget {
+/// Until all the initial data arrives it shows only a spinner. Afterwards,
+/// depending on the active accounts, it shows the card to create the first
+/// account or the rest of the content.
+class DashboardScreen extends StatefulWidget {
   final AuthViewModel authViewModel;
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
@@ -40,7 +40,7 @@ class DashboardTab extends StatefulWidget {
   final VoidCallback onGoToInvoices;
   final VoidCallback onGoToTransfers;
 
-  const DashboardTab({
+  const DashboardScreen({
     super.key,
     required this.authViewModel,
     required this.accountViewModel,
@@ -59,24 +59,23 @@ class DashboardTab extends StatefulWidget {
   });
 
   @override
-  State<DashboardTab> createState() => _DashboardTabState();
+  State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardTabState extends State<DashboardTab> {
-  // Se vuelve true cuando termina la primera carga y ya no se revierte: los
-  // refrescos posteriores (p. ej. tras crear un movimiento) no deben tapar
-  // el dashboard con el spinner, para eso quedan los spinners de cada
-  // sección.
+class _DashboardScreenState extends State<DashboardScreen> {
+  // Becomes true when the first load finishes and is never reverted: later
+  // refreshes (e.g. after creating a movement) must not cover the dashboard
+  // with the spinner — each section has its own spinners for that.
   bool _initialLoadDone = false;
 
-  // Para leer dónde quedó el botón flotante y dibujar el "×" del overlay
-  // exactamente encima.
+  // To read where the floating button ended up and draw the overlay's "×"
+  // exactly on top of it.
   final GlobalKey _fabKey = GlobalKey();
 
-  /// `true` cuando todos los datos que usa el dashboard terminaron de
-  /// cargar. Las cuentas se validan con `hasLoaded` porque antes de que
-  /// arranque la carga `isLoading` todavía es false y se vería el card de
-  /// "sin cuentas" por un instante.
+  /// `true` when all the data the dashboard uses has finished loading.
+  /// Accounts are validated with `hasLoaded` because before loading starts
+  /// `isLoading` is still false and the "no accounts" card would flash for an
+  /// instant.
   bool get _isInitialLoadComplete =>
       widget.accountViewModel.hasLoaded &&
       !widget.accountViewModel.isLoading &&
@@ -110,8 +109,8 @@ class _DashboardTabState extends State<DashboardTab> {
           _initialLoadDone = true;
         }
 
-        // Si fallan las cuentas nunca llega `hasLoaded`; sin este caso el
-        // spinner quedaría infinito.
+        // If accounts fail, `hasLoaded` is never reached; without this case the
+        // spinner would spin forever.
         final loadFailed = !accountViewModel.hasLoaded &&
             !accountViewModel.isLoading &&
             accountViewModel.errorMessage != null;
@@ -155,9 +154,9 @@ class _DashboardTabState extends State<DashboardTab> {
     );
   }
 
-  /// Abre el menú de acciones rápidas: un overlay sobre toda la pantalla
-  /// (root navigator, para cubrir también el header y el bottom nav del
-  /// shell) con el fondo blureado y las 4 opciones.
+  /// Opens the quick actions menu: an overlay over the whole screen (root
+  /// navigator, so it also covers the shell's header and bottom nav) with a
+  /// blurred background and the 4 options.
   void _openQuickActions() {
     final box = _fabKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.attached) return;
@@ -206,7 +205,7 @@ class _DashboardTabState extends State<DashboardTab> {
       barrierLabel: 'Cerrar acciones rápidas',
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 250),
-      // El overlay anima su propio blur, opciones y botón con `animation`.
+      // The overlay animates its own blur, options and button with `animation`.
       transitionBuilder: (_, __, ___, child) => child,
       pageBuilder: (dialogContext, animation, _) => _QuickActionsOverlay(
         animation: animation,
@@ -236,8 +235,8 @@ class _DashboardTabState extends State<DashboardTab> {
       children: [
         Positioned.fill(
           child: ListView(
-            // Padding inferior extra para que el botón flotante no tape el
-            // último movimiento.
+            // Extra bottom padding so the floating button doesn't cover the last
+            // movement.
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
             children: [
               _GreetingRow(
@@ -286,7 +285,7 @@ class _DashboardTabState extends State<DashboardTab> {
   }
 }
 
-/// Spinner centrado mientras llegan los datos iniciales del dashboard.
+/// Centered spinner while the dashboard's initial data arrives.
 class _DashboardLoading extends StatelessWidget {
   const _DashboardLoading({super.key});
 
@@ -305,8 +304,8 @@ class _DashboardLoading extends StatelessWidget {
   }
 }
 
-/// Se muestra si no se pudieron cargar las cuentas, para no dejar el spinner
-/// girando para siempre ni mostrar el card de "sin cuentas" por error.
+/// Shown if the accounts could not be loaded, so the spinner doesn't spin
+/// forever or the "no accounts" card show up by mistake.
 class _LoadErrorView extends StatelessWidget {
   final VoidCallback onRetry;
 
@@ -469,8 +468,8 @@ class _BalanceCard extends StatelessWidget {
   final double total;
   final String currency;
 
-  /// Ingresos - gastos del mes en curso, más los ajustes sin declarar de
-  /// ese mismo mes (ver
+  /// Income minus expenses for the current month, plus that same month's
+  /// undeclared adjustments (see
   /// [TransactionViewModel.netResultWithUncontrolled]).
   final double netResult;
   final bool isLoadingNetResult;
@@ -478,11 +477,11 @@ class _BalanceCard extends StatelessWidget {
   final VoidCallback? onCompletePendingBalances;
   final VoidCallback onManageAccounts;
 
-  /// Cuentas activas, para el detalle que se despliega en el card.
+  /// Active accounts, for the breakdown that expands in the card.
   final List<Account> accounts;
   final double pendingInvoicesTotal;
 
-  /// Facturas pendientes (ni pagadas ni canceladas) del mes en curso.
+  /// Pending invoices (neither paid nor cancelled) for the current month.
   final int pendingInvoicesCount;
   final bool isLoadingPendingInvoices;
 
@@ -658,9 +657,10 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
-/// Parte desplegable del [_BalanceCard]: un chevron al pie del card que, al
-/// tocarlo, muestra el saldo de cada cuenta y el acceso a la configuración
-/// de cuentas. Arranca colapsado y su estado no se conserva entre sesiones.
+/// Expandable part of the [_BalanceCard]: a chevron at the bottom of the
+/// card that, when tapped, shows each account's balance and the link to
+/// account settings. Starts collapsed and its state is not kept between
+/// sessions.
 class _BalanceAccountsExpander extends StatefulWidget {
   final List<Account> accounts;
   final String currency;
@@ -870,7 +870,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// Una opción del menú de acciones rápidas.
+/// One option of the quick actions menu.
 class _QuickActionOption {
   final IconData icon;
   final Color iconColor;
@@ -887,14 +887,14 @@ class _QuickActionOption {
   });
 }
 
-/// Botón flotante circular verde con un "+". El overlay de acciones rápidas
-/// lo redibuja en la misma posición con [rotation] para convertirlo en "×".
+/// Circular green floating button with a "+". The quick actions overlay
+/// redraws it in the same position with [rotation] to turn it into an "×".
 class _AddFab extends StatelessWidget {
   static const double size = 56;
 
   final VoidCallback onPressed;
 
-  /// Giro del ícono, en radianes.
+  /// Icon rotation, in radians.
   final double rotation;
 
   const _AddFab({super.key, required this.onPressed, this.rotation = 0});
@@ -932,13 +932,13 @@ class _AddFab extends StatelessWidget {
   }
 }
 
-/// Menú de acciones rápidas: fondo blureado sobre toda la pantalla, las
-/// opciones apiladas sobre el botón y el botón en su lugar, ya como "×".
-/// Tocar el fondo, el botón o una opción lo cierra.
+/// Quick actions menu: blurred background over the whole screen, the
+/// options stacked above the button and the button in place, now as an "×".
+/// Tapping the background, the button or an option closes it.
 class _QuickActionsOverlay extends StatelessWidget {
   final Animation<double> animation;
 
-  /// Posición del botón flotante en coordenadas de pantalla.
+  /// Position of the floating button in screen coordinates.
   final Rect fabRect;
   final List<_QuickActionOption> options;
   final VoidCallback onClose;
@@ -1005,7 +1005,7 @@ class _QuickActionsOverlay extends StatelessWidget {
     );
   }
 
-  /// Entrada escalonada: la opción más cercana al botón aparece primero.
+  /// Staggered entrance: the option closest to the button appears first.
   Widget _buildOption(int index) {
     final option = options[index];
     final start = 0.1 * (options.length - 1 - index);
@@ -1152,9 +1152,9 @@ class _RecentMovements extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
-                      // Una transferencia no es ni ingreso ni gasto (ver
-                      // TransactionEntry.isTransfer): color neutro en vez
-                      // de authIncome/authExpense.
+                      // A transfer is neither income nor expense (see
+                      // TransactionEntry.isTransfer): neutral color instead of
+                      // authIncome/authExpense.
                       color: m.isTransfer
                           ? AppColors.authTransfer
                           : m.isIncome

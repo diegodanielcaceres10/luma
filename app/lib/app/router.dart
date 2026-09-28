@@ -242,7 +242,7 @@ GoRouter buildAppRouter({
                 userId: authViewModel.userId ?? '',
                 // Se recalcula acá mismo en vez de viajar por la
                 // navegación — misma cuenta que usaba el
-                // Dashboard (ver dashboard_tab.dart).
+                // Dashboard (ver dashboard_screen.dart).
                 pendingAccounts: monthlyBalanceViewModel.checked
                     ? monthlyBalanceViewModel.pendingAccounts(
                         accountViewModel.activeAccounts)

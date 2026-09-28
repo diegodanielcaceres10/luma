@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
-/// Scaffold de las pantallas que se abren como ruta propia (formularios,
-/// listados, saldos iniciales, etc.): fondo con degradé y el contenido de
-/// la pantalla. No dibuja AppBar ni botón "atrás": el header, el drawer y
-/// el bottom nav los pone AppShellScreen por fuera, y cada pantalla trae
-/// su propio título y su botón de volver (`context.goBack()`, ver
+/// Scaffold for screens opened as a route of their own (forms, lists,
+/// initial balances, etc.): gradient background and the screen's content.
+/// It draws no AppBar or "back" button: the header, drawer and bottom nav
+/// are provided by AppShellScreen from the outside, and each screen brings
+/// its own title and back button (`context.goBack()`, see
 /// core/navigation/app_back.dart).
 class RoutedScreenScaffold extends StatelessWidget {
   final Widget body;
