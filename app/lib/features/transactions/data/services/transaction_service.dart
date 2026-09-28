@@ -25,9 +25,7 @@ class TransactionService {
         .toList();
   }
 
-  /// Trae todas las transacciones del usuario (todo el historial), más
-  /// recientes primero. [limit] evita traer miles de filas de una — para
-  /// paginar de verdad más adelante conviene sumar un offset/cursor.
+  /// Fetches the latest [limit] transactions, newest first.
   Future<List<TransactionEntry>> fetchAll({int limit = 200}) async {
     final rows = await _client
         .from('transactions')
@@ -43,18 +41,10 @@ class TransactionService {
         .toList();
   }
 
-  /// Crea una transacción y devuelve el id de la fila creada — lo
-  /// necesita, por ejemplo, el pago de una factura para vincularla.
-  /// [categoryId] es nulo cuando la transacción viene de una
-  /// transferencia entre cuentas propias — no pertenece a ninguna
-  /// categoría de ingreso/gasto. [isTransfer] marca justamente esas filas
-  /// (ver [TransactionEntry.isTransfer]) para que no se cuenten como
-  /// ingreso/gasto real en las estadísticas.
+  /// Creates a transaction and returns its id.
   ///
-  /// Llama al RPC `create_transaction` en vez de insertar directo: ese
-  /// RPC inserta la fila y actualiza `accounts.balance` en una sola
-  /// transacción de la base — si algo falla, se revierte todo (ni queda
-  /// la transacción ni el saldo se mueve a medias).
+  /// Uses the `create_transaction` RPC so the insert and the
+  /// `accounts.balance` update are atomic.
   Future<String> createTransaction({
     required String userId,
     required String accountId,
@@ -79,11 +69,8 @@ class TransactionService {
     return id as String;
   }
 
-  /// Edita categoría, descripción y fecha de una transacción ya creada.
-  /// A propósito no permite tocar cuenta ni monto (ver comentario en
-  /// [TransactionViewModel.updateTransaction]): esos dos son los únicos
-  /// campos que afectan `accounts.balance`, así que un update directo acá
-  /// alcanza — no hace falta RPC ni tocar el saldo.
+  /// Updates category, description and date only. Account and amount are not
+  /// editable because they affect `accounts.balance`.
   Future<void> updateTransaction({
     required String transactionId,
     String? categoryId,
@@ -97,11 +84,8 @@ class TransactionService {
     }).eq('id', transactionId);
   }
 
-  /// Borra la transacción [transactionId] y revierte su efecto en
-  /// `accounts.balance`. Llama al RPC `delete_transaction` (contraparte de
-  /// [createTransaction]) en vez de un delete directo: ese RPC borra la
-  /// fila y ajusta el saldo en una sola transacción de la base — si algo
-  /// falla, se revierte todo (ni se borra la fila ni se mueve el saldo).
+  /// Deletes a transaction through the `delete_transaction` RPC, which also
+  /// reverts its effect on `accounts.balance` atomically.
   Future<void> deleteTransaction({
     required String userId,
     required String transactionId,

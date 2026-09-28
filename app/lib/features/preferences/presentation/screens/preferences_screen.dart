@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../../home/presentation/view_models/app_lock_view_model.dart';
 import '../../data/models/app_preferences.dart';
 import '../view_models/preferences_view_model.dart';
@@ -88,29 +89,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: [
-          Row(
-            children: [
-              InkWell(
-                onTap: widget.onBack,
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.all(4),
-                  child: Icon(Icons.arrow_back_rounded,
-                      color: AppColors.authTextPrimary),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Preferencias',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.authTextPrimary,
-                  ),
-                ),
-              ),
-            ],
+          ScreenHeader(
+            title: 'Preferencias',
+            size: ScreenHeaderSize.compact,
+            onBack: widget.onBack,
           ),
           const SizedBox(height: 20),
           if (vm.isLoading)

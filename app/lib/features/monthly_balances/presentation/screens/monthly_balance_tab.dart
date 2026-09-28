@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
 import '../view_models/monthly_balance_view_model.dart';
 
@@ -108,33 +108,13 @@ class _MonthlyBalanceTabState extends State<MonthlyBalanceTab> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
-                Row(
-                  children: [
-                    InkWell(
-                      onTap: vm.isSubmitting ? null : widget.onDone,
-                      borderRadius: BorderRadius.circular(20),
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.arrow_back_rounded,
-                            color: AppColors.authTextPrimary),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Saldos iniciales',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.authTextPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Completá el saldo con el que arrancó cada cuenta '
-                  'en $monthLabel de ${now.year}.',
-                  style: AppTextStyles.authSubtitle,
+                ScreenHeader(
+                  title: 'Saldos iniciales',
+                  subtitle: 'Completá el saldo con el que arrancó cada cuenta '
+                      'en $monthLabel de ${now.year}.',
+                  size: ScreenHeaderSize.compact,
+                  onBack: widget.onDone,
+                  backEnabled: !vm.isSubmitting,
                 ),
                 const SizedBox(height: 20),
                 for (final account in widget.pendingAccounts) ...[

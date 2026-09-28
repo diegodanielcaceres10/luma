@@ -23,7 +23,7 @@ class Account {
   // Equality by id: without it, every reload of the accounts list brings new
   // instances and any previous selection (e.g. in a DropdownButtonFormField)
   // stops matching by identity even though it is "the same" account — that
-  // is what broke the dropdown in AddTransactionTab after refreshing the
+  // is what broke the dropdown in TransactionFormScreen after refreshing the
   // balance.
   @override
   bool operator ==(Object other) => other is Account && other.id == id;

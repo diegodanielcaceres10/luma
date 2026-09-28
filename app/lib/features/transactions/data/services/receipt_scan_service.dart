@@ -4,14 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/receipt_scan_result.dart';
 
-/// Manda la foto de un ticket/factura a la Edge Function
-/// `gemini-image-reader` (Gemini API, tier gratuito) para precompletar el
-/// formulario de "Añadir ingreso/gasto".
-///
-/// POC: la imagen viaja en memoria (base64) solo para esta llamada — no se
-/// sube a Supabase Storage ni se guarda en ninguna tabla, ni acá ni en el
-/// backend (ver el comentario en la Edge Function, que la descarta apenas
-/// obtiene la respuesta del modelo).
+/// Sends a receipt photo to the `gemini-image-reader` Edge Function.
+/// The image is only sent in memory and is never stored.
 class ReceiptScanService {
   final SupabaseClient _client;
 

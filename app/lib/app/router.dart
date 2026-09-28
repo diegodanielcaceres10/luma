@@ -36,9 +36,9 @@ import '../features/services/presentation/screens/service_form_screen.dart';
 import '../features/services/presentation/screens/service_view_screen.dart';
 import '../features/services/presentation/screens/services_screen.dart';
 import '../features/services/presentation/view_models/service_view_model.dart';
-import '../features/transactions/presentation/screens/add_transaction_tab.dart';
-import '../features/transactions/presentation/screens/movements_tab.dart';
-import '../features/transactions/presentation/screens/statistics_tab.dart';
+import '../features/transactions/presentation/screens/statistics_screen.dart';
+import '../features/transactions/presentation/screens/transaction_form_screen.dart';
+import '../features/transactions/presentation/screens/transactions_screen.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import '../features/transfers/presentation/screens/transfer_form_tab.dart';
 import 'not_found_screen.dart';
@@ -262,7 +262,7 @@ GoRouter buildAppRouter({
             builder: (context, state) {
               final type = state.pathParameters['type']!.toLowerCase();
               return RoutedScreenScaffold(
-                body: AddTransactionTab(
+                body: TransactionFormScreen(
                   type: type,
                   userId: authViewModel.userId ?? '',
                   accountViewModel: accountViewModel,
@@ -588,10 +588,10 @@ GoRouter buildAppRouter({
             path: '/movements',
             // Sin transición: cambiar de filtro hace push (para que
             // "atrás" vuelva a la combinación anterior — ver
-            // MovementsTab), pero sigue siendo la misma pantalla.
+            // TransactionsScreen), pero sigue siendo la misma pantalla.
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
-              child: MovementsTab(
+              child: TransactionsScreen(
                 userId: authViewModel.userId ?? '',
                 transactionViewModel: transactionViewModel,
                 accountViewModel: accountViewModel,
@@ -608,7 +608,7 @@ GoRouter buildAppRouter({
           // Estadísticas
           GoRoute(
             path: '/statistics',
-            builder: (context, state) => StatisticsTab(
+            builder: (context, state) => StatisticsScreen(
               transactionViewModel: transactionViewModel,
               categoryViewModel: categoryViewModel,
               currency: accountViewModel.primaryCurrency,

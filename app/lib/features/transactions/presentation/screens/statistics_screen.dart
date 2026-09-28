@@ -14,16 +14,13 @@ import '../../data/models/transaction_entry.dart' show TransactionCategory;
 import '../export/statistics_pdf_builder.dart';
 import '../view_models/transaction_view_model.dart';
 
-class StatisticsTab extends StatefulWidget {
+class StatisticsScreen extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
 
-  /// Para leer [CategoryViewModel.budgetedCategories] — las categorías de
-  /// gasto con presupuesto asignado que arma la card de "Presupuesto"
-  /// (ver [_BudgetSummaryCard]).
   final CategoryViewModel categoryViewModel;
   final String currency;
 
-  const StatisticsTab({
+  const StatisticsScreen({
     super.key,
     required this.transactionViewModel,
     required this.categoryViewModel,
@@ -31,21 +28,19 @@ class StatisticsTab extends StatefulWidget {
   });
 
   @override
-  State<StatisticsTab> createState() => _StatisticsTabState();
+  State<StatisticsScreen> createState() => _StatisticsScreenState();
 }
 
-class _StatisticsTabState extends State<StatisticsTab> {
+class _StatisticsScreenState extends State<StatisticsScreen> {
   bool _isExportingPdf = false;
 
-  /// Genera el PDF del mes que se está viendo y lo descarga (web) o abre el
-  /// menú de compartir (móvil). Solo se ofrece para meses ya cerrados: ver
-  /// `canExportPdf` en [build].
+  /// Generates the month's PDF and downloads it (web) or opens the share
+  /// sheet (mobile). Only offered for closed months.
   Future<void> _exportPdf() async {
     if (_isExportingPdf) return;
 
-    // Se toma una foto de los datos antes del primer await: si el usuario
-    // cambia de mes mientras se genera, el PDF sigue siendo del mes en que
-    // tocó el botón.
+    // Snapshot before the first await so the PDF matches the month where the
+    // user tapped, even if they switch months while it generates.
     final vm = widget.transactionViewModel;
     final data = StatisticsPdfData(
       month: vm.statisticsMonth,
@@ -76,10 +71,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
     }
   }
 
-  /// Una fila por cada categoría con presupuesto asignado, con lo gastado
-  /// este mes en esa categoría puntual (0 si todavía no tiene ningún
-  /// movimiento). Reemplaza al total agrupado: cada categoría tiene su
-  /// propia barra, no una sola sumando todas.
   List<_BudgetProgress> get _budgetProgress {
     final spentByCategoryId = <String, double>{
       for (final total
@@ -96,15 +87,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
         .toList();
   }
 
-  /// Desglosa el gasto del mes en 3 baldes, para el segundo gráfico de
-  /// dona (debajo del de categorías): cuánto está categorizado, cuánto
-  /// son movimientos sin categoría y cuánto es el ajuste no declarado
-  /// (`uncontrolled_expenses_total`, cuando es un gasto). A diferencia
-  /// de [_CategoryDonutChart] de arriba (que solo cuenta transacciones),
-  /// acá el total incluye ese ajuste aunque no sea una transacción real.
-  ///
-  /// Solo entran los baldes con algo adentro, así el gráfico y la
-  /// leyenda no muestran una porción en cero.
+  /// Splits the month's expenses into categorized, uncategorized and
+  /// uncontrolled-adjustment buckets, skipping empty ones.
   List<CategoryTotal> _expenseTypeBreakdown(TransactionViewModel vm) {
     final breakdown = vm.statisticsCategoryBreakdown;
     final categorized = breakdown
@@ -161,13 +145,9 @@ class _StatisticsTabState extends State<StatisticsTab> {
         final vm = widget.transactionViewModel;
         final month = vm.statisticsMonth;
         final isCurrentMonth = vm.isStatisticsCurrentMonth;
-        // 'Septiembre 2025' -> 'septiembre 2025', para usarlo dentro de una
-        // frase ("gastados en septiembre 2025").
         final monthInSentence = formatMonthLabel(month).toLowerCase();
 
-        // El PDF es un resumen del mes cerrado: no se ofrece en el mes en
-        // curso (todavía no terminó) ni mientras carga, si falló la carga o
-        // si el mes no tiene movimientos.
+        // The PDF is only offered for closed months with data.
         final canExportPdf = !isCurrentMonth &&
             !vm.isStatisticsLoading &&
             vm.statisticsErrorMessage == null &&
@@ -180,9 +160,7 @@ class _StatisticsTabState extends State<StatisticsTab> {
           isExportingPdf: _isExportingPdf,
         );
 
-        // El presupuesto es un objetivo del mes en curso — no tiene
-        // sentido medir "cuánto llevás gastado de tu presupuesto" sobre un
-        // mes ya cerrado, así que la card solo aparece con isCurrentMonth.
+        // Budgets track the current month only.
         final budgetProgress =
             isCurrentMonth ? _budgetProgress : const <_BudgetProgress>[];
         final budgetCard = budgetProgress.isEmpty
@@ -192,8 +170,6 @@ class _StatisticsTabState extends State<StatisticsTab> {
                 currency: widget.currency,
               );
 
-        // Card aparte para el acumulado de ajustes sin declarar del mes
-        // (uncontrolled_expenses_total). No se muestra si es cero.
         final uncontrolledCard = !vm.statisticsHasUncontrolledTotal
             ? null
             : _UncontrolledCard(
@@ -202,18 +178,12 @@ class _StatisticsTabState extends State<StatisticsTab> {
               );
 
         final breakdown = vm.statisticsCategoryBreakdown;
-        // El gráfico "Gastos por categoría" es justamente eso: por
-        // categoría. Los movimientos sin categoría ya tienen su propio
-        // lugar en el desglose "Categorizado, sin categoría y no
-        // declarado" de más abajo, así que acá no se muestran — ni en la
-        // lista ni en el total del centro de la dona.
+        // Uncategorized entries appear in the breakdown below, not in this chart.
         final categorizedTotal = breakdown
             .where((c) => c.category.id != null)
             .fold<double>(0, (sum, c) => sum + c.amount);
-        // Los % de CategoryTotal vienen calculados contra el total de
-        // gastos del mes (incluye lo sin categorizar); acá se recalculan
-        // contra categorizedTotal para que la dona y su leyenda sumen
-        // 100% entre sí.
+        // Recalculated against categorizedTotal so the donut and legend sum to
+        // 100%.
         final categorizedBreakdown = breakdown
             .where((c) => c.category.id != null)
             .map((c) => CategoryTotal(
@@ -228,13 +198,8 @@ class _StatisticsTabState extends State<StatisticsTab> {
         final expenseTypeTotal =
             expenseTypeBreakdown.fold<double>(0, (sum, c) => sum + c.amount);
 
-        // Las cards de "Gastos" y "Balance del mes" también incluyen el
-        // ajuste sin declarar del mes (uncontrolled_expenses_total), no
-        // solo las transacciones cargadas: así reflejan el mismo gasto
-        // real que ya muestran la card "Sin declarar" (_UncontrolledCard)
-        // y el desglose "Categorizado, sin categoría y no declarado" de
-        // más abajo. Un ajuste positivo (ingreso no controlado) no se
-        // suma acá — no es un gasto — pero sí impacta el balance.
+        // Expenses and balance include the uncontrolled adjustment; a positive
+        // one (income) only affects the balance.
         final uncontrolledExpensePart = vm.statisticsUncontrolledTotal < 0
             ? -vm.statisticsUncontrolledTotal
             : 0.0;
@@ -497,14 +462,12 @@ class _StatisticsTabState extends State<StatisticsTab> {
   }
 }
 
-/// Título de la pantalla, subtítulo y selector de mes.
 class _StatisticsHeader extends StatelessWidget {
   final DateTime selectedMonth;
 
-  /// Se llama con el mes elegido en el filtro del header.
   final ValueChanged<DateTime> onMonthChanged;
 
-  /// `null` oculta el botón "Exportar PDF" (mes en curso, cargando, etc.).
+  /// Null hides the "Exportar PDF" button.
   final VoidCallback? onExportPdf;
   final bool isExportingPdf;
 
@@ -559,7 +522,6 @@ class _StatisticsHeader extends StatelessWidget {
   }
 }
 
-/// Fila con las 3 cards de resumen del mes: Ingresos, Gastos y Balance.
 class _SummaryCardsRow extends StatelessWidget {
   final double income;
   final double expenses;
@@ -591,7 +553,6 @@ class _SummaryCardsRow extends StatelessWidget {
             label: 'Ingresos',
             amount: income,
             changePercent: incomeChangePercent,
-            // Más ingresos es una mejora.
             isFavorable:
                 incomeChangePercent == null ? null : incomeChangePercent! >= 0,
             currency: currency,
@@ -605,7 +566,7 @@ class _SummaryCardsRow extends StatelessWidget {
             label: 'Gastos',
             amount: expenses,
             changePercent: expenseChangePercent,
-            // Acá es al revés: gastar menos que el mes pasado es la mejora.
+            // For expenses, spending less than last month is the improvement.
             isFavorable: expenseChangePercent == null
                 ? null
                 : expenseChangePercent! <= 0,
@@ -702,9 +663,8 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-/// '+18% vs. mes anterior' con flecha y color según si el cambio es una
-/// mejora o no (para Gastos, bajar es la mejora, así que la lectura de
-/// isFavorable no siempre coincide con el signo del propio porcentaje).
+/// Shows the change vs. the previous month with an arrow and a color that
+/// depends on [isFavorable]; for expenses, decreasing is favorable.
 class _ChangeIndicator extends StatelessWidget {
   final double changePercent;
   final bool isFavorable;
@@ -744,9 +704,6 @@ class _ChangeIndicator extends StatelessWidget {
   }
 }
 
-/// Datos ya resueltos para una fila de [_BudgetCategoriesCard]: la
-/// categoría, lo presupuestado (`category.budgetAmount`) y lo gastado en
-/// ella durante el mes en curso (`0` si todavía no tiene movimientos).
 class _BudgetProgress {
   final Category category;
   final double budgeted;
@@ -764,12 +721,7 @@ class _BudgetProgress {
   bool get isOverBudget => percent > 100;
 }
 
-/// Sección "Presupuesto por categoría": una fila con su propia barra por
-/// cada categoría de gasto con presupuesto asignado
-/// ([CategoryViewModel.budgetedCategories]) — a diferencia de la primera
-/// versión, ya no agrupa todo en una sola barra. Solo se arma con el mes
-/// en curso: un presupuesto es un objetivo del mes actual, no tiene
-/// sentido medirlo sobre uno ya cerrado.
+/// One progress bar per budgeted expense category. Current month only.
 class _BudgetCategoriesCard extends StatelessWidget {
   final List<_BudgetProgress> items;
   final String currency;
@@ -812,16 +764,9 @@ class _BudgetCategoriesCard extends StatelessWidget {
   }
 }
 
-/// Card aparte para el acumulado (con signo) de ajustes sin declarar del
-/// mes — `uncontrolled_expenses_total`, sumado entre todas las cuentas.
-/// Sale de "Actualizar saldo" cuando queda una diferencia sin cubrir por
-/// ningún movimiento cargado (ver
-/// `AccountViewModel.applyUncontrolledAdjustment`), y ya no corresponde a
-/// ninguna transacción real. Solo aparece si el total no es cero (ver
-/// [_StatisticsTabState.build]).
+/// Signed sum of uncontrolled adjustments for the month (negative is an
+/// expense). Only shown when non-zero.
 class _UncontrolledCard extends StatelessWidget {
-  /// Con signo: negativo es gasto no controlado, positivo es ingreso no
-  /// controlado.
   final double total;
   final String currency;
 
@@ -896,11 +841,6 @@ class _UncontrolledCard extends StatelessWidget {
   }
 }
 
-/// Una fila de [_BudgetCategoriesCard]: nombre de la categoría y
-/// "$presupuesto / mes" arriba de su propia barra, y a la derecha lo
-/// gastado en esa categoría puntual con su %. La barra usa el color de la
-/// categoría — salvo que se haya pasado del presupuesto, ahí pasa a rojo
-/// para que se note.
 class _BudgetCategoryRow extends StatelessWidget {
   final _BudgetProgress item;
   final String currency;
@@ -982,17 +922,11 @@ class _BudgetCategoryRow extends StatelessWidget {
   }
 }
 
-/// Gráfico de dona con el total de gastos en el centro. Cada segmento usa
-/// el color propio de la categoría (category.color en la DB), igual que
-/// el puntito de color de cada fila de la leyenda.
 class _CategoryDonutChart extends StatelessWidget {
   final List<CategoryTotal> breakdown;
   final double total;
   final String currency;
 
-  /// Texto chico arriba del monto, en el centro de la dona. 'Total
-  /// gastos' para el desglose por categoría; otro texto para el
-  /// desglose categorizado/no categorizado/no declarado.
   final String label;
 
   const _CategoryDonutChart({
@@ -1051,9 +985,8 @@ class _CategoryDonutChart extends StatelessWidget {
   }
 }
 
-/// Dibuja los segmentos de la dona a partir de [CategoryTotal.percent].
-/// No usa ninguna librería de gráficos — el proyecto no tenía ninguna
-/// como dependencia todavía.
+/// Draws the donut segments from [CategoryTotal.percent] without a charting
+/// library.
 class _DonutChartPainter extends CustomPainter {
   final List<CategoryTotal> breakdown;
   final double strokeWidth;
@@ -1066,8 +999,7 @@ class _DonutChartPainter extends CustomPainter {
     final radius = (size.shortestSide - strokeWidth) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // Fondo de la dona, por si los porcentajes no suman 100% justo
-    // (redondeo) y queda un resto sin cubrir.
+    // Track behind the segments in case rounding leaves a gap.
     final backgroundPaint = Paint()
       ..color = AppColors.authBackgroundTop
       ..style = PaintingStyle.stroke
@@ -1080,10 +1012,7 @@ class _DonutChartPainter extends CustomPainter {
 
       final sweepAngle = (item.percent / 100) * 2 * pi;
       final paint = Paint()
-        // Sin categoría no tiene un color propio en la DB: en vez de
-        // caer en uno fijo (antes verde, que además coincidía con el de
-        // "Categorizados" del segundo gráfico), ese segmento queda
-        // transparente.
+        // Uncategorized has no color in the DB, so its segment is transparent.
         ..color = colorFromHex(
           item.category.color,
           fallback: Colors.transparent,
@@ -1103,8 +1032,6 @@ class _DonutChartPainter extends CustomPainter {
   }
 }
 
-/// Fila de la leyenda: punto de color + nombre + monto + %, todos
-/// tomados de la misma categoría que pinta su segmento en la dona.
 class _CategoryLegendRow extends StatelessWidget {
   final CategoryTotal category;
   final String currency;
@@ -1113,9 +1040,7 @@ class _CategoryLegendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Mismo criterio que en `_DonutChartPainter`: sin categoría, sin
-    // color propio en la DB, el puntito queda transparente en vez de
-    // caer en uno fijo.
+    // Uncategorized has no color: keep the dot transparent.
     final color =
         colorFromHex(category.category.color, fallback: Colors.transparent);
 

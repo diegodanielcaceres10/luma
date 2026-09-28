@@ -18,34 +18,27 @@ enum _TypeFilter { all, income, expense }
 
 enum _DateRangeFilter { today, thisWeek, last7Days, last15Days, all }
 
-/// Contenido de la pantalla "Movimientos" (ver router.dart/AppShellScreen,
-/// que ponen el Scaffold compartido con el header y el bottomNavigationBar).
-class MovementsTab extends StatefulWidget {
+/// Filterable transaction history.
+class TransactionsScreen extends StatefulWidget {
   final String userId;
   final TransactionViewModel transactionViewModel;
   final AccountViewModel accountViewModel;
   final CategoryViewModel categoryViewModel;
   final String currency;
 
-  /// Filtros con los que arranca esta instancia, tal cual vienen de la
-  /// URL (`?type=income|expense&range=today|week|last7|last15|month
-  /// &category=<key>&account=<key>&month=YYYY-MM`; sin un query param es
-  /// "sin ese filtro"). Se leen una sola vez, al crear el State — tocar
-  /// cualquier chip hace push a una URL nueva con los filtros combinados,
-  /// en vez de cambiar el estado local, así que cada combinación queda
-  /// como su propia entrada en el historial y se puede volver a la
-  /// anterior con "atrás".
+  /// Initial filters, read once from the URL query params (`type`, `range`,
+  /// `category`, `account`, `month`). Changing a filter pushes a new URL so
+  /// each combination gets its own history entry.
   final String? initialType;
   final String? initialRange;
   final String? initialCategory;
   final String? initialAccount;
 
-  /// Mes puntual elegido con el selector de mes (mismo control que el de
-  /// "Estadísticas"), en formato `YYYY-MM`. `null`, o un valor con formato
-  /// inválido, usan el mes en curso por default.
+  /// Month in `YYYY-MM` format; null or invalid falls back to the current
+  /// month.
   final String? initialMonth;
 
-  const MovementsTab({
+  const TransactionsScreen({
     super.key,
     required this.userId,
     required this.transactionViewModel,
@@ -60,22 +53,19 @@ class MovementsTab extends StatefulWidget {
   });
 
   @override
-  State<MovementsTab> createState() => _MovementsTabState();
+  State<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
-class _MovementsTabState extends State<MovementsTab> {
+class _TransactionsScreenState extends State<TransactionsScreen> {
   late _TypeFilter _typeFilter;
   late _DateRangeFilter _dateRange;
 
-  // null = "todas". Guardan category.id/account.id si existen, si no el
-  // nombre — mismo criterio que categoryBreakdown en el ViewModel.
+  // null means "all". Holds category.id/account.id, or the name if there is
+  // no id.
   late String? _categoryKey;
   late String? _accountKey;
 
-  // A diferencia de _dateRange (rangos relativos a hoy), este elige un
-  // mes calendario puntual — mismo selector que el de "Estadísticas"
-  // (ver MonthFilterButton). Siempre tiene un valor: si no viene por la
-  // URL, arranca en el mes en curso.
+  // Selected calendar month; defaults to the current month.
   late DateTime _selectedMonth;
 
   @override
@@ -86,20 +76,8 @@ class _MovementsTabState extends State<MovementsTab> {
     _categoryKey = widget.initialCategory;
     _accountKey = widget.initialAccount;
     _selectedMonth = _monthFromQuery(widget.initialMonth);
-    // Carga perezosa: el historial completo de transacciones recién se
-    // pide al entrar a "Movimientos", no al arrancar. La pantalla se crea
-    // de nuevo en cada visita (no se mantiene viva al cambiar de
-    // pestaña), así que el historial completo se vuelve a pedir cada vez:
-    // decisión a propósito — para un uso personal el volumen es chico y
-    // así los datos siempre están frescos.
-    //
-    // `loadAllTransactions` llama a `notifyListeners()` antes del primer
-    // `await` (para prender el spinner ya mismo) — eso corre en el mismo
-    // tick que este `initState`, mientras el framework todavía está
-    // construyendo el árbol, y cualquier `ListenableBuilder` que ya esté
-    // escuchando a este ViewModel más arriba explota con "setState() or
-    // markNeedsBuild() called during build". Con `addPostFrameCallback`
-    // se pide recién cuando termina de construirse este frame.
+    // Load after the first frame: loadAllTransactions notifies listeners
+    // synchronously, which would happen during build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       widget.transactionViewModel.loadAllTransactions();
@@ -158,8 +136,6 @@ class _MovementsTabState extends State<MovementsTab> {
     }
   }
 
-  /// El 1º del mes en curso — default cuando no hay `?month=` en la URL
-  /// o cuando viene con un formato inválido.
   static DateTime _currentMonth() {
     final now = DateTime.now();
     return DateTime(now.year, now.month);
@@ -170,17 +146,13 @@ class _MovementsTabState extends State<MovementsTab> {
     return month.year == current.year && month.month == current.month;
   }
 
-  /// Los rangos de [_DateRangeFilter] son relativos a hoy, así que solo
-  /// tienen sentido en el mes en curso: en cualquier otro mes el filtro
-  /// "Período" se oculta y su valor se ignora ("Todo"). Sin esto, un
-  /// `?range=` que llegue por URL con un mes pasado dejaría la lista
-  /// filtrada sin ningún control visible para deshacerlo.
+  /// Relative date ranges only apply to the current month; in other months
+  /// the "Período" filter is hidden and ignored.
   _DateRangeFilter get _effectiveDateRange =>
       _isCurrentMonth(_selectedMonth) ? _dateRange : _DateRangeFilter.all;
 
-  /// 'YYYY-MM' -> el 1º de ese mes, o el mes en curso si falta el param
-  /// o no tiene el formato esperado (en vez de reventar con un query
-  /// param manipulado a mano).
+  /// Parses 'YYYY-MM'; falls back to the current month if missing or
+  /// invalid.
   static DateTime _monthFromQuery(String? value) {
     if (value == null) return _currentMonth();
     final match = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(value);
@@ -191,18 +163,15 @@ class _MovementsTabState extends State<MovementsTab> {
     return DateTime(year, month);
   }
 
-  /// El mes en curso es el default, así que no ensucia la URL — mismo
-  /// criterio que el resto de los filtros (p. ej. `_typeQueryValue`, que
-  /// tampoco agrega param para "Todos").
+  /// The current month is the default, so it is omitted from the URL.
   static String? _monthQueryValue(DateTime month) {
     if (_isCurrentMonth(month)) return null;
     final mm = month.month.toString().padLeft(2, '0');
     return '${month.year}-$mm';
   }
 
-  /// Arma la URL con los filtros combinados (los que no cambiaron
-  /// quedan en su valor actual) y hace push — ver el doc de
-  /// [MovementsTab.initialType] y hermanos.
+  /// Pushes a URL with the combined filters; see
+  /// [TransactionsScreen.initialType].
   void _pushFilters({
     required _TypeFilter type,
     required _DateRangeFilter range,
@@ -259,9 +228,7 @@ class _MovementsTabState extends State<MovementsTab> {
         month: _selectedMonth,
       );
 
-  // Fuera del mes en curso el filtro "Período" no aplica (ver
-  // [_effectiveDateRange]), así que se resetea a "Todo" para no dejar un
-  // `range=` colgado en la URL.
+  // The date range does not apply outside the current month; reset it.
   void _pushMonth(DateTime value) => _pushFilters(
         type: _typeFilter,
         range: _isCurrentMonth(value) ? _dateRange : _DateRangeFilter.all,
@@ -278,28 +245,18 @@ class _MovementsTabState extends State<MovementsTab> {
         month: _currentMonth(),
       );
 
-  /// Movimientos visibles en la lista. Empieza en 10 y crece de a 10 con
-  /// "Ver más". Ya no hace falta agruparlos por mes (ver el diff que
-  /// borró [_groupByMonth]): `filtered` siempre queda acotado a un único
-  /// mes calendario por [_matchesMonth], el que ya se ve en
-  /// [MonthFilterButton], así que un segundo encabezado con el mismo
-  /// mes era redundante.
+  /// Visible rows; starts at [_pageSize] and grows with "Ver más".
   int _visibleCount = _pageSize;
 
   static const int _pageSize = 10;
 
-  // Id del movimiento que se está borrando en este momento, o null si no
-  // hay ninguno en curso. Deshabilita el botón de esa fila mientras dura
-  // el pedido, para no disparar dos borrados del mismo movimiento con un
-  // doble tap.
+  // Id of the transaction being deleted, to disable its row actions.
   String? _deletingId;
 
-  // Igual que [_deletingId] pero para el guardado de una edición.
+  // Id of the transaction being updated.
   String? _updatingId;
 
-  /// Abre el diálogo de edición (categoría, descripción y fecha — cuenta
-  /// y monto quedan fijos, ver [_EditMovementDialog]) y, si se confirma,
-  /// guarda los cambios.
+  /// Opens the edit dialog and saves the changes if confirmed.
   Future<void> _openEditDialog(TransactionEntry movement) async {
     final result = await showDialog<_EditMovementResult>(
       context: context,
@@ -337,9 +294,7 @@ class _MovementsTabState extends State<MovementsTab> {
     if (mounted) setState(() => _updatingId = null);
   }
 
-  /// Confirma con el usuario antes de borrar (mismo patrón de AlertDialog
-  /// que `_confirmCancel` en invoice_view_screen.dart) y, si confirma, borra el
-  /// movimiento y refresca el saldo de la cuenta.
+  /// Asks for confirmation, then deletes the transaction.
   Future<void> _confirmDelete(TransactionEntry movement) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -402,10 +357,7 @@ class _MovementsTabState extends State<MovementsTab> {
     if (!mounted) return;
 
     if (success) {
-      // El saldo de la cuenta se revirtió en el servidor junto con el
-      // borrado (RPC delete_transaction); acá solo recargamos la lista
-      // de cuentas para que el nuevo saldo se vea en pantalla — mismo
-      // criterio que _AddTransactionTabState._submit tras crear.
+      // Balance changed server-side; reload accounts to show it.
       await widget.accountViewModel.loadAccounts();
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -442,7 +394,7 @@ class _MovementsTabState extends State<MovementsTab> {
       case _DateRangeFilter.today:
         return txDate == today;
       case _DateRangeFilter.thisWeek:
-        // Semana de lunes a domingo.
+        // Weeks start on Monday.
         final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
         return !txDate.isBefore(startOfWeek) && !txDate.isAfter(today);
       case _DateRangeFilter.last7Days:
@@ -462,10 +414,8 @@ class _MovementsTabState extends State<MovementsTab> {
 
   String _accountKeyOf(TransactionEntry t) => t.account.id ?? t.account.name;
 
-  /// Categorías presentes en [typeFiltered] — solo se muestran chips de
-  /// categorías que tengan al menos un movimiento bajo los filtros de
-  /// tipo/fecha actuales, para no ofrecer filtros que siempre van a dar
-  /// vacío.
+  /// Categories with at least one transaction under the current type/date
+  /// filters.
   List<TransactionCategory> _visibleCategories(
       List<TransactionEntry> typeFiltered) {
     final Map<String, TransactionCategory> byKey = {};
@@ -477,7 +427,6 @@ class _MovementsTabState extends State<MovementsTab> {
     return list;
   }
 
-  /// Igual que [_visibleCategories], pero para cuentas.
   List<TransactionAccount> _visibleAccounts(
       List<TransactionEntry> typeFiltered) {
     final Map<String, TransactionAccount> byKey = {};
@@ -531,12 +480,8 @@ class _MovementsTabState extends State<MovementsTab> {
           final categories = _visibleCategories(typeFiltered);
           final accounts = _visibleAccounts(typeFiltered);
 
-          // Si la categoría/cuenta elegida quedó fuera de las visibles bajo
-          // los filtros actuales (p. ej. cambiaste a "Ingresos" con una
-          // categoría de gasto seleccionada), la ignoramos para este build
-          // sin tocar el estado — así no queda una lista vacía sin que se
-          // note por qué, y el chip vuelve a aparecer resaltado si volvés
-          // al filtro anterior.
+          // Ignore a selected category/account hidden by the current filters,
+          // without changing state.
           final effectiveCategoryKey = _categoryKey != null &&
                   categories.any((c) => _categoryModelKey(c) == _categoryKey)
               ? _categoryKey
@@ -715,8 +660,6 @@ class _MovementsTabState extends State<MovementsTab> {
   String _accountModelKey(TransactionAccount a) => a.id ?? a.name;
 }
 
-/// Etiqueta chica sobre cada fila de chips (Período / Cuenta / Categoría),
-/// para que se entienda qué filtra cada una sin agregar otro control.
 class _FilterSectionLabel extends StatelessWidget {
   final String label;
 
@@ -778,23 +721,12 @@ class _MovementRow extends StatelessWidget {
   final String currency;
   final bool showDivider;
 
-  /// true mientras este movimiento puntual se está borrando — deshabilita
-  /// ambos botones y muestra un spinner en el de borrar, para no
-  /// disparar un segundo borrado con un doble tap.
   final bool isDeleting;
 
-  /// Igual que [isDeleting] pero para el guardado de una edición en
-  /// curso — spinner en el botón de editar.
   final bool isUpdating;
 
-  /// Abre el diálogo de edición (ver
-  /// `_MovementsTabState._openEditDialog`). null lo deja sin botón de
-  /// editar.
   final VoidCallback? onEdit;
 
-  /// Pide confirmación y borra el movimiento (ver
-  /// `_MovementsTabState._confirmDelete`). null lo deja sin botón de
-  /// borrado (no se usa hoy, pero deja la fila reutilizable).
   final VoidCallback? onDelete;
 
   const _MovementRow({
@@ -811,9 +743,7 @@ class _MovementRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('d MMM. yyyy', 'es');
     final sign = movement.isIncome ? '+' : '-';
-    // Mientras cualquiera de las dos acciones está en curso para esta
-    // fila, se deshabilita la otra también — no tiene sentido editar un
-    // movimiento que se está borrando, ni viceversa.
+    // Disable both actions while either one is running.
     final isBusy = isDeleting || isUpdating;
 
     return Column(
@@ -852,9 +782,7 @@ class _MovementRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  // Una transferencia no es ni ingreso ni gasto (ver
-                  // TransactionEntry.isTransfer): color neutro en vez de
-                  // authIncome/authExpense.
+                  // Transfers are neither income nor expense: use a neutral color.
                   color: movement.isTransfer
                       ? AppColors.authTransfer
                       : movement.isIncome
@@ -890,8 +818,6 @@ class _MovementRow extends StatelessWidget {
   }
 }
 
-/// Botón chico de acción (editar/borrar) para una fila de [_MovementRow]:
-/// muestra un spinner en su lugar mientras [isLoading] es true.
 class _RowActionButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
@@ -943,15 +869,9 @@ class _EditMovementResult {
   });
 }
 
-/// Diálogo de edición de un movimiento: solo permite cambiar categoría,
-/// descripción y fecha. Cuenta y monto se muestran fijos, sin control
-/// para cambiarlos — son los dos campos que afectan `accounts.balance`
-/// (ver [TransactionViewModel.updateTransaction]).
-///
-/// Si [TransactionEntry.isTransfer] es true no se muestra selector de
-/// categoría: una transferencia no pertenece a ninguna categoría de
-/// ingreso/gasto (ver comentario en `transactions.is_transfer`,
-/// V001__initial_schema.sql), así que ese campo queda fuera de lugar.
+/// Edit dialog: only category, description and date are editable. Account
+/// and amount are read-only because they affect `accounts.balance`.
+/// Transfers have no category selector.
 class _EditMovementDialog extends StatefulWidget {
   final TransactionEntry movement;
   final CategoryViewModel categoryViewModel;
@@ -1077,8 +997,6 @@ class _EditMovementDialogState extends State<_EditMovementDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cuenta y monto, fijos — sin ningún control para editarlos
-            // (ver doc de la clase).
             Text(
               '${movement.account.name} · '
               '$sign${formatCurrency(movement.amount, widget.currency)}',

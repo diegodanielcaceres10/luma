@@ -13,33 +13,22 @@ import '../../data/models/receipt_scan_result.dart';
 import '../../data/services/receipt_scan_service.dart';
 import '../view_models/transaction_view_model.dart';
 
-/// Paso en el que está la pantalla: primero se elige cómo cargar el
-/// movimiento (escanear ticket o a mano) y recién después se ve el form.
 enum _EntryMode { selecting, form }
 
-/// Contenido de la pestaña "Añadir ingreso" / "Añadir gasto". No tiene
-/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
-/// del header y encima del bottomNavigationBar que pone AppShellScreen. Se
-/// llega acá desde "Acciones rápidas" en el Dashboard.
-///
-/// [type]: 'income' o 'expense'. Fija el tipo de transacción que se va a
-/// crear; no hay selector de tipo en el formulario a propósito, porque se
-/// llega acá desde el botón correspondiente.
-///
-/// La categoría es opcional (tanto en ingresos como en gastos): si no se
-/// elige ninguna, el movimiento se guarda con `category_id` nulo y en el
-/// resto de la app figura como "Sin categoría".
-class AddTransactionTab extends StatefulWidget {
+/// Form to add an income or an expense, shown inside a
+/// [RoutedScreenScaffold]. [type] is 'income' or 'expense'; category is
+/// optional.
+class TransactionFormScreen extends StatefulWidget {
   final String type;
   final String userId;
   final AccountViewModel accountViewModel;
   final CategoryViewModel categoryViewModel;
   final TransactionViewModel transactionViewModel;
 
-  /// Se llama tras guardar con éxito, o al cancelar, para volver a "Inicio".
+  /// Called after saving or cancelling.
   final VoidCallback onDone;
 
-  const AddTransactionTab({
+  const TransactionFormScreen({
     super.key,
     required this.type,
     required this.userId,
@@ -50,10 +39,10 @@ class AddTransactionTab extends StatefulWidget {
   });
 
   @override
-  State<AddTransactionTab> createState() => _AddTransactionTabState();
+  State<TransactionFormScreen> createState() => _TransactionFormScreenState();
 }
 
-class _AddTransactionTabState extends State<AddTransactionTab> {
+class _TransactionFormScreenState extends State<TransactionFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -64,9 +53,8 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
 
   _EntryMode _mode = _EntryMode.selecting;
 
-  // POC (branch gemini-image-reader): precompletar el form a partir de
-  // una foto del ticket/factura, vía Edge Function + Gemini (tier
-  // gratuito). El usuario siempre revisa/corrige antes de guardar.
+  // POC: prefill the form from a receipt photo; the user reviews it before
+  // saving.
   final _receiptScanService = ReceiptScanService(Supabase.instance.client);
   bool _isScanning = false;
 
@@ -97,9 +85,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
   @override
   void initState() {
     super.initState();
-    // Re-build cuando cambia isSubmitting/errorMessage — sin esto, el
-    // spinner del botón y la barra de progreso no se ven, porque nada
-    // más dispara un setState mientras se está guardando.
+    // Rebuild on isSubmitting/errorMessage changes.
     widget.transactionViewModel.addListener(_onViewModelChanged);
   }
 
@@ -159,9 +145,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     if (!mounted) return;
 
     if (success) {
-      // El saldo de la cuenta se actualizó en el servidor junto con la
-      // transacción (RPC create_transaction); acá solo recargamos la
-      // lista de cuentas para que el nuevo saldo se vea en pantalla.
+      // Balance changed server-side; reload accounts to show it.
       await widget.accountViewModel.loadAccounts();
       if (!mounted) return;
       widget.onDone();
@@ -224,15 +208,10 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
       );
       if (!mounted) return;
 
-      // La API ya respondió y el modal va a mostrar el resultado — no
-      // tiene sentido que el botón siga con el spinner de "escaneando"
-      // por detrás mientras la persona lo está revisando.
+      // Stop the scan spinner while the result dialog is open.
       setState(() => _isScanning = false);
 
-      // El usuario confirma o descarta lo que devolvió la API antes de que
-      // toque el formulario — así el escaneo nunca completa campos sin que
-      // la persona vea primero qué se detectó. Si descarta, se queda en el
-      // selector de modo.
+      // The user confirms the detected data before it touches the form.
       final confirmed = await _showScanResultDialog(result);
       if (confirmed == true && mounted) {
         _applyScanResult(result);
@@ -252,10 +231,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     }
   }
 
-  /// Muestra en un modal los datos que devolvió la API de escaneo, sin
-  /// tocar todavía el formulario. Devuelve `true` si la persona confirma
-  /// (y entonces corresponde precompletar el form) o `false`/`null` si
-  /// cancela (se descarta el resultado y el form queda como estaba).
+  /// Shows the scan result in a dialog. Returns true if the user confirms.
   Future<bool?> _showScanResultDialog(ReceiptScanResult result) {
     final currency = widget.accountViewModel.primaryCurrency;
     return showDialog<bool>(
@@ -378,7 +354,6 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
       _selectedAccount != null ||
       !DateUtils.isSameDay(_selectedDate, DateTime.now());
 
-  /// Vuelve al selector de modo descartando todo lo cargado en el form.
   void _resetForm() {
     setState(() {
       _amountController.clear();
@@ -390,8 +365,8 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     });
   }
 
-  /// Flecha atrás del formulario: vuelve al selector de modo. Si hay datos
-  /// cargados, pide confirmación porque el form se resetea.
+  /// Goes back to the mode selector, asking for confirmation if data was
+  /// entered.
   Future<void> _handleFormBack() async {
     if (_hasFormData) {
       final discard = await _confirmDiscardForm();
@@ -449,8 +424,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
 
   @override
   Widget build(BuildContext context) {
-    // Cubre tanto el guardado como el escaneo de ticket: mientras cualquiera
-    // de los dos está en curso, la pantalla queda bloqueada.
+    // Saving and scanning both lock the screen.
     final isBusy = widget.transactionViewModel.isSubmitting || _isScanning;
 
     return _mode == _EntryMode.selecting
@@ -458,7 +432,6 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
         : _buildForm(isBusy);
   }
 
-  /// Paso previo: elegir cómo completar el movimiento.
   Widget _buildModeSelector(bool isBusy) {
     return SafeArea(
       top: false,
@@ -506,7 +479,6 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
         key: _formKey,
         child: Column(
           children: [
-            // Barra de progreso fina arriba mientras se guarda.
             if (isSubmitting)
               const LinearProgressIndicator(
                 backgroundColor: AppColors.authCardBorder,
@@ -571,18 +543,13 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
                       decoration: _fieldDecoration,
-                      // DropdownButtonFormField no pinta su placeholder
-                      // desde decoration.hintText/hintStyle — lo hace a
-                      // través de este parámetro. Por eso el color se fija
-                      // acá y no en la decoration (mismo criterio que en
-                      // NewServiceForm).
+                      // DropdownButtonFormField paints its placeholder through this parameter,
+                      // not through decoration.hintStyle.
                       hint: const Text(
                         'Sin categoría',
                         style: TextStyle(color: AppColors.authTextSecondary),
                       ),
-                      // El primer ítem (value nulo) permite volver a "sin
-                      // categoría" después de haber elegido una. Sin
-                      // validator: la categoría no es obligatoria.
+                      // The null item lets the user go back to no category.
                       items: [
                         const DropdownMenuItem<Category>(
                           value: null,
@@ -716,7 +683,6 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
   }
 }
 
-/// Tarjeta del selector de modo (escanear / manual).
 class _EntryModeCard extends StatelessWidget {
   final IconData icon;
   final String title;
