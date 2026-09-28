@@ -8,7 +8,7 @@ import '../view_models/account_view_model.dart';
 
 enum _AccountAction { edit, updateBalance }
 
-class AccountViewScreen extends StatelessWidget {
+class AccountViewScreen extends StatefulWidget {
   final Account account;
   final AccountViewModel accountViewModel;
   final VoidCallback onEdit;
@@ -24,11 +24,22 @@ class AccountViewScreen extends StatelessWidget {
     required this.onBack,
   });
 
+  @override
+  State<AccountViewScreen> createState() => _AccountViewScreenState();
+}
+
+class _AccountViewScreenState extends State<AccountViewScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.accountViewModel.loadUncontrolledTotal(widget.account.id);
+  }
+
   Account _currentAccount() {
-    for (final a in accountViewModel.accounts) {
-      if (a.id == account.id) return a;
+    for (final a in widget.accountViewModel.accounts) {
+      if (a.id == widget.account.id) return a;
     }
-    return account;
+    return widget.account;
   }
 
   @override
@@ -36,10 +47,13 @@ class AccountViewScreen extends StatelessWidget {
     return SafeArea(
       top: false,
       child: ListenableBuilder(
-        listenable: accountViewModel,
+        listenable: widget.accountViewModel,
         builder: (context, _) {
           final current = _currentAccount();
-          final currency = accountViewModel.primaryCurrency;
+          final currency = widget.accountViewModel.primaryCurrency;
+          final uncontrolled =
+              widget.accountViewModel.uncontrolledTotalOf(current.id);
+          final hasUncontrolled = uncontrolled.abs() >= 0.005;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -47,7 +61,7 @@ class AccountViewScreen extends StatelessWidget {
               ScreenHeader(
                 title: current.name,
                 size: ScreenHeaderSize.compact,
-                onBack: onBack,
+                onBack: widget.onBack,
                 action: HeaderMenuButton<_AccountAction>(
                   items: const [
                     HeaderMenuItem(
@@ -62,8 +76,8 @@ class AccountViewScreen extends StatelessWidget {
                     ),
                   ],
                   onSelected: (action) => switch (action) {
-                    _AccountAction.edit => onEdit(),
-                    _AccountAction.updateBalance => onUpdateBalance(),
+                    _AccountAction.edit => widget.onEdit(),
+                    _AccountAction.updateBalance => widget.onUpdateBalance(),
                   },
                 ),
               ),
@@ -95,6 +109,29 @@ class AccountViewScreen extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    if (hasUncontrolled) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        uncontrolled < 0
+                            ? 'Gasto sin declarar este mes'
+                            : 'Ingreso sin declarar este mes',
+                        style: const TextStyle(
+                          color: AppColors.authTextSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        formatCurrency(uncontrolled, currency),
+                        style: TextStyle(
+                          color: uncontrolled < 0
+                              ? AppColors.authExpense
+                              : AppColors.authIncome,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     Row(
                       children: [
@@ -121,7 +158,8 @@ class AccountViewScreen extends StatelessWidget {
                         Switch(
                           value: current.isActive,
                           activeTrackColor: AppColors.authAccent,
-                          onChanged: (value) => accountViewModel.toggleActive(
+                          onChanged: (value) =>
+                              widget.accountViewModel.toggleActive(
                             current.id,
                             value,
                           ),

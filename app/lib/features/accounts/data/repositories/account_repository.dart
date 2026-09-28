@@ -51,4 +51,16 @@ class AccountRepository {
       year: year,
     );
   }
+
+  Future<double> getUncontrolledTotal({
+    required String accountId,
+    required int month,
+    required int year,
+  }) {
+    return _service.fetchUncontrolledTotal(
+      accountId: accountId,
+      month: month,
+      year: year,
+    );
+  }
 }

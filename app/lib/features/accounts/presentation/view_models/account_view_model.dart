@@ -26,6 +26,7 @@ class AccountViewModel extends ChangeNotifier {
   String? _errorMessage;
   AccountSubmitError? _submitError;
   List<Account> _accounts = [];
+  final Map<String, double> _uncontrolledTotals = {};
 
   bool get isLoading => _isLoading;
 
@@ -54,6 +55,26 @@ class AccountViewModel extends ChangeNotifier {
   // Accounts no longer have their own currency (removed to avoid mixing
   // calculations): the currency chosen in Preferences is used across the app.
   String get primaryCurrency => _preferencesViewModel.preferences.currencyCode;
+
+  /// Signed `uncontrolled_expenses_total` of [accountId] for the current
+  /// month, or 0 if it has not been loaded (see [loadUncontrolledTotal]).
+  double uncontrolledTotalOf(String accountId) =>
+      _uncontrolledTotals[accountId] ?? 0;
+
+  /// Loads the current month's uncontrolled total of [accountId]. A failure
+  /// is ignored on purpose: it is secondary information, and the previous
+  /// value (if any) is kept.
+  Future<void> loadUncontrolledTotal(String accountId) async {
+    final now = DateTime.now();
+    try {
+      _uncontrolledTotals[accountId] = await _repository.getUncontrolledTotal(
+        accountId: accountId,
+        month: now.month,
+        year: now.year,
+      );
+      notifyListeners();
+    } catch (_) {}
+  }
 
   Future<void> loadAccounts() async {
     _isLoading = true;
@@ -122,7 +143,7 @@ class AccountViewModel extends ChangeNotifier {
     required int month,
     required int year,
   }) async {
-    return _submit(
+    final success = await _submit(
       () => _repository.applyUncontrolledAdjustment(
         userId: userId,
         accountId: accountId,
@@ -132,6 +153,8 @@ class AccountViewModel extends ChangeNotifier {
       ),
       genericErrorMessage: 'No se pudo guardar el ajuste no declarado.',
     );
+    if (success) await loadUncontrolledTotal(accountId);
+    return success;
   }
 
   Future<bool> _submit(

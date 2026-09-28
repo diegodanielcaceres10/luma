@@ -92,4 +92,24 @@ class AccountService {
       'p_year': year,
     });
   }
+
+  /// Signed `uncontrolled_expenses_total` of a single account for the given
+  /// month/year (negative is an uncontrolled expense, positive an
+  /// uncontrolled income). Returns 0 when the account has no monthly row yet.
+  Future<double> fetchUncontrolledTotal({
+    required String accountId,
+    required int month,
+    required int year,
+  }) async {
+    final row = await _client
+        .from('monthly_account_balances')
+        .select('uncontrolled_expenses_total')
+        .eq('account_id', accountId)
+        .eq('month', month)
+        .eq('year', year)
+        .maybeSingle();
+
+    if (row == null) return 0;
+    return (row['uncontrolled_expenses_total'] as num).toDouble();
+  }
 }
