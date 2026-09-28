@@ -12,6 +12,10 @@ import '../../data/models/receipt_scan_result.dart';
 import '../../data/services/receipt_scan_service.dart';
 import '../view_models/transaction_view_model.dart';
 
+/// Paso en el que está la pantalla: primero se elige cómo cargar el
+/// movimiento (escanear ticket o a mano) y recién después se ve el form.
+enum _EntryMode { selecting, form }
+
 /// Contenido de la pestaña "Añadir ingreso" / "Añadir gasto". No tiene
 /// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
 /// del header y encima del bottomNavigationBar que pone AppShellScreen. Se
@@ -56,6 +60,8 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
   Category? _selectedCategory;
   Account? _selectedAccount;
   DateTime _selectedDate = DateTime.now();
+
+  _EntryMode _mode = _EntryMode.selecting;
 
   // POC (branch gemini-image-reader): precompletar el form a partir de
   // una foto del ticket/factura, vía Edge Function + Gemini (tier
@@ -224,7 +230,8 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
 
       // El usuario confirma o descarta lo que devolvió la API antes de que
       // toque el formulario — así el escaneo nunca completa campos sin que
-      // la persona vea primero qué se detectó.
+      // la persona vea primero qué se detectó. Si descarta, se queda en el
+      // selector de modo.
       final confirmed = await _showScanResultDialog(result);
       if (confirmed == true && mounted) {
         _applyScanResult(result);
@@ -287,7 +294,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
             const SizedBox(height: 12),
             const Text(
               'Podés confirmarlos para precompletar el formulario, o '
-              'cancelar y cargarlos a mano.',
+              'cancelar y volver a elegir cómo cargar el movimiento.',
               style:
                   TextStyle(color: AppColors.authTextSecondary, fontSize: 12),
             ),
@@ -343,6 +350,7 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
 
   void _applyScanResult(ReceiptScanResult result) {
     setState(() {
+      _mode = _EntryMode.form;
       if (result.amount != null && result.amount! > 0) {
         _amountController.text = result.amount!.toStringAsFixed(2);
       }
@@ -362,14 +370,151 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     );
   }
 
+  bool get _hasFormData =>
+      _amountController.text.trim().isNotEmpty ||
+      _descriptionController.text.trim().isNotEmpty ||
+      _selectedCategory != null ||
+      _selectedAccount != null ||
+      !DateUtils.isSameDay(_selectedDate, DateTime.now());
+
+  /// Vuelve al selector de modo descartando todo lo cargado en el form.
+  void _resetForm() {
+    setState(() {
+      _amountController.clear();
+      _descriptionController.clear();
+      _selectedCategory = null;
+      _selectedAccount = null;
+      _selectedDate = DateTime.now();
+      _mode = _EntryMode.selecting;
+    });
+  }
+
+  /// Flecha atrás del formulario: vuelve al selector de modo. Si hay datos
+  /// cargados, pide confirmación porque el form se resetea.
+  Future<void> _handleFormBack() async {
+    if (_hasFormData) {
+      final discard = await _confirmDiscardForm();
+      if (!discard || !mounted) return;
+    }
+    _resetForm();
+  }
+
+  Future<bool> _confirmDiscardForm() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.authBackgroundTop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        title: const Text(
+          '¿Volver a la selección?',
+          style: TextStyle(
+            color: AppColors.authTextPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: const Text(
+          'Se van a perder los datos cargados en el formulario.',
+          style: TextStyle(color: AppColors.authTextSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              'Seguir editando',
+              style: TextStyle(color: AppColors.authTextSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              'Volver',
+              style: TextStyle(
+                color: _accentColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
+  Widget _buildHeader({required bool isBusy, required VoidCallback onBack}) {
+    return Row(
+      children: [
+        InkWell(
+          onTap: isBusy ? null : onBack,
+          borderRadius: BorderRadius.circular(20),
+          child: const Padding(
+            padding: EdgeInsets.all(4),
+            child: Icon(Icons.arrow_back_rounded,
+                color: AppColors.authTextPrimary),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          _isIncome ? 'Añadir ingreso' : 'Añadir gasto',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.authTextPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Cubre tanto el guardado como el escaneo de ticket: mientras cualquiera
+    // de los dos está en curso, la pantalla queda bloqueada.
+    final isBusy = widget.transactionViewModel.isSubmitting || _isScanning;
+
+    return _mode == _EntryMode.selecting
+        ? _buildModeSelector(isBusy)
+        : _buildForm(isBusy);
+  }
+
+  /// Paso previo: elegir cómo completar el movimiento.
+  Widget _buildModeSelector(bool isBusy) {
+    return SafeArea(
+      top: false,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        children: [
+          _buildHeader(isBusy: isBusy, onBack: widget.onDone),
+          const SizedBox(height: 16),
+          _EntryModeCard(
+            icon: Icons.document_scanner_rounded,
+            title: 'Escanear ticket (POC)',
+            subtitle: 'Tomá una foto del ticket y extraemos la información '
+                'automáticamente.',
+            highlighted: true,
+            loading: _isScanning,
+            onTap: isBusy ? null : _scanReceipt,
+          ),
+          const SizedBox(height: 12),
+          _EntryModeCard(
+            icon: Icons.article_outlined,
+            title: 'Completar manualmente',
+            subtitle: 'Ingresá los datos del movimiento uno por uno.',
+            onTap:
+                isBusy ? null : () => setState(() => _mode = _EntryMode.form),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForm(bool isBusy) {
     final categories = widget.categoryViewModel.byType(widget.type);
     final accounts = widget.accountViewModel.activeAccounts;
     final isSubmitting = widget.transactionViewModel.isSubmitting;
-    // Cubre tanto el guardado como el escaneo de ticket: mientras cualquiera
-    // de los dos está en curso, el resto del form queda bloqueado.
-    final isBusy = isSubmitting || _isScanning;
 
     return SafeArea(
       top: false,
@@ -388,64 +533,8 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: isBusy ? null : widget.onDone,
-                        borderRadius: BorderRadius.circular(20),
-                        child: const Padding(
-                          padding: EdgeInsets.all(4),
-                          child: Icon(Icons.arrow_back_rounded,
-                              color: AppColors.authTextPrimary),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isIncome ? 'Añadir ingreso' : 'Añadir gasto',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.authTextPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildHeader(isBusy: isBusy, onBack: _handleFormBack),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed:
-                          isSubmitting || _isScanning ? null : _scanReceipt,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.authTextPrimary,
-                        side: const BorderSide(color: AppColors.authCardBorder),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      // Mientras escanea, el child pasa a ser únicamente el
-                      // spinner (mismo criterio que el botón de Guardar),
-                      // así queda centrado en el botón en vez de correrse
-                      // hacia la izquierda por ir en Row junto al texto.
-                      child: _isScanning
-                          ? const SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.authTextPrimary,
-                              ),
-                            )
-                          : const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.document_scanner_rounded),
-                                SizedBox(width: 8),
-                                Text('Escanear ticket (POC)'),
-                              ],
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
                   const Text('Monto', style: _labelStyle),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -630,6 +719,103 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta del selector de modo (escanear / manual).
+class _EntryModeCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool highlighted;
+  final bool loading;
+  final VoidCallback? onTap;
+
+  const _EntryModeCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.highlighted = false,
+    this.loading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fill = highlighted
+        ? Color.alphaBlend(
+            AppColors.authAccent.withValues(alpha: 0.12),
+            AppColors.authCardFill,
+          )
+        : AppColors.authCardFill;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+      side: BorderSide(
+        color: highlighted ? AppColors.authAccent : AppColors.authCardBorder,
+        width: highlighted ? 1.5 : 1,
+      ),
+    );
+
+    return Material(
+      color: fill,
+      shape: shape,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: shape,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: AppColors.authAccent.withValues(alpha: 0.28),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(icon, size: 32, color: AppColors.authTextPrimary),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.authTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.authTextSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              loading
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.authAccent,
+                      ),
+                    )
+                  : const Icon(Icons.chevron_right_rounded,
+                      color: AppColors.authAccent),
+            ],
+          ),
         ),
       ),
     );
