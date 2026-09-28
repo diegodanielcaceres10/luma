@@ -255,6 +255,7 @@ class _DashboardTabState extends State<DashboardTab> {
                     ? null
                     : widget.onOpenMonthlyBalances,
                 onManageAccounts: widget.onManageAccounts,
+                accounts: activeAccounts,
                 pendingInvoicesTotal: pendingInvoicesTotal,
                 pendingInvoicesCount: pendingInvoicesCount,
                 isLoadingPendingInvoices: widget.invoiceViewModel.isLoading ||
@@ -475,6 +476,9 @@ class _BalanceCard extends StatelessWidget {
   final int pendingAccountsCount;
   final VoidCallback? onCompletePendingBalances;
   final VoidCallback onManageAccounts;
+
+  /// Cuentas activas, para el detalle que se despliega en el card.
+  final List<Account> accounts;
   final double pendingInvoicesTotal;
 
   /// Facturas pendientes (ni pagadas ni canceladas) del mes en curso.
@@ -488,6 +492,7 @@ class _BalanceCard extends StatelessWidget {
     required this.netResult,
     required this.isLoadingNetResult,
     required this.onManageAccounts,
+    required this.accounts,
     this.pendingAccountsCount = 0,
     this.onCompletePendingBalances,
     this.pendingInvoicesTotal = 0,
@@ -512,24 +517,14 @@ class _BalanceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.calendar_today_rounded,
+                Icon(Icons.calendar_today_rounded,
                     color: Colors.white70, size: 16),
-                const SizedBox(width: 8),
-                const Text(
+                SizedBox(width: 8),
+                Text(
                   'Balance general del mes',
                   style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-                const Spacer(),
-                InkWell(
-                  onTap: onManageAccounts,
-                  borderRadius: BorderRadius.circular(20),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child:
-                        Icon(Icons.settings, color: Colors.white70, size: 30),
-                  ),
                 ),
               ],
             ),
@@ -575,8 +570,7 @@ class _BalanceCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${netResult >= 0 ? '+' : ''}'
-                        '${formatCurrency(netResult, currency)} este mes '
-                        '(ingresos - gastos ± ajustes)',
+                        '${formatCurrency(netResult, currency)} este mes',
                         style: TextStyle(
                           color: netResult >= 0
                               ? AppColors.authAccent
@@ -649,9 +643,145 @@ class _BalanceCard extends StatelessWidget {
                 onTap: onCompletePendingBalances,
               ),
             ],
+            const SizedBox(height: 8),
+            _BalanceAccountsExpander(
+              accounts: accounts,
+              currency: currency,
+              onManageAccounts: onManageAccounts,
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Parte desplegable del [_BalanceCard]: un chevron al pie del card que, al
+/// tocarlo, muestra el saldo de cada cuenta y el acceso a la configuración
+/// de cuentas. Arranca colapsado y su estado no se conserva entre sesiones.
+class _BalanceAccountsExpander extends StatefulWidget {
+  final List<Account> accounts;
+  final String currency;
+  final VoidCallback onManageAccounts;
+
+  const _BalanceAccountsExpander({
+    required this.accounts,
+    required this.currency,
+    required this.onManageAccounts,
+  });
+
+  @override
+  State<_BalanceAccountsExpander> createState() =>
+      _BalanceAccountsExpanderState();
+}
+
+class _BalanceAccountsExpanderState extends State<_BalanceAccountsExpander> {
+  static const _animationDuration = Duration(milliseconds: 250);
+
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AnimatedSize(
+          duration: _animationDuration,
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: _expanded
+              ? _buildAccounts()
+              : const SizedBox(width: double.infinity),
+        ),
+        Center(
+          child: Semantics(
+            button: true,
+            label: _expanded ? 'Ocultar cuentas' : 'Ver cuentas',
+            child: InkWell(
+              onTap: () => setState(() => _expanded = !_expanded),
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 2,
+                ),
+                child: AnimatedRotation(
+                  turns: _expanded ? 0.5 : 0,
+                  duration: _animationDuration,
+                  child: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white70,
+                    size: 28,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccounts() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        const Divider(color: Colors.white24, height: 1),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Saldo por cuenta',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            InkWell(
+              onTap: widget.onManageAccounts,
+              borderRadius: BorderRadius.circular(20),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.settings, color: Colors.white70, size: 30),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        for (final account in widget.accounts)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    account.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  formatCurrency(account.balance, widget.currency),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
