@@ -299,9 +299,7 @@ GoRouter buildAppRouter({
                 accountViewModel: accountViewModel,
                 onOpenView: (account) =>
                     context.push('/accounts/${account.id}'),
-                onOpenForm: (account) => account == null
-                    ? context.push('/accounts/new')
-                    : context.push('/accounts/${account.id}/edit'),
+                onOpenForm: () => context.push('/accounts/new'),
               ),
             ),
           ),
@@ -388,9 +386,7 @@ GoRouter buildAppRouter({
                 onBack: () => context.goBack(),
                 onOpenView: (account) =>
                     context.push('/accounts/${account.id}'),
-                onOpenForm: (account) => account == null
-                    ? context.push('/accounts/new')
-                    : context.push('/accounts/${account.id}/edit'),
+                onOpenForm: () => context.push('/accounts/new'),
               ),
             ),
           ),
@@ -402,9 +398,7 @@ GoRouter buildAppRouter({
                 categoryViewModel: categoryViewModel,
                 onOpenView: (category) =>
                     context.push('/categories/${category.id}'),
-                onOpenForm: (category) => category == null
-                    ? context.push('/categories/new')
-                    : context.push('/categories/${category.id}/edit'),
+                onOpenForm: () => context.push('/categories/new'),
               ),
             ),
           ),
@@ -462,9 +456,7 @@ GoRouter buildAppRouter({
                 currency: accountViewModel.primaryCurrency,
                 onOpenView: (service) =>
                     context.push('/services/${service.id}'),
-                onOpenForm: (service) => service == null
-                    ? context.push('/services/new')
-                    : context.push('/services/${service.id}/edit'),
+                onOpenForm: () => context.push('/services/new'),
               ),
             ),
           ),

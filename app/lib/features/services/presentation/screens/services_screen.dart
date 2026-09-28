@@ -16,8 +16,8 @@ class ServicesScreen extends StatelessWidget {
 
   final ValueChanged<Service> onOpenView;
 
-  /// Receives `null` to create a new service.
-  final ValueChanged<Service?> onOpenForm;
+  /// Opens the create form.
+  final VoidCallback onOpenForm;
 
   final VoidCallback? onBack;
 
@@ -49,7 +49,7 @@ class ServicesScreen extends StatelessWidget {
                 onBack: onBack,
                 action: HeaderAddButton(
                   tooltip: 'Nuevo servicio',
-                  onPressed: () => onOpenForm(null),
+                  onPressed: onOpenForm,
                 ),
               ),
               const SizedBox(height: 16),

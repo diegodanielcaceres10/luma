@@ -12,7 +12,7 @@ class AccountsScreen extends StatelessWidget {
 
   final ValueChanged<Account> onOpenView;
 
-  final ValueChanged<Account?> onOpenForm;
+  final VoidCallback onOpenForm;
 
   final VoidCallback? onBack;
 
@@ -45,7 +45,7 @@ class AccountsScreen extends StatelessWidget {
                 onBack: onBack,
                 action: HeaderAddButton(
                   tooltip: 'Nueva cuenta',
-                  onPressed: () => onOpenForm(null),
+                  onPressed: onOpenForm,
                 ),
               ),
               const SizedBox(height: 24),

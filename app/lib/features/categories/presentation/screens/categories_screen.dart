@@ -12,8 +12,8 @@ class CategoriesScreen extends StatelessWidget {
 
   final ValueChanged<Category> onOpenView;
 
-  /// Receives `null` to create a new category.
-  final ValueChanged<Category?> onOpenForm;
+  /// Opens the create form.
+  final VoidCallback onOpenForm;
 
   final VoidCallback? onBack;
 
@@ -46,7 +46,7 @@ class CategoriesScreen extends StatelessWidget {
                 onBack: onBack,
                 action: HeaderAddButton(
                   tooltip: 'Nueva categoría',
-                  onPressed: () => onOpenForm(null),
+                  onPressed: onOpenForm,
                 ),
               ),
               const SizedBox(height: 16),
