@@ -7,9 +7,9 @@ class AppUpdateService {
 
   AppUpdateService(this._client);
 
-  /// Invoca la Edge Function `check-app-version`, que compara [version]
-  /// contra CURRENT_APP_VERSION / MIN_APP_VERSION (configuradas como
-  /// secrets en Supabase) y devuelve el estado correspondiente.
+  /// Invokes the `check-app-version` Edge Function, which compares [version]
+  /// against CURRENT_APP_VERSION / MIN_APP_VERSION (configured as Supabase
+  /// secrets) and returns the corresponding status.
   Future<VersionCheckResult> checkVersion(String version) async {
     final response = await _client.functions.invoke(
       'check-app-version',

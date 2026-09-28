@@ -30,6 +30,7 @@ class PayInvoiceDialog extends StatefulWidget {
   final String currency;
 
   const PayInvoiceDialog({
+    super.key,
     required this.invoice,
     required this.serviceName,
     required this.category,

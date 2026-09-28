@@ -7,9 +7,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app/app.dart';
 import 'app/theme/app_theme.dart';
 import 'core/config/app_env.dart';
-import 'features/app_update/data/models/version_check_result.dart';
-import 'features/app_update/data/services/app_update_service.dart';
-import 'features/app_update/presentation/screens/update_required_screen.dart';
+import 'features/home/data/models/version_check_result.dart';
+import 'features/home/data/services/app_update_service.dart';
+import 'features/home/presentation/screens/update_required_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,10 +41,9 @@ Future<void> main() async {
     return;
   }
 
-  // "outdated_but_usable": se deja entrar a la app, pero con un mensaje
-  // pendiente que LumaApp muestra como diálogo al terminar de armar la
-  // primera pantalla (ver app/app.dart). "updated" o error de red: null,
-  // no se muestra nada.
+  // "outdated_but_usable": the user may enter the app, but with a pending
+  // message that LumaApp shows as a dialog once the first screen is built
+  // (see app/app.dart). "updated" or network error: null, nothing is shown.
   final pendingUpdateMessage =
       versionCheck?.status == VersionCheckStatus.outdatedButUsable
           ? versionCheck!.message
@@ -53,10 +52,10 @@ Future<void> main() async {
   runApp(LumaApp(pendingUpdateMessage: pendingUpdateMessage));
 }
 
-/// Llama a la Edge Function `check-app-version` con la versión instalada
-/// (`PackageInfo`, la real, ya sin forzar nada). Cualquier error (sin
-/// conexión, función caída, etc.) devuelve `null`: un problema de red al
-/// arrancar no debería trabar la app ni mostrar avisos de más.
+/// Calls the `check-app-version` Edge Function with the installed version
+/// (`PackageInfo`, the real one, nothing forced). Any error (no connection,
+/// function down, etc.) returns `null`: a network problem at startup should
+/// neither block the app nor show unnecessary warnings.
 Future<VersionCheckResult?> _checkAppVersion() async {
   try {
     final info = await PackageInfo.fromPlatform();

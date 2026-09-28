@@ -6,13 +6,13 @@ import '../../../../app/theme/app_system_ui.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/widgets/luma_logo.dart';
 
-/// Pantalla que bloquea toda la app cuando la versión instalada quedó por
-/// debajo de la mínima requerida (ver Edge Function `check-app-version`).
+/// Screen that blocks the entire app when the installed version is below the
+/// minimum required one (see the `check-app-version` Edge Function).
 ///
-/// Mismo fondo (gradiente oscuro de marca) que usa el resto de la app en
-/// [AppShellScreen] y el login, pero sin ilustración ni botón: acá no hay
-/// nada que hacer más que esperar a que un admin habilite una nueva
-/// versión.
+/// Uses the same dark brand gradient background as the rest of the app in
+/// [AppShellScreen] and the login screen, but with no illustration or button:
+/// there is nothing to do here except wait for an admin to enable a new
+/// version.
 class UpdateRequiredScreen extends StatelessWidget {
   final String? message;
 
