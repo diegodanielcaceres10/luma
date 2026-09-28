@@ -7,8 +7,8 @@ class ServiceService {
   ServiceService(this._client);
 
   Future<List<Service>> fetchAll() async {
-    // Trae activos e inactivos: la lista de servicios es donde se
-    // inactivan/reactivan, así que necesita ver ambos estados.
+    // Fetches active and inactive services: they are reactivated from the
+    // service screens, so both states are needed.
     final rows = await _client.from('services').select().order('name');
 
     return (rows as List)
@@ -47,8 +47,7 @@ class ServiceService {
     }).eq('id', id);
   }
 
-  /// Activa o inactiva un servicio desde la lista, sin pasar por el
-  /// formulario completo.
+  /// Activates or deactivates a service without going through the full form.
   Future<void> setActive({required String id, required bool isActive}) async {
     await _client.from('services').update({'is_active': isActive}).eq('id', id);
   }

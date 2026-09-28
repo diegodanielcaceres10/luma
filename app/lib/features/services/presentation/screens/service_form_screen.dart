@@ -1,28 +1,23 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/service.dart';
 import '../view_models/service_view_model.dart';
 
-/// Contenido de la pestaña "Nuevo servicio" / "Editar servicio". No tiene
-/// Scaffold propio — se muestra dentro de un RoutedScreenScaffold, debajo
-/// del header y encima del bottomNavigationBar que pone AppShellScreen.
-///
-/// Si [service] viene nulo, es un alta nueva. Si viene con valor, es
-/// edición — activo/inactivo no se toca acá, se maneja desde la lista.
-class ServiceFormTab extends StatefulWidget {
+/// Creates a service, or edits it when [service] is provided. The active
+/// state is not edited here; it is toggled from the view screen.
+class ServiceFormScreen extends StatefulWidget {
   final String userId;
   final ServiceViewModel serviceViewModel;
   final CategoryViewModel categoryViewModel;
   final Service? service;
 
-  /// Se llama tras guardar con éxito, o al cancelar, para volver a
-  /// "Servicios".
   final VoidCallback onDone;
 
-  const ServiceFormTab({
+  const ServiceFormScreen({
     super.key,
     required this.userId,
     required this.serviceViewModel,
@@ -32,10 +27,10 @@ class ServiceFormTab extends StatefulWidget {
   });
 
   @override
-  State<ServiceFormTab> createState() => _ServiceFormTabState();
+  State<ServiceFormScreen> createState() => _ServiceFormScreenState();
 }
 
-class _ServiceFormTabState extends State<ServiceFormTab> {
+class _ServiceFormScreenState extends State<ServiceFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
@@ -133,8 +128,7 @@ class _ServiceFormTabState extends State<ServiceFormTab> {
   @override
   Widget build(BuildContext context) {
     final isSubmitting = widget.serviceViewModel.isSubmitting;
-    // Los servicios recurrentes son siempre un gasto — mismo criterio que
-    // ya usa el presupuesto de categorías.
+    // Recurring services are always expenses.
     final expenseCategories = widget.categoryViewModel.byType('expense');
 
     return SafeArea(
@@ -153,27 +147,11 @@ class _ServiceFormTabState extends State<ServiceFormTab> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: isSubmitting ? null : widget.onDone,
-                        borderRadius: BorderRadius.circular(20),
-                        child: const Padding(
-                          padding: EdgeInsets.all(4),
-                          child: Icon(Icons.arrow_back_rounded,
-                              color: AppColors.authTextPrimary),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _isEditing ? 'Editar servicio' : 'Nuevo servicio',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.authTextPrimary,
-                        ),
-                      ),
-                    ],
+                  ScreenHeader(
+                    title: _isEditing ? 'Editar servicio' : 'Nuevo servicio',
+                    size: ScreenHeaderSize.compact,
+                    onBack: widget.onDone,
+                    backEnabled: !isSubmitting,
                   ),
                   const SizedBox(height: 20),
                   const Text('Categoría',
@@ -189,10 +167,9 @@ class _ServiceFormTabState extends State<ServiceFormTab> {
                       initialValue: _selectedCategoryId,
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
-                      // DropdownButtonFormField no pinta su placeholder
-                      // desde decoration.hintText/hintStyle — lo hace a
-                      // través de este parámetro. Por eso el color se
-                      // fija acá y no en la decoration.
+                      // DropdownButtonFormField ignores decoration.hintText /
+                      // hintStyle for its placeholder, so the color is set
+                      // here instead.
                       hint: const Text(
                         'Seleccioná una categoría',
                         style: TextStyle(color: AppColors.authTextSecondary),

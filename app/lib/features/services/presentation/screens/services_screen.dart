@@ -3,30 +3,32 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/service.dart';
 import '../view_models/service_view_model.dart';
 
-/// Contenido de la pestaña "Servicios". Es una ruta de primer nivel del
-/// drawer sin AppBar propio (ver RoutedScreenScaffold): vive dentro del
-/// Scaffold del AppShellScreen, que pone el header y el
-/// bottomNavigationBar. El "+" para crear va alineado con el título de
-/// acá abajo, no en ninguna barra superior.
-class ServicesTab extends StatelessWidget {
+class ServicesScreen extends StatelessWidget {
   final ServiceViewModel serviceViewModel;
   final CategoryViewModel categoryViewModel;
-  final ValueChanged<Service> onEdit;
+  final String currency;
 
-  /// Abre el formulario de alta ("+" del título).
-  final VoidCallback onAdd;
+  final ValueChanged<Service> onOpenView;
 
-  const ServicesTab({
+  /// Receives `null` to create a new service.
+  final ValueChanged<Service?> onOpenForm;
+
+  final VoidCallback? onBack;
+
+  const ServicesScreen({
     super.key,
     required this.serviceViewModel,
     required this.categoryViewModel,
-    required this.onEdit,
-    required this.onAdd,
+    required this.currency,
+    required this.onOpenView,
+    required this.onOpenForm,
+    this.onBack,
   });
 
   @override
@@ -36,37 +38,31 @@ class ServicesTab extends StatelessWidget {
       child: ListenableBuilder(
         listenable: Listenable.merge([serviceViewModel, categoryViewModel]),
         builder: (context, _) {
-          if (serviceViewModel.isLoading && serviceViewModel.services.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.authAccent),
-            );
-          }
-
           final services = serviceViewModel.services;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              Row(
-                children: [
-                  const Text(
-                    'Servicios',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.authTextPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: onAdd,
-                    icon: const Icon(Icons.add_rounded),
-                    color: AppColors.authTextPrimary,
-                  ),
-                ],
+              ScreenHeader(
+                title: 'Servicios',
+                size: ScreenHeaderSize.compact,
+                onBack: onBack,
+                action: HeaderAddButton(
+                  tooltip: 'Nuevo servicio',
+                  onPressed: () => onOpenForm(null),
+                ),
               ),
               const SizedBox(height: 16),
-              if (services.isEmpty)
+              if (serviceViewModel.isLoading && services.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 40),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.authAccent,
+                    ),
+                  ),
+                )
+              else if (services.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(top: 40),
                   child: Text(
@@ -89,9 +85,8 @@ class ServicesTab extends StatelessWidget {
                         service: service,
                         category:
                             categoryViewModel.categoryById(service.categoryId),
-                        onTap: () => onEdit(service),
-                        onActiveChanged: (value) =>
-                            serviceViewModel.toggleActive(service.id, value),
+                        currency: currency,
+                        onTap: () => onOpenView(service),
                         showDivider: i != services.length - 1,
                       );
                     }),
@@ -108,15 +103,15 @@ class ServicesTab extends StatelessWidget {
 class _ServiceRow extends StatelessWidget {
   final Service service;
   final Category? category;
+  final String currency;
   final VoidCallback onTap;
-  final ValueChanged<bool> onActiveChanged;
   final bool showDivider;
 
   const _ServiceRow({
     required this.service,
     required this.category,
+    required this.currency,
     required this.onTap,
-    required this.onActiveChanged,
     required this.showDivider,
   });
 
@@ -125,9 +120,10 @@ class _ServiceRow extends StatelessWidget {
     final isActive = service.isActive;
 
     final subtitleParts = <String>[
-      formatCurrency(service.approximateAmount, 'EUR'),
+      formatCurrency(service.approximateAmount, currency),
       if (service.dueDay != null) 'vence el día ${service.dueDay}',
       if (category != null) category!.name,
+      if (!isActive) 'Inactivo',
     ];
 
     return Column(
@@ -165,23 +161,9 @@ class _ServiceRow extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Switch(
-                        value: isActive,
-                        activeTrackColor: AppColors.authAccent,
-                        onChanged: onActiveChanged,
-                      ),
-                      Text(
-                        isActive ? 'Activo' : 'Inactivo',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.authTextFooter,
-                        ),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.chevron_right_rounded,
+                      color: AppColors.authTextFooter),
                 ],
               ),
             ),

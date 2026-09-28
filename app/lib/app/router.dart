@@ -31,8 +31,9 @@ import '../features/monthly_balances/presentation/view_models/monthly_balance_vi
 import '../features/preferences/presentation/screens/preferences_screen.dart';
 import '../features/preferences/presentation/view_models/preferences_view_model.dart';
 import '../features/services/data/models/service.dart';
-import '../features/services/presentation/screens/service_form_tab.dart';
-import '../features/services/presentation/screens/services_tab.dart';
+import '../features/services/presentation/screens/service_form_screen.dart';
+import '../features/services/presentation/screens/service_view_screen.dart';
+import '../features/services/presentation/screens/services_screen.dart';
 import '../features/services/presentation/view_models/service_view_model.dart';
 import '../features/transactions/presentation/screens/add_transaction_tab.dart';
 import '../features/transactions/presentation/screens/movements_tab.dart';
@@ -455,23 +456,45 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/services',
             builder: (context, state) => RoutedScreenScaffold(
-              body: ServicesTab(
+              body: ServicesScreen(
                 serviceViewModel: serviceViewModel,
                 categoryViewModel: categoryViewModel,
-                onAdd: () => context.push('/services/new'),
-                onEdit: (service) =>
-                    context.push('/services/${service.id}/edit'),
+                currency: accountViewModel.primaryCurrency,
+                onOpenView: (service) =>
+                    context.push('/services/${service.id}'),
+                onOpenForm: (service) => service == null
+                    ? context.push('/services/new')
+                    : context.push('/services/${service.id}/edit'),
               ),
             ),
           ),
           GoRoute(
             path: '/services/new',
             builder: (context, state) => RoutedScreenScaffold(
-              body: ServiceFormTab(
+              body: ServiceFormScreen(
                 userId: authViewModel.userId ?? '',
                 serviceViewModel: serviceViewModel,
                 categoryViewModel: categoryViewModel,
                 onDone: () => context.goBack(),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/services/:id',
+            // Declared after '/services/new' so that exact URL wins over
+            // ':id'.
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _serviceGuard(
+                serviceViewModel,
+                state.pathParameters['id'],
+                (context, service) => ServiceViewScreen(
+                  service: service,
+                  serviceViewModel: serviceViewModel,
+                  categoryViewModel: categoryViewModel,
+                  currency: accountViewModel.primaryCurrency,
+                  onEdit: () => context.push('/services/${service.id}/edit'),
+                  onBack: () => context.goBack(),
+                ),
               ),
             ),
           ),
@@ -481,7 +504,7 @@ GoRouter buildAppRouter({
               body: _serviceGuard(
                 serviceViewModel,
                 state.pathParameters['id'],
-                (context, service) => ServiceFormTab(
+                (context, service) => ServiceFormScreen(
                   userId: authViewModel.userId ?? '',
                   serviceViewModel: serviceViewModel,
                   categoryViewModel: categoryViewModel,
