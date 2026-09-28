@@ -5,6 +5,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
+import '../../../../core/widgets/month_filter_button.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/data/models/category.dart';
@@ -40,6 +42,12 @@ class InvoicesTab extends StatefulWidget {
   /// puede volver al filtro anterior con "atrás".
   final String? initialFilter;
 
+  /// Mes con el que arranca esta instancia, en formato `YYYY-MM` (query
+  /// param `month`). Sin el param, o con un formato inválido, se usa el mes
+  /// en curso. Se lee una sola vez, igual que [initialFilter]: cambiar de
+  /// mes o de estado hace push a una URL nueva que conserva ambos.
+  final String? initialMonth;
+
   /// Abre el formulario de alta ("+" del título).
   final VoidCallback onAdd;
 
@@ -56,6 +64,7 @@ class InvoicesTab extends StatefulWidget {
     required this.onAdd,
     required this.onEdit,
     this.initialFilter,
+    this.initialMonth,
   });
 
   @override
@@ -65,10 +74,38 @@ class InvoicesTab extends StatefulWidget {
 class _InvoicesTabState extends State<InvoicesTab> {
   late _StatusFilter _statusFilter;
 
+  // Siempre es un mes puntual (nunca "todos los meses"); si no viene por la
+  // URL, arranca en el mes en curso — mismo criterio que "Movimientos".
+  late DateTime _selectedMonth;
+
   @override
   void initState() {
     super.initState();
     _statusFilter = _filterFromQuery(widget.initialFilter);
+    _selectedMonth = _monthFromQuery(widget.initialMonth);
+  }
+
+  /// El 1º del mes en curso.
+  static DateTime _currentMonth() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month);
+  }
+
+  static bool _isCurrentMonth(DateTime month) {
+    final current = _currentMonth();
+    return month.year == current.year && month.month == current.month;
+  }
+
+  /// 'YYYY-MM' -> el 1º de ese mes, o el mes en curso si falta el param o no
+  /// tiene el formato esperado.
+  static DateTime _monthFromQuery(String? value) {
+    if (value == null) return _currentMonth();
+    final match = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(value);
+    if (match == null) return _currentMonth();
+    final year = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    if (month < 1 || month > 12) return _currentMonth();
+    return DateTime(year, month);
   }
 
   static _StatusFilter _filterFromQuery(String? value) {
@@ -84,17 +121,33 @@ class _InvoicesTabState extends State<InvoicesTab> {
     }
   }
 
-  static String _queryForFilter(_StatusFilter filter) {
+  static String? _filterQueryValue(_StatusFilter filter) {
     switch (filter) {
       case _StatusFilter.all:
-        return '/invoices';
+        return null;
       case _StatusFilter.pending:
-        return '/invoices?filter=pending';
+        return 'pending';
       case _StatusFilter.paid:
-        return '/invoices?filter=paid';
+        return 'paid';
       case _StatusFilter.cancelled:
-        return '/invoices?filter=cancelled';
+        return 'cancelled';
     }
+  }
+
+  /// URL con el estado y el mes combinados. Lo que está en su valor por
+  /// defecto ("Todas", mes en curso) no agrega param, para no ensuciarla.
+  static String _urlFor(_StatusFilter filter, DateTime month) {
+    final params = <String, String>{};
+    final filterValue = _filterQueryValue(filter);
+    if (filterValue != null) params['filter'] = filterValue;
+    if (!_isCurrentMonth(month)) {
+      final mm = month.month.toString().padLeft(2, '0');
+      params['month'] = '${month.year}-$mm';
+    }
+    return Uri(
+      path: '/invoices',
+      queryParameters: params.isEmpty ? null : params,
+    ).toString();
   }
 
   static const _monthNames = [
@@ -123,6 +176,19 @@ class _InvoicesTabState extends State<InvoicesTab> {
       case _StatusFilter.cancelled:
         return invoice.cancelled;
     }
+  }
+
+  bool _matchesMonth(Invoice invoice) =>
+      invoice.month == _selectedMonth.month &&
+      invoice.year == _selectedMonth.year;
+
+  /// Facturas pendientes de un período anterior al mes que se está viendo.
+  int _previousPendingCount(List<Invoice> all) {
+    return all.where((i) {
+      if (!i.isPending) return false;
+      return i.year < _selectedMonth.year ||
+          (i.year == _selectedMonth.year && i.month < _selectedMonth.month);
+    }).length;
   }
 
   Future<void> _confirmCancel(BuildContext context, Invoice invoice) async {
@@ -266,30 +332,42 @@ class _InvoicesTabState extends State<InvoicesTab> {
           }
 
           final allInvoices = widget.invoiceViewModel.invoices;
-          final invoices = allInvoices.where(_matchesStatus).toList();
+          final invoices = allInvoices
+              .where(_matchesStatus)
+              .where(_matchesMonth)
+              .toList();
+          // La alerta solo tiene sentido donde se ven las pendientes: en
+          // "Pagadas" y "Canceladas" no aporta.
+          final previousPending = (_statusFilter == _StatusFilter.all ||
+                  _statusFilter == _StatusFilter.pending)
+              ? _previousPendingCount(allInvoices)
+              : 0;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              Row(
-                children: [
-                  const Text(
-                    'Facturas',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.authTextPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: widget.onAdd,
-                    icon: const Icon(Icons.add_rounded),
-                    color: AppColors.authTextPrimary,
-                  ),
-                ],
+              ScreenHeader(
+                title: 'Facturas',
+                subtitle: 'Gestiona tus facturas y sus pagos.',
+                action: HeaderAddButton(
+                  tooltip: 'Nueva factura',
+                  onPressed: widget.onAdd,
+                ),
               ),
               const SizedBox(height: 16),
+              if (previousPending > 0) ...[
+                _PreviousPendingNotice(count: previousPending),
+                const SizedBox(height: 16),
+              ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: MonthFilterButton(
+                  selectedMonth: _selectedMonth,
+                  onChanged: (month) =>
+                      context.push(_urlFor(_statusFilter, month)),
+                ),
+              ),
+              const SizedBox(height: 12),
               FilterChipRow<_StatusFilter>(
                 options: const [
                   (value: _StatusFilter.all, label: 'Todas'),
@@ -300,7 +378,7 @@ class _InvoicesTabState extends State<InvoicesTab> {
                 selectedValue: _statusFilter,
                 onChanged: (value) {
                   if (value == _statusFilter) return;
-                  context.push(_queryForFilter(value));
+                  context.push(_urlFor(value, _selectedMonth));
                 },
               ),
               const SizedBox(height: 16),
@@ -361,6 +439,44 @@ class _InvoicesTabState extends State<InvoicesTab> {
           );
         },
       ),
+    );
+  }
+}
+
+/// Aviso discreto (una línea de texto, sin tarjeta) de que hay facturas
+/// pendientes en períodos anteriores al mes que se está viendo.
+class _PreviousPendingNotice extends StatelessWidget {
+  final int count;
+
+  const _PreviousPendingNotice({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = count == 1
+        ? 'Tenés 1 factura pendiente de un período anterior. '
+            'Cambiá el mes para verla.'
+        : 'Tenés $count facturas pendientes de períodos anteriores. '
+            'Cambiá el mes para verlas.';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 1),
+          child: Icon(
+            Icons.info_outline_rounded,
+            size: 16,
+            color: AppColors.authTextSecondary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTextStyles.authSubtitle.copyWith(fontSize: 13),
+          ),
+        ),
+      ],
     );
   }
 }

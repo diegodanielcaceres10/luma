@@ -491,6 +491,7 @@ GoRouter buildAppRouter({
                   // Cada push crea un InvoicesTab nuevo, así que alcanza
                   // con leer el query param una vez, al construir.
                   initialFilter: state.uri.queryParameters['filter'],
+                  initialMonth: state.uri.queryParameters['month'],
                 ),
               ),
             ),
