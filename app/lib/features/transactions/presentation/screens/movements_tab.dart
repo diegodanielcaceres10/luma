@@ -6,6 +6,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -577,27 +578,15 @@ class _MovementsTabState extends State<MovementsTab> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Movimientos',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.authTextPrimary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    _MonthSelectorPill(
-                      selectedMonth: _selectedMonth,
-                      onTap: _pickMonth,
-                    ),
-                  ],
+                ScreenHeader(
+                  title: 'Movimientos',
+                  subtitle: 'Revisa y filtra tus ingresos y gastos.',
+                  action: _MonthSelectorPill(
+                    selectedMonth: _selectedMonth,
+                    onTap: _pickMonth,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 FilterChipRow<_TypeFilter>(
                   options: const [
                     (value: _TypeFilter.all, label: 'Todos'),

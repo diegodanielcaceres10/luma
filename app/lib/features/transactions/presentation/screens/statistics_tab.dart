@@ -5,9 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/transaction_entry.dart' show TransactionCategory;
@@ -539,31 +539,14 @@ class _StatisticsHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Expanded(
-              child: Text(
-                'Estadísticas',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            _MonthSelectorPill(
-              selectedMonth: selectedMonth,
-              onTap: onTapMonthSelector,
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Analiza tus ingresos, gastos y mantén el control de tus finanzas.',
-          style: AppTextStyles.authSubtitle,
+        ScreenHeader(
+          title: 'Estadísticas',
+          subtitle:
+              'Analiza tus ingresos, gastos y mantén el control de tus finanzas.',
+          action: _MonthSelectorPill(
+            selectedMonth: selectedMonth,
+            onTap: onTapMonthSelector,
+          ),
         ),
         if (onExportPdf != null) ...[
           const SizedBox(height: 14),
