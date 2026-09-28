@@ -51,10 +51,8 @@ class PreferencesViewModel extends ChangeNotifier {
         () => _repository.setBiometricLockEnabled(value),
       );
 
-  /// Actualiza el estado en memoria al toque (para que el control reaccione
-  /// al instante) y recién después persiste. Si falla el guardado local
-  /// (poco común: sin espacio, storage no disponible, etc.), se revierte el
-  /// valor en memoria y se informa el error.
+  /// Updates the in-memory state first, then persists. If persisting fails,
+  /// the previous value is restored and the error is reported.
   Future<void> _applyAndPersist(
     AppPreferences Function(AppPreferences current) apply,
     Future<void> Function() persist,

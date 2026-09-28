@@ -14,28 +14,17 @@ const _currencyLabels = {
   'ARS': 'ARS — Peso argentino',
 };
 
-/// Pantalla de preferencias del usuario. Se abre como ruta propia (push)
-/// desde ProfileScreen — ver router.dart ('/profile/preferences').
-///
-/// Cada control guarda su valor al toque (no hay botón "Guardar"). De
-/// todas las preferencias, solo el bloqueo con biometría ya cambia el
-/// comportamiento real de la app (ver AppLockViewModel) — moneda, tema y
-/// notificaciones por ahora solo se guardan.
+/// User preferences screen, opened from ProfileScreen. Each control saves
+/// immediately; there is no "Guardar" button.
 class PreferencesScreen extends StatefulWidget {
   final PreferencesViewModel viewModel;
 
-  /// Se usa para saber si el dispositivo soporta biometría/bloqueo de
-  /// pantalla (`appLockViewModel.isSupported`) y para refrescar ese
-  /// chequeo al entrar a esta pantalla — ver `initState` y
-  /// `AppLockViewModel.refreshSupport`. Si no está soportado, el switch de
-  /// biometría se muestra pero deshabilitado. En web (`kIsWeb`), tanto
-  /// notificaciones como biometría se muestran siempre deshabilitadas
-  /// (no hay soporte nativo), con una leyenda propia que lo explica.
+  /// Tells whether the device supports biometric lock; the switch is shown
+  /// disabled when it does not. On web, notifications and biometrics are
+  /// always disabled.
   final AppLockViewModel appLockViewModel;
 
-  /// Se llama al tocar "atrás". Se recibe por parámetro (en vez de usar
-  /// `context.goBack()` acá adentro) para seguir el mismo patrón de
-  /// callback que el resto de las pantallas con formulario.
+  /// Called when the back button is tapped.
   final VoidCallback onBack;
 
   const PreferencesScreen({
@@ -53,17 +42,11 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   @override
   void initState() {
     super.initState();
-    // No se llama a loadPreferences() acá: igual que el resto de los
-    // ViewModels (ver CategoryViewModel/AccountViewModel), la carga
-    // inicial la dispara una sola vez app.dart al arrancar la app, no cada
-    // pantalla que los usa.
+    // Preferences are loaded once at startup in app.dart, not per screen.
     widget.viewModel.addListener(_onViewModelChanged);
 
-    // Este sí se re-chequea cada vez que se abre la pantalla: a diferencia
-    // de las preferencias, "¿el dispositivo tiene bloqueo de pantalla
-    // configurado?" puede cambiar en cualquier momento (el usuario puede
-    // ir a Ajustes del sistema y configurarlo sin cerrar la app) — ver
-    // AppLockViewModel.refreshSupport.
+    // Re-checked on every open: the user may enable a device lock in system
+    // settings while the app is running.
     widget.appLockViewModel.addListener(_onViewModelChanged);
     widget.appLockViewModel.refreshSupport();
   }

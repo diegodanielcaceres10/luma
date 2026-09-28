@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../auth/presentation/view_models/auth_view_model.dart';
-import '../../../preferences/presentation/view_models/preferences_view_model.dart';
+import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../data/services/biometric_service.dart';
 
 /// How long the app may stay in the background before biometrics are

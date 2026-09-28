@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../preferences/presentation/view_models/preferences_view_model.dart';
+import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../data/models/account.dart';
 import '../../data/repositories/account_repository.dart';
 

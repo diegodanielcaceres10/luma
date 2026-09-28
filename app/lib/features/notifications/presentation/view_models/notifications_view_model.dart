@@ -1,4 +1,4 @@
-import '../../../preferences/presentation/view_models/preferences_view_model.dart';
+import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../data/services/local_notifications_service.dart';
 import '../../data/services/notification_scheduler_service.dart';
 

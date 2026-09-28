@@ -3,9 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../../../../core/config/app_env.dart';
+import '../../../auth/data/repositories/preferences_repository.dart';
 import '../../../invoices/data/repositories/invoice_repository.dart';
 import '../../../invoices/data/services/invoice_service.dart';
-import '../../../preferences/data/repositories/preferences_repository.dart';
 import '../../../services/data/repositories/service_repository.dart';
 import '../../../services/data/services/service_service.dart';
 import 'local_notifications_service.dart';

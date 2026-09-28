@@ -1,28 +1,19 @@
-/// Monedas soportadas hoy (lista fija, no editable por el usuario). Código
-/// ISO 4217. Si se suma una nueva, agregarla acá y en el mapa de labels de
+/// Supported ISO 4217 currency codes. A new code also needs a label in
 /// PreferencesScreen.
 const List<String> kSupportedCurrencyCodes = ['USD', 'EUR', 'BRL', 'ARS'];
 
-/// Preferencias del usuario que se guardan solo en este dispositivo (ver
-/// PreferencesRepository) — no viajan entre dispositivos ni sobreviven a un
-/// reinstall. A diferencia del resto de los datos de la app (cuentas,
-/// categorías, etc.), no están pensadas para sincronizarse vía Supabase.
+/// User preferences stored only on this device (see PreferencesRepository).
 ///
-/// Importante: moneda y tema por ahora solo se guardan — todavía no
-/// cambian nada del comportamiento real de la app. [biometricLockEnabled]
-/// y [notificationsEnabled] son la excepción: sí se aplican de verdad —
-/// ver AppLockViewModel (feature `home`) y NotificationsViewModel /
-/// NotificationSchedulerService (feature `notifications`),
-/// respectivamente.
+/// Currency and theme are only stored for now; [biometricLockEnabled] and
+/// [notificationsEnabled] are applied by AppLockViewModel and
+/// NotificationsViewModel.
 class AppPreferences {
   final String currencyCode;
   final bool darkThemeEnabled;
   final bool notificationsEnabled;
 
-  /// Preferencia de bloqueo con biometría. Se aplica de verdad: cuando
-  /// está en `true` (y el dispositivo lo soporta), `AppLockViewModel`
-  /// bloquea la app al abrirla y al volver de segundo plano, pidiendo
-  /// Face ID/huella/PIN vía `local_auth` — ver feature `home`.
+  /// When true (and supported), AppLockViewModel locks the app on open and
+  /// on resume.
   final bool biometricLockEnabled;
 
   const AppPreferences({

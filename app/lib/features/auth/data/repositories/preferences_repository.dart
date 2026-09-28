@@ -2,15 +2,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_preferences.dart';
 
-/// Persiste [AppPreferences] solo en este dispositivo, con la API async de
-/// `shared_preferences` (`SharedPreferencesAsync`) — la recomendada por el
-/// paquete hoy; la clase `SharedPreferences` legacy (con cache y
-/// `getInstance()`) queda deprecada a futuro.
-///
-/// A diferencia de `category_repository.dart`/`account_repository.dart`
-/// (que delegan en un `*_service` que habla con Supabase), acá no hay una
-/// capa `service` separada: no hay cliente de red que aislar, así que el
-/// repositorio envuelve `SharedPreferencesAsync` directo.
+/// Persists [AppPreferences] on this device with `SharedPreferencesAsync`.
+/// There is no separate service layer because there is no network client.
 class PreferencesRepository {
   final SharedPreferencesAsync _prefs;
 
@@ -22,8 +15,7 @@ class PreferencesRepository {
   static const _notificationsEnabledKey = 'preferences.notifications_enabled';
   static const _biometricLockEnabledKey = 'preferences.biometric_lock_enabled';
 
-  /// Lee todas las preferencias guardadas. Cualquier valor ausente (primera
-  /// vez que se abre la app, o instalación nueva) cae al default de
+  /// Loads the saved preferences; missing values fall back to
   /// [AppPreferences.defaults].
   Future<AppPreferences> load() async {
     const defaults = AppPreferences.defaults();
