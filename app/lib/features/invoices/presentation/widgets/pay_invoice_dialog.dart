@@ -30,7 +30,6 @@ class PayInvoiceDialog extends StatefulWidget {
   final String currency;
 
   const PayInvoiceDialog({
-    super.key,
     required this.invoice,
     required this.serviceName,
     required this.category,
@@ -165,7 +164,7 @@ class _PayInvoiceDialogState extends State<PayInvoiceDialog> {
                   const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(color: AppColors.authTextPrimary),
               decoration: _fieldDecoration.copyWith(
-                prefixText: '€ ',
+                prefixText: '${currencySymbol(widget.currency)} ',
                 prefixStyle: const TextStyle(color: AppColors.authTextPrimary),
                 errorText: _amountError,
                 errorStyle: const TextStyle(color: AppColors.authExpense),
