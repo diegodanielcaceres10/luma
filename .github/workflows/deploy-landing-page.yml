@@ -64,6 +64,12 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
 
+    # Job-level permissions replace the workflow-level ones entirely.
+    # checks: write is required by github.rest.checks.create.
+    permissions:
+      contents: read
+      checks: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -176,7 +182,9 @@ jobs:
                 }
               }
 
-              const firstEntry = manifest.length ? manifest[0] : null;
+              const firstEntry = manifest.length
+                ? (manifest.find((entry) => entry.isRepresentativeRun) ?? manifest[0])
+                : null;
               let scores = firstEntry?.summary ?? null;
               if (!scores && Array.isArray(assertionResults) && assertionResults.length) {
                 const map = {};
