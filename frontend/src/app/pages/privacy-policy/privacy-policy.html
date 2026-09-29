@@ -1,130 +1,100 @@
-<main class="min-h-screen bg-[#F7F8F4] text-neutral-900">
-  <!-- Top bar -->
-  <header class="mx-auto flex max-w-7xl items-center gap-2 px-6 pt-8 lg:px-12">
-    <a routerLink="/" class="flex items-center gap-2">
-      <img src="logo.png" alt="Luma" class="h-8 w-8" />
-      <span class="text-xl font-bold">Luma</span>
-    </a>
-  </header>
+<div class="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col justify-between">
+  <app-navbar></app-navbar>
 
-  <section class="mx-auto max-w-2xl px-6 py-16">
+  <main class="mx-auto max-w-3xl px-6 pt-36 pb-24 sm:px-8">
     <a
       routerLink="/"
-      class="mb-8 inline-block text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-900"
+      class="mb-8 inline-flex items-center gap-2 text-sm text-neutral-400 underline underline-offset-4 hover:text-emerald-400 transition-colors"
     >
-      ← Volver
+      ← Volver al inicio
     </a>
 
-    <h1 class="mb-2 text-3xl font-bold tracking-tight">Política de privacidad</h1>
-    <p class="mb-10 text-sm text-neutral-500">Última actualización: {{ lastUpdated }}</p>
-
-    <div class="space-y-8 text-neutral-600">
-      <section>
-        <h2 class="mb-2 text-lg font-semibold text-neutral-900">1. Sobre Luma</h2>
-        <p>
-          Luma es un proyecto personal y educativo, desarrollado con fines de aprendizaje.
-          No es un producto comercial ni un servicio financiero regulado, y no debe
-          considerarse un sustituto de asesoramiento financiero profesional.
-        </p>
-      </section>
-
-      <section>
-        <h2 class="mb-2 text-lg font-semibold text-neutral-900">2. Qué datos se recopilan</h2>
-        <p class="mb-2">Para poder usar la app, se recopilan y almacenan:</p>
-        <ul class="list-disc space-y-1 pl-5">
-          <li>Datos de tu cuenta (email y nombre) provistos al iniciar sesión con Google.</li>
-          <li>
-            Información financiera que cargás vos mismo: cuentas, categorías,
-            transacciones, presupuestos, servicios y facturas asociadas.
-          </li>
-        </ul>
-      </section>
-
-      <section>
-        <h2 class="mb-2 text-lg font-semibold text-neutral-900">3. Cómo se usan tus datos</h2>
-        <p>
-          Los datos se usan únicamente para que la app funcione: mostrar tus movimientos,
-          calcular balances y generar los insights y reportes que vos mismo pedís
-          (incluida la exportación en PDF). No se venden, comparten ni usan con fines
-          publicitarios ni comerciales.
-        </p>
-      </section>
-
-      <section>
-        <h2 class="mb-2 text-lg font-semibold text-neutral-900">4. Dónde se almacenan</h2>
-        <p>
-          Los datos se almacenan en <strong>Supabase</strong> (autenticación, base de datos
-          y storage). La autenticación se realiza mediante <strong>Google Sign-In</strong>.
-          Ninguno de tus datos se comparte con terceros más allá de estos proveedores
-          de infraestructura, necesarios para el funcionamiento de la app.
-        </p>
-      </section>
-
-      <section>
-        <h2 class="mb-2 text-lg font-semibold text-neutral-900">5. Uso educativo y personal</h2>
-        <p>
-          Este proyecto fue creado para uso personal y como ejercicio de aprendizaje.
-          No hay garantías de disponibilidad, respaldo ni soporte continuo. Se recomienda
-          no depender de Luma como única herramienta para decisiones financieras
-          importantes.
-        </p>
-      </section>
-
-      <section>
-        <h2 class="mb-2 text-lg font-semibold text-neutral-900">6. Tus derechos sobre tus datos</h2>
-        <p>
-          Podés pedir la eliminación de tu cuenta y de todos tus datos en cualquier
-          momento contactando al desarrollador a través del
-          <a
-            href="https://github.com/diegodanielcaceres10/luma"
-            target="_blank"
-            rel="noopener"
-            class="underline underline-offset-2 hover:text-neutral-900"
-          >repositorio en GitHub</a>.
-        </p>
-      </section>
-
-      <section>
-        <h2 class="mb-2 text-lg font-semibold text-neutral-900">7. Cambios a esta política</h2>
-        <p>
-          Esta política puede actualizarse a medida que el proyecto evolucione.
-          Los cambios se van a reflejar en esta misma página.
-        </p>
-      </section>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer>
-    <div class="h-px bg-gradient-to-r from-neutral-900 via-emerald-600 to-transparent" aria-hidden="true"></div>
-    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-6 sm:flex-row lg:px-12">
-      <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-        <a routerLink="/" class="flex items-center gap-2">
-          <img src="logo.png" alt="Luma" class="h-6 w-6" />
-          <span class="text-base font-bold text-neutral-900">Luma</span>
-        </a>
-        <span class="hidden h-4 w-px bg-neutral-300 sm:inline-block" aria-hidden="true"></span>
-        <span class="text-sm text-neutral-500">Por Diego Caceres</span>
-        <a
-          href="#"
-          target="_blank"
-          rel="noopener"
-          class="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700"
-        >
-          Ver portfolio
-          <span aria-hidden="true">→</span>
-        </a>
+    <div class="rounded-3xl border border-white/[0.08] bg-neutral-900/40 p-8 sm:p-12 backdrop-blur-xl">
+      <div class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/30 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-4">
+        Transparencia
       </div>
+      <h1 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-2">
+        Política de Privacidad
+      </h1>
+      <p class="text-xs text-neutral-400 mb-8 border-b border-neutral-800 pb-4">
+        Última actualización: {{ lastUpdated }}
+      </p>
 
-      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-        <a routerLink="/privacidad" class="text-sm text-neutral-600 underline-offset-2 hover:text-neutral-900 hover:underline">
-          Política de privacidad
-        </a>
-        <a routerLink="/condiciones" class="text-sm text-neutral-600 underline-offset-2 hover:text-neutral-900 hover:underline">
-          Términos de servicio
-        </a>
-        <span class="text-xs text-neutral-400">© {{ year }} Luma. Todos los derechos reservados.</span>
+      <div class="space-y-8 text-sm sm:text-base text-neutral-300 leading-relaxed">
+        <section>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">1. Sobre Luma</h2>
+          <p>
+            Luma es un proyecto personal y educativo, desarrollado con fines de aprendizaje.
+            No es un producto comercial ni un servicio financiero regulado, y no debe
+            considerarse un sustituto de asesoramiento financiero profesional.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">2. Qué datos se recopilan</h2>
+          <p class="mb-2">Para poder usar la app, se recopilan y almacenan:</p>
+          <ul class="list-disc space-y-1 pl-5 text-neutral-400">
+            <li>Datos de tu cuenta (email y nombre) provistos al iniciar sesión con Google.</li>
+            <li>
+              Información financiera que cargás vos mismo: cuentas, categorías,
+              transacciones, presupuestos, servicios y facturas asociadas.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">3. Cómo se usan tus datos</h2>
+          <p>
+            Los datos se usan únicamente para que la app funcione: mostrar tus movimientos,
+            calcular balances y generar los insights y reportes que vos mismo pedís
+            (incluida la exportación en PDF). No se venden, comparten ni usan con fines
+            publicitarios ni comerciales.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">4. Dónde se almacenan</h2>
+          <p>
+            Los datos se almacenan en <strong>Supabase</strong> (autenticación, base de datos
+            PostgreSQL con políticas RLS y storage). La autenticación se realiza mediante <strong>Google Sign-In</strong>.
+            Ninguno de tus datos se comparte con terceros más allá de estos proveedores
+            de infraestructura indispensables para el funcionamiento.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">5. Uso educativo y personal</h2>
+          <p>
+            Este proyecto fue creado para uso personal y como ejercicio de aprendizaje.
+            No hay garantías de disponibilidad, respaldo ni soporte continuo. Se recomienda
+            no depender de Luma como única herramienta para decisiones financieras importantes.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">6. Tus derechos sobre tus datos</h2>
+          <p>
+            Podés pedir la eliminación de tu cuenta y de todos tus datos en cualquier
+            momento contactando al desarrollador a través del
+            <a
+              href="https://github.com/diegodanielcaceres10/luma"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+            >repositorio en GitHub</a>.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">7. Cambios a esta política</h2>
+          <p>
+            Esta política puede actualizarse a medida que el proyecto evolucione.
+            Los cambios se van a reflejar en esta misma página.
+          </p>
+        </section>
       </div>
     </div>
-  </footer>
-</main>
+  </main>
+
+  <app-footer></app-footer>
+</div>
