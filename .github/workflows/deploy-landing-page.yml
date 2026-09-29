@@ -1,0 +1,262 @@
+﻿name: Deploy Angular to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Angular (SSG)
+        run: npx ng build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist/frontend/browser
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  lighthouse:
+    name: Lighthouse
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run Lighthouse CI Desktop
+        id: lhci-d
+        continue-on-error: true
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: ./frontend/lighthouserc.desktop.json
+          uploadArtifacts: false
+          temporaryPublicStorage: true
+
+      - name: Run Lighthouse CI Mobile
+        id: lhci-m
+        continue-on-error: true
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: ./frontend/lighthouserc.mobile.json
+          uploadArtifacts: false
+          temporaryPublicStorage: true
+
+      - name: Publish Lighthouse check
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          LHCI_D_LINKS: ${{ steps.lhci-d.outputs.links }}
+          LHCI_D_MANIFEST: ${{ steps.lhci-d.outputs.manifest }}
+          LHCI_D_ASSERTION_RESULTS: ${{ steps.lhci-d.outputs.assertionResults }}
+          LHCI_D_RESULTS_PATH: ${{ steps.lhci-d.outputs.resultsPath }}
+          LHCI_M_LINKS: ${{ steps.lhci-m.outputs.links }}
+          LHCI_M_MANIFEST: ${{ steps.lhci-m.outputs.manifest }}
+          LHCI_M_ASSERTION_RESULTS: ${{ steps.lhci-m.outputs.assertionResults }}
+          LHCI_M_RESULTS_PATH: ${{ steps.lhci-m.outputs.resultsPath }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const parseJsonOrPath = (raw, fallback) => {
+              if (!raw || !raw.trim()) return fallback;
+              const value = raw.trim();
+              try {
+                return JSON.parse(value);
+              } catch {
+                const maybePath = value.replace(/^['"]|['"]$/g, '');
+                if (fs.existsSync(maybePath)) {
+                  try {
+                    return JSON.parse(fs.readFileSync(maybePath, 'utf8'));
+                  } catch {
+                    return fallback;
+                  }
+                }
+                return fallback;
+              }
+            };
+
+            const extractFirstUrl = (value) => {
+              if (!value) return null;
+              if (typeof value === 'string') {
+                const match = value.match(/https?:\/\/[^\s'",]+/);
+                return match ? match[0] : null;
+              }
+              if (Array.isArray(value)) {
+                for (const item of value) {
+                  const found = extractFirstUrl(item);
+                  if (found) return found;
+                }
+                return null;
+              }
+              if (typeof value === 'object') {
+                for (const item of Object.values(value)) {
+                  const found = extractFirstUrl(item);
+                  if (found) return found;
+                }
+              }
+              return null;
+            };
+
+            const buildSection = (label, prefix) => {
+              let links = parseJsonOrPath(process.env[`${prefix}_LINKS`], {});
+              let manifest = parseJsonOrPath(process.env[`${prefix}_MANIFEST`], []);
+              const assertionResults = parseJsonOrPath(process.env[`${prefix}_ASSERTION_RESULTS`], []);
+              const resultsPath = (process.env[`${prefix}_RESULTS_PATH`] || '').trim();
+              if (!Array.isArray(manifest)) manifest = [];
+
+              if (!manifest.length) {
+                const candidates = [
+                  '.lighthouseci/manifest.json',
+                  'frontend/.lighthouseci/manifest.json',
+                  'lhci_reports/manifest.json'
+                ];
+                for (const file of candidates) {
+                  if (!fs.existsSync(file)) continue;
+                  const parsed = parseJsonOrPath(file, []);
+                  if (Array.isArray(parsed) && parsed.length) {
+                    manifest = parsed;
+                    break;
+                  }
+                }
+              }
+
+              const firstEntry = manifest.length ? manifest[0] : null;
+              let scores = firstEntry?.summary ?? null;
+              if (!scores && Array.isArray(assertionResults) && assertionResults.length) {
+                const map = {};
+                for (const row of assertionResults) {
+                  if (!row || typeof row !== 'object' || typeof row.id !== 'string') continue;
+                  const score = typeof row.score === 'number' ? row.score : null;
+                  if (score == null) continue;
+                  if (row.id === 'categories:performance') map.performance = score;
+                  if (row.id === 'categories:accessibility') map.accessibility = score;
+                  if (row.id === 'categories:best-practices') map['best-practices'] = score;
+                  if (row.id === 'categories:seo') map.seo = score;
+                }
+                if (Object.keys(map).length) scores = map;
+              }
+              if (!scores && firstEntry?.jsonPath && fs.existsSync(firstEntry.jsonPath)) {
+                try {
+                  const lhr = JSON.parse(fs.readFileSync(firstEntry.jsonPath, 'utf8'));
+                  const categories = lhr?.categories ?? {};
+                  scores = {
+                    performance: categories.performance?.score,
+                    accessibility: categories.accessibility?.score,
+                    'best-practices': categories['best-practices']?.score,
+                    seo: categories.seo?.score
+                  };
+                } catch {
+                  scores = null;
+                }
+              }
+
+              let section = `### ${label}\n`;
+              if (scores) {
+                section += `Performance: ${Math.round((scores.performance ?? 0) * 100)}%\n`;
+                section += `Accessibility: ${Math.round((scores.accessibility ?? 0) * 100)}%\n`;
+                section += `Best Practices: ${Math.round((scores['best-practices'] ?? 0) * 100)}%\n`;
+                section += `SEO: ${Math.round((scores.seo ?? 0) * 100)}%\n`;
+              } else {
+                section += 'Scores were not available in action outputs.\n';
+              }
+
+              const firstReport =
+                extractFirstUrl(links) ||
+                extractFirstUrl(firstEntry) ||
+                extractFirstUrl(assertionResults) ||
+                extractFirstUrl(resultsPath) ||
+                extractFirstUrl(process.env[`${prefix}_LINKS`]) ||
+                extractFirstUrl(process.env[`${prefix}_MANIFEST`]);
+
+              if (firstReport) {
+                section += `Report: ${firstReport}\n`;
+              } else {
+                section += 'Report link not available in action outputs.\n';
+                if (resultsPath) {
+                  section += `Results path: ${resultsPath}\n`;
+                }
+              }
+
+              return section;
+            };
+
+            const summary = [
+              'Lighthouse combined audit completed.\n',
+              buildSection('Desktop', 'LHCI_D'),
+              '',
+              buildSection('Mobile', 'LHCI_M')
+            ].join('\n');
+
+            if (process.env.GITHUB_STEP_SUMMARY) {
+              const markdown = `\n## Lighthouse Results\n\n${summary}\n`;
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdown);
+            }
+
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'Lighthouse Results',
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: 'success',
+              output: {
+                title: 'Google Lighthouse',
+                summary
+              }
+            });
