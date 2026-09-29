@@ -399,7 +399,9 @@ class _AccountUpdateBalanceScreenState
         ),
       ),
       onPressed: !isLastStep
-          ? (_isSaving ? null : () => setState(() => _currentStep += 1))
+          ? (_isSaving || (isFirstStep && _difference == null)
+              ? null
+              : () => setState(() => _currentStep += 1))
           : (_difference == null || _isSaving ? null : _saveAndUpdateBalance),
       child: !isLastStep
           ? const Text('Siguiente',
