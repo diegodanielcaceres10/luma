@@ -30,304 +30,45 @@
 
     <!-- Inner Application Dashboard Mockup -->
     <div class="rounded-2xl border border-white/[0.06] bg-neutral-900/60 p-4 sm:p-6 lg:p-8">
-      <!-- App Header & Metrics Overview -->
-      <div class="grid gap-6 lg:grid-cols-3 mb-8">
-        <!-- Total Balance Main Card (Spans 2 cols on lg) -->
-        <div
-          class="lg:col-span-2 rounded-2xl border border-white/[0.08] bg-gradient-to-br from-neutral-900/90 to-neutral-950/90 p-6 relative overflow-hidden"
-        >
-          <div
-            class="absolute -right-10 -bottom-10 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"
-          ></div>
+      <!-- Real Android screenshots (displayed below native 330px width to stay sharp) -->
+      <div
+        class="flex snap-x snap-mandatory items-center gap-4 overflow-x-auto pb-2 sm:justify-center sm:gap-6 sm:overflow-visible sm:pb-0"
+      >
+        <figure class="shrink-0 snap-center text-center">
+          <img
+            src="screens/screen-login.png"
+            alt="Pantalla de inicio de sesión de Luma con Google"
+            width="330"
+            height="717"
+            loading="lazy"
+            class="w-44 rounded-2xl border border-white/10 shadow-xl shadow-emerald-950/40 sm:w-48 lg:w-52"
+          />
+          <figcaption class="mt-3 text-xs font-medium text-neutral-400">Acceso</figcaption>
+        </figure>
 
-          <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-            <div>
-              <span class="text-xs font-semibold uppercase tracking-wider text-neutral-400"
-                >Patrimonio Neto Consolidado</span
-              >
-              <div class="flex items-baseline gap-3 mt-1">
-                <span
-                  class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white"
-                  >$24,850.50</span
-                >
-                <span
-                  class="inline-flex items-center text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20"
-                >
-                  ↑ +14.2% este mes
-                </span>
-              </div>
-            </div>
+        <figure class="shrink-0 snap-center text-center">
+          <img
+            src="screens/screen-home.png"
+            alt="Pantalla de inicio de Luma con balance del mes y últimos movimientos"
+            width="330"
+            height="717"
+            loading="lazy"
+            class="w-48 rounded-2xl border border-emerald-500/30 shadow-2xl shadow-emerald-500/20 sm:w-56 lg:w-60"
+          />
+          <figcaption class="mt-3 text-xs font-medium text-emerald-300">Inicio</figcaption>
+        </figure>
 
-            <!-- Quick Action Pills -->
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                class="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-neutral-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-400 transition-colors"
-              >
-                + Movimiento
-              </button>
-              <button
-                type="button"
-                class="rounded-lg border border-neutral-700 bg-neutral-800/60 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:border-neutral-500 transition-colors"
-              >
-                Exportar PDF
-              </button>
-            </div>
-          </div>
-
-          <!-- Luminous SVG Balance Trend Curve -->
-          <div class="mt-6 pt-4 border-t border-neutral-800/80">
-            <div class="flex justify-between text-xs text-neutral-400 mb-2">
-              <span>Evolución mensual (Últimos 30 días)</span>
-              <span class="text-emerald-400 font-medium">Máx: $25,100</span>
-            </div>
-            <div class="relative h-28 w-full overflow-hidden">
-              <svg
-                class="h-full w-full overflow-visible"
-                viewBox="0 0 500 100"
-                preserveAspectRatio="none"
-              >
-                <defs>
-                  <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="#05df72" stop-opacity="0.35" />
-                    <stop offset="100%" stop-color="#05df72" stop-opacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <!-- Area Fill -->
-                <path
-                  d="M 0,80 Q 80,75 140,55 T 280,45 T 380,25 T 500,10 L 500,100 L 0,100 Z"
-                  fill="url(#emeraldGrad)"
-                />
-                <!-- Line Stroke -->
-                <path
-                  d="M 0,80 Q 80,75 140,55 T 280,45 T 380,25 T 500,10"
-                  fill="none"
-                  stroke="#05df72"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                />
-                <!-- Highlight Indicator Node -->
-                <circle cx="500" cy="10" r="5" fill="#05df72" stroke="#ffffff" stroke-width="2" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <!-- Monthly Insights Quick Card -->
-        <div
-          class="rounded-2xl border border-white/[0.08] bg-neutral-900/80 p-6 flex flex-col justify-between"
-        >
-          <div>
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-xs font-semibold uppercase tracking-wider text-neutral-400"
-                >Resumen Octubre</span
-              >
-              <span
-                class="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400"
-                >En meta</span
-              >
-            </div>
-
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-neutral-300">Ingresos Totales</span>
-                <span class="text-sm font-semibold text-emerald-400">+$6,420.00</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-neutral-300">Gastos Registrados</span>
-                <span class="text-sm font-semibold text-neutral-200">-$2,140.30</span>
-              </div>
-              <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
-                <span class="text-sm font-medium text-neutral-400">Ahorro Neto</span>
-                <span class="text-sm font-bold text-white">+$4,279.70 (66.6%)</span>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="mt-6 rounded-xl border border-emerald-500/20 bg-emerald-950/30 p-3 text-xs text-neutral-300"
-          >
-            <span class="font-semibold text-emerald-400">💡 Insight inteligente:</span>
-            Tus gastos fijos disminuyeron un 8% respecto al mes anterior.
-          </div>
-        </div>
-      </div>
-
-      <!-- Subgrid: Accounts, Budgets, Recent Activity -->
-      <div class="grid gap-6 md:grid-cols-3">
-        <!-- Mis Cuentas -->
-        <div class="rounded-2xl border border-white/[0.06] bg-neutral-950/50 p-5">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-semibold uppercase tracking-wider text-neutral-400"
-              >Cuentas Vinculadas</span
-            >
-            <span class="text-xs text-neutral-500">3 Activas</span>
-          </div>
-
-          <div class="space-y-3">
-            <div
-              class="flex items-center justify-between rounded-xl border border-neutral-800/80 bg-neutral-900/60 p-3"
-            >
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400"
-                >
-                  🏦
-                </div>
-                <div>
-                  <div class="text-xs font-semibold text-white">Banco Santander</div>
-                  <div class="text-[11px] text-neutral-400">Cuenta Corriente</div>
-                </div>
-              </div>
-              <span class="text-xs font-bold text-white">$14,200.00</span>
-            </div>
-
-            <div
-              class="flex items-center justify-between rounded-xl border border-neutral-800/80 bg-neutral-900/60 p-3"
-            >
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400"
-                >
-                  📱
-                </div>
-                <div>
-                  <div class="text-xs font-semibold text-white">Billetera Inversión</div>
-                  <div class="text-[11px] text-neutral-400">Rendimiento USD</div>
-                </div>
-              </div>
-              <span class="text-xs font-bold text-white">$8,450.50</span>
-            </div>
-
-            <div
-              class="flex items-center justify-between rounded-xl border border-neutral-800/80 bg-neutral-900/60 p-3"
-            >
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-800 text-neutral-300"
-                >
-                  💵
-                </div>
-                <div>
-                  <div class="text-xs font-semibold text-white">Efectivo</div>
-                  <div class="text-[11px] text-neutral-400">Caja de Reserva</div>
-                </div>
-              </div>
-              <span class="text-xs font-bold text-white">$2,200.00</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Presupuestos Dinámicos -->
-        <div class="rounded-2xl border border-white/[0.06] bg-neutral-950/50 p-5">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-semibold uppercase tracking-wider text-neutral-400"
-              >Límites de Presupuesto</span
-            >
-            <span class="text-xs text-emerald-400">Octubre</span>
-          </div>
-
-          <div class="space-y-4">
-            <!-- Vivienda -->
-            <div>
-              <div class="flex justify-between text-xs mb-1.5">
-                <span class="font-medium text-neutral-200">🏠 Vivienda & Servicios</span>
-                <span class="text-neutral-400">$1,200 / $1,800</span>
-              </div>
-              <div class="h-2 w-full rounded-full bg-neutral-800 overflow-hidden">
-                <div
-                  class="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                  style="width: 66%"
-                ></div>
-              </div>
-            </div>
-
-            <!-- Alimentación -->
-            <div>
-              <div class="flex justify-between text-xs mb-1.5">
-                <span class="font-medium text-neutral-200">🍽️ Supermercado & Gastos</span>
-                <span class="text-neutral-400">$620 / $900</span>
-              </div>
-              <div class="h-2 w-full rounded-full bg-neutral-800 overflow-hidden">
-                <div
-                  class="h-full rounded-full bg-teal-400 transition-all duration-500"
-                  style="width: 68%"
-                ></div>
-              </div>
-            </div>
-
-            <!-- Ocio -->
-            <div>
-              <div class="flex justify-between text-xs mb-1.5">
-                <span class="font-medium text-neutral-200">🚀 Ocio & Proyectos</span>
-                <span class="text-neutral-400">$310 / $600</span>
-              </div>
-              <div class="h-2 w-full rounded-full bg-neutral-800 overflow-hidden">
-                <div
-                  class="h-full rounded-full bg-emerald-300 transition-all duration-500"
-                  style="width: 51%"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Actividad Reciente -->
-        <div class="rounded-2xl border border-white/[0.06] bg-neutral-950/50 p-5">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-semibold uppercase tracking-wider text-neutral-400"
-              >Movimientos Recientes</span
-            >
-            <span class="text-xs text-neutral-500">Últimos</span>
-          </div>
-
-          <div class="space-y-3">
-            <div class="flex items-center justify-between border-b border-neutral-800/50 pb-2.5">
-              <div class="flex items-center gap-2.5">
-                <div
-                  class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 text-sm"
-                >
-                  💼
-                </div>
-                <div>
-                  <div class="text-xs font-medium text-white">Honorarios Consultoría</div>
-                  <div class="text-[10px] text-neutral-400">Hoy · Banco Santander</div>
-                </div>
-              </div>
-              <span class="text-xs font-bold text-emerald-400">+$4,200.00</span>
-            </div>
-
-            <div class="flex items-center justify-between border-b border-neutral-800/50 pb-2.5">
-              <div class="flex items-center gap-2.5">
-                <div
-                  class="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-400 text-sm"
-                >
-                  💻
-                </div>
-                <div>
-                  <div class="text-xs font-medium text-white">GitHub Cloud & Copilot</div>
-                  <div class="text-[10px] text-neutral-400">Ayer · Tarjeta Black</div>
-                </div>
-              </div>
-              <span class="text-xs font-bold text-neutral-300">-$24.00</span>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2.5">
-                <div
-                  class="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-800 text-neutral-300 text-sm"
-                >
-                  🛒
-                </div>
-                <div>
-                  <div class="text-xs font-medium text-white">Almacén de Especialidad</div>
-                  <div class="text-[10px] text-neutral-400">27 Sep · Efectivo</div>
-                </div>
-              </div>
-              <span class="text-xs font-bold text-neutral-300">-$68.50</span>
-            </div>
-          </div>
-        </div>
+        <figure class="shrink-0 snap-center text-center">
+          <img
+            src="screens/screen-charts.png"
+            alt="Pantalla de estadísticas de Luma con gastos por categoría"
+            width="330"
+            height="717"
+            loading="lazy"
+            class="w-44 rounded-2xl border border-white/10 shadow-xl shadow-emerald-950/40 sm:w-48 lg:w-52"
+          />
+          <figcaption class="mt-3 text-xs font-medium text-neutral-400">Estadísticas</figcaption>
+        </figure>
       </div>
     </div>
   </div>
