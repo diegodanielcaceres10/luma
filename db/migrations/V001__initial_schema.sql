@@ -206,6 +206,64 @@ grant execute on function public.register_uncontrolled_adjustment(
   uuid, uuid, numeric, integer, integer
 ) to authenticated;
 
+create or replace function public.create_justifying_transaction(
+  p_user_id     uuid,
+  p_account_id  uuid,
+  p_category_id uuid,
+  p_type        text,
+  p_amount      numeric,
+  p_description text,
+  p_date        date,
+  p_month       integer,
+  p_year        integer
+)
+returns uuid
+language plpgsql
+security invoker
+as $$
+declare
+  v_id    uuid;
+  v_delta numeric(12, 2);
+begin
+  if p_type = 'income' then
+    v_delta := p_amount;
+  elsif p_type = 'expense' then
+    v_delta := -p_amount;
+  else
+    raise exception 'Tipo de transacción inválido: %', p_type;
+  end if;
+
+  insert into transactions (
+    user_id, account_id, category_id, type, amount, description, date,
+    is_transfer
+  )
+  values (
+    p_user_id, p_account_id, p_category_id, p_type, p_amount, p_description,
+    p_date, false
+  )
+  returning id into v_id;
+
+  update monthly_account_balances
+  set uncontrolled_expenses_total = uncontrolled_expenses_total - v_delta
+  where account_id = p_account_id
+    and user_id = p_user_id
+    and month = p_month
+    and year = p_year;
+
+  if not found then
+    raise exception
+      'No hay saldo de apertura cargado para la cuenta % en %/%',
+      p_account_id, p_month, p_year;
+  end if;
+
+  return v_id;
+end;
+$$;
+
+grant execute on function public.create_justifying_transaction(
+  uuid, uuid, uuid, text, numeric, text, date, integer, integer
+) to authenticated;
+
 create or replace function public.delete_transaction(
   p_user_id        uuid,
   p_transaction_id uuid
