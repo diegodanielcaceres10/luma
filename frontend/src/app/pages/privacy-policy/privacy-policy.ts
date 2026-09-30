@@ -2,11 +2,13 @@ import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 
+import { NavbarComponent } from '../../components/navbar/navbar';
+import { FooterComponent } from '../../components/footer/footer';
+
 @Component({
   selector: 'app-privacy-policy',
-  imports: [RouterLink],
+  imports: [RouterLink, NavbarComponent, FooterComponent],
   templateUrl: './privacy-policy.html',
-  styleUrl: './privacy-policy.css'
 })
 export class PrivacyPolicy {
   private readonly titleService = inject(Title);
@@ -14,7 +16,7 @@ export class PrivacyPolicy {
   protected readonly lastUpdated = new Date().toLocaleDateString('es-AR', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   });
 
   constructor() {

@@ -1,3 +1,181 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+
+/* Self-hosted fonts (latin subset, SIL OFL 1.1) */
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('./fonts/playfair-display-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: italic;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('./fonts/playfair-display-latin-wght-italic.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@theme {
+  --font-serif: 'Playfair Display', Georgia, Cambria, serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --color-luma-400: #2be88c;
+  --color-luma-500: #05df72;
+  --color-luma-600: #00bf5f;
+  --color-luma-700: #00874e;
+  --color-luma-800: #04653d;
+  --color-luma-900: #054e30;
+
+  --color-obsidian-950: #050807;
+  --color-obsidian-900: #090d0b;
+  --color-obsidian-850: #0f1512;
+  --color-obsidian-800: #16201a;
+  --color-obsidian-750: #1d2a23;
+  --color-obsidian-700: #26362e;
+}
+
+/* Custom Base & Smooth Typography */
+html {
+  font-family: var(--font-sans);
+  background-color: #050807;
+  color: #f1f5f9;
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: #050807;
+  selection-background-color: #05df72;
+  selection-color: #050807;
+}
+
+::selection {
+  background-color: #05df72;
+  color: #050807;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+p, li, blockquote {
+  text-wrap: pretty;
+}
+
+/* Custom Glass & Atmosphere Utilities */
+.glass-panel {
+  background: rgba(14, 20, 17, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-panel-hover {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(20, 30, 25, 0.75);
+  border-color: rgba(5, 223, 114, 0.28);
+  box-shadow: 0 12px 40px -10px rgba(5, 223, 114, 0.12),
+              0 0 0 1px rgba(5, 223, 114, 0.15);
+  transform: translateY(-2px);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%),
+              rgba(11, 16, 13, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.emerald-glow-radial {
+  background: radial-gradient(circle at 50% 30%, rgba(5, 223, 114, 0.18) 0%, rgba(0, 135, 78, 0.06) 45%, transparent 70%);
+}
+
+.emerald-text-gradient {
+  background: linear-gradient(135deg, #ffffff 15%, #bbf7d0 50%, #05df72 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-emerald-gradient {
+  background: linear-gradient(135deg, #f0fdf4 0%, #86efac 40%, #05df72 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-primary-glow {
+  box-shadow: 0 0 25px -4px rgba(5, 223, 114, 0.45),
+              0 0 8px 0 rgba(5, 223, 114, 0.3);
+}
+
+.btn-primary-glow:hover {
+  box-shadow: 0 0 35px 2px rgba(5, 223, 114, 0.65),
+              0 0 14px 2px rgba(5, 223, 114, 0.4);
+}
+
+/* Subtle Shimmer Animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 3.5s infinite;
+}
+
+/* Pulse Animation for glowing nodes */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #050807;
+}
+::-webkit-scrollbar-thumb {
+  background: #1c2720;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3a30;
+}
