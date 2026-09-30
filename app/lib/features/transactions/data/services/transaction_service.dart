@@ -69,6 +69,40 @@ class TransactionService {
     return id as String;
   }
 
+  /// Registers a transaction that justifies part of an account's
+  /// uncontrolled (undeclared) balance for [month]/[year]. Calls the RPC
+  /// `create_justifying_transaction` instead of `create_transaction`: it
+  /// inserts the row but does NOT touch `accounts.balance` — that amount
+  /// was already applied to it when the uncontrolled difference was first
+  /// registered — and instead discounts the transaction's signed amount
+  /// from `monthly_account_balances.uncontrolled_expenses_total`, in a
+  /// single atomic operation.
+  Future<String> createJustifyingTransaction({
+    required String userId,
+    required String accountId,
+    String? categoryId,
+    required String type,
+    required double amount,
+    String? description,
+    required DateTime date,
+    required int month,
+    required int year,
+  }) async {
+    final id = await _client.rpc('create_justifying_transaction', params: {
+      'p_user_id': userId,
+      'p_account_id': accountId,
+      'p_category_id': categoryId,
+      'p_type': type,
+      'p_amount': amount,
+      'p_description': description,
+      'p_date': _formatDate(date),
+      'p_month': month,
+      'p_year': year,
+    });
+
+    return id as String;
+  }
+
   /// Updates category, description and date only. Account and amount are not
   /// editable because they affect `accounts.balance`.
   Future<void> updateTransaction({

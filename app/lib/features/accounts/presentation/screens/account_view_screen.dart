@@ -13,6 +13,7 @@ class AccountViewScreen extends StatefulWidget {
   final AccountViewModel accountViewModel;
   final VoidCallback onEdit;
   final VoidCallback onUpdateBalance;
+  final VoidCallback onJustifyUncontrolled;
   final VoidCallback onBack;
 
   const AccountViewScreen({
@@ -21,6 +22,7 @@ class AccountViewScreen extends StatefulWidget {
     required this.accountViewModel,
     required this.onEdit,
     required this.onUpdateBalance,
+    required this.onJustifyUncontrolled,
     required this.onBack,
   });
 
@@ -111,24 +113,48 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
                     ),
                     if (hasUncontrolled) ...[
                       const SizedBox(height: 16),
-                      Text(
-                        uncontrolled < 0
-                            ? 'Gasto sin declarar este mes'
-                            : 'Ingreso sin declarar este mes',
-                        style: const TextStyle(
-                          color: AppColors.authTextSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        formatCurrency(uncontrolled, currency),
-                        style: TextStyle(
-                          color: uncontrolled < 0
-                              ? AppColors.authExpense
-                              : AppColors.authIncome,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                      InkWell(
+                        onTap: widget.onJustifyUncontrolled,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  uncontrolled < 0
+                                      ? 'Gasto sin declarar este mes'
+                                      : 'Ingreso sin declarar este mes',
+                                  style: const TextStyle(
+                                    color: AppColors.authTextSecondary,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  formatCurrency(uncontrolled, currency),
+                                  style: TextStyle(
+                                    color: uncontrolled < 0
+                                        ? AppColors.authExpense
+                                        : AppColors.authIncome,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 6),
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Icon(
+                                Icons.chevron_right_rounded,
+                                color: AppColors.authTextSecondary,
+                                size: 20,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

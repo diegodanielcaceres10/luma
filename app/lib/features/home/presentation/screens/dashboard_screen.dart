@@ -570,8 +570,7 @@ class _BalanceCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${netResult >= 0 ? '+' : ''}'
-                        '${formatCurrency(netResult, currency)} este mes '
-                        '(ingresos - gastos ± ajustes)',
+                        '${formatCurrency(netResult, currency)} este mes',
                         style: TextStyle(
                           color: netResult >= 0
                               ? AppColors.authAccent

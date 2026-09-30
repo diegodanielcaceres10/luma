@@ -352,6 +352,58 @@ class TransactionViewModel extends ChangeNotifier {
     }
   }
 
+  /// Registra una transacción que justifica parte del saldo sin declarar
+  /// (`uncontrolled_expenses_total`) de una cuenta para [month]/[year]. A
+  /// diferencia de [createTransaction], no mueve `accounts.balance` — ese
+  /// monto ya se aplicó cuando se registró la diferencia sin declarar —
+  /// sino que descuenta el monto firmado de la transacción de
+  /// `uncontrolled_expenses_total`. Devuelve true si se creó
+  /// correctamente; en ese caso ya deja `_transactions` actualizado con
+  /// el mes actual recargado, igual que [createTransaction].
+  Future<bool> createJustifyingTransaction({
+    required String userId,
+    required String accountId,
+    String? categoryId,
+    required String type,
+    required double amount,
+    String? description,
+    required DateTime date,
+    required int month,
+    required int year,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    _lastCreatedTransactionId = null;
+    notifyListeners();
+
+    try {
+      _lastCreatedTransactionId = await _repository.createJustifying(
+        userId: userId,
+        accountId: accountId,
+        categoryId: categoryId,
+        type: type,
+        amount: amount,
+        description: description,
+        date: date,
+        month: month,
+        year: year,
+      );
+      await loadCurrentMonth();
+      await _refreshStatisticsMonth();
+      if (_hasLoadedAll) {
+        await loadAllTransactions();
+      }
+      return true;
+    } catch (error) {
+      _errorMessage = 'No se pudo guardar el movimiento.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
   /// Creates a transfer as two uncategorized rows flagged `isTransfer`: an
   /// expense on the origin account and an income on the destination.
   ///

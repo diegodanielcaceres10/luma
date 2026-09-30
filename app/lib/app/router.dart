@@ -5,6 +5,7 @@ import '../core/navigation/app_back.dart';
 import '../core/navigation/entity_route_guard.dart';
 import '../features/accounts/data/models/account.dart';
 import '../features/accounts/presentation/screens/account_form_screen.dart';
+import '../features/accounts/presentation/screens/account_justify_uncontrolled_screen.dart';
 import '../features/accounts/presentation/screens/account_monthly_balance_screen.dart';
 import '../features/accounts/presentation/screens/account_update_balance_screen.dart';
 import '../features/accounts/presentation/screens/account_view_screen.dart';
@@ -335,6 +336,8 @@ GoRouter buildAppRouter({
                   onEdit: () => context.push('/accounts/${account.id}/edit'),
                   onUpdateBalance: () =>
                       context.push('/accounts/${account.id}/balance'),
+                  onJustifyUncontrolled: () =>
+                      context.push('/accounts/${account.id}/justify'),
                   onBack: () => context.goBack(),
                 ),
               ),
@@ -367,6 +370,25 @@ GoRouter buildAppRouter({
                 accountViewModel,
                 state.pathParameters['id'],
                 (context, account) => AccountUpdateBalanceScreen(
+                  account: account,
+                  accountViewModel: accountViewModel,
+                  categoryViewModel: categoryViewModel,
+                  serviceViewModel: serviceViewModel,
+                  invoiceViewModel: invoiceViewModel,
+                  transactionViewModel: transactionViewModel,
+                  userId: authViewModel.userId,
+                  onDone: () => context.goBack(),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/accounts/:id/justify',
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _accountGuard(
+                accountViewModel,
+                state.pathParameters['id'],
+                (context, account) => AccountJustifyUncontrolledScreen(
                   account: account,
                   accountViewModel: accountViewModel,
                   categoryViewModel: categoryViewModel,

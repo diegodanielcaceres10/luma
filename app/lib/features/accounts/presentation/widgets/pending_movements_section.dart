@@ -164,6 +164,12 @@ class PendingMovementsSection extends StatelessWidget {
   final Widget? helperText;
   final bool enabled;
 
+  /// Which options the "Agregar movimiento" sheet offers. Defaults to all
+  /// four; a screen that only makes sense for some of them (e.g. one that
+  /// can't yet justify transfers or invoice payments without moving the
+  /// balance) can pass a smaller set.
+  final Set<PendingMovementKind> allowedKinds;
+
   const PendingMovementsSection({
     super.key,
     required this.controller,
@@ -176,31 +182,38 @@ class PendingMovementsSection extends StatelessWidget {
     this.title = 'Movimientos para justificar la diferencia',
     this.helperText,
     this.enabled = true,
+    this.allowedKinds = const {
+      PendingMovementKind.income,
+      PendingMovementKind.expense,
+      PendingMovementKind.transfer,
+      PendingMovementKind.invoice,
+    },
   });
 
   /// Opens the bottom sheet behind the "Add movement" button to pick between
-  /// Income, Expense, Transfer and Service invoice ([_MovementType]). Income
-  /// and Expense open [_AddMovementDialog] with categories filtered by that
+  /// Income, Expense, Transfer and Service invoice ([PendingMovementKind]),
+  /// filtered down to [allowedKinds]. Income and Expense open
+  /// [_AddMovementDialog] with categories filtered by that
   /// type. Transfer opens [_AddTransferDialog] to choose the other account
   /// and the direction. Service invoice first opens
   /// [_SelectPendingInvoiceSheet] to pick one and, if its category resolves,
   /// [_AddInvoiceDialog] to confirm amount and date.
   Future<void> _showAddMovementDialog(BuildContext context) async {
-    final type = await showModalBottomSheet<_MovementType>(
+    final type = await showModalBottomSheet<PendingMovementKind>(
       context: context,
       backgroundColor: AppColors.authBackgroundBottom,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => const _MovementTypeSheet(),
+      builder: (context) => _MovementTypeSheet(allowedKinds: allowedKinds),
     );
     if (type == null || !context.mounted) return;
 
     switch (type) {
-      case _MovementType.income:
-      case _MovementType.expense:
+      case PendingMovementKind.income:
+      case PendingMovementKind.expense:
         final categoryType =
-            type == _MovementType.income ? 'income' : 'expense';
+            type == PendingMovementKind.income ? 'income' : 'expense';
         return showDialog<void>(
           context: context,
           builder: (dialogContext) => _AddMovementDialog(
@@ -209,7 +222,7 @@ class PendingMovementsSection extends StatelessWidget {
             onSave: controller.add,
           ),
         );
-      case _MovementType.transfer:
+      case PendingMovementKind.transfer:
         return showDialog<void>(
           context: context,
           builder: (dialogContext) => _AddTransferDialog(
@@ -218,7 +231,7 @@ class PendingMovementsSection extends StatelessWidget {
             onSave: controller.add,
           ),
         );
-      case _MovementType.invoice:
+      case PendingMovementKind.invoice:
         return _showAddInvoiceFlow(context);
     }
   }
@@ -310,10 +323,97 @@ class PendingMovementsSection extends StatelessWidget {
   }
 }
 
-enum _MovementType { income, expense, transfer, invoice }
+/// Read-only recap of already-queued movements, without the delete button
+/// [_MovementsList] has — used in a review/confirmation step, after the
+/// user is done adding them via [PendingMovementsSection].
+class PendingMovementsReadOnlyList extends StatelessWidget {
+  final List<PendingMovement> movements;
+  final String currency;
+
+  const PendingMovementsReadOnlyList({
+    super.key,
+    required this.movements,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.authCardBorder),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < movements.length; i++) ...[
+            _MovementReadOnlyTile(movement: movements[i], currency: currency),
+            if (i < movements.length - 1)
+              const Divider(color: AppColors.authCardBorder, height: 1),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MovementReadOnlyTile extends StatelessWidget {
+  final PendingMovement movement;
+  final String currency;
+
+  const _MovementReadOnlyTile({
+    required this.movement,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = movement.amount;
+    final amountText = amount > 0
+        ? '+${formatCurrency(amount, currency)}'
+        : formatCurrency(amount, currency);
+    final amountColor =
+        amount > 0 ? AppColors.authIncome : AppColors.authExpense;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              movement.displayLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            amountText,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: amountColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+enum PendingMovementKind { income, expense, transfer, invoice }
 
 class _MovementTypeSheet extends StatelessWidget {
-  const _MovementTypeSheet();
+  final Set<PendingMovementKind> allowedKinds;
+
+  const _MovementTypeSheet({required this.allowedKinds});
 
   @override
   Widget build(BuildContext context) {
@@ -345,30 +445,38 @@ class _MovementTypeSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            _MovementTypeOption(
-              icon: Icons.arrow_downward_rounded,
-              iconColor: AppColors.authIncome,
-              label: 'Ingreso',
-              onTap: () => Navigator.of(context).pop(_MovementType.income),
-            ),
-            _MovementTypeOption(
-              icon: Icons.arrow_upward_rounded,
-              iconColor: AppColors.authExpense,
-              label: 'Gasto',
-              onTap: () => Navigator.of(context).pop(_MovementType.expense),
-            ),
-            _MovementTypeOption(
-              icon: Icons.swap_horiz_rounded,
-              iconColor: AppColors.authAccent,
-              label: 'Transferencia',
-              onTap: () => Navigator.of(context).pop(_MovementType.transfer),
-            ),
-            _MovementTypeOption(
-              icon: Icons.request_page_outlined,
-              iconColor: AppColors.authAccent,
-              label: 'Factura de servicio',
-              onTap: () => Navigator.of(context).pop(_MovementType.invoice),
-            ),
+            if (allowedKinds.contains(PendingMovementKind.income))
+              _MovementTypeOption(
+                icon: Icons.arrow_downward_rounded,
+                iconColor: AppColors.authIncome,
+                label: 'Ingreso',
+                onTap: () =>
+                    Navigator.of(context).pop(PendingMovementKind.income),
+              ),
+            if (allowedKinds.contains(PendingMovementKind.expense))
+              _MovementTypeOption(
+                icon: Icons.arrow_upward_rounded,
+                iconColor: AppColors.authExpense,
+                label: 'Gasto',
+                onTap: () =>
+                    Navigator.of(context).pop(PendingMovementKind.expense),
+              ),
+            if (allowedKinds.contains(PendingMovementKind.transfer))
+              _MovementTypeOption(
+                icon: Icons.swap_horiz_rounded,
+                iconColor: AppColors.authAccent,
+                label: 'Transferencia',
+                onTap: () =>
+                    Navigator.of(context).pop(PendingMovementKind.transfer),
+              ),
+            if (allowedKinds.contains(PendingMovementKind.invoice))
+              _MovementTypeOption(
+                icon: Icons.request_page_outlined,
+                iconColor: AppColors.authAccent,
+                label: 'Factura de servicio',
+                onTap: () =>
+                    Navigator.of(context).pop(PendingMovementKind.invoice),
+              ),
           ],
         ),
       ),
