@@ -1,11 +1,17 @@
 import { Routes } from '@angular/router';
 import { Home } from './pages/home/home';
-import { PrivacyPolicy } from './pages/privacy-policy/privacy-policy';
-import { TermsOfService } from './pages/terms-of-service/terms-of-service';
 
 export const routes: Routes = [
   { path: '', component: Home },
-  { path: 'privacidad', component: PrivacyPolicy },
-  { path: 'condiciones', component: TermsOfService },
-  { path: '**', redirectTo: '' }
+  {
+    path: 'privacidad',
+    loadComponent: () =>
+      import('./pages/privacy-policy/privacy-policy').then((m) => m.PrivacyPolicy),
+  },
+  {
+    path: 'condiciones',
+    loadComponent: () =>
+      import('./pages/terms-of-service/terms-of-service').then((m) => m.TermsOfService),
+  },
+  { path: '**', redirectTo: '' },
 ];
