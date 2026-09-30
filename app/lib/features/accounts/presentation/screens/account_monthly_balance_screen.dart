@@ -3,20 +3,27 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../invoices/presentation/view_models/invoice_view_model.dart';
+import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 import '../view_models/monthly_balance_view_model.dart';
 import '../widgets/balance_comparison_card.dart';
+import '../widgets/pending_movements_section.dart';
 
 /// Wizard to enter the opening balance of the current month for each account
 /// that lacks one. Reached from the Dashboard balance card notice.
 ///
-/// Only step 1 (opening balance) is built so far; the value is kept in memory
-/// and nothing is persisted yet.
+/// Steps 1 (opening balance) and 2 (movements justifying the difference) are
+/// built so far; both are kept in memory and nothing is persisted yet.
 class AccountMonthlyBalanceScreen extends StatefulWidget {
   final String userId;
   final List<Account> pendingAccounts;
   final AccountViewModel accountViewModel;
+  final CategoryViewModel categoryViewModel;
+  final ServiceViewModel serviceViewModel;
+  final InvoiceViewModel invoiceViewModel;
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final VoidCallback onDone;
 
@@ -25,6 +32,9 @@ class AccountMonthlyBalanceScreen extends StatefulWidget {
     required this.userId,
     required this.pendingAccounts,
     required this.accountViewModel,
+    required this.categoryViewModel,
+    required this.serviceViewModel,
+    required this.invoiceViewModel,
     required this.monthlyBalanceViewModel,
     required this.onDone,
   });
@@ -38,6 +48,7 @@ class _AccountMonthlyBalanceScreenState
     extends State<AccountMonthlyBalanceScreen> {
   final _formKey = GlobalKey<FormState>();
   final _openingBalanceController = TextEditingController();
+  final _movementsController = PendingMovementsController();
 
   int _currentStep = 0;
 
@@ -58,10 +69,21 @@ class _AccountMonthlyBalanceScreenState
 
   String get _monthLabel => _monthNames[DateTime.now().month - 1];
 
+  /// The movements justify the previous cycle, so they can only be dated in
+  /// the previous month.
+  DateTimeRange get _previousMonth {
+    final now = DateTime.now();
+    return DateTimeRange(
+      start: DateTime(now.year, now.month - 1),
+      end: DateTime(now.year, now.month, 0),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    _openingBalanceController.addListener(_onOpeningBalanceChanged);
+    _openingBalanceController.addListener(_onInputChanged);
+    _movementsController.addListener(_onInputChanged);
     if (widget.pendingAccounts.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _showIntroDialog());
     }
@@ -69,12 +91,14 @@ class _AccountMonthlyBalanceScreenState
 
   @override
   void dispose() {
-    _openingBalanceController.removeListener(_onOpeningBalanceChanged);
+    _openingBalanceController.removeListener(_onInputChanged);
     _openingBalanceController.dispose();
+    _movementsController.removeListener(_onInputChanged);
+    _movementsController.dispose();
     super.dispose();
   }
 
-  void _onOpeningBalanceChanged() {
+  void _onInputChanged() {
     if (mounted) setState(() {});
   }
 
@@ -139,6 +163,18 @@ class _AccountMonthlyBalanceScreenState
     return cents / 100;
   }
 
+  /// Part of the difference that the loaded movements don't cover: what will
+  /// be added to `uncontrolled_expenses_total`. `null` while there is no
+  /// difference to compute. Positive: an income is missing; negative: an
+  /// expense is missing.
+  double? _unjustifiedRemainder(Account account) {
+    final difference = _difference(account);
+    if (difference == null) return null;
+
+    final cents = ((difference - _movementsController.total) * 100).round();
+    return cents / 100;
+  }
+
   void _goToNextStep() {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _currentStep += 1);
@@ -159,11 +195,38 @@ class _AccountMonthlyBalanceScreenState
             currencySymbol: currencySymbol(currency),
           ),
         );
+      case 1:
+        final remainder = _unjustifiedRemainder(account);
+        return PendingMovementsSection(
+          controller: _movementsController,
+          currentAccount: account,
+          accountViewModel: widget.accountViewModel,
+          categoryViewModel: widget.categoryViewModel,
+          serviceViewModel: widget.serviceViewModel,
+          invoiceViewModel: widget.invoiceViewModel,
+          currency: currency,
+          dateRange: _previousMonth,
+          helperText: remainder == null
+              ? null
+              : Text(
+                  remainder == 0
+                      ? 'Ya justificaste toda la diferencia.'
+                      : 'Todavía falta justificar '
+                          '${remainder > 0 ? '+' : ''}'
+                          '${formatCurrency(remainder, currency)}.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: remainder == 0
+                        ? AppColors.authAccent
+                        : AppColors.authTextSecondary,
+                  ),
+                ),
+        );
       default:
         return const _StepPlaceholder(
-          title: 'Justificar movimientos',
-          message: 'Próximamente: en este paso vas a poder justificar la '
-              'diferencia con movimientos.',
+          title: 'Resumen y confirmación',
+          message: 'Próximamente: en este paso vas a poder revisar los '
+              'movimientos y confirmar el nuevo ciclo.',
         );
     }
   }
@@ -181,7 +244,8 @@ class _AccountMonthlyBalanceScreenState
           borderRadius: BorderRadius.circular(30),
         ),
       ),
-      onPressed: _currentStep == 0 && _difference(account) != null
+      onPressed: (_currentStep == 0 && _difference(account) != null) ||
+              _currentStep == 1
           ? _goToNextStep
           : null,
       child: const Text(

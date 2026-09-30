@@ -215,6 +215,9 @@ GoRouter buildAppRouter({
                         accountViewModel.activeAccounts)
                     : const [],
                 accountViewModel: accountViewModel,
+                categoryViewModel: categoryViewModel,
+                serviceViewModel: serviceViewModel,
+                invoiceViewModel: invoiceViewModel,
                 monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
               ),
