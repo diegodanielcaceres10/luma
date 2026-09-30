@@ -1,13 +1,9 @@
-/// Configuración de la app que se inyecta al compilar con
-/// `--dart-define-from-file=.env` (ver README).
+/// Build-time config injected via `--dart-define-from-file=.env` (see README).
 ///
-/// Los valores quedan compilados dentro del binario en vez de viajar como un
-/// archivo `.env` aparte: en Flutter web un asset se sirve tal cual desde
-/// `/assets/.env`, y cualquiera que abra el sitio podría descargarlo.
-///
-/// `String.fromEnvironment` solo funciona con claves literales y `const`, por
-/// eso cada variable se declara explícitamente acá. Si falta alguna, el valor
-/// es una cadena vacía.
+/// Values are compiled into the binary instead of shipped as an asset, which
+/// Flutter web would serve publicly. `String.fromEnvironment` only works with
+/// const literal keys, hence one declaration per variable; missing values
+/// are empty strings.
 class AppEnv {
   AppEnv._();
 

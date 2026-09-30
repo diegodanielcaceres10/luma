@@ -4,19 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'browser_history_stub.dart'
     if (dart.library.js_interop) 'browser_history_web.dart';
 
-/// "Volver" de la app (flechita del título de los formularios, "guardar"
-/// al terminar, etc.). Se comporta exactamente igual que el botón "atrás"
-/// del navegador o del dispositivo:
+/// App-wide "back" (form arrows, save-when-done, etc.), behaving exactly
+/// like the browser/device back button:
 ///
-/// - Web: dispara `history.back()`. Un `context.pop()` común saca la
-///   pantalla de la pila pero AGREGA una entrada nueva al historial del
-///   navegador (la URL de la pantalla a la que se vuelve), así que el
-///   "atrás" siguiente volvía a la pantalla que acababas de cerrar.
-///   Con `history.back()` el historial retrocede de verdad.
-/// - Android / iOS / escritorio: `pop()` común, que es lo que ya hace el
-///   botón "atrás" del sistema.
-/// - Si no hay historial dentro de la app (ej. se entró directo por URL,
-///   así que no hay ninguna pantalla debajo): manda al Dashboard.
+/// - Web: `history.back()`. A plain `context.pop()` removes the screen but
+///   ADDS a browser history entry, so the next back returned to the screen
+///   just closed.
+/// - Android / iOS / desktop: plain `pop()`, like the system back button.
+/// - With no in-app history (e.g. opened directly by URL): goes to the
+///   Dashboard.
 extension AppBackNavigation on BuildContext {
   void goBack() {
     final router = GoRouter.of(this);

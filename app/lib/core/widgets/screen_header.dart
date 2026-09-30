@@ -3,53 +3,22 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 
-/// Tamaño del título de [ScreenHeader]. Hoy la app usa dos:
-/// - [large]: el título grande de las pestañas de primer nivel y de las
-///   pantallas con subtítulo ("Cuentas", "Actualizar saldo").
-/// - [compact]: el título chico de listas y formularios ("Categorías",
-///   "Nueva categoría").
 enum ScreenHeaderSize { large, compact }
 
-/// Encabezado compartido de las pantallas: botón de volver (opcional),
-/// título, subtítulo (opcional) y un botón de acción a la derecha
-/// (opcional).
+/// Shared screen header: optional back button, title, optional subtitle and
+/// an optional trailing [action] slot ([HeaderAddButton], [HeaderMenuButton]).
 ///
-/// La acción es un slot ([action]) para que cada pantalla ponga lo que
-/// necesite; hay dos listas para usar en este mismo archivo:
-/// - [HeaderAddButton]: el "+" de las listas, que lleva al formulario de
-///   alta.
-/// - [HeaderMenuButton]: los tres puntos, que despliegan más opciones.
-///
-/// No agrega padding exterior ni espacio inferior: quien lo usa decide
-/// el margen de la pantalla y la separación con el contenido que sigue
-/// (igual que las filas de título que reemplaza).
-///
-/// Ejemplo (lista con alta):
-/// ```dart
-/// ScreenHeader(
-///   title: 'Cuentas',
-///   subtitle: 'Gestiona tus cuentas.',
-///   onBack: () => context.pop(),
-///   action: HeaderAddButton(onPressed: () => context.push('/accounts/new')),
-/// )
-/// ```
+/// Adds no outer padding or bottom spacing; the caller controls both.
 class ScreenHeader extends StatelessWidget {
   final String title;
 
-  /// Texto secundario debajo del título. `null` no dibuja nada.
   final String? subtitle;
 
-  /// Acción del botón de volver. `null` oculta el botón — para las
-  /// pestañas de primer nivel, donde no hay a dónde volver.
   final VoidCallback? onBack;
 
-  /// `false` deja el botón de volver visible pero deshabilitado, para
-  /// cuando la pantalla está ocupada (ej. guardando) y volver no debe
-  /// interrumpirla. Sin efecto si [onBack] es `null`.
+  /// `false` keeps the back button visible but disabled (e.g. while saving).
   final bool backEnabled;
 
-  /// Widget a la derecha del título — ver [HeaderAddButton] y
-  /// [HeaderMenuButton]. `null` no dibuja nada.
   final Widget? action;
 
   final ScreenHeaderSize size;
@@ -114,8 +83,6 @@ class ScreenHeader extends StatelessWidget {
   }
 }
 
-/// Botón de volver de [ScreenHeader]. Mismo look que el que se repetía
-/// en cada pantalla (flecha en un `InkWell` redondo), con tooltip.
 class _BackButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
@@ -142,12 +109,9 @@ class _BackButton extends StatelessWidget {
   }
 }
 
-/// Acción "+" para [ScreenHeader.action]: en las listas, lleva al
-/// formulario de creación.
 class HeaderAddButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
-  /// Qué se crea, para lectores de pantalla y hover ("Nueva cuenta").
   final String tooltip;
 
   const HeaderAddButton({
@@ -167,15 +131,12 @@ class HeaderAddButton extends StatelessWidget {
   }
 }
 
-/// Una opción de [HeaderMenuButton].
 class HeaderMenuItem<T> {
-  /// Lo que recibe [HeaderMenuButton.onSelected] al elegirla.
   final T value;
   final String label;
   final IconData? icon;
 
-  /// Pinta la opción con el color de gasto, para acciones que borran o
-  /// no se pueden deshacer.
+  /// Uses the expense color, for destructive or irreversible actions.
   final bool destructive;
 
   const HeaderMenuItem({
@@ -186,14 +147,10 @@ class HeaderMenuItem<T> {
   });
 }
 
-/// Acción de tres puntos para [ScreenHeader.action]: despliega un menú
-/// con más opciones ([items]); al elegir una se llama a [onSelected] con
-/// su [HeaderMenuItem.value].
 class HeaderMenuButton<T> extends StatelessWidget {
   final List<HeaderMenuItem<T>> items;
   final ValueChanged<T> onSelected;
 
-  /// `false` deshabilita el botón (ej. mientras la pantalla guarda).
   final bool enabled;
 
   final String tooltip;

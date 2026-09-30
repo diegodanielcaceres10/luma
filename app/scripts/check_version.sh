@@ -1,8 +1,8 @@
 #!/bin/sh
-# Compara dos versiones semver (X.Y.Z, ignora el +build) y falla si la
-# versión nueva no es estrictamente mayor que la anterior.
+# Compares two semver versions (X.Y.Z, ignoring +build) and fails unless the
+# new one is strictly greater than the previous one.
 #
-# Uso: ./check_version.sh <version_anterior> <version_nueva>
+# Usage: ./check_version.sh <previous_version> <new_version>
 set -e
 
 PREVIOUS="${1%%+*}"

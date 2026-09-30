@@ -13,8 +13,7 @@ import 'features/home/presentation/screens/update_required_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Sin esto, go_router arma URLs con "#" en Web (ej. /#/movements) — no
-  // afecta a mobile/desktop, ahí no hay URL de por medio.
+  // Path URLs on web (no "#" in routes).
   usePathUrlStrategy();
   await initializeDateFormatting('es');
 

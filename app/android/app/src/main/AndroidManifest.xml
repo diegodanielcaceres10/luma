@@ -1,16 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Necesario en release: los manifests de debug/profile ya lo declaran,
-         pero sin esto el APK de release no puede llegar a Supabase. -->
+    <!-- Required in release; debug/profile manifests already declare it. -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- Requerido por local_auth para el prompt de biometría. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
-    <!-- Notificación de "factura que vence hoy" (feature `notifications`).
-         Permiso en runtime desde Android 13/API 33 — se pide con
-         LocalNotificationsService.requestPermission(). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <!-- Para que WorkManager pueda re-agendar la tarea diaria después de
-         que el dispositivo reinicia (si no, el SO borra los jobs
-         pendientes al arrancar). -->
+    <!-- Lets WorkManager reschedule the daily task after a reboot. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
@@ -39,9 +32,8 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- Deep link del callback de OAuth (Supabase). El scheme debe
-                 coincidir con AuthService.oauthRedirectUrl y estar cargado en
-                 Authentication > URL Configuration > Redirect URLs. -->
+            <!-- OAuth (Supabase) callback deep link; the scheme must match
+                 AuthService.oauthRedirectUrl and the configured Redirect URLs. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>

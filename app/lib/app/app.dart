@@ -34,10 +34,6 @@ import 'theme/app_system_ui.dart';
 import 'theme/app_theme.dart';
 
 class LumaApp extends StatefulWidget {
-  /// Mensaje de la Edge Function `check-app-version` cuando el estado es
-  /// "outdated_but_usable": hay una versión nueva, pero la instalada
-  /// todavía se puede seguir usando. Si no es `null`, se muestra un
-  /// diálogo informativo al abrir la app (ver [_showUpdateAvailableDialog]).
   final String? pendingUpdateMessage;
 
   const LumaApp({super.key, this.pendingUpdateMessage});
@@ -79,19 +75,11 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     final authRepository = AuthRepository(AuthService(client));
     _authViewModel = AuthViewModel(authRepository);
 
-    // Se crea antes que AccountViewModel porque este último la necesita
-    // para la moneda elegida por el usuario (ver
-    // AccountViewModel.primaryCurrency). Tampoco depende de Supabase ni de
-    // haber iniciado sesión (son preferencias del dispositivo, no del
-    // usuario logueado) — se carga siempre, no dentro de _loadUserData().
+    // Must exist before AccountViewModel (currency preference).
     _preferencesViewModel = PreferencesViewModel(PreferencesRepository());
     _preferencesViewModel.loadPreferences();
 
-    // Depende solo de _preferencesViewModel (para reaccionar al toggle de
-    // "Notificaciones habilitadas") — no de Supabase ni de la sesión, así
-    // que se puede armar ya. Igual que con `loadPreferences()`, no se
-    // espera esta llamada: si tarda, no hay razón para trabar el primer
-    // frame de la app por esto.
+    // Not awaited: a slow call shouldn't delay the first frame.
     _notificationsViewModel =
         NotificationsViewModel(preferencesViewModel: _preferencesViewModel);
     _notificationsViewModel.initialize();
@@ -100,9 +88,6 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     _accountViewModel =
         AccountViewModel(accountRepository, _preferencesViewModel);
 
-    // Se crea antes que TransactionViewModel porque este último la
-    // necesita para traer el total de ajustes no declarados
-    // (uncontrolled_expenses_total) de Estadísticas.
     final monthlyBalanceRepository =
         MonthlyBalanceRepository(MonthlyBalanceService(client));
     _monthlyBalanceViewModel =
@@ -123,8 +108,6 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     _invoiceViewModel =
         InvoiceViewModel(invoiceRepository, _transactionViewModel);
 
-    // Tampoco depende de Supabase: el bloqueo es un gate local, sobre la
-    // sesión ya iniciada — ver AppLockViewModel.
     _biometricService = BiometricService();
     _appLockViewModel = AppLockViewModel(
       biometricService: _biometricService,
@@ -140,8 +123,7 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
 
     final pendingMessage = widget.pendingUpdateMessage;
     if (pendingMessage != null) {
-      // Se espera al primer frame para poder mostrar el diálogo con el
-      // Navigator del router ya montado (ver `_router.routerDelegate`).
+      // Wait for the first frame so the router's Navigator is mounted.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showUpdateAvailableDialog(pendingMessage);
       });
@@ -177,10 +159,7 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     _invoiceViewModel.loadInvoices();
   }
 
-  // Diálogo de "hay una versión nueva, pero podés seguir usando esta"
-  // (estado "outdated_but_usable" de `check-app-version`). A propósito no
-  // tiene ningún botón de acción: se cierra tocando afuera (o "atrás"), y
-  // el usuario sigue directo a la app.
+  // No action button by design: dismissed by tapping outside or going back.
   void _showUpdateAvailableDialog(String message) {
     final context = _router.routerDelegate.navigatorKey.currentContext;
     if (context == null) return;

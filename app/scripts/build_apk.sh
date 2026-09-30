@@ -1,18 +1,15 @@
 #!/bin/sh
-# Compila el APK en modo debug (release lo genera GitHub) y lo deja en
-# app/dist/ (fuera de git) con nombre luma-app-debug-<timestamp>.apk.
+# Builds a debug APK (release is built by GitHub) into app/dist/ (git-ignored)
+# as luma-app-debug-<timestamp>.apk.
 #
-# Uso:
-#   ./scripts/build_apk.sh           # compila y lo deja en dist/
-#   INSTALL=1 ./scripts/build_apk.sh # además instala en el dispositivo conectado (adb)
+# Usage:
+#   ./scripts/build_apk.sh            # build into dist/
+#   INSTALL=1 ./scripts/build_apk.sh  # also install on the connected device (adb)
 set -e
 
-# scripts/build_apk.sh -> app/
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$APP_DIR"
 
-# Las variables (Supabase, Google) se compilan dentro del APK desde app/.env;
-# ya no viajan como asset. Ver README.
 ENV_FILE=".env"
 if [ ! -f "$ENV_FILE" ]; then
   echo "❌ No encontré app/$ENV_FILE (copiá .env.example y completalo)"
