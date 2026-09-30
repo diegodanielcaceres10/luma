@@ -155,10 +155,11 @@ class _AccountMonthlyBalanceScreenState
           textAlign: TextAlign.center,
         ),
         content: Text(
-          'Para empezar a controlar $_monthLabel ingresá el saldo con el '
-          'que arrancó la cuenta a principio de mes. Si ya tenés '
-          'movimientos cargados este mes, los justificás en los '
-          'siguientes pasos.',
+          'Esta pantalla sirve para cerrar $_previousMonthLabel: ingresá el '
+          'saldo con el que arrancó la cuenta en $_monthLabel y justificá '
+          'con movimientos de $_previousMonthLabel la diferencia con el '
+          'saldo guardado. Los movimientos de $_monthLabel no se cargan '
+          'acá: se controlan desde que termines.',
           style: const TextStyle(color: AppColors.authTextSecondary),
           textAlign: TextAlign.center,
         ),
@@ -251,8 +252,8 @@ class _AccountMonthlyBalanceScreenState
 
       if (!_adjustmentApplied) {
         if (remainder.abs() >= kRemainderEpsilon) {
-          final ensured = await widget.monthlyBalanceViewModel
-              .ensureOpeningBalance(
+          final ensured =
+              await widget.monthlyBalanceViewModel.ensureOpeningBalance(
             userId: userId,
             accountId: account.id,
             month: previous.month,
