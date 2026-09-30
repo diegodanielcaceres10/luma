@@ -16,13 +16,8 @@ abstract final class AppTheme {
         error: AppColors.error,
       ),
       scaffoldBackgroundColor: AppColors.background,
-      // Material 3 usa `ZoomPageTransitionsBuilder` en Android por default:
-      // hace un cross-fade + zoom entre la pantalla vieja y la nueva, y en
-      // ese fade se alcanza a ver un flash del fondo (blanco/gris claro)
-      // antes de que la pantalla nueva cubra todo. Se reemplaza por el
-      // transition clásico (deslizar hacia arriba), que no tiene ese
-      // hueco. Los demás plataformas quedan con su default (Cupertino en
-      // iOS, etc.).
+      // Material 3's default Android zoom transition briefly flashes the
+      // background; use the classic slide-up instead.
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),

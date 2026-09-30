@@ -170,6 +170,10 @@ class PendingMovementsSection extends StatelessWidget {
   /// balance) can pass a smaller set.
   final Set<PendingMovementKind> allowedKinds;
 
+  /// Dates the add-movement dialogs accept, and the one they start on (its
+  /// end). Defaults to any date from 2020 up to today.
+  final DateTimeRange? dateRange;
+
   const PendingMovementsSection({
     super.key,
     required this.controller,
@@ -188,6 +192,7 @@ class PendingMovementsSection extends StatelessWidget {
       PendingMovementKind.transfer,
       PendingMovementKind.invoice,
     },
+    this.dateRange,
   });
 
   /// Opens the bottom sheet behind the "Add movement" button to pick between
@@ -220,6 +225,7 @@ class PendingMovementsSection extends StatelessWidget {
             categoryViewModel: categoryViewModel,
             categoryType: categoryType,
             onSave: controller.add,
+            dateRange: dateRange,
           ),
         );
       case PendingMovementKind.transfer:
@@ -229,6 +235,7 @@ class PendingMovementsSection extends StatelessWidget {
             currentAccount: currentAccount,
             accountViewModel: accountViewModel,
             onSave: controller.add,
+            dateRange: dateRange,
           ),
         );
       case PendingMovementKind.invoice:
@@ -285,6 +292,7 @@ class PendingMovementsSection extends StatelessWidget {
         serviceName: serviceName,
         category: category,
         onSave: controller.add,
+        dateRange: dateRange,
       ),
     );
   }
@@ -738,10 +746,13 @@ class _AddMovementDialog extends StatefulWidget {
 
   final void Function(PendingMovement movement) onSave;
 
+  final DateTimeRange? dateRange;
+
   const _AddMovementDialog({
     required this.categoryViewModel,
     required this.categoryType,
     required this.onSave,
+    this.dateRange,
   });
 
   @override
@@ -754,7 +765,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
   final _descriptionController = TextEditingController();
 
   Category? _selectedCategory;
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate = widget.dateRange?.end ?? DateTime.now();
 
   @override
   void dispose() {
@@ -767,8 +778,8 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      firstDate: widget.dateRange?.start ?? DateTime(2020),
+      lastDate: widget.dateRange?.end ?? DateTime.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -972,10 +983,13 @@ class _AddTransferDialog extends StatefulWidget {
 
   final void Function(PendingMovement movement) onSave;
 
+  final DateTimeRange? dateRange;
+
   const _AddTransferDialog({
     required this.currentAccount,
     required this.accountViewModel,
     required this.onSave,
+    this.dateRange,
   });
 
   @override
@@ -991,7 +1005,7 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
 
   bool _isIncoming = true;
 
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate = widget.dateRange?.end ?? DateTime.now();
 
   @override
   void dispose() {
@@ -1004,8 +1018,8 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      firstDate: widget.dateRange?.start ?? DateTime(2020),
+      lastDate: widget.dateRange?.end ?? DateTime.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -1351,11 +1365,14 @@ class _AddInvoiceDialog extends StatefulWidget {
   final Category category;
   final void Function(PendingMovement movement) onSave;
 
+  final DateTimeRange? dateRange;
+
   const _AddInvoiceDialog({
     required this.invoice,
     required this.serviceName,
     required this.category,
     required this.onSave,
+    this.dateRange,
   });
 
   @override
@@ -1365,7 +1382,7 @@ class _AddInvoiceDialog extends StatefulWidget {
 class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _amountController;
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate = widget.dateRange?.end ?? DateTime.now();
 
   @override
   void initState() {
@@ -1385,8 +1402,8 @@ class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      firstDate: widget.dateRange?.start ?? DateTime(2020),
+      lastDate: widget.dateRange?.end ?? DateTime.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(

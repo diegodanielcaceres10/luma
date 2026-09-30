@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-/// Autoría + versión de la app, leídas en runtime desde el build
-/// (`PackageInfo`, que a su vez toma el `version` de `pubspec.yaml`) en vez
-/// de un texto hardcodeado. Se muestra en el login y en el perfil.
+/// App author and version, read at runtime from `PackageInfo` instead of
+/// hardcoded text.
 class AppVersionFooter extends StatefulWidget {
   final TextStyle? style;
   final TextAlign textAlign;
@@ -33,9 +32,6 @@ class _AppVersionFooterState extends State<AppVersionFooter> {
     final info = await PackageInfo.fromPlatform();
     if (!mounted) return;
     setState(() {
-      // info.version viene de pubspec.yaml (ej. "1.0.0"); buildNumber es el
-      // "+N" (ej. "1"). Se muestran juntos para poder identificar el build
-      // exacto instalado (útil en distribuciones de testing).
       _versionLabel = 'v${info.version}';
     });
   }

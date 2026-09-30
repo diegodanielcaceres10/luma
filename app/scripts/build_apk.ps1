@@ -1,11 +1,11 @@
-# Compila el APK en modo debug (release lo genera GitHub) y lo deja en
-# app/dist/ (fuera de git) con nombre luma-app-debug-<timestamp>.apk.
+# Builds a debug APK (release is built by GitHub) into app/dist/ (git-ignored)
+# as luma-app-debug-<timestamp>.apk.
 #
-# Uso:
-#   .\scripts\build_apk.ps1              # compila e instala en dist/
-#   .\scripts\build_apk.ps1 -Install     # además instala en el dispositivo conectado (adb)
+# Usage:
+#   .\scripts\build_apk.ps1            # build into dist/
+#   .\scripts\build_apk.ps1 -Install   # also install on the connected device (adb)
 #
-# Correr desde cualquier lado; el script se ubica solo en app/.
+# Can be run from anywhere; the script locates app/ by itself.
 
 param(
     [switch]$Install
@@ -13,12 +13,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# app/scripts/build_apk.ps1 -> app/
 $AppDir = Split-Path -Parent $PSScriptRoot
 Set-Location $AppDir
 
-# Las variables (Supabase, Google) se compilan dentro del APK desde app\.env;
-# ya no viajan como asset. Ver README.
 $EnvFile = ".env"
 if (-not (Test-Path $EnvFile)) {
     throw "No encontré app\$EnvFile (copiá .env.example y completalo)"

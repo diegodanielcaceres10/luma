@@ -3,35 +3,28 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme/app_colors.dart';
 
-/// Protege las rutas que llevan un `:id` de una entidad (cuenta, categoría,
-/// servicio…), como `/accounts/:id/edit`.
+/// Guards routes with an entity `:id` (e.g. `/accounts/:id/edit`).
 ///
-/// - Mientras la lista todavía se está cargando (ej. se entró directo por
-///   URL), muestra un spinner en vez de asumir que la entidad no existe.
-/// - Si la entidad existe, construye la pantalla con ella. Se resuelve una
-///   sola vez: no reconstruye la pantalla cada vez que cambia el
-///   view model.
-/// - Si la lista ya cargó y ese `:id` no existe, muestra [notFoundMessage] y
-///   reemplaza la ruta por [fallbackRoute] (con `replace`, así "atrás" no
-///   vuelve a la URL inválida).
-/// - Si la carga falló, no se puede afirmar que la entidad no exista: se
-///   avisa del error de carga y se manda igual a [fallbackRoute].
+/// - While the list is loading, shows a spinner instead of assuming the
+///   entity doesn't exist.
+/// - If the entity exists, builds the screen once (not on every view model
+///   change).
+/// - If the list loaded and the id is missing, shows [notFoundMessage] and
+///   `replace`s the route with [fallbackRoute] so back doesn't return to
+///   the invalid URL.
+/// - If loading failed, reports the load error and also goes to
+///   [fallbackRoute].
 class EntityRouteGuard<T> extends StatefulWidget {
-  /// View model que notifica cuando cambia la lista (o su estado de carga).
   final Listenable listenable;
 
-  /// `:id` de la ruta.
   final String? entityId;
 
-  /// Busca la entidad por id en la lista ya cargada; `null` si no existe.
   final T? Function(String? id) find;
 
   final bool Function() isLoading;
 
-  /// `true` si la lista se cargó con éxito al menos una vez.
   final bool Function() hasLoaded;
 
-  /// Mensaje de error de la última carga fallida, si lo hubo.
   final String? Function() errorMessage;
 
   final String notFoundMessage;
@@ -64,7 +57,7 @@ class _EntityRouteGuardState<T> extends State<EntityRouteGuard<T>> {
     super.initState();
     _entity = widget.find(widget.entityId);
     widget.listenable.addListener(_onChanged);
-    // La navegación no se puede disparar en pleno initState/build.
+    // Navigation can't be triggered during initState/build.
     WidgetsBinding.instance.addPostFrameCallback((_) => _redirectIfMissing());
   }
 
@@ -101,7 +94,6 @@ class _EntityRouteGuardState<T> extends State<EntityRouteGuard<T>> {
   void _redirectIfMissing() {
     if (!mounted || _entity != null || _redirecting) return;
 
-    // Hay una carga en curso: esperar a que termine antes de decidir.
     if (widget.isLoading()) return;
 
     final String message;
@@ -110,7 +102,6 @@ class _EntityRouteGuardState<T> extends State<EntityRouteGuard<T>> {
     } else if (widget.errorMessage() != null) {
       message = widget.errorMessage()!;
     } else {
-      // La carga todavía no arrancó: esperar.
       return;
     }
 

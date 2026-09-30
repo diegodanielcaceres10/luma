@@ -5,14 +5,9 @@ import '../core/widgets/luma_logo.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_text_styles.dart';
 
-/// Pantalla para las URLs que no existen (ver `errorBuilder` en
-/// router.dart).
-///
-/// Va por fuera del shell a propósito: sin header, sin drawer y sin bottom
-/// nav. El botón manda a '/': si hay sesión abre el Dashboard, y si no, el
-/// `redirect` del router lo manda a '/login'.
+/// Shown for unknown URLs. Sits outside the shell (no header, drawer or
+/// bottom nav); its button goes to '/'.
 class NotFoundScreen extends StatelessWidget {
-  /// Ruta que se intentó abrir. Solo informativa.
   final String? location;
 
   const NotFoundScreen({super.key, this.location});

@@ -3,36 +3,20 @@ import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
 
-/// 'septiembre 2025' -> 'Septiembre 2025'.
 String formatMonthLabel(DateTime date) {
   final formatted = DateFormat('MMMM yyyy', 'es').format(date);
   return formatted[0].toUpperCase() + formatted.substring(1);
 }
 
-/// Filtro por mes compartido por las pantallas: un botón tipo pill que
-/// muestra el mes elegido ("Septiembre 2026") y, al tocarlo, abre una hoja
-/// inferior con los últimos 12 meses.
+/// Shared month filter: a pill button showing the selected month that opens
+/// a bottom sheet with the last 12 months.
 ///
-/// Siempre es un mes puntual — no hay opción de "todos los meses". No guarda
-/// estado: cada pantalla decide dónde vive el mes elegido (en la URL, en un
-/// ViewModel, etc.) y qué hacer cuando cambia ([onChanged]); con qué mes
-/// arranca también lo decide la pantalla (hoy, el mes en curso).
-///
-/// Pensado para el slot `action` de `ScreenHeader`:
-/// ```dart
-/// ScreenHeader(
-///   title: 'Movimientos',
-///   action: MonthFilterButton(
-///     selectedMonth: month,
-///     onChanged: (picked) => ...,
-///   ),
-/// )
-/// ```
+/// Stateless: each screen owns the selected month and reacts to [onChanged].
 class MonthFilterButton extends StatelessWidget {
   final DateTime selectedMonth;
 
-  /// Se llama con el mes elegido (el 1º de ese mes). No se llama si se cierra
-  /// la hoja sin tocar nada.
+  /// Called with the first day of the picked month; not called if the sheet
+  /// is dismissed.
   final ValueChanged<DateTime> onChanged;
 
   const MonthFilterButton({
@@ -98,7 +82,6 @@ class MonthFilterButton extends StatelessWidget {
   }
 }
 
-/// Hoja inferior para elegir uno de los últimos 12 meses.
 class _MonthPickerSheet extends StatelessWidget {
   final DateTime selectedMonth;
 
@@ -115,8 +98,7 @@ class _MonthPickerSheet extends StatelessWidget {
 
     return SafeArea(
       top: false,
-      // Acota el alto total de la hoja (handle + título + lista) a una
-      // fracción de la pantalla para que no desborde en pantallas bajas.
+      // Cap the sheet height to avoid overflow on short screens.
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.7,

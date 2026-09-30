@@ -2,16 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 
-/// Fila de filtros de una sola selección, en pastilla: chips que fluyen
-/// horizontalmente y saltan de línea al llegar al borde (Wrap). Mismo
-/// look en toda la app — Facturas (estado) y Movimientos (tipo, período,
-/// cuenta, categoría).
-///
-/// [T] es el tipo del valor de cada opción — un enum de filtro, o
-/// `String?` cuando el filtro es dinámico (cuenta/categoría) y `null`
-/// representa "todas". No lleva punto de color: si el filtro es sobre
-/// algo con color propio (una categoría, una cuenta), ese color no se
-/// repite acá — queda para donde se lista el dato en sí.
+/// Single-select pill filters that wrap onto new lines. [T] is the option
+/// value type; `null` in a `String?` filter means "all". No color dot: colors
+/// stay where the data itself is listed.
 class FilterChipRow<T> extends StatelessWidget {
   final List<({T value, String label})> options;
   final T selectedValue;

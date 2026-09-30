@@ -44,9 +44,6 @@ import '../features/transactions/presentation/screens/transactions_screen.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import 'not_found_screen.dart';
 
-/// Guards de las rutas con `:id` (ver [EntityRouteGuard]): si el id no
-/// existe mandan a la lista con un aviso, en vez de abrir el formulario como
-/// si fuera un alta.
 Widget _accountGuard(
   AccountViewModel vm,
   String? id,
@@ -135,25 +132,13 @@ Widget _invoiceGuard(
       builder: builder,
     );
 
-/// Navegación con historial único: el shell (drawer, header y bottom nav)
-/// es un `ShellRoute` común — un solo Navigator y una sola pila para toda
-/// la app — así que cada pantalla que se abre (por el drawer, el bottom
-/// nav o un botón) se apila con `context.push`, y "atrás" (botón del
-/// navegador o del dispositivo) vuelve siempre a la pantalla anterior, en
-/// el mismo orden en que se visitaron.
+/// Single-history navigation: every screen is a sibling route under one
+/// `ShellRoute` and is opened with `context.push`, so back (browser or
+/// device) always returns to the previous screen and the bottom nav stays
+/// visible.
 ///
-/// Todas las pantallas son rutas hermanas, al mismo nivel: no hay rutas
-/// anidadas. Todas conservan el bottom nav visible porque el shell queda
-/// por fuera del Navigator.
-///
-/// Todo botón "volver"/"cancelar" y "guardar" (al terminar) hace
-/// `context.goBack()` (ver core/navigation/app_back.dart): se comporta
-/// exactamente igual que el "atrás" del navegador o del dispositivo — en
-/// Web dispara `history.back()`, así que no agrega entradas nuevas al
-/// historial — y si no hay historial dentro de la app (ej. se entró
-/// directo por URL) manda al Dashboard.
-///
-/// La ruta '/' es, directamente, el Dashboard — ver [HomeBranchScreen].
+/// Back/cancel/save buttons call `context.goBack()` (see
+/// core/navigation/app_back.dart). '/' is the Dashboard ([HomeBranchScreen]).
 GoRouter buildAppRouter({
   required AuthViewModel authViewModel,
   required AccountViewModel accountViewModel,
@@ -165,23 +150,13 @@ GoRouter buildAppRouter({
   required PreferencesViewModel preferencesViewModel,
   required AppLockViewModel appLockViewModel,
 }) {
-  // Por defecto, go_router SOLO refleja `context.go()` en la barra de
-  // direcciones del navegador — un `context.push()` cambia de pantalla
-  // pero deja la URL vieja (es diseño de la librería, no un bug nuestro:
-  // pensado para casos tipo diálogo, donde no tendría sentido que la URL
-  // apunte ahí). Como acá SÍ queremos que cada pantalla empujada tenga su
-  // URL propia (Cuentas > Nueva cuenta, Saldos iniciales, etc.), hay que
-  // prender esta opción global antes de crear el GoRouter.
+  // By default go_router only reflects `context.go()` in the browser URL;
+  // enable this so pushed screens get their own URL too.
   GoRouter.optionURLReflectsImperativeAPIs = true;
 
   return GoRouter(
     initialLocation: '/',
-    // GoRouter no re-evalúa `redirect` solo porque cambió el estado de la
-    // app — hay que decirle explícitamente cuándo hacerlo.
-    // AuthViewModel ya notifica en cada cambio de sesión (ver
-    // `_onAuthStateChange`), así que reusamos ese mismo Listenable en vez
-    // de armar uno nuevo. Se le suma AppLockViewModel para que el
-    // `redirect` también se reevalúe cuando la app se bloquea/desbloquea.
+    // Re-evaluate `redirect` when the session or the app lock changes.
     refreshListenable: Listenable.merge([authViewModel, appLockViewModel]),
     redirect: (context, state) {
       final isAuthenticated = authViewModel.isAuthenticated;
@@ -190,9 +165,8 @@ GoRouter buildAppRouter({
       if (!isAuthenticated && !isLoggingIn) return '/login';
       if (isAuthenticated && isLoggingIn) return '/';
 
-      // Gate de bloqueo local (biometría), independiente del login — ver
-      // AppLockViewModel. Solo puede estar `true` si ya hay sesión, así
-      // que este chequeo va después de los dos de arriba.
+      // Local biometric lock gate; only reachable with a session, so it runs
+      // after the auth checks.
       final isLocked = appLockViewModel.isLocked;
       final isLocking = state.matchedLocation == '/lock';
       if (isAuthenticated && isLocked && !isLocking) return '/lock';
@@ -200,11 +174,8 @@ GoRouter buildAppRouter({
 
       return null;
     },
-    // URLs que no coinciden con ninguna ruta. El `redirect` de arriba corre
-    // ANTES que esto, también para rutas que no existen: sin sesión,
-    // cualquier URL inválida termina en '/login', así que esta pantalla
-    // solo la ve quien ya está autenticado. Va por fuera del shell (sin
-    // header ni bottom nav).
+    // Unknown URLs. `redirect` runs first, so unauthenticated users land on
+    // '/login' and never see this; it sits outside the shell.
     errorBuilder: (context, state) =>
         NotFoundScreen(location: state.uri.path),
     routes: [
@@ -222,7 +193,6 @@ GoRouter buildAppRouter({
       ShellRoute(
         builder: (context, state, child) => AppShellScreen(child: child),
         routes: [
-          // Inicio (Dashboard)
           GoRoute(
             path: '/',
             builder: (context, state) => HomeBranchScreen(
@@ -235,30 +205,28 @@ GoRouter buildAppRouter({
               serviceViewModel: serviceViewModel,
             ),
           ),
-          // ---- Saldo inicial del mes ----
           GoRoute(
             path: '/monthly-balance',
             builder: (context, state) => RoutedScreenScaffold(
               body: AccountMonthlyBalanceScreen(
                 userId: authViewModel.userId ?? '',
-                // Se recalcula acá mismo en vez de viajar por la
-                // navegación — misma cuenta que usaba el
-                // Dashboard (ver dashboard_screen.dart).
                 pendingAccounts: monthlyBalanceViewModel.checked
                     ? monthlyBalanceViewModel.pendingAccounts(
                         accountViewModel.activeAccounts)
                     : const [],
+                accountViewModel: accountViewModel,
+                categoryViewModel: categoryViewModel,
+                serviceViewModel: serviceViewModel,
+                invoiceViewModel: invoiceViewModel,
+                transactionViewModel: transactionViewModel,
                 monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
               ),
             ),
           ),
-          // ---- Nueva transacción ----
           GoRoute(
-            // El regex restringe `:type` a income/expense: cualquier otro
-            // valor no coincide con ninguna ruta y cae en NotFoundScreen
-            // (ver `errorBuilder`). go_router compara los paths sin
-            // distinguir mayúsculas, por eso el builder lo normaliza.
+            // The regex limits `:type` to income/expense; the builder
+            // lowercases it because go_router matches paths case-insensitively.
             path: '/add-transaction/:type(income|expense)',
             builder: (context, state) {
               final type = state.pathParameters['type']!.toLowerCase();
@@ -274,7 +242,6 @@ GoRouter buildAppRouter({
               );
             },
           ),
-          // ---- Transferencia entre cuentas ----
           GoRoute(
             path: '/transfer',
             builder: (context, state) => RoutedScreenScaffold(
@@ -286,14 +253,8 @@ GoRouter buildAppRouter({
               ),
             ),
           ),
-          // ---- Cuentas ----
-          // '/accounts' (pestaña del drawer) y '/accounts-overview' (push
-          // desde el Dashboard) muestran la misma pantalla
-          // (AccountsScreen) — solo cambia si se pasa onBack, ver su
-          // doc. Repetir el widget en dos rutas en vez de una es a
-          // propósito: '/accounts' es una pestaña de primer nivel del
-          // shell (navegación por tab, no por push), así que necesita su
-          // propia ruta aunque construya la misma pantalla.
+          // '/accounts' is a top-level shell tab and '/accounts-overview' is
+          // pushed from the Dashboard; both build AccountsScreen.
           GoRoute(
             path: '/accounts',
             builder: (context, state) => RoutedScreenScaffold(
@@ -320,12 +281,7 @@ GoRouter buildAppRouter({
           ),
           GoRoute(
             path: '/accounts/:id',
-            // Declarada después de '/accounts/new': go_router prueba las
-            // rutas en el orden en que están acá, así que '/accounts/new'
-            // gana esa URL exacta antes de que ':id' la capture como
-            // "new" — mismo motivo por el que no hace falta cuidar el
-            // orden contra '/accounts/:id/edit' y '/accounts/:id/balance'
-            // (tienen un segmento más, no compiten por la misma URL).
+            // Declared after '/accounts/new' so that exact URL wins over ':id'.
             builder: (context, state) => RoutedScreenScaffold(
               body: _accountGuard(
                 accountViewModel,
@@ -345,8 +301,6 @@ GoRouter buildAppRouter({
           ),
           GoRoute(
             path: '/accounts/:id/edit',
-            // Si el :id no existe, el guard manda a '/accounts' con un
-            // aviso (en vez de abrir el formulario como alta).
             builder: (context, state) => RoutedScreenScaffold(
               body: _accountGuard(
                 accountViewModel,
@@ -413,7 +367,6 @@ GoRouter buildAppRouter({
               ),
             ),
           ),
-          // ---- Categorías ----
           GoRoute(
             path: '/categories',
             builder: (context, state) => RoutedScreenScaffold(
@@ -469,7 +422,6 @@ GoRouter buildAppRouter({
               ),
             ),
           ),
-          // ---- Servicios ----
           GoRoute(
             path: '/services',
             builder: (context, state) => RoutedScreenScaffold(
@@ -529,13 +481,10 @@ GoRouter buildAppRouter({
               ),
             ),
           ),
-          // ---- Facturas ----
           GoRoute(
             path: '/invoices',
-            // Sin transición: cambiar de filtro hace push (para que
-            // "atrás" vuelva al filtro anterior — ver InvoicesScreen), pero
-            // sigue siendo la misma pantalla, así que no debe animar
-            // como si fuera una pantalla nueva.
+            // No transition: changing the filter pushes the same screen, so it
+            // must not animate as a new one.
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
               child: RoutedScreenScaffold(
@@ -546,8 +495,8 @@ GoRouter buildAppRouter({
                   onOpenView: (invoice) =>
                       context.push('/invoices/${invoice.id}'),
                   onOpenForm: () => context.push('/invoices/new'),
-                  // Cada push crea un InvoicesScreen nuevo, así que alcanza
-                  // con leer el query param una vez, al construir.
+                  // Each push builds a new InvoicesScreen, so reading the query
+                  // param once is enough.
                   initialFilter: state.uri.queryParameters['filter'],
                   initialMonth: state.uri.queryParameters['month'],
                 ),
@@ -589,8 +538,6 @@ GoRouter buildAppRouter({
           ),
           GoRoute(
             path: '/invoices/:id/edit',
-            // Si el :id no existe, el guard manda a '/invoices' con un
-            // aviso (en vez de abrir el formulario como alta).
             builder: (context, state) => RoutedScreenScaffold(
               body: _invoiceGuard(
                 invoiceViewModel,
@@ -605,12 +552,9 @@ GoRouter buildAppRouter({
               ),
             ),
           ),
-          // Movimientos
           GoRoute(
             path: '/movements',
-            // Sin transición: cambiar de filtro hace push (para que
-            // "atrás" vuelva a la combinación anterior — ver
-            // TransactionsScreen), pero sigue siendo la misma pantalla.
+            // No transition: same screen, filter changes are pushes.
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
               child: TransactionsScreen(
@@ -627,7 +571,6 @@ GoRouter buildAppRouter({
               ),
             ),
           ),
-          // Estadísticas
           GoRoute(
             path: '/statistics',
             builder: (context, state) => StatisticsScreen(
@@ -636,7 +579,6 @@ GoRouter buildAppRouter({
               currency: accountViewModel.primaryCurrency,
             ),
           ),
-          // Perfil
           GoRoute(
             path: '/profile',
             builder: (context, state) => ProfileScreen(
@@ -644,9 +586,7 @@ GoRouter buildAppRouter({
               onOpenPreferences: () => context.push('/profile/preferences'),
             ),
           ),
-          // Bajo '/profile/' (no '/preferences' suelto) para que el bottom
-          // nav siga resaltando "Perfil" mientras se navega acá — ver
-          // AppShellScreen._navIndexFor.
+          // Under '/profile/' so the bottom nav keeps highlighting "Profile".
           GoRoute(
             path: '/profile/preferences',
             builder: (context, state) => RoutedScreenScaffold(
