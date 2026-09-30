@@ -214,6 +214,7 @@ GoRouter buildAppRouter({
                     ? monthlyBalanceViewModel.pendingAccounts(
                         accountViewModel.activeAccounts)
                     : const [],
+                accountViewModel: accountViewModel,
                 monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
               ),
