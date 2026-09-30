@@ -6,7 +6,7 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
-enum _AccountAction { edit, updateBalance }
+enum _AccountAction { edit, updateBalance, justifyUncontrolled }
 
 class AccountViewScreen extends StatefulWidget {
   final Account account;
@@ -65,21 +65,29 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
                 size: ScreenHeaderSize.compact,
                 onBack: widget.onBack,
                 action: HeaderMenuButton<_AccountAction>(
-                  items: const [
-                    HeaderMenuItem(
+                  items: [
+                    const HeaderMenuItem(
                       value: _AccountAction.edit,
                       label: 'Editar cuenta',
                       icon: Icons.edit_rounded,
                     ),
-                    HeaderMenuItem(
+                    const HeaderMenuItem(
                       value: _AccountAction.updateBalance,
                       label: 'Actualizar saldo',
                       icon: Icons.sync_rounded,
                     ),
+                    if (hasUncontrolled)
+                      const HeaderMenuItem(
+                        value: _AccountAction.justifyUncontrolled,
+                        label: 'Justificar gastos',
+                        icon: Icons.fact_check_rounded,
+                      ),
                   ],
                   onSelected: (action) => switch (action) {
                     _AccountAction.edit => widget.onEdit(),
                     _AccountAction.updateBalance => widget.onUpdateBalance(),
+                    _AccountAction.justifyUncontrolled =>
+                      widget.onJustifyUncontrolled(),
                   },
                 ),
               ),
@@ -113,49 +121,30 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
                     ),
                     if (hasUncontrolled) ...[
                       const SizedBox(height: 16),
-                      InkWell(
-                        onTap: widget.onJustifyUncontrolled,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  uncontrolled < 0
-                                      ? 'Gasto sin declarar este mes'
-                                      : 'Ingreso sin declarar este mes',
-                                  style: const TextStyle(
-                                    color: AppColors.authTextSecondary,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  formatCurrency(uncontrolled, currency),
-                                  style: TextStyle(
-                                    color: uncontrolled < 0
-                                        ? AppColors.authExpense
-                                        : AppColors.authIncome,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            uncontrolled < 0
+                                ? 'Gasto sin declarar este mes'
+                                : 'Ingreso sin declarar este mes',
+                            style: const TextStyle(
+                              color: AppColors.authTextSecondary,
+                              fontSize: 13,
                             ),
-                            const SizedBox(width: 6),
-                            const Padding(
-                              padding: EdgeInsets.only(top: 2),
-                              child: Icon(
-                                Icons.chevron_right_rounded,
-                                color: AppColors.authTextSecondary,
-                                size: 20,
-                              ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            formatCurrency(uncontrolled, currency),
+                            style: TextStyle(
+                              color: uncontrolled < 0
+                                  ? AppColors.authExpense
+                                  : AppColors.authIncome,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ],
                     const SizedBox(height: 20),
