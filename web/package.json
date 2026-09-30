@@ -1,9 +1,9 @@
 {
-  "name": "frontend",
+  "name": "web",
   "version": "0.0.0",
   "scripts": {
     "start": "ng serve --host 0.0.0.0 --port 4200 --watch --poll=2000",
-    "serve:ssr:frontend": "node dist/frontend/server/server.mjs"
+    "serve:ssr:web": "node dist/web/server/server.mjs"
   },
   "private": true,
   "packageManager": "npm@9.4.0",

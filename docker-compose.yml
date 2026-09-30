@@ -1,13 +1,13 @@
 services:
-  frontend:
+  web:
     build:
       context: .
       dockerfile: docker/web/Dockerfile
-    container_name: luma-frontend
+    container_name: luma-web
     ports:
       - "4005:4200"
     volumes:
-      - ./frontend:/app
+      - ./web:/app
       - /app/node_modules
     stdin_open: true
     tty: true
