@@ -287,42 +287,86 @@ class _AccountMonthlyBalanceScreenState
         _adjustmentApplied = true;
       }
 
-      final created = await widget.monthlyBalanceViewModel.saveOpeningBalance(
-        userId: userId,
+      await _createOpeningBalanceRecord(
         accountId: account.id,
         openingBalance: openingBalance,
       );
-      if (!created) {
-        throw Exception(
-          widget.monthlyBalanceViewModel.errorMessage ??
-              'No se pudo guardar el saldo inicial.',
-        );
-      }
       if (!mounted) return;
 
       _advanceToNextAccountOrFinish();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
-        ),
-      );
+      _showSaveError(error);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  /// Skips the justification: the stored balance is declared up to date, so
+  /// it becomes the opening balance of the new month, with no movements or
+  /// adjustment. Only allowed once the typed opening balance equals the stored
+  /// balance, so the user has to consciously confirm it. The account is read
+  /// fresh because an earlier failed save may have already moved its balance.
+  Future<void> _saveWithCurrentBalance() async {
+    final snapshot = _account;
+    if (snapshot == null || _isSaving || _difference != 0) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final account = _findAccount(snapshot.id) ?? snapshot;
+      await _createOpeningBalanceRecord(
+        accountId: account.id,
+        openingBalance: account.balance,
+      );
+      if (!mounted) return;
+
+      _advanceToNextAccountOrFinish();
+    } catch (error) {
+      if (!mounted) return;
+      _showSaveError(error);
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _createOpeningBalanceRecord({
+    required String accountId,
+    required double openingBalance,
+  }) async {
+    final created = await widget.monthlyBalanceViewModel.saveOpeningBalance(
+      userId: widget.userId,
+      accountId: accountId,
+      openingBalance: openingBalance,
+    );
+    if (!created) {
+      throw Exception(
+        widget.monthlyBalanceViewModel.errorMessage ??
+            'No se pudo guardar el saldo inicial.',
+      );
+    }
+  }
+
+  void _showSaveError(Object error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error.toString().replaceFirst('Exception: ', '')),
+      ),
+    );
+  }
+
+  Account? _findAccount(String id) {
+    for (final account in widget.accountViewModel.activeAccounts) {
+      if (account.id == id) return account;
+    }
+    return null;
   }
 
   void _advanceToNextAccountOrFinish() {
     Account? next;
     var nextIndex = _accountIndex + 1;
     for (; nextIndex < _queueIds.length && next == null; nextIndex++) {
-      for (final account in widget.accountViewModel.activeAccounts) {
-        if (account.id == _queueIds[nextIndex]) {
-          next = account;
-          break;
-        }
-      }
+      next = _findAccount(_queueIds[nextIndex]);
     }
 
     if (next == null) {
@@ -471,7 +515,23 @@ class _AccountMonthlyBalanceScreenState
     );
 
     if (isFirstStep) {
-      return SizedBox(width: double.infinity, child: nextButton);
+      return Column(
+        children: [
+          SizedBox(width: double.infinity, child: nextButton),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed:
+                _isSaving || _difference != 0 ? null : _saveWithCurrentBalance,
+            child: const Text(
+              'Mi saldo está al día, sin movimientos',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextSecondary,
+              ),
+            ),
+          ),
+        ],
+      );
     }
 
     final backButton = OutlinedButton(
