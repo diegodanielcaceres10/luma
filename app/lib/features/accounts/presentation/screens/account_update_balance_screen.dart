@@ -11,6 +11,7 @@ import '../../../transactions/presentation/view_models/transaction_view_model.da
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 import '../widgets/balance_comparison_card.dart';
+import '../widgets/pending_movement_persistence.dart';
 import '../widgets/pending_movements_section.dart';
 
 class AccountUpdateBalanceScreen extends StatefulWidget {
@@ -149,50 +150,17 @@ class _AccountUpdateBalanceScreenState
 
     try {
       for (final movement in _movementsController.movements) {
-        final bool success = switch (movement) {
-          CategoryPendingMovement(:final category) =>
-            await widget.transactionViewModel.createTransaction(
-              userId: userId,
-              accountId: account.id,
-              categoryId: category.id,
-              type: category.type,
-              amount: movement.amount.abs(),
-              description: movement.description,
-              date: movement.date,
-            ),
-          TransferPendingMovement(:final otherAccountId) =>
-            await widget.transactionViewModel.createTransfer(
-              userId: userId,
-              originAccountId:
-                  movement.amount < 0 ? account.id : otherAccountId,
-              destinationAccountId:
-                  movement.amount < 0 ? otherAccountId : account.id,
-              amount: movement.amount.abs(),
-              date: movement.date,
-              originDescription: movement.description,
-              destinationDescription: movement.description,
-            ),
-          InvoicePendingMovement(:final invoice, :final category) =>
-            await widget.invoiceViewModel.payInvoice(
-              invoice: invoice,
-              userId: userId,
-              accountId: account.id,
-              categoryId: category.id,
-              amount: movement.amount.abs(),
-              description: movement.description,
-              date: movement.date,
-            ),
-        };
-        if (!success) {
-          final errorMessage = movement is InvoicePendingMovement
-              ? widget.invoiceViewModel.errorMessage
-              : widget.transactionViewModel.errorMessage;
-          throw Exception(errorMessage ?? 'No se pudo guardar un movimiento.');
-        }
+        await savePendingMovement(
+          movement: movement,
+          userId: userId,
+          accountId: account.id,
+          transactionViewModel: widget.transactionViewModel,
+          invoiceViewModel: widget.invoiceViewModel,
+        );
         saved.add(movement);
       }
 
-      if (remainder.abs() >= _kRemainderEpsilon) {
+      if (remainder.abs() >= kRemainderEpsilon) {
         final now = DateTime.now();
         final success =
             await widget.accountViewModel.applyUncontrolledAdjustment(
@@ -445,8 +413,6 @@ class _AccountUpdateBalanceScreenState
   }
 }
 
-const _kRemainderEpsilon = 0.005;
-
 class _MovementsSummaryCard extends StatelessWidget {
   final double total;
 
@@ -459,7 +425,7 @@ class _MovementsSummaryCard extends StatelessWidget {
     required this.currency,
   });
 
-  static const _epsilon = _kRemainderEpsilon;
+  static const _epsilon = kRemainderEpsilon;
 
   @override
   Widget build(BuildContext context) {

@@ -218,6 +218,7 @@ GoRouter buildAppRouter({
                 categoryViewModel: categoryViewModel,
                 serviceViewModel: serviceViewModel,
                 invoiceViewModel: invoiceViewModel,
+                transactionViewModel: transactionViewModel,
                 monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
               ),
