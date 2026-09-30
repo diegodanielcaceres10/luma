@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../../../monthly_balances/data/repositories/monthly_balance_repository.dart';
+import '../../../accounts/data/repositories/monthly_balance_repository.dart';
 import '../../data/models/transaction_entry.dart';
 import '../../data/repositories/transaction_repository.dart';
 
@@ -31,26 +31,19 @@ class TransactionViewModel extends ChangeNotifier {
   bool _hasLoadedAll = false;
   String? _lastCreatedTransactionId;
 
-  // Mes que muestra Estadísticas. `null` = el mes en curso, que ya vive en
-  // _transactions / _previousMonthTransactions (y se mantiene al día solo,
-  // porque loadCurrentMonth() se llama tras cada movimiento nuevo). Un mes
-  // distinto se carga aparte en las dos listas de abajo, para no pisar el
-  // mes en curso que usan el Dashboard y "Movimientos recientes".
+  // null means the current month, already loaded in _transactions.
   DateTime? _statisticsMonth;
   List<TransactionEntry> _statisticsTransactions = [];
   List<TransactionEntry> _statisticsPreviousTransactions = [];
   bool _isLoadingStatistics = false;
   String? _statisticsErrorMessage;
 
-  // Acumulado (con signo) de `uncontrolled_expenses_total` del mes en
-  // curso y del mes elegido en Estadísticas, respectivamente — ver
-  // [statisticsUncontrolledTotal].
+  // Signed sums of uncontrolled_expenses_total for the current and
+  // statistics months.
   double _currentMonthUncontrolledTotal = 0;
   double _statisticsUncontrolledTotal = 0;
 
-  // Identifica la carga de mes más reciente: si el usuario cambia de mes
-  // varias veces seguidas, una respuesta vieja que llega tarde no debe
-  // pisar los datos del mes que quedó elegido.
+  // Discards responses from superseded month loads.
   int _statisticsRequestId = 0;
 
   bool get isLoading => _isLoading;
@@ -58,13 +51,11 @@ class TransactionViewModel extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
 
-  /// Id de la última transacción creada con éxito por [createTransaction].
-  /// Lo necesita, por ejemplo, el pago de una factura para vincularla a
-  /// la transacción recién creada.
+  /// Id of the last transaction created by [createTransaction].
   String? get lastCreatedTransactionId => _lastCreatedTransactionId;
 
-  /// Historial completo (no limitado al mes actual), para la pestaña
-  /// Movimientos. Hay que llamar loadAllTransactions() antes de leerlo.
+  /// Full history, not limited to the current month. Call
+  /// [loadAllTransactions] first.
   List<TransactionEntry> get allTransactions => _allTransactions;
 
   List<TransactionEntry> get recentMovements => _transactions.take(4).toList();
@@ -73,26 +64,14 @@ class TransactionViewModel extends ChangeNotifier {
 
   double get totalIncome => _sumByType(_transactions, 'income');
 
-  /// Ingresos - gastos del mes en curso. Puede ser negativo. No se
-  /// persiste: se recalcula siempre a partir de los movimientos cargados
-  /// con loadCurrentMonth(). Para meses ya cerrados, este mismo valor
-  /// puede reconstruirse como la diferencia entre el saldo inicial de ese
-  /// mes y el del mes siguiente (monthly_account_balances), sin necesidad
-  /// de volver a sumar transacciones una por una.
+  /// Income minus expenses for the current month. Can be negative.
   double get netResult => totalIncome - totalExpenses;
 
-  /// [netResult] del mes en curso más los ajustes sin declarar de ese
-  /// mismo mes (`uncontrolled_expenses_total`, ver
-  /// [statisticsUncontrolledTotal]). Es lo que muestra la card "Balance
-  /// general del mes" del Dashboard: a diferencia de [netResult], sí
-  /// refleja los ajustes cargados desde "Actualizar saldo" que no
-  /// corresponden a ninguna transacción real.
+  /// [netResult] plus the current month's uncontrolled adjustments.
   double get netResultWithUncontrolled =>
       netResult + _currentMonthUncontrolledTotal;
 
-  /// Mismos totales que arriba pero del mes calendario anterior, cargados
-  /// junto con el mes en curso en loadCurrentMonth(). Solo existen para
-  /// alimentar las comparaciones "vs. mes anterior" de Estadísticas.
+  /// Previous calendar month totals, for "vs. previous month" comparisons.
   double get previousMonthIncome =>
       _sumByType(_previousMonthTransactions, 'income');
 
@@ -102,10 +81,8 @@ class TransactionViewModel extends ChangeNotifier {
   double get previousMonthNetResult =>
       previousMonthIncome - previousMonthExpenses;
 
-  /// % de cambio vs. mes anterior. null cuando no hay base contra la que
-  /// comparar (mes anterior en 0, p. ej. una cuenta recién creada) — se
-  /// devuelve null en vez de 0% para no insinuar "sin cambios" cuando en
-  /// realidad no hay dato previo.
+  /// Percent change vs. the previous month; null when there is no base to
+  /// compare against.
   double? get incomeChangePercent =>
       _percentChange(previousMonthIncome, totalIncome);
 
@@ -128,10 +105,8 @@ class TransactionViewModel extends ChangeNotifier {
         .fold<double>(0, (sum, t) => sum + t.amount);
   }
 
-  /// Gastos agrupados por categoría (mayor a menor), con su % del total.
-  /// Excluye las transacciones de transferencia (`isTransfer`): mover
-  /// plata entre cuentas propias no es un gasto real, y de todos modos no
-  /// tienen categoría — contarlas acá las mostraba como "Sin categoría".
+  /// Expenses grouped by category (largest first) with their share of the
+  /// total. Transfers are excluded.
   static List<CategoryTotal> _breakdownOf(List<TransactionEntry> entries) {
     final expenses = entries.where((t) => t.type == 'expense' && !t.isTransfer);
     final Map<String, double> totals = {};
@@ -156,14 +131,8 @@ class TransactionViewModel extends ChangeNotifier {
     return list;
   }
 
-  // ── Estadísticas (mes elegido en el selector) ──────────────────────
-  //
-  // Mismos cálculos que los getters del mes en curso, pero sobre el mes que
-  // esté elegido en Estadísticas (que puede ser cualquiera de los últimos
-  // 12). Los comparativos "vs. mes anterior" son contra el mes previo al
-  // elegido.
+  // Statistics month: same calculations as above, for the selected month.
 
-  /// `true` si Estadísticas está mostrando el mes en curso.
   bool get isStatisticsCurrentMonth {
     final month = _statisticsMonth;
     if (month == null) return true;
@@ -171,7 +140,6 @@ class TransactionViewModel extends ChangeNotifier {
     return month.year == now.year && month.month == now.month;
   }
 
-  /// Mes (día 1) que muestra Estadísticas.
   DateTime get statisticsMonth {
     if (isStatisticsCurrentMonth) {
       final now = DateTime.now();
@@ -180,12 +148,10 @@ class TransactionViewModel extends ChangeNotifier {
     return _statisticsMonth!;
   }
 
-  /// `true` mientras se carga el mes elegido en Estadísticas.
   bool get isStatisticsLoading =>
       isStatisticsCurrentMonth ? _isLoading : _isLoadingStatistics;
 
-  /// Error al cargar un mes anterior en Estadísticas, o `null`. Para el mes
-  /// en curso no se informa acá: sigue el comportamiento de
+  /// Only reports errors for past months; the current month follows
   /// [loadCurrentMonth].
   String? get statisticsErrorMessage =>
       isStatisticsCurrentMonth ? null : _statisticsErrorMessage;
@@ -223,29 +189,21 @@ class TransactionViewModel extends ChangeNotifier {
   List<CategoryTotal> get statisticsCategoryBreakdown =>
       _breakdownOf(_statisticsEntries);
 
-  /// Acumulado (con signo) de ajustes sin declarar del mes que muestra
-  /// Estadísticas — `monthly_account_balances.uncontrolled_expenses_total`
-  /// sumado entre todas las cuentas (ver
-  /// [MonthlyBalanceRepository.getUncontrolledExpensesTotal]). Puede ser
-  /// negativo (gasto no controlado) o positivo (ingreso no controlado).
-  /// Reemplaza a la vieja suma de transacciones sin categoría: los
-  /// ajustes de "Actualizar saldo" ya no generan ninguna transacción.
+  /// Signed sum of uncontrolled adjustments for the statistics month across
+  /// all accounts (negative is an expense, positive an income).
   double get statisticsUncontrolledTotal => isStatisticsCurrentMonth
       ? _currentMonthUncontrolledTotal
       : _statisticsUncontrolledTotal;
 
-  /// `false` cuando el total es cero (o casi, por redondeo) — para no
-  /// mostrar la tarjeta de ajustes sin declarar sin nada que informar.
+  /// False when the total is zero within rounding.
   bool get statisticsHasUncontrolledTotal =>
       statisticsUncontrolledTotal.abs() >= 0.005;
 
-  /// Cambia el mes que muestra Estadísticas y carga sus datos (más los del
-  /// mes previo, para los comparativos). Elegir el mes en curso no consulta
-  /// nada: ya está cargado en [loadCurrentMonth].
+  /// Selects the statistics month and loads it with its previous month.
+  /// The current month is already loaded, so no fetch is made for it.
   Future<void> loadStatisticsMonth(DateTime month) async {
     final target = DateTime(month.year, month.month);
 
-    // Mismo mes que ya se ve, sin error que reintentar: nada que hacer.
     if (target == statisticsMonth &&
         _statisticsErrorMessage == null &&
         !_isLoadingStatistics) {
@@ -272,9 +230,7 @@ class TransactionViewModel extends ChangeNotifier {
     await _fetchStatisticsMonth(target, requestId);
   }
 
-  /// Vuelve a pedir el mes de Estadísticas si no es el en curso, sin vaciar
-  /// lo que se ve mientras tanto. Se usa tras crear movimientos, que pueden
-  /// tener fecha en ese mes.
+  /// Reloads a past statistics month without clearing what is shown.
   Future<void> _refreshStatisticsMonth() async {
     final month = _statisticsMonth;
     if (month == null || isStatisticsCurrentMonth) return;
@@ -355,8 +311,7 @@ class TransactionViewModel extends ChangeNotifier {
     }
   }
 
-  /// Devuelve true si se creó correctamente. En ese caso ya deja
-  /// _transactions actualizado con el mes actual recargado.
+  /// Returns true on success; the current month is reloaded afterwards.
   Future<bool> createTransaction({
     required String userId,
     required String accountId,
@@ -397,19 +352,63 @@ class TransactionViewModel extends ChangeNotifier {
     }
   }
 
-  /// Registra una transferencia entre cuentas como dos transacciones sin
-  /// categoría: un 'expense' en la cuenta de origen y un 'income' en la
-  /// de destino, con el mismo monto — marcadas con `isTransfer: true`
-  /// para que no se cuenten como ingreso/gasto real (ver
-  /// [TransactionEntry.isTransfer], [_sumByType], [_breakdownOf]).
+  /// Registra una transacción que justifica parte del saldo sin declarar
+  /// (`uncontrolled_expenses_total`) de una cuenta para [month]/[year]. A
+  /// diferencia de [createTransaction], no mueve `accounts.balance` — ese
+  /// monto ya se aplicó cuando se registró la diferencia sin declarar —
+  /// sino que descuenta el monto firmado de la transacción de
+  /// `uncontrolled_expenses_total`. Devuelve true si se creó
+  /// correctamente; en ese caso ya deja `_transactions` actualizado con
+  /// el mes actual recargado, igual que [createTransaction].
+  Future<bool> createJustifyingTransaction({
+    required String userId,
+    required String accountId,
+    String? categoryId,
+    required String type,
+    required double amount,
+    String? description,
+    required DateTime date,
+    required int month,
+    required int year,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    _lastCreatedTransactionId = null;
+    notifyListeners();
+
+    try {
+      _lastCreatedTransactionId = await _repository.createJustifying(
+        userId: userId,
+        accountId: accountId,
+        categoryId: categoryId,
+        type: type,
+        amount: amount,
+        description: description,
+        date: date,
+        month: month,
+        year: year,
+      );
+      await loadCurrentMonth();
+      await _refreshStatisticsMonth();
+      if (_hasLoadedAll) {
+        await loadAllTransactions();
+      }
+      return true;
+    } catch (error) {
+      _errorMessage = 'No se pudo guardar el movimiento.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Creates a transfer as two uncategorized rows flagged `isTransfer`: an
+  /// expense on the origin account and an income on the destination.
   ///
-  /// Nota: cada llamada a [_repository.create] actualiza accounts.balance
-  /// de forma atómica junto con su propia fila (RPC create_transaction),
-  /// pero las dos llamadas de esta transferencia no son atómicas *entre
-  /// sí*: si la segunda falla, la primera ya quedó confirmada y el saldo
-  /// de origen queda descontado sin su contraparte en destino.
-  ///
-  /// Devuelve true si ambas transacciones se crearon correctamente.
+  /// The two inserts are not atomic together: if the second fails, the first
+  /// stays committed. Returns true if both were created.
   Future<bool> createTransfer({
     required String userId,
     required String originAccountId,
@@ -451,6 +450,69 @@ class TransactionViewModel extends ChangeNotifier {
       return true;
     } catch (error) {
       _errorMessage = 'No se pudo guardar la transferencia.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Deletes a transaction (its balance effect is reverted server-side) and
+  /// reloads the affected data. Returns true on success.
+  Future<bool> deleteTransaction({
+    required String userId,
+    required String transactionId,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.delete(userId: userId, transactionId: transactionId);
+      await loadCurrentMonth();
+      await _refreshStatisticsMonth();
+      if (_hasLoadedAll) {
+        await loadAllTransactions();
+      }
+      return true;
+    } catch (error) {
+      _errorMessage = 'No se pudo eliminar el movimiento.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Edits category, description and date only. Account and amount stay fixed
+  /// because they affect `accounts.balance`. Returns true on success.
+  Future<bool> updateTransaction({
+    required String transactionId,
+    String? categoryId,
+    String? description,
+    required DateTime date,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.update(
+        transactionId: transactionId,
+        categoryId: categoryId,
+        description: description,
+        date: date,
+      );
+      await loadCurrentMonth();
+      await _refreshStatisticsMonth();
+      if (_hasLoadedAll) {
+        await loadAllTransactions();
+      }
+      return true;
+    } catch (error) {
+      _errorMessage = 'No se pudo guardar los cambios.';
       notifyListeners();
       return false;
     } finally {

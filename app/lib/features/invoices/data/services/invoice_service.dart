@@ -7,9 +7,8 @@ class InvoiceService {
   InvoiceService(this._client);
 
   Future<List<Invoice>> fetchAll() async {
-    // Vencimiento más próximo primero; las que no tienen fecha de
-    // vencimiento cargada quedan al final. Entre iguales (o entre las
-    // que no tienen fecha), año/mes más reciente primero.
+    // Nearest due date first, invoices without one last; ties broken by
+    // most recent year/month.
     final rows = await _client
         .from('invoices')
         .select()
@@ -22,9 +21,8 @@ class InvoiceService {
         .toList();
   }
 
-  /// Crea la factura de un servicio para un mes/año puntual. `paid` queda
-  /// en false por default de la tabla — activar/pagar una factura se
-  /// agrega en una etapa futura.
+  /// Creates a service's invoice for a given month/year. `paid` defaults to
+  /// false in the table.
   Future<void> create({
     required String userId,
     required String serviceId,
@@ -47,11 +45,9 @@ class InvoiceService {
     });
   }
 
-  /// Facturas pendientes (ni pagadas ni canceladas) cuyo vencimiento es
-  /// exactamente hoy, según la fecha local del dispositivo. La usa la
-  /// rutina diaria de notificaciones (feature `notifications`,
-  /// `NotificationSchedulerService`) — no filtra por usuario porque RLS
-  /// (`auth.uid() = user_id`) ya se encarga de eso.
+  /// Pending invoices due exactly today (device local date), used by the
+  /// daily notifications routine (`NotificationSchedulerService`). It does
+  /// not filter by user because RLS (`auth.uid() = user_id`) already does.
   Future<List<Invoice>> fetchDueToday() async {
     final now = DateTime.now();
     final today = '${now.year.toString().padLeft(4, '0')}-'
@@ -70,9 +66,8 @@ class InvoiceService {
         .toList();
   }
 
-  /// Edita una factura pendiente (servicio, mes, año, monto, vencimiento).
-  /// No se usa sobre facturas pagadas o canceladas — la pantalla de
-  /// edición no llega a mostrarse para esos casos (ver InvoicesTab).
+  /// Edits a pending invoice (service, month, year, amount, due date). Not
+  /// used for paid or cancelled invoices: the view screen does not offer it.
   Future<void> update({
     required String id,
     required String serviceId,
@@ -94,8 +89,8 @@ class InvoiceService {
     }).eq('id', id);
   }
 
-  /// Cierra el flujo de una factura pendiente sin pagarla. El constraint
-  /// de la tabla impide cancelar una factura ya pagada.
+  /// Closes a pending invoice without paying it. A table constraint prevents
+  /// cancelling an already paid invoice.
   Future<void> cancel({required String id}) async {
     await _client.from('invoices').update({
       'cancelled': true,
@@ -103,8 +98,8 @@ class InvoiceService {
     }).eq('id', id);
   }
 
-  /// Registra el pago de una factura pendiente, vinculándola a la
-  /// transacción de gasto que se creó para ese pago.
+  /// Marks a pending invoice as paid, linking it to the expense transaction
+  /// created for that payment.
   Future<void> markPaid({
     required String id,
     required String transactionId,

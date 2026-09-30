@@ -12,17 +12,13 @@ class AuthService {
 
   AuthService(this._client);
 
-  /// Deep link al que Supabase devuelve la sesión tras el login con Google.
-  /// Debe coincidir con:
-  ///  - el intent-filter de android/app/src/main/AndroidManifest.xml
-  ///  - el CFBundleURLSchemes de ios/Runner/Info.plist
-  ///  - las Redirect URLs del proyecto en Supabase
+  /// Deep link Supabase redirects to after Google login. Must match the
+  /// intent-filter in AndroidManifest.xml, the CFBundleURLSchemes in
+  /// Info.plist and the project's Redirect URLs in Supabase.
   static const oauthRedirectUrl = 'io.luma.app://login-callback';
 
-  /// Scopes mínimos para obtener un accessToken de Google válido.
-  /// En Android, `AuthorizationRequest.Builder.setRequestedScopes` rechaza
-  /// una lista vacía con `IllegalArgumentException: requestedScopes cannot
-  /// be null or empty`, por eso no se puede pedir `const <String>[]`.
+  /// Minimal scopes to get a valid Google access token. Android rejects an
+  /// empty scope list, so it cannot be `const <String>[]`.
   static const _authorizationScopes = <String>['email'];
 
   Future<void> signInWithGoogle() async {

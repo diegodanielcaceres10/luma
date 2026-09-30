@@ -33,4 +33,9 @@ abstract final class AppColors {
 
   static const authIncome = authAccent;
   static const authExpense = Color(0xFFEF6F5B);
+
+  /// Transferencias entre cuentas propias (TransactionEntry.isTransfer):
+  /// el dinero no entra ni sale de verdad, así que no usan authIncome ni
+  /// authExpense — un tono neutro para no sugerir ganancia ni pérdida.
+  static const authTransfer = Color(0xFF8FA6C9);
 }

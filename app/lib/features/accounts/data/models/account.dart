@@ -20,11 +20,11 @@ class Account {
     );
   }
 
-  // Igualdad por id: sin esto, cada recarga de la lista de cuentas trae
-  // instancias nuevas y cualquier selección previa (ej. en un
-  // DropdownButtonFormField) deja de coincidir por identidad, aunque sea
-  // "la misma" cuenta — eso es lo que rompía el Dropdown en
-  // AddTransactionTab tras refrescar el saldo.
+  // Equality by id: without it, every reload of the accounts list brings new
+  // instances and any previous selection (e.g. in a DropdownButtonFormField)
+  // stops matching by identity even though it is "the same" account — that
+  // is what broke the dropdown in TransactionFormScreen after refreshing the
+  // balance.
   @override
   bool operator ==(Object other) => other is Account && other.id == id;
 

@@ -4,40 +4,44 @@ import 'package:go_router/go_router.dart';
 import '../core/navigation/app_back.dart';
 import '../core/navigation/entity_route_guard.dart';
 import '../features/accounts/data/models/account.dart';
-import '../features/accounts/presentation/screens/account_form_tab.dart';
-import '../features/accounts/presentation/screens/accounts_overview_tab.dart';
-import '../features/accounts/presentation/screens/accounts_tab.dart';
-import '../features/accounts/presentation/screens/update_balance_tab.dart';
+import '../features/accounts/presentation/screens/account_form_screen.dart';
+import '../features/accounts/presentation/screens/account_justify_uncontrolled_screen.dart';
+import '../features/accounts/presentation/screens/account_monthly_balance_screen.dart';
+import '../features/accounts/presentation/screens/account_update_balance_screen.dart';
+import '../features/accounts/presentation/screens/account_view_screen.dart';
+import '../features/accounts/presentation/screens/accounts_screen.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
-import '../features/app_lock/presentation/screens/lock_screen.dart';
-import '../features/app_lock/presentation/view_models/app_lock_view_model.dart';
+import '../features/accounts/presentation/view_models/monthly_balance_view_model.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
+import '../features/auth/presentation/screens/preferences_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
 import '../features/auth/presentation/view_models/auth_view_model.dart';
+import '../features/auth/presentation/view_models/preferences_view_model.dart';
 import '../features/categories/data/models/category.dart';
-import '../features/categories/presentation/screens/categories_tab.dart';
-import '../features/categories/presentation/screens/category_form_tab.dart';
+import '../features/categories/presentation/screens/categories_screen.dart';
+import '../features/categories/presentation/screens/category_form_screen.dart';
+import '../features/categories/presentation/screens/category_view_screen.dart';
 import '../features/categories/presentation/view_models/category_view_model.dart';
 import '../features/home/presentation/screens/app_shell_screen.dart';
 import '../features/home/presentation/screens/home_shell.dart';
+import '../features/home/presentation/screens/lock_screen.dart';
 import '../features/home/presentation/screens/routed_screen_scaffold.dart';
+import '../features/home/presentation/view_models/app_lock_view_model.dart';
 import '../features/invoices/data/models/invoice.dart';
-import '../features/invoices/presentation/screens/invoice_form_tab.dart';
-import '../features/invoices/presentation/screens/invoices_tab.dart';
+import '../features/invoices/presentation/screens/invoice_form_screen.dart';
+import '../features/invoices/presentation/screens/invoice_view_screen.dart';
+import '../features/invoices/presentation/screens/invoices_screen.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
-import '../features/monthly_balances/presentation/screens/monthly_balance_tab.dart';
-import '../features/monthly_balances/presentation/view_models/monthly_balance_view_model.dart';
-import '../features/preferences/presentation/screens/preferences_screen.dart';
-import '../features/preferences/presentation/view_models/preferences_view_model.dart';
 import '../features/services/data/models/service.dart';
-import '../features/services/presentation/screens/service_form_tab.dart';
-import '../features/services/presentation/screens/services_tab.dart';
+import '../features/services/presentation/screens/service_form_screen.dart';
+import '../features/services/presentation/screens/service_view_screen.dart';
+import '../features/services/presentation/screens/services_screen.dart';
 import '../features/services/presentation/view_models/service_view_model.dart';
-import '../features/transactions/presentation/screens/add_transaction_tab.dart';
-import '../features/transactions/presentation/screens/movements_tab.dart';
-import '../features/transactions/presentation/screens/statistics_tab.dart';
+import '../features/transactions/presentation/screens/statistics_screen.dart';
+import '../features/transactions/presentation/screens/transaction_form_screen.dart';
+import '../features/transactions/presentation/screens/transaction_form_transfer_screen.dart';
+import '../features/transactions/presentation/screens/transactions_screen.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
-import '../features/transfers/presentation/screens/transfer_form_tab.dart';
 import 'not_found_screen.dart';
 
 /// Guards de las rutas con `:id` (ver [EntityRouteGuard]): si el id no
@@ -235,11 +239,11 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/monthly-balance',
             builder: (context, state) => RoutedScreenScaffold(
-              body: MonthlyBalanceTab(
+              body: AccountMonthlyBalanceScreen(
                 userId: authViewModel.userId ?? '',
                 // Se recalcula acá mismo en vez de viajar por la
                 // navegación — misma cuenta que usaba el
-                // Dashboard (ver dashboard_tab.dart).
+                // Dashboard (ver dashboard_screen.dart).
                 pendingAccounts: monthlyBalanceViewModel.checked
                     ? monthlyBalanceViewModel.pendingAccounts(
                         accountViewModel.activeAccounts)
@@ -259,7 +263,7 @@ GoRouter buildAppRouter({
             builder: (context, state) {
               final type = state.pathParameters['type']!.toLowerCase();
               return RoutedScreenScaffold(
-                body: AddTransactionTab(
+                body: TransactionFormScreen(
                   type: type,
                   userId: authViewModel.userId ?? '',
                   accountViewModel: accountViewModel,
@@ -274,7 +278,7 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/transfer',
             builder: (context, state) => RoutedScreenScaffold(
-              body: TransferFormTab(
+              body: TransactionFormTransferScreen(
                 userId: authViewModel.userId,
                 accountViewModel: accountViewModel,
                 transactionViewModel: transactionViewModel,
@@ -283,28 +287,59 @@ GoRouter buildAppRouter({
             ),
           ),
           // ---- Cuentas ----
+          // '/accounts' (pestaña del drawer) y '/accounts-overview' (push
+          // desde el Dashboard) muestran la misma pantalla
+          // (AccountsScreen) — solo cambia si se pasa onBack, ver su
+          // doc. Repetir el widget en dos rutas en vez de una es a
+          // propósito: '/accounts' es una pestaña de primer nivel del
+          // shell (navegación por tab, no por push), así que necesita su
+          // propia ruta aunque construya la misma pantalla.
           GoRoute(
             path: '/accounts',
             builder: (context, state) => RoutedScreenScaffold(
-              body: AccountsTab(
+              body: AccountsScreen(
                 accountViewModel: accountViewModel,
-                onAdd: () => context.push('/accounts/new'),
-                onOpenForm: (account) => account == null
-                    ? context.push('/accounts/new')
-                    : context.push('/accounts/${account.id}/edit'),
+                onOpenView: (account) =>
+                    context.push('/accounts/${account.id}'),
+                onOpenForm: () => context.push('/accounts/new'),
               ),
             ),
           ),
           GoRoute(
             path: '/accounts/new',
             builder: (context, state) => RoutedScreenScaffold(
-              body: AccountFormTab(
+              body: AccountFormScreen(
                 userId: authViewModel.userId ?? '',
                 accountViewModel: accountViewModel,
                 onDone: () {
                   monthlyBalanceViewModel.checkCurrentMonth();
                   context.goBack();
                 },
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/accounts/:id',
+            // Declarada después de '/accounts/new': go_router prueba las
+            // rutas en el orden en que están acá, así que '/accounts/new'
+            // gana esa URL exacta antes de que ':id' la capture como
+            // "new" — mismo motivo por el que no hace falta cuidar el
+            // orden contra '/accounts/:id/edit' y '/accounts/:id/balance'
+            // (tienen un segmento más, no compiten por la misma URL).
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _accountGuard(
+                accountViewModel,
+                state.pathParameters['id'],
+                (context, account) => AccountViewScreen(
+                  account: account,
+                  accountViewModel: accountViewModel,
+                  onEdit: () => context.push('/accounts/${account.id}/edit'),
+                  onUpdateBalance: () =>
+                      context.push('/accounts/${account.id}/balance'),
+                  onJustifyUncontrolled: () =>
+                      context.push('/accounts/${account.id}/justify'),
+                  onBack: () => context.goBack(),
+                ),
               ),
             ),
           ),
@@ -316,7 +351,7 @@ GoRouter buildAppRouter({
               body: _accountGuard(
                 accountViewModel,
                 state.pathParameters['id'],
-                (context, account) => AccountFormTab(
+                (context, account) => AccountFormScreen(
                   userId: authViewModel.userId ?? '',
                   accountViewModel: accountViewModel,
                   account: account,
@@ -334,10 +369,31 @@ GoRouter buildAppRouter({
               body: _accountGuard(
                 accountViewModel,
                 state.pathParameters['id'],
-                (context, account) => UpdateBalanceTab(
+                (context, account) => AccountUpdateBalanceScreen(
                   account: account,
                   accountViewModel: accountViewModel,
                   categoryViewModel: categoryViewModel,
+                  serviceViewModel: serviceViewModel,
+                  invoiceViewModel: invoiceViewModel,
+                  transactionViewModel: transactionViewModel,
+                  userId: authViewModel.userId,
+                  onDone: () => context.goBack(),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/accounts/:id/justify',
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _accountGuard(
+                accountViewModel,
+                state.pathParameters['id'],
+                (context, account) => AccountJustifyUncontrolledScreen(
+                  account: account,
+                  accountViewModel: accountViewModel,
+                  categoryViewModel: categoryViewModel,
+                  serviceViewModel: serviceViewModel,
+                  invoiceViewModel: invoiceViewModel,
                   transactionViewModel: transactionViewModel,
                   userId: authViewModel.userId,
                   onDone: () => context.goBack(),
@@ -348,14 +404,12 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/accounts-overview',
             builder: (context, state) => RoutedScreenScaffold(
-              body: AccountsOverviewTab(
+              body: AccountsScreen(
                 accountViewModel: accountViewModel,
                 onBack: () => context.goBack(),
-                onOpenForm: (account) => account == null
-                    ? context.push('/accounts/new')
-                    : context.push('/accounts/${account.id}/edit'),
-                onOpenUpdateBalance: (account) =>
-                    context.push('/accounts/${account.id}/balance'),
+                onOpenView: (account) =>
+                    context.push('/accounts/${account.id}'),
+                onOpenForm: () => context.push('/accounts/new'),
               ),
             ),
           ),
@@ -363,21 +417,40 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/categories',
             builder: (context, state) => RoutedScreenScaffold(
-              body: CategoriesTab(
+              body: CategoriesScreen(
                 categoryViewModel: categoryViewModel,
-                onAdd: () => context.push('/categories/new'),
-                onEdit: (category) =>
-                    context.push('/categories/${category.id}/edit'),
+                onOpenView: (category) =>
+                    context.push('/categories/${category.id}'),
+                onOpenForm: () => context.push('/categories/new'),
               ),
             ),
           ),
           GoRoute(
             path: '/categories/new',
             builder: (context, state) => RoutedScreenScaffold(
-              body: CategoryFormTab(
+              body: CategoryFormScreen(
                 userId: authViewModel.userId ?? '',
                 categoryViewModel: categoryViewModel,
                 onDone: () => context.goBack(),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/categories/:id',
+            // Declared after '/categories/new' so that exact URL wins over
+            // ':id'.
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _categoryGuard(
+                categoryViewModel,
+                state.pathParameters['id'],
+                (context, category) => CategoryViewScreen(
+                  category: category,
+                  categoryViewModel: categoryViewModel,
+                  currency: accountViewModel.primaryCurrency,
+                  onEdit: () =>
+                      context.push('/categories/${category.id}/edit'),
+                  onBack: () => context.goBack(),
+                ),
               ),
             ),
           ),
@@ -387,7 +460,7 @@ GoRouter buildAppRouter({
               body: _categoryGuard(
                 categoryViewModel,
                 state.pathParameters['id'],
-                (context, category) => CategoryFormTab(
+                (context, category) => CategoryFormScreen(
                   userId: authViewModel.userId ?? '',
                   categoryViewModel: categoryViewModel,
                   category: category,
@@ -400,23 +473,43 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/services',
             builder: (context, state) => RoutedScreenScaffold(
-              body: ServicesTab(
+              body: ServicesScreen(
                 serviceViewModel: serviceViewModel,
                 categoryViewModel: categoryViewModel,
-                onAdd: () => context.push('/services/new'),
-                onEdit: (service) =>
-                    context.push('/services/${service.id}/edit'),
+                currency: accountViewModel.primaryCurrency,
+                onOpenView: (service) =>
+                    context.push('/services/${service.id}'),
+                onOpenForm: () => context.push('/services/new'),
               ),
             ),
           ),
           GoRoute(
             path: '/services/new',
             builder: (context, state) => RoutedScreenScaffold(
-              body: ServiceFormTab(
+              body: ServiceFormScreen(
                 userId: authViewModel.userId ?? '',
                 serviceViewModel: serviceViewModel,
                 categoryViewModel: categoryViewModel,
                 onDone: () => context.goBack(),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/services/:id',
+            // Declared after '/services/new' so that exact URL wins over
+            // ':id'.
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _serviceGuard(
+                serviceViewModel,
+                state.pathParameters['id'],
+                (context, service) => ServiceViewScreen(
+                  service: service,
+                  serviceViewModel: serviceViewModel,
+                  categoryViewModel: categoryViewModel,
+                  currency: accountViewModel.primaryCurrency,
+                  onEdit: () => context.push('/services/${service.id}/edit'),
+                  onBack: () => context.goBack(),
+                ),
               ),
             ),
           ),
@@ -426,7 +519,7 @@ GoRouter buildAppRouter({
               body: _serviceGuard(
                 serviceViewModel,
                 state.pathParameters['id'],
-                (context, service) => ServiceFormTab(
+                (context, service) => ServiceFormScreen(
                   userId: authViewModel.userId ?? '',
                   serviceViewModel: serviceViewModel,
                   categoryViewModel: categoryViewModel,
@@ -440,24 +533,23 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/invoices',
             // Sin transición: cambiar de filtro hace push (para que
-            // "atrás" vuelva al filtro anterior — ver InvoicesTab), pero
+            // "atrás" vuelva al filtro anterior — ver InvoicesScreen), pero
             // sigue siendo la misma pantalla, así que no debe animar
             // como si fuera una pantalla nueva.
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
               child: RoutedScreenScaffold(
-                body: InvoicesTab(
-                  userId: authViewModel.userId ?? '',
+                body: InvoicesScreen(
                   invoiceViewModel: invoiceViewModel,
                   serviceViewModel: serviceViewModel,
-                  categoryViewModel: categoryViewModel,
-                  accountViewModel: accountViewModel,
-                  onAdd: () => context.push('/invoices/new'),
-                  onEdit: (invoice) =>
-                      context.push('/invoices/${invoice.id}/edit'),
-                  // Cada push crea un InvoicesTab nuevo, así que alcanza
+                  currency: accountViewModel.primaryCurrency,
+                  onOpenView: (invoice) =>
+                      context.push('/invoices/${invoice.id}'),
+                  onOpenForm: () => context.push('/invoices/new'),
+                  // Cada push crea un InvoicesScreen nuevo, así que alcanza
                   // con leer el query param una vez, al construir.
                   initialFilter: state.uri.queryParameters['filter'],
+                  initialMonth: state.uri.queryParameters['month'],
                 ),
               ),
             ),
@@ -465,11 +557,33 @@ GoRouter buildAppRouter({
           GoRoute(
             path: '/invoices/new',
             builder: (context, state) => RoutedScreenScaffold(
-              body: InvoiceFormTab(
+              body: InvoiceFormScreen(
                 userId: authViewModel.userId ?? '',
                 invoiceViewModel: invoiceViewModel,
                 serviceViewModel: serviceViewModel,
                 onDone: () => context.goBack(),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/invoices/:id',
+            // Declared after '/invoices/new' so that exact URL wins over
+            // ':id'.
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _invoiceGuard(
+                invoiceViewModel,
+                state.pathParameters['id'],
+                (context, invoice) => InvoiceViewScreen(
+                  userId: authViewModel.userId ?? '',
+                  invoice: invoice,
+                  invoiceViewModel: invoiceViewModel,
+                  serviceViewModel: serviceViewModel,
+                  categoryViewModel: categoryViewModel,
+                  accountViewModel: accountViewModel,
+                  currency: accountViewModel.primaryCurrency,
+                  onEdit: () => context.push('/invoices/${invoice.id}/edit'),
+                  onBack: () => context.goBack(),
+                ),
               ),
             ),
           ),
@@ -481,7 +595,7 @@ GoRouter buildAppRouter({
               body: _invoiceGuard(
                 invoiceViewModel,
                 state.pathParameters['id'],
-                (context, invoice) => InvoiceFormTab(
+                (context, invoice) => InvoiceFormScreen(
                   userId: authViewModel.userId ?? '',
                   invoiceViewModel: invoiceViewModel,
                   serviceViewModel: serviceViewModel,
@@ -496,11 +610,14 @@ GoRouter buildAppRouter({
             path: '/movements',
             // Sin transición: cambiar de filtro hace push (para que
             // "atrás" vuelva a la combinación anterior — ver
-            // MovementsTab), pero sigue siendo la misma pantalla.
+            // TransactionsScreen), pero sigue siendo la misma pantalla.
             pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
-              child: MovementsTab(
+              child: TransactionsScreen(
+                userId: authViewModel.userId ?? '',
                 transactionViewModel: transactionViewModel,
+                accountViewModel: accountViewModel,
+                categoryViewModel: categoryViewModel,
                 currency: accountViewModel.primaryCurrency,
                 initialType: state.uri.queryParameters['type'],
                 initialRange: state.uri.queryParameters['range'],
@@ -513,7 +630,7 @@ GoRouter buildAppRouter({
           // Estadísticas
           GoRoute(
             path: '/statistics',
-            builder: (context, state) => StatisticsTab(
+            builder: (context, state) => StatisticsScreen(
               transactionViewModel: transactionViewModel,
               categoryViewModel: categoryViewModel,
               currency: accountViewModel.primaryCurrency,

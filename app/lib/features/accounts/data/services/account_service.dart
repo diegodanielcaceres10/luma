@@ -7,8 +7,8 @@ class AccountService {
   AccountService(this._client);
 
   Future<List<Account>> fetchAccounts() async {
-    // Trae activas e inactivas: la lista de cuentas es donde se
-    // inactivan/reactivan, así que necesita ver ambos estados.
+    // Fetches active and inactive accounts: the accounts list is where they
+    // are deactivated/reactivated, so it needs to see both states.
     final rows = await _client.from('accounts').select().order('name');
 
     return (rows as List)
@@ -34,9 +34,10 @@ class AccountService {
     final accountId = inserted['id'] as String;
     final now = DateTime.now();
 
-    // El saldo inicial cargado en el alta de la cuenta es, por definición,
-    // el saldo de apertura del mes en curso — se usa para no tener que
-    // pedírselo de nuevo al usuario la primera vez que abre esa cuenta.
+    // The initial balance entered when creating the account is, by
+    // definition, the opening balance of the current month — it is used so
+    // the user isn't asked for it again the first time they open that
+    // account.
     await _client.from('monthly_account_balances').insert({
       'user_id': userId,
       'account_id': accountId,
@@ -50,32 +51,32 @@ class AccountService {
     required String id,
     required String name,
   }) async {
-    // El balance no se edita a mano desde acá: se mantiene a través de los
-    // movimientos registrados. Si en algún momento hace falta un ajuste
-    // manual de saldo, conviene resolverlo con una transacción de ajuste,
-    // no pisando el valor directamente.
+    // The balance is not edited by hand here: it is maintained through the
+    // registered movements. If a manual balance adjustment is ever needed,
+    // it is better to resolve it with an adjustment transaction rather than
+    // overwriting the value directly.
     await _client.from('accounts').update({
       'name': name,
     }).eq('id', id);
   }
 
-  /// Activa o inactiva una cuenta desde la lista, sin pasar por el
-  /// formulario completo.
+  /// Activates or deactivates an account from the list, without going
+  /// through the full form.
   Future<void> setActive({required String id, required bool isActive}) async {
     await _client.from('accounts').update({'is_active': isActive}).eq('id', id);
   }
 
-  /// Ajusta `balance` en [amount] (puede ser negativo o positivo) y suma
-  /// ese mismo monto a `monthly_account_balances.uncontrolled_expenses_total`
-  /// del mes/año indicados, en una sola operación atómica.
+  /// Adjusts `balance` by [amount] (may be negative or positive) and adds
+  /// that same amount to `monthly_account_balances.uncontrolled_expenses_total`
+  /// for the given month/year, in a single atomic operation.
   ///
-  /// Lo usa "Actualizar saldo" para la parte de la diferencia que ningún
-  /// movimiento cargado explica: a diferencia de [createTransaction] en
-  /// `TransactionService`, esto no crea ninguna fila en `transactions`.
+  /// Used by "Update balance" for the part of the difference that no loaded
+  /// movement explains: unlike [createTransaction] in `TransactionService`,
+  /// this does not create any row in `transactions`.
   ///
-  /// Llama al RPC `register_uncontrolled_adjustment` en vez de hacer los
-  /// dos updates por separado: si algo falla, ninguno de los dos queda
-  /// aplicado a medias.
+  /// It calls the `register_uncontrolled_adjustment` RPC instead of doing
+  /// the two updates separately: if something fails, neither is left
+  /// half-applied.
   Future<void> applyUncontrolledAdjustment({
     required String userId,
     required String accountId,
@@ -90,5 +91,25 @@ class AccountService {
       'p_month': month,
       'p_year': year,
     });
+  }
+
+  /// Signed `uncontrolled_expenses_total` of a single account for the given
+  /// month/year (negative is an uncontrolled expense, positive an
+  /// uncontrolled income). Returns 0 when the account has no monthly row yet.
+  Future<double> fetchUncontrolledTotal({
+    required String accountId,
+    required int month,
+    required int year,
+  }) async {
+    final row = await _client
+        .from('monthly_account_balances')
+        .select('uncontrolled_expenses_total')
+        .eq('account_id', accountId)
+        .eq('month', month)
+        .eq('year', year)
+        .maybeSingle();
+
+    if (row == null) return 0;
+    return (row['uncontrolled_expenses_total'] as num).toDouble();
   }
 }

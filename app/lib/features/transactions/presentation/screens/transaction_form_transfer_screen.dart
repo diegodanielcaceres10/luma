@@ -1,0 +1,341 @@
+import 'package:flutter/material.dart';
+
+import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/screen_header.dart';
+import '../../../accounts/data/models/account.dart';
+import '../../../accounts/presentation/view_models/account_view_model.dart';
+import '../view_models/transaction_view_model.dart';
+
+/// Form to transfer money between own accounts. Saving creates an expense on
+/// the origin account and an income on the destination (see
+/// [TransactionViewModel.createTransfer]).
+class TransactionFormTransferScreen extends StatefulWidget {
+  final String? userId;
+  final AccountViewModel accountViewModel;
+  final TransactionViewModel transactionViewModel;
+
+  /// Called after saving or going back.
+  final VoidCallback onDone;
+
+  const TransactionFormTransferScreen({
+    super.key,
+    required this.userId,
+    required this.accountViewModel,
+    required this.transactionViewModel,
+    required this.onDone,
+  });
+
+  @override
+  State<TransactionFormTransferScreen> createState() =>
+      _TransactionFormTransferScreenState();
+}
+
+class _TransactionFormTransferScreenState
+    extends State<TransactionFormTransferScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _amountController = TextEditingController();
+
+  String? _originAccountId;
+  String? _destinationAccountId;
+  DateTime _selectedDate = DateTime.now();
+
+  static const _fieldDecoration = InputDecoration(
+    filled: true,
+    fillColor: AppColors.authCardFill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authCardBorder),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authCardBorder),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authAccent),
+    ),
+    hintStyle: TextStyle(color: AppColors.authTextFooter),
+  );
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.authAccent,
+            onPrimary: AppColors.authBackgroundBottom,
+            surface: AppColors.authBackgroundBottom,
+            onSurface: AppColors.authTextPrimary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_originAccountId == null || _destinationAccountId == null) return;
+
+    final amount = double.parse(_amountController.text.replaceAll(',', '.'));
+    final accounts = widget.accountViewModel.activeAccounts;
+    final originName =
+        accounts.firstWhere((a) => a.id == _originAccountId).name;
+    final destinationName =
+        accounts.firstWhere((a) => a.id == _destinationAccountId).name;
+
+    final success = await widget.transactionViewModel.createTransfer(
+      userId: widget.userId ?? '',
+      originAccountId: _originAccountId!,
+      destinationAccountId: _destinationAccountId!,
+      amount: amount,
+      date: _selectedDate,
+      originDescription: 'Transferencia a $destinationName',
+      destinationDescription: 'Transferencia desde $originName',
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      // Balances changed server-side; reload accounts to show them.
+      await widget.accountViewModel.loadAccounts();
+      if (!mounted) return;
+      widget.onDone();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.transactionViewModel.errorMessage ??
+                'No se pudo guardar la transferencia.',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: ListenableBuilder(
+        listenable: Listenable.merge(
+            [widget.accountViewModel, widget.transactionViewModel]),
+        builder: (context, _) {
+          final accounts = widget.accountViewModel.activeAccounts;
+          final isSubmitting = widget.transactionViewModel.isSubmitting;
+
+          // Each dropdown excludes the account picked in the other one, and a
+          // selection that is no longer available is cleared.
+          final originOptions = accounts
+              .where((Account a) => a.id != _destinationAccountId)
+              .toList();
+          final destinationOptions =
+              accounts.where((Account a) => a.id != _originAccountId).toList();
+
+          return Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                if (isSubmitting)
+                  const LinearProgressIndicator(
+                    backgroundColor: AppColors.authCardBorder,
+                    color: AppColors.authAccent,
+                    minHeight: 3,
+                  ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    children: [
+                      ScreenHeader(
+                        title: 'Transferencia entre cuentas',
+                        size: ScreenHeaderSize.compact,
+                        onBack: widget.onDone,
+                        backEnabled: !isSubmitting,
+                      ),
+                      const SizedBox(height: 20),
+                      if (accounts.length < 2)
+                        const Text(
+                          'Necesitás al menos dos cuentas activas para '
+                          'transferir entre ellas.',
+                          style: TextStyle(color: AppColors.authExpense),
+                        )
+                      else ...[
+                        const Text('Cuenta de origen',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String?>(
+                          initialValue: _originAccountId,
+                          dropdownColor: AppColors.authBackgroundBottom,
+                          style:
+                              const TextStyle(color: AppColors.authTextPrimary),
+                          hint: const Text(
+                            'Seleccioná la cuenta de origen',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary),
+                          ),
+                          decoration: _fieldDecoration,
+                          items: originOptions
+                              .map(
+                                (Account a) => DropdownMenuItem<String?>(
+                                  value: a.id,
+                                  child: Text(
+                                    '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: isSubmitting
+                              ? null
+                              : (value) => setState(() {
+                                    _originAccountId = value;
+                                    if (value != null &&
+                                        value == _destinationAccountId) {
+                                      _destinationAccountId = null;
+                                    }
+                                  }),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Cuenta de destino',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String?>(
+                          initialValue: _destinationAccountId,
+                          dropdownColor: AppColors.authBackgroundBottom,
+                          style:
+                              const TextStyle(color: AppColors.authTextPrimary),
+                          hint: const Text(
+                            'Seleccioná la cuenta de destino',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary),
+                          ),
+                          decoration: _fieldDecoration,
+                          items: destinationOptions
+                              .map(
+                                (Account a) => DropdownMenuItem<String?>(
+                                  value: a.id,
+                                  child: Text(
+                                    '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: isSubmitting
+                              ? null
+                              : (value) => setState(() {
+                                    _destinationAccountId = value;
+                                    if (value != null &&
+                                        value == _originAccountId) {
+                                      _originAccountId = null;
+                                    }
+                                  }),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Monto a transferir',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _amountController,
+                          enabled: !isSubmitting,
+                          style:
+                              const TextStyle(color: AppColors.authTextPrimary),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration:
+                              _fieldDecoration.copyWith(hintText: '0.00'),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Ingresá un monto';
+                            }
+                            final parsed =
+                                double.tryParse(value.replaceAll(',', '.'));
+                            if (parsed == null || parsed <= 0) {
+                              return 'Monto inválido';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Fecha',
+                            style:
+                                TextStyle(color: AppColors.authTextSecondary)),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: isSubmitting ? null : _pickDate,
+                          borderRadius: BorderRadius.circular(14),
+                          child: InputDecorator(
+                            decoration: _fieldDecoration.copyWith(
+                              suffixIcon: const Icon(
+                                Icons.calendar_today_rounded,
+                                size: 18,
+                                color: AppColors.authTextSecondary,
+                              ),
+                            ),
+                            child: Text(
+                              '${_selectedDate.day.toString().padLeft(2, '0')}/'
+                              '${_selectedDate.month.toString().padLeft(2, '0')}/'
+                              '${_selectedDate.year}',
+                              style: const TextStyle(
+                                  color: AppColors.authTextPrimary),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.authAccent,
+                              foregroundColor: AppColors.authBackgroundBottom,
+                              disabledBackgroundColor:
+                                  AppColors.authAccent.withValues(alpha: 0.3),
+                              disabledForegroundColor: AppColors
+                                  .authBackgroundBottom
+                                  .withValues(alpha: 0.6),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: isSubmitting ||
+                                    _originAccountId == null ||
+                                    _destinationAccountId == null
+                                ? null
+                                : _submit,
+                            child: isSubmitting
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.authBackgroundBottom,
+                                    ),
+                                  )
+                                : const Text('Transferir'),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

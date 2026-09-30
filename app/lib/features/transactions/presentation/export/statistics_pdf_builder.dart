@@ -11,19 +11,13 @@ import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../view_models/transaction_view_model.dart';
 
-// Sitio de Luma, mostrado como texto plano en el pie de página (mismo
-// criterio que el crédito del portfolio).
 const _lumaUrl = 'diegodanielcaceres10.github.io/luma';
 
-/// Foto de lo que muestra Estadísticas para un mes, lista para volcar a un
-/// PDF. Se arma con los valores del [TransactionViewModel] en el momento de
-/// exportar, así el PDF no cambia si el usuario cambia de mes mientras se
-/// genera.
+/// Snapshot of the statistics for one month, taken at export time so the
+/// PDF does not change if the user switches months meanwhile.
 class StatisticsPdfData {
-  /// Primer día del mes exportado.
   final DateTime month;
 
-  /// 'Agosto 2026'.
   final String monthLabel;
   final String currency;
   final double income;
@@ -34,9 +28,6 @@ class StatisticsPdfData {
   final double? netChangePercent;
   final List<CategoryTotal> breakdown;
 
-  /// Acumulado (con signo) de ajustes sin declarar del mes —
-  /// `uncontrolled_expenses_total` sumado entre todas las cuentas. Ver
-  /// [TransactionViewModel.statisticsUncontrolledTotal].
   final double uncontrolledTotal;
 
   const StatisticsPdfData({
@@ -53,19 +44,16 @@ class StatisticsPdfData {
     required this.uncontrolledTotal,
   });
 
-  /// 'luma-estadisticas-2026-08.pdf'.
   String get fileName =>
       'luma-estadisticas-${month.year}-${month.month.toString().padLeft(2, '0')}.pdf';
 }
 
-/// Arma el PDF de Estadísticas de un mes ya cerrado.
-///
-/// Usa las fuentes Roboto de `assets/fonts`: las fuentes estándar del PDF
-/// (Helvetica) no tienen el símbolo € ni todos los acentos.
+/// Builds the statistics PDF for a closed month. Uses the bundled Roboto
+/// fonts because the default PDF fonts lack the € symbol and some accents.
 class StatisticsPdfBuilder {
   StatisticsPdfBuilder._();
 
-  // Colores pensados para papel (fondo blanco), no los del tema oscuro.
+  // Print-friendly colors, not the dark theme ones.
   static const _textPrimary = PdfColor.fromInt(0xFF111827);
   static const _textSecondary = PdfColor.fromInt(0xFF6B7280);
   static const _border = PdfColor.fromInt(0xFFE5E7EB);
@@ -73,7 +61,6 @@ class StatisticsPdfBuilder {
 
   static PdfColor _pdfColor(Color color) => PdfColor.fromInt(color.toARGB32());
 
-  // Créditos del pie de página, solo en la última hoja del PDF.
   static const _copyright = '© 2026 Diego Daniel Caceres';
   static const _portfolioLabel = 'diegodanielcaceres10.github.io/nura';
 
@@ -197,7 +184,6 @@ class StatisticsPdfBuilder {
             amount: data.income,
             currency: data.currency,
             changePercent: data.incomeChangePercent,
-            // Más ingresos es una mejora.
             isFavorable: (p) => p >= 0,
           ),
         ),
@@ -208,7 +194,7 @@ class StatisticsPdfBuilder {
             amount: data.expenses,
             currency: data.currency,
             changePercent: data.expenseChangePercent,
-            // Acá es al revés: gastar menos que el mes anterior es la mejora.
+            // For expenses, spending less than last month is the improvement.
             isFavorable: (p) => p <= 0,
           ),
         ),
@@ -277,10 +263,8 @@ class StatisticsPdfBuilder {
     );
   }
 
-  /// Título, total, barra apilada con el peso de cada categoría y una fila
-  /// por categoría. Cada fila es un widget suelto de la lista de la página
-  /// (no una sola tabla) para que el PDF pueda cortar entre páginas si hay
-  /// muchas categorías.
+  /// Each category row is a separate widget (not one table) so the PDF can
+  /// break across pages.
   static List<pw.Widget> _expensesByCategory(StatisticsPdfData data) {
     final title = pw.Text(
       'Gastos por categoría',
@@ -328,8 +312,6 @@ class StatisticsPdfBuilder {
         colorFromHex(item.category.color, fallback: AppColors.authAccent),
       );
 
-  /// Barra horizontal dividida en segmentos proporcionales al % de cada
-  /// categoría, con el mismo color que en la app.
   static pw.Widget _stackedBar(List<CategoryTotal> breakdown) {
     final segments = breakdown.where((item) => item.percent > 0).toList();
 
@@ -339,8 +321,7 @@ class StatisticsPdfBuilder {
         children: [
           for (final item in segments)
             pw.Expanded(
-              // flex debe ser entero: se usa el % con dos decimales de
-              // precisión y mínimo 1 para que ninguna categoría desaparezca.
+              // flex must be an int; keep a minimum of 1 so no category disappears.
               flex: (item.percent * 100).round().clamp(1, 1000000),
               child: pw.Container(color: _categoryColor(item)),
             ),

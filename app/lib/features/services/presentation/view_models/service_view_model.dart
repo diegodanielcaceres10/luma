@@ -19,23 +19,20 @@ class ServiceViewModel extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
 
-  /// `true` una vez que la lista se cargó con éxito al menos una vez. Sirve
-  /// para distinguir "todavía no llegaron" de "llegaron y esta no existe"
-  /// (ver EntityRouteGuard).
+  /// `true` once the list has loaded successfully at least once, to tell
+  /// "not loaded yet" apart from "loaded and missing" (see EntityRouteGuard).
   bool get hasLoaded => _hasLoaded;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
   ServiceSubmitError? get submitError => _submitError;
   List<Service> get services => _services;
 
-  /// Servicios activos — para elegir servicio al generar una factura del
-  /// mes. La lista completa (con inactivos) se usa solo en la pantalla
-  /// "Servicios", donde se pueden reactivar.
+  /// Active services, to pick from when generating the month's invoice. The
+  /// full list (including inactive) is only used by the service screens.
   List<Service> get activeServices =>
       _services.where((service) => service.isActive).toList();
 
-  /// Busca un servicio por id — útil para features que solo guardan el
-  /// `service_id` (ej. facturas) y necesitan mostrar su nombre.
+  /// Looks up a service by id, for features that only store `service_id`.
   Service? serviceById(String? id) {
     if (id == null) return null;
     for (final service in _services) {
@@ -51,11 +48,8 @@ class ServiceViewModel extends ChangeNotifier {
 
     try {
       _services = await _repository.getAll();
-      // Mismo caso que en cuentas y categorías (ver
-      // AccountViewModel.loadAccounts): el `order('name')` de
-      // Supabase/Postgres distingue mayúsculas de minúsculas, así que se
-      // reordena acá sin distinguirlas para que quede alfabético de
-      // verdad.
+      // Postgres `order('name')` is case-sensitive; re-sort ignoring case
+      // (same as AccountViewModel.loadAccounts).
       _services.sort(
         (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
       );
@@ -100,7 +94,7 @@ class ServiceViewModel extends ChangeNotifier {
         ));
   }
 
-  /// Inactiva o reactiva un servicio desde la lista.
+  /// Deactivates or reactivates a service from the view screen.
   Future<bool> toggleActive(String id, bool isActive) async {
     return _submit(
       () => _repository.setActive(id: id, isActive: isActive),

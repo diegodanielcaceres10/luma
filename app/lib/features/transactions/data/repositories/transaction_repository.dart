@@ -35,4 +35,52 @@ class TransactionRepository {
       isTransfer: isTransfer,
     );
   }
+
+  Future<String> createJustifying({
+    required String userId,
+    required String accountId,
+    String? categoryId,
+    required String type,
+    required double amount,
+    String? description,
+    required DateTime date,
+    required int month,
+    required int year,
+  }) {
+    return _service.createJustifyingTransaction(
+      userId: userId,
+      accountId: accountId,
+      categoryId: categoryId,
+      type: type,
+      amount: amount,
+      description: description,
+      date: date,
+      month: month,
+      year: year,
+    );
+  }
+
+  Future<void> delete({
+    required String userId,
+    required String transactionId,
+  }) {
+    return _service.deleteTransaction(
+      userId: userId,
+      transactionId: transactionId,
+    );
+  }
+
+  Future<void> update({
+    required String transactionId,
+    String? categoryId,
+    String? description,
+    required DateTime date,
+  }) {
+    return _service.updateTransaction(
+      transactionId: transactionId,
+      categoryId: categoryId,
+      description: description,
+      date: date,
+    );
+  }
 }

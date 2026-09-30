@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_version_footer.dart';
 import '../../../../core/widgets/luma_logo.dart';
-import '../widgets/google_sign_in_button.dart';
 import '../view_models/auth_view_model.dart';
+import '../widgets/google_sign_in_button.dart';
 
 class LoginScreen extends StatefulWidget {
   final AuthViewModel viewModel;
@@ -44,9 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // "Toast" con el detalle del error (en Android/iOS no hay Toast nativo
-  // accesible desde Flutter sin un plugin nuevo; el SnackBar es el
-  // equivalente estándar y permite copiar el texto completo).
+  // A SnackBar (instead of a native toast) so the user can copy the full text.
   void _showErrorToast(String message) {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
@@ -72,7 +70,6 @@ class _LoginScreenState extends State<LoginScreen> {
         return Scaffold(
           body: Stack(
             children: [
-              // Background image.
               Positioned.fill(
                 child: Image.asset(
                   'assets/images/login_bg.png',

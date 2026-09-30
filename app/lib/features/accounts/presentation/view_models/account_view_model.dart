@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../preferences/presentation/view_models/preferences_view_model.dart';
+import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../data/models/account.dart';
 import '../../data/repositories/account_repository.dart';
 
@@ -11,12 +11,12 @@ class AccountViewModel extends ChangeNotifier {
   final PreferencesViewModel _preferencesViewModel;
 
   AccountViewModel(this._repository, this._preferencesViewModel) {
-    // La moneda vive en las preferencias del usuario (ver PreferencesScreen
-    // / PreferencesViewModel.setCurrencyCode), no en AccountViewModel — pero
-    // la mayoría de las pantallas ya escuchan a AccountViewModel para
-    // formatear montos (ver primaryCurrency). Reenviamos el cambio acá para
-    // que esas pantallas se actualicen solas al cambiar la moneda, sin
-    // tener que agregar PreferencesViewModel a cada una.
+    // The currency lives in the user's preferences (see PreferencesScreen /
+    // PreferencesViewModel.setCurrencyCode), not in AccountViewModel — but
+    // most screens already listen to AccountViewModel to format amounts (see
+    // primaryCurrency). The change is forwarded here so those screens update
+    // on their own when the currency changes, without having to add
+    // PreferencesViewModel to each of them.
     _preferencesViewModel.addListener(notifyListeners);
   }
 
@@ -26,33 +26,55 @@ class AccountViewModel extends ChangeNotifier {
   String? _errorMessage;
   AccountSubmitError? _submitError;
   List<Account> _accounts = [];
+  final Map<String, double> _uncontrolledTotals = {};
 
   bool get isLoading => _isLoading;
 
-  /// `true` una vez que la lista de cuentas se cargó con éxito al menos una
-  /// vez. Sirve para distinguir "todavía no llegaron las cuentas" de "las
-  /// cuentas llegaron y esta no existe" (ver AccountRouteGuard).
+  /// `true` once the accounts list has loaded successfully at least once.
+  /// Used to tell "the accounts haven't arrived yet" apart from "the accounts
+  /// arrived and this one doesn't exist" (see AccountRouteGuard).
   bool get hasLoaded => _hasLoaded;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
   AccountSubmitError? get submitError => _submitError;
   List<Account> get accounts => _accounts;
 
-  /// Cuentas activas — para elegir cuenta en una transacción nueva o para
-  /// el aviso de saldo inicial del mes. La lista completa (con inactivas)
-  /// se usa solo en la pantalla "Cuentas", donde se pueden reactivar.
+  /// Active accounts — for picking an account in a new transaction or for
+  /// the month's initial balance notice. The full list (including inactive
+  /// ones) is only used in the "Accounts" screen, where they can be
+  /// reactivated.
   List<Account> get activeAccounts =>
       _accounts.where((account) => account.isActive).toList();
 
-  // Las inactivas quedan afuera del total: siguen visibles en la lista,
-  // pero ya no representan plata disponible.
+  // Inactive accounts are left out of the total: they remain visible in the
+  // list, but no longer represent available money.
   double get totalBalance => _accounts
       .where((account) => account.isActive)
       .fold(0, (sum, account) => sum + account.balance);
 
-  // Cuentas ya no tienen moneda propia (se removió para no mezclar
-  // cálculos): se usa la moneda elegida en Preferencias para toda la app.
+  // Accounts no longer have their own currency (removed to avoid mixing
+  // calculations): the currency chosen in Preferences is used across the app.
   String get primaryCurrency => _preferencesViewModel.preferences.currencyCode;
+
+  /// Signed `uncontrolled_expenses_total` of [accountId] for the current
+  /// month, or 0 if it has not been loaded (see [loadUncontrolledTotal]).
+  double uncontrolledTotalOf(String accountId) =>
+      _uncontrolledTotals[accountId] ?? 0;
+
+  /// Loads the current month's uncontrolled total of [accountId]. A failure
+  /// is ignored on purpose: it is secondary information, and the previous
+  /// value (if any) is kept.
+  Future<void> loadUncontrolledTotal(String accountId) async {
+    final now = DateTime.now();
+    try {
+      _uncontrolledTotals[accountId] = await _repository.getUncontrolledTotal(
+        accountId: accountId,
+        month: now.month,
+        year: now.year,
+      );
+      notifyListeners();
+    } catch (_) {}
+  }
 
   Future<void> loadAccounts() async {
     _isLoading = true;
@@ -61,13 +83,12 @@ class AccountViewModel extends ChangeNotifier {
 
     try {
       _accounts = await _repository.getAccounts();
-      // El `order('name')` de Supabase/Postgres distingue mayúsculas de
-      // minúsculas (ordena por código de carácter), así que una cuenta con
-      // mayúscula inicial puede terminar antes que otras que
-      // alfabéticamente van primero. Se reordena acá, sin distinguir
-      // mayúsculas/minúsculas, para que se vea alfabético de verdad —
-      // afecta a esta lista y a todo lo que sale de ella (selectores de
-      // cuenta en movimientos, transferencias, etc.).
+      // Supabase/Postgres `order('name')` is case-sensitive (it sorts by
+      // character code), so an account with a capital initial can end up
+      // before others that come first alphabetically. It is re-sorted here,
+      // case-insensitively, so the list is truly alphabetical — this affects
+      // this list and everything derived from it (account selectors in
+      // movements, transfers, etc.).
       _accounts.sort(
         (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
       );
@@ -102,19 +123,19 @@ class AccountViewModel extends ChangeNotifier {
         ));
   }
 
-  /// Inactiva o reactiva una cuenta desde la lista.
+  /// Deactivates or reactivates an account from the list.
   Future<bool> toggleActive(String id, bool isActive) async {
     return _submit(
       () => _repository.setActive(id: id, isActive: isActive),
     );
   }
 
-  /// Ajusta el balance de la cuenta [accountId] en [amount] (puede ser
-  /// negativo o positivo) y acumula ese mismo monto en
-  /// `monthly_account_balances.uncontrolled_expenses_total` del mes/año
-  /// indicados — sin crear ninguna transacción. Lo usa "Actualizar
-  /// saldo" para la parte de la diferencia que ningún movimiento cargado
-  /// explica (ver `UpdateBalanceTab._saveAndUpdateBalance`).
+  /// Adjusts the balance of account [accountId] by [amount] (may be negative
+  /// or positive) and accumulates that same amount into
+  /// `monthly_account_balances.uncontrolled_expenses_total` for the given
+  /// month/year — without creating any transaction. Used by "Update balance"
+  /// for the part of the difference that no loaded movement explains (see
+  /// `AccountUpdateBalanceScreen._saveAndUpdateBalance`).
   Future<bool> applyUncontrolledAdjustment({
     required String userId,
     required String accountId,
@@ -122,7 +143,7 @@ class AccountViewModel extends ChangeNotifier {
     required int month,
     required int year,
   }) async {
-    return _submit(
+    final success = await _submit(
       () => _repository.applyUncontrolledAdjustment(
         userId: userId,
         accountId: accountId,
@@ -132,6 +153,8 @@ class AccountViewModel extends ChangeNotifier {
       ),
       genericErrorMessage: 'No se pudo guardar el ajuste no declarado.',
     );
+    if (success) await loadUncontrolledTotal(accountId);
+    return success;
   }
 
   Future<bool> _submit(

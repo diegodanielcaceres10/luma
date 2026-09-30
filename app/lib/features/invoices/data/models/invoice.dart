@@ -25,8 +25,8 @@ class Invoice {
     this.cancelledAt,
   });
 
-  /// Pendiente: ni pagada ni cancelada. Es el único estado desde el que
-  /// se puede cancelar una factura.
+  /// Neither paid nor cancelled. The only state an invoice can be edited,
+  /// paid or cancelled from.
   bool get isPending => !paid && !cancelled;
 
   factory Invoice.fromMap(Map<String, dynamic> map) {

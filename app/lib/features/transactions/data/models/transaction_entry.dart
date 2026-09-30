@@ -53,11 +53,8 @@ class TransactionEntry {
   final TransactionCategory category;
   final TransactionAccount account;
 
-  /// true en las dos filas que arma una transferencia entre cuentas
-  /// propias (ver [TransactionViewModel.createTransfer]): el dinero no
-  /// entra ni sale de verdad, así que [TransactionViewModel._sumByType] y
-  /// [TransactionViewModel._breakdownOf] la excluyen de todo total de
-  /// ingresos/gastos y del desglose por categoría.
+  /// True for the two rows of an own-account transfer; excluded from
+  /// income/expense totals and category breakdowns.
   final bool isTransfer;
 
   const TransactionEntry({

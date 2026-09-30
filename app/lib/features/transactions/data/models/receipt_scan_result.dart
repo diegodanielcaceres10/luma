@@ -1,9 +1,5 @@
-/// Resultado de interpretar la foto de un ticket/factura a través de la
-/// Edge Function `gemini-image-reader` (Gemini API, tier gratuito).
-///
-/// Todos los campos son opcionales a propósito: el modelo puede no leer
-/// alguno de los datos, y el usuario los completa o corrige a mano en el
-/// formulario antes de guardar — este resultado nunca se guarda solo.
+/// Parsed receipt photo data. Fields are nullable because the model may miss
+/// some; the user reviews them in the form before anything is saved.
 class ReceiptScanResult {
   final String? type;
   final double? amount;
