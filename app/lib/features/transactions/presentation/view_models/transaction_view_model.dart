@@ -295,6 +295,14 @@ class TransactionViewModel extends ChangeNotifier {
     }
   }
 
+  /// Reloads the figures derived from `uncontrolled_expenses_total` (dashboard
+  /// net result, statistics). Call it after that total changes outside this
+  /// view model, e.g. via `AccountViewModel.applyUncontrolledAdjustment`.
+  Future<void> refreshUncontrolledTotals() async {
+    await loadCurrentMonth();
+    await _refreshStatisticsMonth();
+  }
+
   Future<void> loadAllTransactions() async {
     _isLoadingAll = true;
     _errorMessage = null;

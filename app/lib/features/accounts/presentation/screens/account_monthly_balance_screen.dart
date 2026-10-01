@@ -306,6 +306,7 @@ class _AccountMonthlyBalanceScreenState
                   'No se pudo guardar el ajuste no declarado.',
             );
           }
+          await widget.transactionViewModel.refreshUncontrolledTotals();
         } else {
           await widget.accountViewModel.loadAccounts();
         }
