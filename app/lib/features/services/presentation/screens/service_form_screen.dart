@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -85,6 +86,9 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final confirmed = await showConfirmDialog(context);
+    if (!confirmed || !mounted) return;
 
     final vm = widget.serviceViewModel;
     final amount = double.parse(_amountController.text.trim());
