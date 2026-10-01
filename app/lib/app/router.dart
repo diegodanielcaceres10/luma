@@ -12,6 +12,7 @@ import '../features/accounts/presentation/screens/account_view_screen.dart';
 import '../features/accounts/presentation/screens/accounts_screen.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
 import '../features/accounts/presentation/view_models/monthly_balance_view_model.dart';
+import '../features/accounts/presentation/widgets/opening_balance_gate.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/preferences_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
@@ -218,6 +219,7 @@ GoRouter buildAppRouter({
                   accountViewModel: accountViewModel,
                   categoryViewModel: categoryViewModel,
                   transactionViewModel: transactionViewModel,
+                  monthlyBalanceViewModel: monthlyBalanceViewModel,
                   onDone: () => context.goBack(),
                 ),
               );
@@ -230,6 +232,7 @@ GoRouter buildAppRouter({
                 userId: authViewModel.userId,
                 accountViewModel: accountViewModel,
                 transactionViewModel: transactionViewModel,
+                monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
               ),
             ),
@@ -304,15 +307,22 @@ GoRouter buildAppRouter({
               body: _accountGuard(
                 accountViewModel,
                 state.pathParameters['id'],
-                (context, account) => AccountUpdateBalanceScreen(
+                (context, account) => OpeningBalanceGate(
+                  monthlyBalanceViewModel: monthlyBalanceViewModel,
                   account: account,
-                  accountViewModel: accountViewModel,
-                  categoryViewModel: categoryViewModel,
-                  serviceViewModel: serviceViewModel,
-                  invoiceViewModel: invoiceViewModel,
-                  transactionViewModel: transactionViewModel,
-                  userId: authViewModel.userId,
-                  onDone: () => context.goBack(),
+                  onCompleteBalance: () => context
+                      .push('/accounts/${account.id}/monthly-balance'),
+                  onBack: () => context.goBack(),
+                  child: AccountUpdateBalanceScreen(
+                    account: account,
+                    accountViewModel: accountViewModel,
+                    categoryViewModel: categoryViewModel,
+                    serviceViewModel: serviceViewModel,
+                    invoiceViewModel: invoiceViewModel,
+                    transactionViewModel: transactionViewModel,
+                    userId: authViewModel.userId,
+                    onDone: () => context.goBack(),
+                  ),
                 ),
               ),
             ),
@@ -343,15 +353,22 @@ GoRouter buildAppRouter({
               body: _accountGuard(
                 accountViewModel,
                 state.pathParameters['id'],
-                (context, account) => AccountJustifyUncontrolledScreen(
+                (context, account) => OpeningBalanceGate(
+                  monthlyBalanceViewModel: monthlyBalanceViewModel,
                   account: account,
-                  accountViewModel: accountViewModel,
-                  categoryViewModel: categoryViewModel,
-                  serviceViewModel: serviceViewModel,
-                  invoiceViewModel: invoiceViewModel,
-                  transactionViewModel: transactionViewModel,
-                  userId: authViewModel.userId,
-                  onDone: () => context.goBack(),
+                  onCompleteBalance: () => context
+                      .push('/accounts/${account.id}/monthly-balance'),
+                  onBack: () => context.goBack(),
+                  child: AccountJustifyUncontrolledScreen(
+                    account: account,
+                    accountViewModel: accountViewModel,
+                    categoryViewModel: categoryViewModel,
+                    serviceViewModel: serviceViewModel,
+                    invoiceViewModel: invoiceViewModel,
+                    transactionViewModel: transactionViewModel,
+                    userId: authViewModel.userId,
+                    onDone: () => context.goBack(),
+                  ),
                 ),
               ),
             ),
@@ -530,6 +547,7 @@ GoRouter buildAppRouter({
                   serviceViewModel: serviceViewModel,
                   categoryViewModel: categoryViewModel,
                   accountViewModel: accountViewModel,
+                  monthlyBalanceViewModel: monthlyBalanceViewModel,
                   currency: accountViewModel.primaryCurrency,
                   onEdit: () => context.push('/invoices/${invoice.id}/edit'),
                   onBack: () => context.goBack(),

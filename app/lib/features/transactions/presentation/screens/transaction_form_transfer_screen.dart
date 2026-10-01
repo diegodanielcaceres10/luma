@@ -5,6 +5,8 @@ import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
+import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
+import '../../../accounts/presentation/widgets/opening_balance_gate.dart';
 import '../view_models/transaction_view_model.dart';
 
 /// Form to transfer money between own accounts. Saving creates an expense on
@@ -14,6 +16,7 @@ class TransactionFormTransferScreen extends StatefulWidget {
   final String? userId;
   final AccountViewModel accountViewModel;
   final TransactionViewModel transactionViewModel;
+  final MonthlyBalanceViewModel monthlyBalanceViewModel;
 
   /// Called after saving or going back.
   final VoidCallback onDone;
@@ -23,6 +26,7 @@ class TransactionFormTransferScreen extends StatefulWidget {
     required this.userId,
     required this.accountViewModel,
     required this.transactionViewModel,
+    required this.monthlyBalanceViewModel,
     required this.onDone,
   });
 
@@ -127,13 +131,28 @@ class _TransactionFormTransferScreenState
     }
   }
 
+  DropdownMenuItem<String?> _accountItem(Account a) {
+    final isPending = widget.monthlyBalanceViewModel.isAccountPending(a.id);
+    return DropdownMenuItem<String?>(
+      value: a.id,
+      enabled: !isPending,
+      child: accountOptionLabel(
+        '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
+        isPending: isPending,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
       child: ListenableBuilder(
-        listenable: Listenable.merge(
-            [widget.accountViewModel, widget.transactionViewModel]),
+        listenable: Listenable.merge([
+          widget.accountViewModel,
+          widget.transactionViewModel,
+          widget.monthlyBalanceViewModel,
+        ]),
         builder: (context, _) {
           final accounts = widget.accountViewModel.activeAccounts;
           final isSubmitting = widget.transactionViewModel.isSubmitting;
@@ -191,12 +210,7 @@ class _TransactionFormTransferScreenState
                           decoration: _fieldDecoration,
                           items: originOptions
                               .map(
-                                (Account a) => DropdownMenuItem<String?>(
-                                  value: a.id,
-                                  child: Text(
-                                    '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
-                                  ),
-                                ),
+                                (Account a) => _accountItem(a),
                               )
                               .toList(),
                           onChanged: isSubmitting
@@ -227,12 +241,7 @@ class _TransactionFormTransferScreenState
                           decoration: _fieldDecoration,
                           items: destinationOptions
                               .map(
-                                (Account a) => DropdownMenuItem<String?>(
-                                  value: a.id,
-                                  child: Text(
-                                    '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
-                                  ),
-                                ),
+                                (Account a) => _accountItem(a),
                               )
                               .toList(),
                           onChanged: isSubmitting
