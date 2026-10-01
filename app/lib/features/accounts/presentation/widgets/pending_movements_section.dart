@@ -1397,25 +1397,29 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
                   style: TextStyle(color: AppColors.authExpense, fontSize: 13),
                 )
               else ...[
-                const Text('Dirección', style: _kDialogLabelStyle),
-                const SizedBox(height: 6),
-                SegmentedButton<bool>(
-                  style: SegmentedButton.styleFrom(
-                    backgroundColor: AppColors.authCardFill,
-                    foregroundColor: AppColors.authTextSecondary,
-                    selectedBackgroundColor: AppColors.authAccent,
-                    selectedForegroundColor: AppColors.authBackgroundBottom,
-                    side: const BorderSide(color: AppColors.authCardBorder),
+                // When editing, the movement's sign already fixes the
+                // direction, so it is not offered again.
+                if (widget.initial == null) ...[
+                  const Text('Dirección', style: _kDialogLabelStyle),
+                  const SizedBox(height: 6),
+                  SegmentedButton<bool>(
+                    style: SegmentedButton.styleFrom(
+                      backgroundColor: AppColors.authCardFill,
+                      foregroundColor: AppColors.authTextSecondary,
+                      selectedBackgroundColor: AppColors.authAccent,
+                      selectedForegroundColor: AppColors.authBackgroundBottom,
+                      side: const BorderSide(color: AppColors.authCardBorder),
+                    ),
+                    segments: const [
+                      ButtonSegment(value: true, label: Text('Entra')),
+                      ButtonSegment(value: false, label: Text('Sale')),
+                    ],
+                    selected: {_isIncoming},
+                    onSelectionChanged: (selection) =>
+                        setState(() => _isIncoming = selection.first),
                   ),
-                  segments: const [
-                    ButtonSegment(value: true, label: Text('Entra')),
-                    ButtonSegment(value: false, label: Text('Sale')),
-                  ],
-                  selected: {_isIncoming},
-                  onSelectionChanged: (selection) =>
-                      setState(() => _isIncoming = selection.first),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
+                ],
                 Text(
                   _isIncoming
                       ? 'Otra cuenta (de dónde sale)'
