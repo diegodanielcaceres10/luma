@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../home/presentation/view_models/app_lock_view_model.dart';
 import '../../data/models/app_preferences.dart';
@@ -13,6 +15,22 @@ const _currencyLabels = {
   'BRL': 'BRL — Real brasileño',
   'ARS': 'ARS — Peso argentino',
 };
+
+const _dateFormatLabels = {
+  DateDisplayFormat.dayMonthYear: 'Día/Mes/Año',
+  DateDisplayFormat.monthDayYear: 'Mes/Día/Año',
+  DateDisplayFormat.yearMonthDay: 'Año-Mes-Día',
+  DateDisplayFormat.text: 'Con texto',
+};
+
+const _currencyDisplayLabels = {
+  CurrencyDisplay.code: 'Con letras',
+  CurrencyDisplay.symbol: 'Con símbolo',
+};
+
+// Fixed samples so every option shows what it looks like.
+final _sampleDate = DateTime(2026, 12, 31);
+const _sampleAmount = 12345.5;
 
 /// User preferences screen, opened from ProfileScreen. Each control saves
 /// immediately; there is no "Guardar" button.
@@ -94,6 +112,40 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 items: kSupportedCurrencyCodes,
                 labelOf: (code) => _currencyLabels[code] ?? code,
                 onChanged: vm.setCurrencyCode,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _PreferenceCard(
+              child: _Dropdown(
+                value: prefs.currencyDisplay.name,
+                items: [for (final d in CurrencyDisplay.values) d.name],
+                labelOf: (name) {
+                  final display = CurrencyDisplay.parse(name);
+                  final sample = formatCurrency(
+                    _sampleAmount,
+                    prefs.currencyCode,
+                    display: display,
+                  );
+                  return '${_currencyDisplayLabels[display]} — $sample';
+                },
+                onChanged: (name) =>
+                    vm.setCurrencyDisplay(CurrencyDisplay.parse(name)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const _SectionLabel('Fecha'),
+            const SizedBox(height: 8),
+            _PreferenceCard(
+              child: _Dropdown(
+                value: prefs.dateFormat.name,
+                items: [for (final f in DateDisplayFormat.values) f.name],
+                labelOf: (name) {
+                  final format = DateDisplayFormat.parse(name);
+                  return '${_dateFormatLabels[format]} — '
+                      '${formatDate(_sampleDate, format)}';
+                },
+                onChanged: (name) =>
+                    vm.setDateFormat(DateDisplayFormat.parse(name)),
               ),
             ),
             const SizedBox(height: 20),
