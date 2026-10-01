@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
@@ -256,6 +257,9 @@ class _AccountMonthlyBalanceScreenState
     final openingBalance = parseBalanceAmount(_openingBalanceController.text);
     final remainder = _unjustifiedRemainder;
     if (openingBalance == null || remainder == null || _isSaving) return;
+
+    final confirmed = await showConfirmDialog(context);
+    if (!confirmed || !mounted) return;
 
     setState(() => _isSaving = true);
 
