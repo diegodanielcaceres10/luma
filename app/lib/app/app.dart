@@ -17,7 +17,9 @@ import '../features/categories/data/repositories/category_repository.dart';
 import '../features/categories/data/services/category_service.dart';
 import '../features/categories/presentation/view_models/category_view_model.dart';
 import '../features/home/data/services/biometric_service.dart';
+import '../features/home/presentation/screens/lock_screen.dart';
 import '../features/home/presentation/view_models/app_lock_view_model.dart';
+import '../features/home/presentation/widgets/app_lock_gate.dart';
 import '../features/invoices/data/repositories/invoice_repository.dart';
 import '../features/invoices/data/services/invoice_service.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
@@ -54,6 +56,8 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
   late final BiometricService _biometricService;
   late final AppLockViewModel _appLockViewModel;
   late final NotificationsViewModel _notificationsViewModel;
+  late final Listenable _lockGateListenable =
+      Listenable.merge([_authViewModel, _appLockViewModel]);
   late final _router = buildAppRouter(
     authViewModel: _authViewModel,
     accountViewModel: _accountViewModel,
@@ -150,6 +154,18 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     }
   }
 
+  // While the lock layer is up, back must not pop the screens hidden below.
+  // Leaving the app is what back does on the first screen anyway.
+  @override
+  Future<bool> didPopRoute() async {
+    if (!_isLockLayerVisible) return false;
+    await SystemNavigator.pop();
+    return true;
+  }
+
+  bool get _isLockLayerVisible =>
+      _authViewModel.isAuthenticated && _appLockViewModel.isLocked;
+
   void _loadUserData() {
     _accountViewModel.loadAccounts();
     _transactionViewModel.loadCurrentMonth();
@@ -220,7 +236,15 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
       routerConfig: _router,
       builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: appStatusBarStyle,
-        child: child!,
+        child: AppLockGate(
+          listenable: _lockGateListenable,
+          isLocked: () => _isLockLayerVisible,
+          lockBuilder: (_) => LockScreen(
+            viewModel: _appLockViewModel,
+            authViewModel: _authViewModel,
+          ),
+          child: child!,
+        ),
       ),
     );
   }
