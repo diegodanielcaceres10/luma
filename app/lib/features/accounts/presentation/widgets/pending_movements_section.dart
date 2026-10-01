@@ -242,23 +242,34 @@ class PendingMovementsSection extends StatelessWidget {
     BuildContext context, {
     PendingMovement? editing,
   }) async {
-    // A service invoice is always an expense, so an incoming movement can't
-    // be turned into one.
-    final kinds = editing != null && editing.amount >= 0
-        ? allowedKinds.difference({PendingMovementKind.invoice})
-        : allowedKinds;
-
-    final type = await showModalBottomSheet<PendingMovementKind>(
-      context: context,
-      backgroundColor: AppColors.authBackgroundBottom,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => _MovementTypeSheet(
-        allowedKinds: kinds,
-        title: editing == null ? 'Agregar movimiento' : 'Editar movimiento',
-      ),
-    );
+    final PendingMovementKind? type;
+    if (editing == null) {
+      type = await _pickKind(context, allowedKinds: allowedKinds);
+    } else {
+      // The sign already says whether it is an income or an expense, so the
+      // sheet offers "Categorizar" instead of asking for that again.
+      final isExpense = editing.amount < 0;
+      final categorizeKind =
+          isExpense ? PendingMovementKind.expense : PendingMovementKind.income;
+      final kinds = <PendingMovementKind>{
+        if (allowedKinds.contains(categorizeKind)) categorizeKind,
+        // A service invoice is always an expense.
+        if (isExpense && allowedKinds.contains(PendingMovementKind.invoice))
+          PendingMovementKind.invoice,
+        if (allowedKinds.contains(PendingMovementKind.transfer))
+          PendingMovementKind.transfer,
+      };
+      if (kinds.isEmpty) return;
+      // With a single option there is nothing to choose: go straight to it.
+      type = kinds.length == 1
+          ? kinds.first
+          : await _pickKind(
+              context,
+              allowedKinds: kinds,
+              title: 'Editar movimiento',
+              categorizeKind: categorizeKind,
+            );
+    }
     if (type == null || !context.mounted) return;
 
     void save(PendingMovement movement) => editing == null
@@ -296,7 +307,27 @@ class PendingMovementsSection extends StatelessWidget {
     }
   }
 
-  /// Second half of the "Service invoice" case of [_showAddMovementDialog]:
+  Future<PendingMovementKind?> _pickKind(
+    BuildContext context, {
+    required Set<PendingMovementKind> allowedKinds,
+    String title = 'Agregar movimiento',
+    PendingMovementKind? categorizeKind,
+  }) {
+    return showModalBottomSheet<PendingMovementKind>(
+      context: context,
+      backgroundColor: AppColors.authBackgroundBottom,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _MovementTypeSheet(
+        allowedKinds: allowedKinds,
+        title: title,
+        categorizeKind: categorizeKind,
+      ),
+    );
+  }
+
+  /// Second half of the "Service invoice" case of [_showMovementFlow]:
   /// pick which invoice to pay (excluding those already queued in
   /// [controller], so one can't be paid twice before saving) and, if the
   /// service has a resolved category, confirm amount and date.
@@ -592,9 +623,14 @@ class _MovementTypeSheet extends StatelessWidget {
   final Set<PendingMovementKind> allowedKinds;
   final String title;
 
+  /// When set (editing), replaces the Expense/Income options with a single
+  /// "Categorizar" one that resolves to this kind.
+  final PendingMovementKind? categorizeKind;
+
   const _MovementTypeSheet({
     required this.allowedKinds,
     this.title = 'Agregar movimiento',
+    this.categorizeKind,
   });
 
   @override
@@ -627,7 +663,15 @@ class _MovementTypeSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            if (allowedKinds.contains(PendingMovementKind.expense))
+            if (categorizeKind != null && allowedKinds.contains(categorizeKind))
+              _MovementTypeOption(
+                icon: Icons.sell_outlined,
+                iconColor: AppColors.authAccent,
+                label: 'Categorizar',
+                onTap: () => Navigator.of(context).pop(categorizeKind),
+              ),
+            if (categorizeKind == null &&
+                allowedKinds.contains(PendingMovementKind.expense))
               _MovementTypeOption(
                 icon: Icons.arrow_upward_rounded,
                 iconColor: AppColors.authExpense,
@@ -635,7 +679,8 @@ class _MovementTypeSheet extends StatelessWidget {
                 onTap: () =>
                     Navigator.of(context).pop(PendingMovementKind.expense),
               ),
-            if (allowedKinds.contains(PendingMovementKind.income))
+            if (categorizeKind == null &&
+                allowedKinds.contains(PendingMovementKind.income))
               _MovementTypeOption(
                 icon: Icons.arrow_downward_rounded,
                 iconColor: AppColors.authIncome,
