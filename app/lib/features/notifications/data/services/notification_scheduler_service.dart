@@ -6,8 +6,10 @@ import '../../../../core/config/app_env.dart';
 import '../../../auth/data/repositories/preferences_repository.dart';
 import '../../../invoices/data/repositories/invoice_repository.dart';
 import '../../../invoices/data/services/invoice_service.dart';
+import '../../../services/data/models/service.dart';
 import '../../../services/data/repositories/service_repository.dart';
 import '../../../services/data/services/service_service.dart';
+import '../../domain/missing_invoice_rule.dart';
 import 'local_notifications_service.dart';
 
 /// Nombre único de la tarea periódica ante Workmanager/WorkManager
@@ -84,7 +86,7 @@ void callbackDispatcher() {
       // etc.) no debería hacer que WorkManager reintente en loop: total, la
       // próxima corrida periódica vuelve a evaluar todo en 24hs.
       try {
-        await _checkInvoicesDueToday();
+        await _runDailyChecks();
       } catch (_) {
         // Silenciado a propósito, ver comentario de arriba.
       }
@@ -93,7 +95,7 @@ void callbackDispatcher() {
   });
 }
 
-Future<void> _checkInvoicesDueToday() async {
+Future<void> _runDailyChecks() async {
   if (AppEnv.supabaseUrl.isEmpty || AppEnv.supabasePublishableKey.isEmpty) {
     return;
   }
@@ -113,15 +115,41 @@ Future<void> _checkInvoicesDueToday() async {
   if (client.auth.currentSession == null) return;
 
   final invoiceRepository = InvoiceRepository(InvoiceService(client));
-  final dueToday = await invoiceRepository.getDueToday();
-  if (dueToday.isEmpty) return;
-
   final serviceRepository = ServiceRepository(ServiceService(client));
   final services = await serviceRepository.getAll();
-  final servicesById = {for (final service in services) service.id: service};
 
   final preferences = await PreferencesRepository().load();
   final notifications = LocalNotificationsService();
+
+  // Independent checks: a failure in one must not skip the other.
+  try {
+    await _notifyInvoicesDueToday(
+      invoiceRepository: invoiceRepository,
+      services: services,
+      notifications: notifications,
+      currencyCode: preferences.currencyCode,
+    );
+  } catch (_) {}
+
+  try {
+    await _notifyMissingInvoices(
+      invoiceRepository: invoiceRepository,
+      services: services,
+      notifications: notifications,
+    );
+  } catch (_) {}
+}
+
+Future<void> _notifyInvoicesDueToday({
+  required InvoiceRepository invoiceRepository,
+  required List<Service> services,
+  required LocalNotificationsService notifications,
+  required String currencyCode,
+}) async {
+  final dueToday = await invoiceRepository.getDueToday();
+  if (dueToday.isEmpty) return;
+
+  final servicesById = {for (final service in services) service.id: service};
 
   for (final invoice in dueToday) {
     final serviceName = servicesById[invoice.serviceId]?.name ?? 'Servicio';
@@ -131,7 +159,36 @@ Future<void> _checkInvoicesDueToday() async {
       id: invoice.id.hashCode & 0x7fffffff,
       serviceName: serviceName,
       amount: invoice.amount,
-      currencyCode: preferences.currencyCode,
+      currencyCode: currencyCode,
+    );
+  }
+}
+
+Future<void> _notifyMissingInvoices({
+  required InvoiceRepository invoiceRepository,
+  required List<Service> services,
+  required LocalNotificationsService notifications,
+}) async {
+  final today = DateTime.now();
+  final candidates = services
+      .where((service) => service.isActive && service.dueDay != null)
+      .toList();
+  if (candidates.isEmpty) return;
+
+  final invoices = await invoiceRepository.getAll();
+  final missing = servicesMissingInvoiceToday(
+    services: candidates,
+    invoices: invoices,
+    today: today,
+  );
+
+  for (final service in missing) {
+    await notifications.showMissingInvoiceDueToday(
+      // Salted with the date so the id is stable within a day only.
+      id: Object.hash('missing-invoice', service.id, today.year, today.month,
+              today.day) &
+          0x7fffffff,
+      serviceName: service.name,
     );
   }
 }

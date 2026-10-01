@@ -23,7 +23,7 @@ class LocalNotificationsService {
   static const _invoicesChannelId = 'invoices_due';
   static const _invoicesChannelName = 'Vencimientos de facturas';
   static const _invoicesChannelDescription =
-      'Avisa cuando una factura vence hoy';
+      'Avisa cuando una factura vence hoy o falta cargarla';
 
   /// Mismo verde que la hoja del logo (`authAccentDark` en
   /// `AppColors`) — tiñe el círculo detrás del ícono chico en la barra de
@@ -106,6 +106,34 @@ class LocalNotificationsService {
           // Ícono grande = el logo completo (a color), a la derecha del
           // texto. El chico (arriba) es la silueta simple para la barra
           // de estado — son recursos Android distintos a propósito.
+          largeIcon: DrawableResourceAndroidBitmap('ic_launcher'),
+        ),
+      ),
+    );
+  }
+
+  /// Reminder for a service that is due today but has no invoice for the
+  /// current period yet. [id] must be stable per service and day so a
+  /// repeated run does not show it twice.
+  Future<void> showMissingInvoiceDueToday({
+    required int id,
+    required String serviceName,
+  }) async {
+    await initialize();
+
+    await _plugin.show(
+      id,
+      'Falta cargar la factura: $serviceName',
+      '$serviceName vence hoy y todavía no cargaste la factura de este '
+          'mes. Ingresala para tenerla al día.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _invoicesChannelId,
+          _invoicesChannelName,
+          channelDescription: _invoicesChannelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+          color: _brandColor,
           largeIcon: DrawableResourceAndroidBitmap('ic_launcher'),
         ),
       ),
