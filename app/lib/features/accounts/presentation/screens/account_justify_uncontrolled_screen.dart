@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/month_range.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -208,6 +209,8 @@ class _AccountJustifyUncontrolledScreenState
             PendingMovementKind.income,
             PendingMovementKind.expense,
           },
+          dateRange: currentMonthRange(),
+          existingTransactions: widget.transactionViewModel.allTransactions,
           helperText: remainder == null
               ? null
               : Text(

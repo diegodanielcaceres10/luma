@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/month_range.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -229,6 +230,8 @@ class _AccountUpdateBalanceScreenState
           invoiceViewModel: widget.invoiceViewModel,
           currency: currency,
           enabled: !_isSaving,
+          dateRange: currentMonthRange(),
+          existingTransactions: widget.transactionViewModel.allTransactions,
           helperText: remainder == null
               ? null
               : Text(

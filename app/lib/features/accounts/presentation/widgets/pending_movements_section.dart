@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
@@ -8,8 +10,12 @@ import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/data/models/invoice.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
+import '../../../transactions/data/models/transaction_entry.dart';
 import '../../data/models/account.dart';
+import '../../data/models/scanned_movement.dart';
+import '../../data/services/statement_scan_service.dart';
 import '../view_models/account_view_model.dart';
+import 'statement_review_sheet.dart';
 
 /// A movement (income, expense, transfer or paid invoice) accumulated by
 /// [PendingMovementsSection] before it is actually persisted. The owning
@@ -180,6 +186,15 @@ class PendingMovementsSection extends StatelessWidget {
   /// end). Defaults to any date from 2020 up to today.
   final DateTimeRange? dateRange;
 
+  /// Transactions already saved, used to flag scanned statement lines that
+  /// may duplicate one of this account's movements. Optional: without it
+  /// only lines already queued in [controller] are checked.
+  final List<TransactionEntry> existingTransactions;
+
+  /// Reads statement screenshots. Defaults to the Supabase-backed service;
+  /// override it in tests.
+  final StatementScanService? scanService;
+
   const PendingMovementsSection({
     super.key,
     required this.controller,
@@ -199,6 +214,8 @@ class PendingMovementsSection extends StatelessWidget {
       PendingMovementKind.invoice,
     },
     this.dateRange,
+    this.existingTransactions = const [],
+    this.scanService,
   });
 
   /// Opens the bottom sheet behind the "Add movement" button to pick between
@@ -303,6 +320,97 @@ class PendingMovementsSection extends StatelessWidget {
     );
   }
 
+  /// "Importar desde una captura" flow: pick an image, have it read, let the
+  /// user review the detected lines and queue the confirmed ones in
+  /// [controller]. Only income and expense lines are detected; transfers and
+  /// invoices are still added by hand.
+  Future<void> _importFromImage(BuildContext context) async {
+    final source = await showStatementSourceSheet(context);
+    if (source == null || !context.mounted) return;
+
+    final XFile? picked = await ImagePicker().pickImage(
+      source: source,
+      imageQuality: 85,
+      maxWidth: 2000,
+    );
+    if (picked == null || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.authAccent),
+        ),
+      ),
+    );
+
+    final List<ScannedMovement> scanned;
+    try {
+      final bytes = await picked.readAsBytes();
+      scanned = await (scanService ??
+              StatementScanService(Supabase.instance.client))
+          .scan(imageBytes: bytes, mimeType: _supportedMimeType(picked));
+    } catch (_) {
+      navigator.pop();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Servicio no disponible. Intente más tarde o consulte a su '
+            'administrador.',
+          ),
+        ),
+      );
+      return;
+    }
+    navigator.pop();
+
+    if (!context.mounted) return;
+    if (scanned.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('No se detectaron movimientos en la imagen.'),
+        ),
+      );
+      return;
+    }
+
+    final known = <KnownMovement>[];
+    for (final m in controller.movements) {
+      known.add((amount: m.amount, date: m.date));
+    }
+    for (final t in existingTransactions) {
+      if (t.account.id != currentAccount.id) continue;
+      known.add((
+        amount: t.type == 'expense' ? -t.amount : t.amount,
+        date: t.date,
+      ));
+    }
+
+    final confirmed = await showStatementReviewSheet(
+      context,
+      movements: scanned,
+      currency: currency,
+      categoryViewModel: categoryViewModel,
+      dateRange: dateRange,
+      known: known,
+    );
+    if (confirmed == null) return;
+    confirmed.forEach(controller.add);
+  }
+
+  /// The Edge Function only accepts JPG, PNG and WEBP; with `imageQuality`
+  /// set the picker re-encodes to one of them, so anything else is JPEG.
+  static String _supportedMimeType(XFile file) {
+    const supported = {'image/jpeg', 'image/png', 'image/webp'};
+    final mime = file.mimeType;
+    return mime != null && supported.contains(mime) ? mime : 'image/jpeg';
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -321,6 +429,23 @@ class PendingMovementsSection extends StatelessWidget {
               const SizedBox(height: 4),
               helperText!,
             ],
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: enabled ? () => _importFromImage(context) : null,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.authAccent,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                label: const Text(
+                  'Importar desde una captura',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
             if (movements.isNotEmpty) ...[
               const SizedBox(height: 12),
               _MovementsList(
@@ -744,6 +869,10 @@ const _kDialogFieldDecoration = InputDecoration(
     borderSide: BorderSide(color: AppColors.authAccent),
   ),
 );
+
+/// Shared with the statement review sheet so its dialogs look like these.
+const kMovementDialogLabelStyle = _kDialogLabelStyle;
+const kMovementDialogFieldDecoration = _kDialogFieldDecoration;
 
 class _AddMovementDialog extends StatefulWidget {
   final CategoryViewModel categoryViewModel;
