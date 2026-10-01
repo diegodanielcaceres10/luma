@@ -166,13 +166,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final options = [
       _QuickActionOption(
-        icon: Icons.arrow_downward_rounded,
-        iconColor: AppColors.authIncome,
-        title: 'Agregar ingreso',
-        subtitle: 'Sumá dinero a tu cuenta',
-        onTap: () => widget.onOpenAddTransaction('income'),
-      ),
-      _QuickActionOption(
         icon: Icons.arrow_upward_rounded,
         iconColor: AppColors.authExpense,
         title: 'Agregar gasto',
@@ -180,8 +173,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTap: () => widget.onOpenAddTransaction('expense'),
       ),
       _QuickActionOption(
+        icon: Icons.arrow_downward_rounded,
+        iconColor: AppColors.authIncome,
+        title: 'Agregar ingreso',
+        subtitle: 'Sumá dinero a tu cuenta',
+        onTap: () => widget.onOpenAddTransaction('income'),
+      ),
+      _QuickActionOption(
         icon: Icons.request_page_outlined,
-        iconColor: AppColors.authAccent,
+        iconColor: AppColors.authInvoice,
         title: 'Facturas por pagar',
         subtitle: pendingInvoicesCount > 0
             ? '$pendingInvoicesCount pendiente'
@@ -191,7 +191,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       _QuickActionOption(
         icon: Icons.swap_horiz_rounded,
-        iconColor: AppColors.authAccent,
+        iconColor: AppColors.authTransfer,
         title: 'Transferencias entre cuentas',
         subtitle: 'Movés dinero de una cuenta a otra',
         onTap: widget.onGoToTransfers,
