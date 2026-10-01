@@ -143,13 +143,13 @@ class _AccountJustifyUncontrolledScreenState
 
     try {
       for (final movement in _movementsController.movements) {
-        final category = (movement as CategoryPendingMovement).category;
+        final categoryMovement = movement as CategoryPendingMovement;
         final success =
             await widget.transactionViewModel.createJustifyingTransaction(
           userId: userId,
           accountId: account.id,
-          categoryId: category.id,
-          type: category.type,
+          categoryId: categoryMovement.category?.id,
+          type: categoryMovement.type,
           amount: movement.amount.abs(),
           description: movement.description,
           date: movement.date,
