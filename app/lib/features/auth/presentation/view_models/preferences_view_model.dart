@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../../core/utils/currency_format.dart';
-import '../../../../core/utils/date_format.dart';
 import '../../data/models/app_preferences.dart';
 import '../../data/repositories/preferences_repository.dart';
 
@@ -51,16 +49,6 @@ class PreferencesViewModel extends ChangeNotifier {
   Future<void> setBiometricLockEnabled(bool value) => _applyAndPersist(
         (prefs) => prefs.copyWith(biometricLockEnabled: value),
         () => _repository.setBiometricLockEnabled(value),
-      );
-
-  Future<void> setDateFormat(DateDisplayFormat value) => _applyAndPersist(
-        (prefs) => prefs.copyWith(dateFormat: value),
-        () => _repository.setDateFormat(value),
-      );
-
-  Future<void> setCurrencyDisplay(CurrencyDisplay value) => _applyAndPersist(
-        (prefs) => prefs.copyWith(currencyDisplay: value),
-        () => _repository.setCurrencyDisplay(value),
       );
 
   /// Updates the in-memory state first, then persists. If persisting fails,

@@ -1,7 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../core/utils/currency_format.dart';
-import '../../../../core/utils/date_format.dart';
 import '../models/app_preferences.dart';
 
 /// Persists [AppPreferences] on this device with `SharedPreferencesAsync`.
@@ -16,8 +14,6 @@ class PreferencesRepository {
   static const _darkThemeEnabledKey = 'preferences.dark_theme_enabled';
   static const _notificationsEnabledKey = 'preferences.notifications_enabled';
   static const _biometricLockEnabledKey = 'preferences.biometric_lock_enabled';
-  static const _dateFormatKey = 'preferences.date_format';
-  static const _currencyDisplayKey = 'preferences.currency_display';
 
   /// Loads the saved preferences; missing values fall back to
   /// [AppPreferences.defaults].
@@ -28,8 +24,6 @@ class PreferencesRepository {
     final darkThemeEnabled = await _prefs.getBool(_darkThemeEnabledKey);
     final notificationsEnabled = await _prefs.getBool(_notificationsEnabledKey);
     final biometricLockEnabled = await _prefs.getBool(_biometricLockEnabledKey);
-    final dateFormat = await _prefs.getString(_dateFormatKey);
-    final currencyDisplay = await _prefs.getString(_currencyDisplayKey);
 
     return AppPreferences(
       currencyCode: currencyCode ?? defaults.currencyCode,
@@ -38,8 +32,6 @@ class PreferencesRepository {
           notificationsEnabled ?? defaults.notificationsEnabled,
       biometricLockEnabled:
           biometricLockEnabled ?? defaults.biometricLockEnabled,
-      dateFormat: DateDisplayFormat.parse(dateFormat),
-      currencyDisplay: CurrencyDisplay.parse(currencyDisplay),
     );
   }
 
@@ -54,10 +46,4 @@ class PreferencesRepository {
 
   Future<void> setBiometricLockEnabled(bool value) =>
       _prefs.setBool(_biometricLockEnabledKey, value);
-
-  Future<void> setDateFormat(DateDisplayFormat value) =>
-      _prefs.setString(_dateFormatKey, value.name);
-
-  Future<void> setCurrencyDisplay(CurrencyDisplay value) =>
-      _prefs.setString(_currencyDisplayKey, value.name);
 }
