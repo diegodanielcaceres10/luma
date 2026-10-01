@@ -98,18 +98,6 @@ class CategoryViewModel extends ChangeNotifier {
         ));
   }
 
-  /// Sets or edits the budget of an existing expense category.
-  Future<bool> setCategoryBudget({
-    required String categoryId,
-    required double amount,
-  }) async {
-    return _submit(() => _repository.updateBudget(
-          id: categoryId,
-          hasBudget: true,
-          budgetAmount: amount,
-        ));
-  }
-
   /// Removes a category's budget without deleting the category.
   Future<bool> clearCategoryBudget(String categoryId) async {
     return _submit(() => _repository.updateBudget(
