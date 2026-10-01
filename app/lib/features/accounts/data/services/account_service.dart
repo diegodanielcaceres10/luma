@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/account.dart';
+import '../models/monthly_opening_balance.dart';
 
 class AccountService {
   final SupabaseClient _client;
@@ -111,5 +112,34 @@ class AccountService {
 
     if (row == null) return 0;
     return (row['uncontrolled_expenses_total'] as num).toDouble();
+  }
+
+  /// Opening balances of [accountId] for the last [months] months, the
+  /// current one included, newest first. Months with no row are skipped.
+  Future<List<MonthlyOpeningBalance>> fetchOpeningBalances({
+    required String accountId,
+    required int months,
+  }) async {
+    final now = DateTime.now();
+    // DateTime normalizes an out-of-range month into the previous year.
+    final oldest = DateTime(now.year, now.month - (months - 1));
+    final oldestIndex = oldest.year * 12 + oldest.month;
+    final currentIndex = now.year * 12 + now.month;
+
+    final rows = await _client
+        .from('monthly_account_balances')
+        .select('month, year, opening_balance')
+        .eq('account_id', accountId)
+        .gte('year', oldest.year)
+        .order('year', ascending: false)
+        .order('month', ascending: false);
+
+    return (rows as List)
+        .map((row) =>
+            MonthlyOpeningBalance.fromMap(row as Map<String, dynamic>))
+        .where((entry) {
+      final index = entry.year * 12 + entry.month;
+      return index >= oldestIndex && index <= currentIndex;
+    }).toList();
   }
 }

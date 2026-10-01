@@ -1,4 +1,5 @@
 import '../models/account.dart';
+import '../models/monthly_opening_balance.dart';
 import '../services/account_service.dart';
 
 class AccountRepository {
@@ -62,5 +63,12 @@ class AccountRepository {
       month: month,
       year: year,
     );
+  }
+
+  Future<List<MonthlyOpeningBalance>> getOpeningBalances({
+    required String accountId,
+    required int months,
+  }) {
+    return _service.fetchOpeningBalances(accountId: accountId, months: months);
   }
 }
