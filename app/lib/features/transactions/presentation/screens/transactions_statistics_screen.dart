@@ -10,17 +10,17 @@ import '../../../../core/widgets/month_filter_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
-import '../../data/models/transaction_entry.dart' show TransactionCategory;
-import '../export/statistics_pdf_builder.dart';
+import '../export/transactions_statistics_screen_pdf_builder.dart';
 import '../view_models/transaction_view_model.dart';
+import '../view_models/transactions_statistics_report.dart';
 
-class StatisticsScreen extends StatefulWidget {
+class TransactionsStatisticsScreen extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
 
   final CategoryViewModel categoryViewModel;
   final String currency;
 
-  const StatisticsScreen({
+  const TransactionsStatisticsScreen({
     super.key,
     required this.transactionViewModel,
     required this.categoryViewModel,
@@ -28,10 +28,12 @@ class StatisticsScreen extends StatefulWidget {
   });
 
   @override
-  State<StatisticsScreen> createState() => _StatisticsScreenState();
+  State<TransactionsStatisticsScreen> createState() =>
+      _TransactionsStatisticsScreenState();
 }
 
-class _StatisticsScreenState extends State<StatisticsScreen> {
+class _TransactionsStatisticsScreenState
+    extends State<TransactionsStatisticsScreen> {
   bool _isExportingPdf = false;
 
   /// Generates the month's PDF and downloads it (web) or opens the share
@@ -42,23 +44,25 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     // Snapshot before the first await so the PDF matches the month where the
     // user tapped, even if they switch months while it generates.
     final vm = widget.transactionViewModel;
-    final data = StatisticsPdfData(
+    final data = TransactionsStatisticsScreenPdfData(
       month: vm.statisticsMonth,
       monthLabel: formatMonthLabel(vm.statisticsMonth),
       currency: widget.currency,
-      income: vm.statisticsIncome,
-      expenses: vm.statisticsExpenses,
-      netResult: vm.statisticsNetResult,
+      report: TransactionsStatisticsReport.fromTotals(
+        income: vm.statisticsIncome,
+        expenses: vm.statisticsExpenses,
+        netResult: vm.statisticsNetResult,
+        uncontrolledTotal: vm.statisticsUncontrolledTotal,
+        breakdown: List.of(vm.statisticsCategoryBreakdown),
+      ),
       incomeChangePercent: vm.statisticsIncomeChangePercent,
       expenseChangePercent: vm.statisticsExpenseChangePercent,
       netChangePercent: vm.statisticsNetResultChangePercent,
-      breakdown: List.of(vm.statisticsCategoryBreakdown),
-      uncontrolledTotal: vm.statisticsUncontrolledTotal,
     );
 
     setState(() => _isExportingPdf = true);
     try {
-      final bytes = await StatisticsPdfBuilder.build(data);
+      final bytes = await TransactionsStatisticsScreenPdfBuilder.build(data);
       await Printing.sharePdf(bytes: bytes, filename: data.fileName);
     } catch (_) {
       if (mounted) {
@@ -85,54 +89,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               spent: spentByCategoryId[category.id] ?? 0,
             ))
         .toList();
-  }
-
-  /// Splits the month's expenses into categorized, uncategorized and
-  /// uncontrolled-adjustment buckets, skipping empty ones.
-  List<CategoryTotal> _expenseTypeBreakdown(TransactionViewModel vm) {
-    final breakdown = vm.statisticsCategoryBreakdown;
-    final categorized = breakdown
-        .where((c) => c.category.id != null)
-        .fold<double>(0, (sum, c) => sum + c.amount);
-    final uncategorized = breakdown
-        .where((c) => c.category.id == null)
-        .fold<double>(0, (sum, c) => sum + c.amount);
-    final undeclared = vm.statisticsUncontrolledTotal < 0
-        ? -vm.statisticsUncontrolledTotal
-        : 0.0;
-
-    final total = categorized + uncategorized + undeclared;
-    double percentOf(double amount) => total > 0 ? (amount / total) * 100 : 0;
-
-    return [
-      if (categorized > 0)
-        CategoryTotal(
-          category: const TransactionCategory(
-            name: 'Categorizados',
-            color: '#4CBB7A',
-          ),
-          amount: categorized,
-          percent: percentOf(categorized),
-        ),
-      if (uncategorized > 0)
-        CategoryTotal(
-          category: const TransactionCategory(
-            name: 'No categorizados',
-            color: '#F59E0B',
-          ),
-          amount: uncategorized,
-          percent: percentOf(uncategorized),
-        ),
-      if (undeclared > 0)
-        CategoryTotal(
-          category: const TransactionCategory(
-            name: 'No declarados',
-            color: '#EF6F5B',
-          ),
-          amount: undeclared,
-          percent: percentOf(undeclared),
-        ),
-    ];
   }
 
   @override
@@ -186,36 +142,20 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         final netChangePercent =
             isCurrentMonth ? null : vm.statisticsNetResultChangePercent;
 
-        final breakdown = vm.statisticsCategoryBreakdown;
-        // Uncategorized entries appear in the breakdown below, not in this chart.
-        final categorizedTotal = breakdown
-            .where((c) => c.category.id != null)
-            .fold<double>(0, (sum, c) => sum + c.amount);
-        // Recalculated against categorizedTotal so the donut and legend sum to
-        // 100%.
-        final categorizedBreakdown = breakdown
-            .where((c) => c.category.id != null)
-            .map((c) => CategoryTotal(
-                  category: c.category,
-                  amount: c.amount,
-                  percent: categorizedTotal > 0
-                      ? (c.amount / categorizedTotal) * 100
-                      : 0,
-                ))
-            .toList();
-        final expenseTypeBreakdown = _expenseTypeBreakdown(vm);
-        final expenseTypeTotal =
-            expenseTypeBreakdown.fold<double>(0, (sum, c) => sum + c.amount);
-
-        // Expenses and balance include the uncontrolled adjustment; a positive
-        // one (income) only affects the balance.
-        final uncontrolledExpensePart = vm.statisticsUncontrolledTotal < 0
-            ? -vm.statisticsUncontrolledTotal
-            : 0.0;
-        final statisticsExpensesTotal =
-            vm.statisticsExpenses + uncontrolledExpensePart;
-        final statisticsNetResultTotal =
-            vm.statisticsNetResult + vm.statisticsUncontrolledTotal;
+        final report = TransactionsStatisticsReport.fromTotals(
+          income: vm.statisticsIncome,
+          expenses: vm.statisticsExpenses,
+          netResult: vm.statisticsNetResult,
+          uncontrolledTotal: vm.statisticsUncontrolledTotal,
+          breakdown: vm.statisticsCategoryBreakdown,
+        );
+        final breakdown = report.breakdown;
+        // Uncategorized entries appear in the breakdown below, not in the
+        // categories chart.
+        final categorizedBreakdown = report.categorizedBreakdown;
+        final categorizedTotal = report.categorizedTotal;
+        final expenseTypeBreakdown = report.expenseTypeBreakdown;
+        final expenseTypeTotal = report.expenseTypeTotal;
 
         if (vm.isStatisticsLoading && breakdown.isEmpty) {
           return ListView(
@@ -271,9 +211,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               header,
               const SizedBox(height: 20),
               _SummaryCardsRow(
-                income: vm.statisticsIncome,
-                expenses: statisticsExpensesTotal,
-                netResult: statisticsNetResultTotal,
+                income: report.income,
+                expenses: report.expenses,
+                netResult: report.netResult,
                 incomeChangePercent: incomeChangePercent,
                 expenseChangePercent: expenseChangePercent,
                 netChangePercent: netChangePercent,
@@ -318,9 +258,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             header,
             const SizedBox(height: 20),
             _SummaryCardsRow(
-              income: vm.statisticsIncome,
-              expenses: statisticsExpensesTotal,
-              netResult: statisticsNetResultTotal,
+              income: report.income,
+              expenses: report.expenses,
+              netResult: report.netResult,
               incomeChangePercent: incomeChangePercent,
               expenseChangePercent: expenseChangePercent,
               netChangePercent: netChangePercent,

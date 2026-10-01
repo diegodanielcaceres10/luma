@@ -38,7 +38,7 @@ import '../features/services/presentation/screens/service_form_screen.dart';
 import '../features/services/presentation/screens/service_view_screen.dart';
 import '../features/services/presentation/screens/services_screen.dart';
 import '../features/services/presentation/view_models/service_view_model.dart';
-import '../features/transactions/presentation/screens/statistics_screen.dart';
+import '../features/transactions/presentation/screens/transactions_statistics_screen.dart';
 import '../features/transactions/presentation/screens/transaction_form_screen.dart';
 import '../features/transactions/presentation/screens/transaction_form_transfer_screen.dart';
 import '../features/transactions/presentation/screens/transactions_screen.dart';
@@ -592,7 +592,7 @@ GoRouter buildAppRouter({
           ),
           GoRoute(
             path: '/statistics',
-            builder: (context, state) => StatisticsScreen(
+            builder: (context, state) => TransactionsStatisticsScreen(
               transactionViewModel: transactionViewModel,
               categoryViewModel: categoryViewModel,
               currency: accountViewModel.primaryCurrency,
