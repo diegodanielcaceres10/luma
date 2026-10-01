@@ -177,6 +177,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 currency: widget.currency,
               );
 
+        // The month in progress isn't comparable with a full previous month,
+        // so the change vs. the previous month is only shown for past months.
+        final incomeChangePercent =
+            isCurrentMonth ? null : vm.statisticsIncomeChangePercent;
+        final expenseChangePercent =
+            isCurrentMonth ? null : vm.statisticsExpenseChangePercent;
+        final netChangePercent =
+            isCurrentMonth ? null : vm.statisticsNetResultChangePercent;
+
         final breakdown = vm.statisticsCategoryBreakdown;
         // Uncategorized entries appear in the breakdown below, not in this chart.
         final categorizedTotal = breakdown
@@ -265,9 +274,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 income: vm.statisticsIncome,
                 expenses: statisticsExpensesTotal,
                 netResult: statisticsNetResultTotal,
-                incomeChangePercent: vm.statisticsIncomeChangePercent,
-                expenseChangePercent: vm.statisticsExpenseChangePercent,
-                netChangePercent: vm.statisticsNetResultChangePercent,
+                incomeChangePercent: incomeChangePercent,
+                expenseChangePercent: expenseChangePercent,
+                netChangePercent: netChangePercent,
                 currency: widget.currency,
               ),
               if (uncontrolledCard != null) ...[
@@ -312,9 +321,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               income: vm.statisticsIncome,
               expenses: statisticsExpensesTotal,
               netResult: statisticsNetResultTotal,
-              incomeChangePercent: vm.statisticsIncomeChangePercent,
-              expenseChangePercent: vm.statisticsExpenseChangePercent,
-              netChangePercent: vm.statisticsNetResultChangePercent,
+              incomeChangePercent: incomeChangePercent,
+              expenseChangePercent: expenseChangePercent,
+              netChangePercent: netChangePercent,
               currency: widget.currency,
             ),
             if (uncontrolledCard != null) ...[
