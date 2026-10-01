@@ -14,8 +14,8 @@ import '../widgets/balance_comparison_card.dart';
 import '../widgets/pending_movement_persistence.dart';
 import '../widgets/pending_movements_section.dart';
 
-/// Wizard to start a new month for each account that has no opening balance
-/// yet. Reached from the Dashboard balance card notice.
+/// Wizard to start a new month for one account that has no opening balance
+/// yet. Reached from the Dashboard's per-account notice.
 ///
 /// 1. Opening balance of the month (the stored balance is stale: it still
 ///    reflects the end of the previous cycle).
@@ -23,7 +23,7 @@ import '../widgets/pending_movements_section.dart';
 /// 3. Summary and save.
 class AccountMonthlyBalanceScreen extends StatefulWidget {
   final String userId;
-  final List<Account> pendingAccounts;
+  final Account account;
   final AccountViewModel accountViewModel;
   final CategoryViewModel categoryViewModel;
   final ServiceViewModel serviceViewModel;
@@ -35,7 +35,7 @@ class AccountMonthlyBalanceScreen extends StatefulWidget {
   const AccountMonthlyBalanceScreen({
     super.key,
     required this.userId,
-    required this.pendingAccounts,
+    required this.account,
     required this.accountViewModel,
     required this.categoryViewModel,
     required this.serviceViewModel,
@@ -73,15 +73,17 @@ class _AccountMonthlyBalanceScreenState
   final _openingBalanceController = TextEditingController();
   final _movementsController = PendingMovementsController();
 
-  /// Accounts to process, fixed on entry: the pending list changes as each
-  /// account is saved.
-  late final List<String> _queueIds;
-  int _accountIndex = 0;
+  /// The account being processed, frozen on entry: its stored balance changes
+  /// as movements are saved (and the router hands over a fresh copy each
+  /// time), but the difference must keep being computed against the balance it
+  /// had when the wizard started.
+  late final Account _account = widget.account;
 
-  /// The account in progress, frozen while it is processed: its stored
-  /// balance changes as movements are saved, but the difference must keep
-  /// being computed against the balance it had when the wizard started.
-  Account? _account;
+  /// Whether the account still lacks this month's opening balance. Decided
+  /// once, when first known, and then kept: saving changes the answer, but the
+  /// screen must not flip while it finishes. `null` until it is known.
+  bool? _isPending;
+  bool _checkFailed = false;
 
   int _currentStep = 0;
   bool _isSaving = false;
@@ -107,18 +109,26 @@ class _AccountMonthlyBalanceScreenState
   @override
   void initState() {
     super.initState();
-    _queueIds = widget.pendingAccounts.map((account) => account.id).toList();
-    _account =
-        widget.pendingAccounts.isEmpty ? null : widget.pendingAccounts.first;
     _openingBalanceController.addListener(_onInputChanged);
     _movementsController.addListener(_onInputChanged);
-    if (_account != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _showIntroDialog());
+
+    final monthlyBalanceViewModel = widget.monthlyBalanceViewModel;
+    if (monthlyBalanceViewModel.checked) {
+      _isPending = _lacksOpeningBalance;
+      if (_isPending == true) _scheduleIntroDialog();
+    } else {
+      // Opened by URL before the month was checked.
+      monthlyBalanceViewModel.addListener(_onMonthlyBalanceChanged);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || monthlyBalanceViewModel.isLoading) return;
+        monthlyBalanceViewModel.checkCurrentMonth();
+      });
     }
   }
 
   @override
   void dispose() {
+    widget.monthlyBalanceViewModel.removeListener(_onMonthlyBalanceChanged);
     _openingBalanceController.removeListener(_onInputChanged);
     _openingBalanceController.dispose();
     _movementsController.removeListener(_onInputChanged);
@@ -128,6 +138,27 @@ class _AccountMonthlyBalanceScreenState
 
   void _onInputChanged() {
     if (mounted) setState(() {});
+  }
+
+  bool get _lacksOpeningBalance =>
+      widget.monthlyBalanceViewModel.pendingAccounts([_account]).isNotEmpty;
+
+  void _onMonthlyBalanceChanged() {
+    final monthlyBalanceViewModel = widget.monthlyBalanceViewModel;
+    if (!mounted || _isPending != null) return;
+
+    if (monthlyBalanceViewModel.checked) {
+      monthlyBalanceViewModel.removeListener(_onMonthlyBalanceChanged);
+      final pending = _lacksOpeningBalance;
+      setState(() => _isPending = pending);
+      if (pending) _scheduleIntroDialog();
+    } else if (!monthlyBalanceViewModel.isLoading) {
+      setState(() => _checkFailed = true);
+    }
+  }
+
+  void _scheduleIntroDialog() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showIntroDialog());
   }
 
   void _showIntroDialog() {
@@ -185,11 +216,10 @@ class _AccountMonthlyBalanceScreenState
   /// (stale from the previous cycle). `null` while the field is empty or not
   /// a valid number. Rounded to cents to avoid double subtraction remainders.
   double? get _difference {
-    final account = _account;
     final openingBalance = parseBalanceAmount(_openingBalanceController.text);
-    if (account == null || openingBalance == null) return null;
+    if (openingBalance == null) return null;
 
-    final cents = ((openingBalance - account.balance) * 100).round();
+    final cents = ((openingBalance - _account.balance) * 100).round();
     return cents / 100;
   }
 
@@ -225,12 +255,7 @@ class _AccountMonthlyBalanceScreenState
     final account = _account;
     final openingBalance = parseBalanceAmount(_openingBalanceController.text);
     final remainder = _unjustifiedRemainder;
-    if (account == null ||
-        openingBalance == null ||
-        remainder == null ||
-        _isSaving) {
-      return;
-    }
+    if (openingBalance == null || remainder == null || _isSaving) return;
 
     setState(() => _isSaving = true);
 
@@ -293,7 +318,7 @@ class _AccountMonthlyBalanceScreenState
       );
       if (!mounted) return;
 
-      _advanceToNextAccountOrFinish();
+      widget.onDone();
     } catch (error) {
       if (!mounted) return;
       _showSaveError(error);
@@ -308,20 +333,19 @@ class _AccountMonthlyBalanceScreenState
   /// balance, so the user has to consciously confirm it. The account is read
   /// fresh because an earlier failed save may have already moved its balance.
   Future<void> _saveWithCurrentBalance() async {
-    final snapshot = _account;
-    if (snapshot == null || _isSaving || _difference != 0) return;
+    if (_isSaving || _difference != 0) return;
 
     setState(() => _isSaving = true);
 
     try {
-      final account = _findAccount(snapshot.id) ?? snapshot;
+      final account = _findAccount(_account.id) ?? _account;
       await _createOpeningBalanceRecord(
         accountId: account.id,
         openingBalance: account.balance,
       );
       if (!mounted) return;
 
-      _advanceToNextAccountOrFinish();
+      widget.onDone();
     } catch (error) {
       if (!mounted) return;
       _showSaveError(error);
@@ -362,28 +386,14 @@ class _AccountMonthlyBalanceScreenState
     return null;
   }
 
-  void _advanceToNextAccountOrFinish() {
-    Account? next;
-    var nextIndex = _accountIndex + 1;
-    for (; nextIndex < _queueIds.length && next == null; nextIndex++) {
-      next = _findAccount(_queueIds[nextIndex]);
-    }
-
-    if (next == null) {
-      widget.onDone();
-      return;
-    }
-
-    // Cleared before setState: the controllers' listeners call setState too.
-    _openingBalanceController.clear();
-    _movementsController.clear();
-    setState(() {
-      _accountIndex = nextIndex - 1;
-      _account = next;
-      _currentStep = 0;
-      _savedMovementsTotal = 0;
-      _adjustmentApplied = false;
-    });
+  Widget _buildMessage(String message) {
+    return Text(
+      message,
+      style: const TextStyle(
+        fontSize: 14,
+        color: AppColors.authTextSecondary,
+      ),
+    );
   }
 
   Widget _buildStepContent(Account account, String currency) {
@@ -560,7 +570,6 @@ class _AccountMonthlyBalanceScreenState
 
   @override
   Widget build(BuildContext context) {
-    final account = _account;
     final currency = widget.accountViewModel.primaryCurrency;
     final year = DateTime.now().year;
 
@@ -581,36 +590,38 @@ class _AccountMonthlyBalanceScreenState
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
                   ScreenHeader(
-                    title: 'Saldos iniciales',
-                    subtitle: 'Ingresá el saldo con el que arrancó la cuenta '
-                        'en $_monthLabel de $year para empezar a controlar '
-                        'el nuevo ciclo.',
+                    title: 'Saldo inicial',
+                    subtitle: _isPending == true
+                        ? 'Ingresá el saldo con el que arrancó la cuenta '
+                            'en $_monthLabel de $year para empezar a '
+                            'controlar el nuevo ciclo.'
+                        : null,
                     size: ScreenHeaderSize.compact,
                     onBack: widget.onDone,
                     backEnabled: !_isSaving,
                   ),
                   const SizedBox(height: 20),
-                  if (account == null)
-                    const Text(
-                      'No hay saldos iniciales pendientes este mes.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.authTextSecondary,
-                      ),
+                  if (_isPending == null)
+                    _checkFailed
+                        ? _buildMessage(
+                            'No pudimos comprobar el saldo inicial de esta '
+                            'cuenta. Intentá de nuevo más tarde.',
+                          )
+                        : const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24),
+                              child: CircularProgressIndicator(
+                                color: AppColors.authAccent,
+                              ),
+                            ),
+                          )
+                  else if (_isPending == false)
+                    _buildMessage(
+                      'Esta cuenta ya tiene el saldo inicial de este mes.',
                     )
                   else ...[
-                    if (_queueIds.length > 1) ...[
-                      Text(
-                        'Cuenta ${_accountIndex + 1} de ${_queueIds.length}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.authTextSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                    ],
                     Text(
-                      account.name,
+                      _account.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -620,7 +631,7 @@ class _AccountMonthlyBalanceScreenState
                       ),
                     ),
                     const SizedBox(height: 24),
-                    _buildStepContent(account, currency),
+                    _buildStepContent(_account, currency),
                     const SizedBox(height: 24),
                     _buildStepNav(),
                   ],

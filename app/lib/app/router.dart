@@ -206,25 +206,6 @@ GoRouter buildAppRouter({
             ),
           ),
           GoRoute(
-            path: '/monthly-balance',
-            builder: (context, state) => RoutedScreenScaffold(
-              body: AccountMonthlyBalanceScreen(
-                userId: authViewModel.userId ?? '',
-                pendingAccounts: monthlyBalanceViewModel.checked
-                    ? monthlyBalanceViewModel.pendingAccounts(
-                        accountViewModel.activeAccounts)
-                    : const [],
-                accountViewModel: accountViewModel,
-                categoryViewModel: categoryViewModel,
-                serviceViewModel: serviceViewModel,
-                invoiceViewModel: invoiceViewModel,
-                transactionViewModel: transactionViewModel,
-                monthlyBalanceViewModel: monthlyBalanceViewModel,
-                onDone: () => context.goBack(),
-              ),
-            ),
-          ),
-          GoRoute(
             // The regex limits `:type` to income/expense; the builder
             // lowercases it because go_router matches paths case-insensitively.
             path: '/add-transaction/:type(income|expense)',
@@ -331,6 +312,26 @@ GoRouter buildAppRouter({
                   invoiceViewModel: invoiceViewModel,
                   transactionViewModel: transactionViewModel,
                   userId: authViewModel.userId,
+                  onDone: () => context.goBack(),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/accounts/:id/monthly-balance',
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _accountGuard(
+                accountViewModel,
+                state.pathParameters['id'],
+                (context, account) => AccountMonthlyBalanceScreen(
+                  userId: authViewModel.userId ?? '',
+                  account: account,
+                  accountViewModel: accountViewModel,
+                  categoryViewModel: categoryViewModel,
+                  serviceViewModel: serviceViewModel,
+                  invoiceViewModel: invoiceViewModel,
+                  transactionViewModel: transactionViewModel,
+                  monthlyBalanceViewModel: monthlyBalanceViewModel,
                   onDone: () => context.goBack(),
                 ),
               ),
