@@ -4,14 +4,17 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import '../../data/models/category.dart';
 import '../view_models/category_view_model.dart';
+import '../widgets/category_trend_section.dart';
 
 enum _CategoryAction { edit }
 
 class CategoryViewScreen extends StatelessWidget {
   final Category category;
   final CategoryViewModel categoryViewModel;
+  final TransactionViewModel transactionViewModel;
   final String currency;
   final VoidCallback onEdit;
   final VoidCallback onBack;
@@ -20,6 +23,7 @@ class CategoryViewScreen extends StatelessWidget {
     super.key,
     required this.category,
     required this.categoryViewModel,
+    required this.transactionViewModel,
     required this.currency,
     required this.onEdit,
     required this.onBack,
@@ -137,6 +141,12 @@ class CategoryViewScreen extends StatelessWidget {
                     ],
                   ],
                 ),
+              ),
+              const SizedBox(height: 16),
+              CategoryTrendSection(
+                category: current,
+                currency: currency,
+                transactionViewModel: transactionViewModel,
               ),
             ],
           );

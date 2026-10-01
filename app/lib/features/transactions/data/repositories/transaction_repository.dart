@@ -10,6 +10,13 @@ class TransactionRepository {
     return _service.fetchForMonth(month);
   }
 
+  Future<List<TransactionEntry>> getForCategory({
+    required String categoryId,
+    required DateTime since,
+  }) {
+    return _service.fetchForCategory(categoryId: categoryId, since: since);
+  }
+
   Future<List<TransactionEntry>> getAll() {
     return _service.fetchAll();
   }

@@ -25,6 +25,27 @@ class TransactionService {
         .toList();
   }
 
+  /// Fetches the non-transfer transactions of one category dated on or
+  /// after [since], newest first.
+  Future<List<TransactionEntry>> fetchForCategory({
+    required String categoryId,
+    required DateTime since,
+  }) async {
+    final rows = await _client
+        .from('transactions')
+        .select(
+          '*, categories(id, name, color), accounts(id, name)',
+        )
+        .eq('category_id', categoryId)
+        .eq('is_transfer', false)
+        .gte('date', _formatDate(since))
+        .order('date', ascending: false);
+
+    return (rows as List)
+        .map((row) => TransactionEntry.fromMap(row as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Fetches the latest [limit] transactions, newest first.
   Future<List<TransactionEntry>> fetchAll({int limit = 200}) async {
     final rows = await _client

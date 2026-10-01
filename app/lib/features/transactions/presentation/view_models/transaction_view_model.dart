@@ -99,6 +99,15 @@ class TransactionViewModel extends ChangeNotifier {
 
   List<CategoryTotal> get categoryBreakdown => _breakdownOf(_transactions);
 
+  /// Entries of one category since [since], for the category trend. Does
+  /// not touch this view model's state; errors reach the caller.
+  Future<List<TransactionEntry>> fetchCategoryEntries({
+    required String categoryId,
+    required DateTime since,
+  }) {
+    return _repository.getForCategory(categoryId: categoryId, since: since);
+  }
+
   static double _sumByType(List<TransactionEntry> entries, String type) {
     return entries
         .where((t) => t.type == type && !t.isTransfer)
