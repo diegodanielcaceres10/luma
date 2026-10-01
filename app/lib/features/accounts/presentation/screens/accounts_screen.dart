@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_time_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
@@ -226,6 +227,16 @@ class _AccountRow extends StatelessWidget {
                             isActive ? 'Cuenta activa' : 'Cuenta inactiva',
                             style: const TextStyle(
                               fontSize: 13,
+                              color: AppColors.authTextSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Actualizada: '
+                            '${formatDateTime(account.balanceUpdatedAt)}',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
                               color: AppColors.authTextSecondary,
                             ),
                           ),
