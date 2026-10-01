@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
@@ -135,6 +136,9 @@ class _AccountJustifyUncontrolledScreenState
     final account = widget.account;
     if (account == null || _movementsController.isEmpty || _isSaving) return;
 
+    final confirmed = await showConfirmDialog(context);
+    if (!confirmed || !mounted) return;
+
     setState(() => _isSaving = true);
 
     final userId = widget.userId ?? '';
@@ -143,13 +147,13 @@ class _AccountJustifyUncontrolledScreenState
 
     try {
       for (final movement in _movementsController.movements) {
-        final category = (movement as CategoryPendingMovement).category;
+        final categoryMovement = movement as CategoryPendingMovement;
         final success =
             await widget.transactionViewModel.createJustifyingTransaction(
           userId: userId,
           accountId: account.id,
-          categoryId: category.id,
-          type: category.type,
+          categoryId: categoryMovement.category?.id,
+          type: categoryMovement.type,
           amount: movement.amount.abs(),
           description: movement.description,
           date: movement.date,

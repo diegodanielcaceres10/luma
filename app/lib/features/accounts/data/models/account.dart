@@ -4,11 +4,15 @@ class Account {
   final double balance;
   final bool isActive;
 
+  /// Last time [balance] changed (maintained by a database trigger).
+  final DateTime balanceUpdatedAt;
+
   const Account({
     required this.id,
     required this.name,
     required this.balance,
     required this.isActive,
+    required this.balanceUpdatedAt,
   });
 
   factory Account.fromMap(Map<String, dynamic> map) {
@@ -17,6 +21,8 @@ class Account {
       name: map['name'] as String,
       balance: (map['balance'] as num).toDouble(),
       isActive: map['is_active'] as bool,
+      balanceUpdatedAt:
+          DateTime.parse(map['balance_updated_at'] as String).toLocal(),
     );
   }
 

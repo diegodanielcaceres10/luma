@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
@@ -143,6 +144,9 @@ class _AccountUpdateBalanceScreenState
     final remainder = _unjustifiedRemainder;
     if (account == null || remainder == null || _isSaving) return;
 
+    final confirmed = await showConfirmDialog(context);
+    if (!confirmed || !mounted) return;
+
     setState(() => _isSaving = true);
 
     final userId = widget.userId ?? '';
@@ -176,6 +180,7 @@ class _AccountUpdateBalanceScreenState
                 'No se pudo guardar el ajuste no declarado.',
           );
         }
+        await widget.transactionViewModel.refreshUncontrolledTotals();
       } else {
         await widget.accountViewModel.loadAccounts();
       }

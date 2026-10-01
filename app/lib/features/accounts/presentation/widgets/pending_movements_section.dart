@@ -30,17 +30,23 @@ sealed class PendingMovement {
 }
 
 class CategoryPendingMovement extends PendingMovement {
-  final Category category;
+  /// Null when the movement was registered without a category.
+  final Category? category;
+
+  /// 'income' or 'expense'. Kept apart from [category] because it must
+  /// survive a missing category.
+  final String type;
 
   const CategoryPendingMovement({
     required super.amount,
     required super.date,
-    required this.category,
+    required this.type,
+    this.category,
     super.description,
   });
 
   @override
-  String get displayLabel => category.name;
+  String get displayLabel => category?.name ?? 'Sin categoría';
 }
 
 class TransferPendingMovement extends PendingMovement {
@@ -196,8 +202,8 @@ class PendingMovementsSection extends StatelessWidget {
   });
 
   /// Opens the bottom sheet behind the "Add movement" button to pick between
-  /// Income, Expense, Transfer and Service invoice ([PendingMovementKind]),
-  /// filtered down to [allowedKinds]. Income and Expense open
+  /// Expense, Income, Service invoice and Transfer ([PendingMovementKind]),
+  /// filtered down to [allowedKinds]. Expense and Income open
   /// [_AddMovementDialog] with categories filtered by that
   /// type. Transfer opens [_AddTransferDialog] to choose the other account
   /// and the direction. Service invoice first opens
@@ -453,14 +459,6 @@ class _MovementTypeSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            if (allowedKinds.contains(PendingMovementKind.income))
-              _MovementTypeOption(
-                icon: Icons.arrow_downward_rounded,
-                iconColor: AppColors.authIncome,
-                label: 'Ingreso',
-                onTap: () =>
-                    Navigator.of(context).pop(PendingMovementKind.income),
-              ),
             if (allowedKinds.contains(PendingMovementKind.expense))
               _MovementTypeOption(
                 icon: Icons.arrow_upward_rounded,
@@ -469,21 +467,29 @@ class _MovementTypeSheet extends StatelessWidget {
                 onTap: () =>
                     Navigator.of(context).pop(PendingMovementKind.expense),
               ),
-            if (allowedKinds.contains(PendingMovementKind.transfer))
+            if (allowedKinds.contains(PendingMovementKind.income))
               _MovementTypeOption(
-                icon: Icons.swap_horiz_rounded,
-                iconColor: AppColors.authAccent,
-                label: 'Transferencia',
+                icon: Icons.arrow_downward_rounded,
+                iconColor: AppColors.authIncome,
+                label: 'Ingreso',
                 onTap: () =>
-                    Navigator.of(context).pop(PendingMovementKind.transfer),
+                    Navigator.of(context).pop(PendingMovementKind.income),
               ),
             if (allowedKinds.contains(PendingMovementKind.invoice))
               _MovementTypeOption(
                 icon: Icons.request_page_outlined,
-                iconColor: AppColors.authAccent,
+                iconColor: AppColors.authInvoice,
                 label: 'Factura de servicio',
                 onTap: () =>
                     Navigator.of(context).pop(PendingMovementKind.invoice),
+              ),
+            if (allowedKinds.contains(PendingMovementKind.transfer))
+              _MovementTypeOption(
+                icon: Icons.swap_horiz_rounded,
+                iconColor: AppColors.authTransfer,
+                label: 'Transferencia',
+                onTap: () =>
+                    Navigator.of(context).pop(PendingMovementKind.transfer),
               ),
           ],
         ),
@@ -797,16 +803,16 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
 
   void _save() {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedCategory == null) return;
 
     final rawAmount = double.parse(_amountController.text.replaceAll(',', '.'));
     final signedAmount =
-        _selectedCategory!.type == 'expense' ? -rawAmount : rawAmount;
+        widget.categoryType == 'expense' ? -rawAmount : rawAmount;
 
     widget.onSave(
       CategoryPendingMovement(
         amount: signedAmount,
-        category: _selectedCategory!,
+        type: widget.categoryType,
+        category: _selectedCategory,
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
@@ -871,7 +877,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              const Text('Categoría', style: _kDialogLabelStyle),
+              const Text('Categoría (opcional)', style: _kDialogLabelStyle),
               const SizedBox(height: 6),
               if (widget.categoryViewModel.isLoading)
                 const Padding(
@@ -884,35 +890,34 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                 )
               else if (categories.isEmpty)
                 Text(
-                  'No hay categorías de $categoryTypeLabel todavía.',
+                  'No hay categorías de $categoryTypeLabel todavía. '
+                  'El movimiento se guardará sin categoría.',
                   style: const TextStyle(
-                    color: AppColors.authExpense,
+                    color: AppColors.authTextSecondary,
                     fontSize: 13,
                   ),
                 )
               else
-                DropdownButtonFormField<Category>(
+                DropdownButtonFormField<Category?>(
                   initialValue: _selectedCategory,
                   isExpanded: true,
                   dropdownColor: AppColors.authBackgroundBottom,
                   style: const TextStyle(color: AppColors.authTextPrimary),
                   decoration: _kDialogFieldDecoration,
-                  hint: const Text(
-                    'Seleccioná una categoría',
-                    style: TextStyle(color: AppColors.authTextSecondary),
-                  ),
-                  items: categories
-                      .map(
-                        (c) => DropdownMenuItem(
-                          value: c,
-                          child: Text(c.name, overflow: TextOverflow.ellipsis),
-                        ),
-                      )
-                      .toList(),
+                  items: [
+                    const DropdownMenuItem<Category?>(
+                      value: null,
+                      child: Text('Sin categoría'),
+                    ),
+                    ...categories.map(
+                      (c) => DropdownMenuItem<Category?>(
+                        value: c,
+                        child: Text(c.name, overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                  ],
                   onChanged: (value) =>
                       setState(() => _selectedCategory = value),
-                  validator: (value) =>
-                      value == null ? 'Seleccioná una categoría' : null,
                 ),
               const SizedBox(height: 16),
               const Text('Descripción (opcional)', style: _kDialogLabelStyle),
@@ -968,8 +973,8 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
             backgroundColor: AppColors.authAccent,
             foregroundColor: AppColors.authBackgroundBottom,
           ),
-          onPressed: categories.isEmpty ? null : _save,
-          child: const Text('Guardar'),
+          onPressed: _save,
+          child: const Text('Agregar'),
         ),
       ],
     );
@@ -1227,7 +1232,7 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: otherAccounts.isEmpty ? null : _save,
-          child: const Text('Guardar'),
+          child: const Text('Agregar'),
         ),
       ],
     );
@@ -1539,7 +1544,7 @@ class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: _save,
-          child: const Text('Guardar'),
+          child: const Text('Agregar'),
         ),
       ],
     );

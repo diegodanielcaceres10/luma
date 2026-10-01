@@ -37,4 +37,8 @@ abstract final class AppColors {
   /// Transfers between own accounts: a neutral tone, since money doesn't
   /// really enter or leave (so not authIncome/authExpense).
   static const authTransfer = Color(0xFF8FA6C9);
+
+  /// Service invoices: a saturated blue, distinct from the neutral
+  /// [authTransfer] and from income/expense.
+  static const authInvoice = Color(0xFF4C9BE8);
 }

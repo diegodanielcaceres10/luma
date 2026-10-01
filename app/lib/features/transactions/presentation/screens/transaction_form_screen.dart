@@ -4,9 +4,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
+import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
+import '../../../accounts/presentation/widgets/opening_balance_gate.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/receipt_scan_result.dart';
@@ -24,6 +27,7 @@ class TransactionFormScreen extends StatefulWidget {
   final AccountViewModel accountViewModel;
   final CategoryViewModel categoryViewModel;
   final TransactionViewModel transactionViewModel;
+  final MonthlyBalanceViewModel monthlyBalanceViewModel;
 
   /// Called after saving or cancelling.
   final VoidCallback onDone;
@@ -35,6 +39,7 @@ class TransactionFormScreen extends StatefulWidget {
     required this.accountViewModel,
     required this.categoryViewModel,
     required this.transactionViewModel,
+    required this.monthlyBalanceViewModel,
     required this.onDone,
   });
 
@@ -87,6 +92,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     super.initState();
     // Rebuild on isSubmitting/errorMessage changes.
     widget.transactionViewModel.addListener(_onViewModelChanged);
+    widget.monthlyBalanceViewModel.addListener(_onViewModelChanged);
   }
 
   void _onViewModelChanged() {
@@ -96,6 +102,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   @override
   void dispose() {
     widget.transactionViewModel.removeListener(_onViewModelChanged);
+    widget.monthlyBalanceViewModel.removeListener(_onViewModelChanged);
     _amountController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -127,6 +134,9 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedAccount == null) return;
+
+    final confirmed = await showConfirmDialog(context);
+    if (!confirmed || !mounted) return;
 
     final amount = double.parse(_amountController.text.replaceAll(',', '.'));
 
@@ -594,14 +604,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         'Seleccioná una cuenta',
                         style: TextStyle(color: AppColors.authTextSecondary),
                       ),
-                      items: accounts
-                          .map((a) => DropdownMenuItem(
-                                value: a,
-                                child: Text(
-                                  '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
-                                ),
-                              ))
-                          .toList(),
+                      items: accounts.map((a) {
+                        final isPending =
+                            widget.monthlyBalanceViewModel.isAccountPending(a.id);
+                        return DropdownMenuItem(
+                          value: a,
+                          enabled: !isPending,
+                          child: accountOptionLabel(
+                            '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
+                            isPending: isPending,
+                          ),
+                        );
+                      }).toList(),
                       onChanged: isBusy
                           ? null
                           : (value) => setState(() => _selectedAccount = value),

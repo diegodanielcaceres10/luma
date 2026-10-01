@@ -16,12 +16,12 @@ Future<void> savePendingMovement({
   required InvoiceViewModel invoiceViewModel,
 }) async {
   final bool success = switch (movement) {
-    CategoryPendingMovement(:final category) =>
+    CategoryPendingMovement(:final category, :final type) =>
       await transactionViewModel.createTransaction(
         userId: userId,
         accountId: accountId,
-        categoryId: category.id,
-        type: category.type,
+        categoryId: category?.id,
+        type: type,
         amount: movement.amount.abs(),
         description: movement.description,
         date: movement.date,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_time_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
@@ -117,6 +118,15 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
                         color: AppColors.authTextPrimary,
                         fontSize: 30,
                         fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Última actualización: '
+                      '${formatDateTime(current.balanceUpdatedAt)}',
+                      style: const TextStyle(
+                        color: AppColors.authTextSecondary,
+                        fontSize: 13,
                       ),
                     ),
                     if (hasUncontrolled) ...[

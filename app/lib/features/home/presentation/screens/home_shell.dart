@@ -44,7 +44,8 @@ class HomeBranchScreen extends StatelessWidget {
       invoiceViewModel: invoiceViewModel,
       serviceViewModel: serviceViewModel,
       onSeeAllMovements: () => context.push('/movements'),
-      onOpenMonthlyBalances: () => context.push('/monthly-balance'),
+      onOpenMonthlyBalance: (accountId) =>
+          context.push('/accounts/$accountId/monthly-balance'),
       onOpenAddTransaction: (type) => context.push('/add-transaction/$type'),
       onGoToAccounts: () => context.push('/accounts/new'),
       onManageAccounts: () => context.push('/accounts-overview'),

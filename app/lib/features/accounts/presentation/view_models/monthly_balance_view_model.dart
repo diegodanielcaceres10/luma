@@ -25,10 +25,15 @@ class MonthlyBalanceViewModel extends ChangeNotifier {
   int get currentMonth => DateTime.now().month;
   int get currentYear => DateTime.now().year;
 
+  /// True while the account has no opening balance for the current month.
+  /// Also true before the first check, so nothing is allowed by mistake.
+  bool isAccountPending(String accountId) =>
+      !_accountIdsWithBalance.contains(accountId);
+
   /// Active accounts without an opening balance for the current month.
   List<Account> pendingAccounts(List<Account> activeAccounts) {
     return activeAccounts
-        .where((account) => !_accountIdsWithBalance.contains(account.id))
+        .where((account) => isAccountPending(account.id))
         .toList();
   }
 

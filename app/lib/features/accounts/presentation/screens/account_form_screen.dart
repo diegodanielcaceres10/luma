@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart'
@@ -73,6 +74,9 @@ class _AccountFormScreenState extends State<AccountFormScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final confirmed = await showConfirmDialog(context);
+    if (!confirmed || !mounted) return;
 
     final vm = widget.accountViewModel;
     final success = _isEditing

@@ -12,13 +12,14 @@ const Duration kAppLockRelockThreshold = Duration(seconds: 30);
 /// Decision: 5.
 const int kAppLockMaxFailedAttempts = 5;
 
-/// Decides when the app must show the lock screen ('/lock' — see
-/// router.dart) and handles the unlock attempt.
+/// Decides when the app must show the lock screen (a layer on top of the
+/// app, see AppLockGate in app.dart) and handles the unlock attempt.
 ///
 /// It does not replace AuthViewModel: the Supabase session (login) and the
-/// local lock (biometrics) are independent gates combined in the router's
-/// `redirect`. This lock only makes sense if the device supports it AND the
-/// user enabled it in Preferences — if either condition is not met,
+/// local lock (biometrics) are independent gates: the router handles the
+/// session and AppLockGate the lock. This lock only makes sense if the
+/// device supports it AND the user enabled it in Preferences — if either
+/// condition is not met,
 /// `isLocked` is never activated and the behavior stays as before (no lock
 /// of its own, only the operating system lock).
 class AppLockViewModel extends ChangeNotifier {

@@ -6,9 +6,9 @@ import '../../../../core/widgets/luma_logo.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../view_models/app_lock_view_model.dart';
 
-/// Lock screen ('/lock' — see router.dart). Lives outside the shell, like
-/// LoginScreen and NotFoundScreen: no header, no bottom nav. It is only
-/// reached when `AppLockViewModel.isLocked` is `true`, which in turn only
+/// Lock screen. Not a route: AppLockGate (see app.dart) shows it on top of
+/// the whole app, so the screen the user was on stays untouched below. It is
+/// only shown when `AppLockViewModel.isLocked` is `true`, which in turn only
 /// happens if the device supports biometrics AND the user enabled it in
 /// Preferences (see AppLockViewModel).
 class LockScreen extends StatelessWidget {

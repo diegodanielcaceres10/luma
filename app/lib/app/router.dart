@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart' show BuildContext, Widget, Listenable;
+import 'package:flutter/widgets.dart' show BuildContext, Widget;
 import 'package:go_router/go_router.dart';
 
 import '../core/navigation/app_back.dart';
@@ -12,6 +12,7 @@ import '../features/accounts/presentation/screens/account_view_screen.dart';
 import '../features/accounts/presentation/screens/accounts_screen.dart';
 import '../features/accounts/presentation/view_models/account_view_model.dart';
 import '../features/accounts/presentation/view_models/monthly_balance_view_model.dart';
+import '../features/accounts/presentation/widgets/opening_balance_gate.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/preferences_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
@@ -24,7 +25,6 @@ import '../features/categories/presentation/screens/category_view_screen.dart';
 import '../features/categories/presentation/view_models/category_view_model.dart';
 import '../features/home/presentation/screens/app_shell_screen.dart';
 import '../features/home/presentation/screens/home_shell.dart';
-import '../features/home/presentation/screens/lock_screen.dart';
 import '../features/home/presentation/screens/routed_screen_scaffold.dart';
 import '../features/home/presentation/view_models/app_lock_view_model.dart';
 import '../features/invoices/data/models/invoice.dart';
@@ -37,10 +37,10 @@ import '../features/services/presentation/screens/service_form_screen.dart';
 import '../features/services/presentation/screens/service_view_screen.dart';
 import '../features/services/presentation/screens/services_screen.dart';
 import '../features/services/presentation/view_models/service_view_model.dart';
-import '../features/transactions/presentation/screens/statistics_screen.dart';
 import '../features/transactions/presentation/screens/transaction_form_screen.dart';
 import '../features/transactions/presentation/screens/transaction_form_transfer_screen.dart';
 import '../features/transactions/presentation/screens/transactions_screen.dart';
+import '../features/transactions/presentation/screens/transactions_statistics_screen.dart';
 import '../features/transactions/presentation/view_models/transaction_view_model.dart';
 import 'not_found_screen.dart';
 
@@ -156,8 +156,9 @@ GoRouter buildAppRouter({
 
   return GoRouter(
     initialLocation: '/',
-    // Re-evaluate `redirect` when the session or the app lock changes.
-    refreshListenable: Listenable.merge([authViewModel, appLockViewModel]),
+    // Re-evaluate `redirect` when the session changes. The biometric lock is
+    // not a route: see AppLockGate in app.dart.
+    refreshListenable: authViewModel,
     redirect: (context, state) {
       final isAuthenticated = authViewModel.isAuthenticated;
       final isLoggingIn = state.matchedLocation == '/login';
@@ -165,30 +166,15 @@ GoRouter buildAppRouter({
       if (!isAuthenticated && !isLoggingIn) return '/login';
       if (isAuthenticated && isLoggingIn) return '/';
 
-      // Local biometric lock gate; only reachable with a session, so it runs
-      // after the auth checks.
-      final isLocked = appLockViewModel.isLocked;
-      final isLocking = state.matchedLocation == '/lock';
-      if (isAuthenticated && isLocked && !isLocking) return '/lock';
-      if (isAuthenticated && !isLocked && isLocking) return '/';
-
       return null;
     },
     // Unknown URLs. `redirect` runs first, so unauthenticated users land on
     // '/login' and never see this; it sits outside the shell.
-    errorBuilder: (context, state) =>
-        NotFoundScreen(location: state.uri.path),
+    errorBuilder: (context, state) => NotFoundScreen(location: state.uri.path),
     routes: [
       GoRoute(
         path: '/login',
         builder: (context, state) => LoginScreen(viewModel: authViewModel),
-      ),
-      GoRoute(
-        path: '/lock',
-        builder: (context, state) => LockScreen(
-          viewModel: appLockViewModel,
-          authViewModel: authViewModel,
-        ),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShellScreen(child: child),
@@ -206,25 +192,6 @@ GoRouter buildAppRouter({
             ),
           ),
           GoRoute(
-            path: '/monthly-balance',
-            builder: (context, state) => RoutedScreenScaffold(
-              body: AccountMonthlyBalanceScreen(
-                userId: authViewModel.userId ?? '',
-                pendingAccounts: monthlyBalanceViewModel.checked
-                    ? monthlyBalanceViewModel.pendingAccounts(
-                        accountViewModel.activeAccounts)
-                    : const [],
-                accountViewModel: accountViewModel,
-                categoryViewModel: categoryViewModel,
-                serviceViewModel: serviceViewModel,
-                invoiceViewModel: invoiceViewModel,
-                transactionViewModel: transactionViewModel,
-                monthlyBalanceViewModel: monthlyBalanceViewModel,
-                onDone: () => context.goBack(),
-              ),
-            ),
-          ),
-          GoRoute(
             // The regex limits `:type` to income/expense; the builder
             // lowercases it because go_router matches paths case-insensitively.
             path: '/add-transaction/:type(income|expense)',
@@ -237,6 +204,7 @@ GoRouter buildAppRouter({
                   accountViewModel: accountViewModel,
                   categoryViewModel: categoryViewModel,
                   transactionViewModel: transactionViewModel,
+                  monthlyBalanceViewModel: monthlyBalanceViewModel,
                   onDone: () => context.goBack(),
                 ),
               );
@@ -249,6 +217,7 @@ GoRouter buildAppRouter({
                 userId: authViewModel.userId,
                 accountViewModel: accountViewModel,
                 transactionViewModel: transactionViewModel,
+                monthlyBalanceViewModel: monthlyBalanceViewModel,
                 onDone: () => context.goBack(),
               ),
             ),
@@ -323,14 +292,41 @@ GoRouter buildAppRouter({
               body: _accountGuard(
                 accountViewModel,
                 state.pathParameters['id'],
-                (context, account) => AccountUpdateBalanceScreen(
+                (context, account) => OpeningBalanceGate(
+                  monthlyBalanceViewModel: monthlyBalanceViewModel,
+                  account: account,
+                  onCompleteBalance: () =>
+                      context.push('/accounts/${account.id}/monthly-balance'),
+                  onBack: () => context.goBack(),
+                  child: AccountUpdateBalanceScreen(
+                    account: account,
+                    accountViewModel: accountViewModel,
+                    categoryViewModel: categoryViewModel,
+                    serviceViewModel: serviceViewModel,
+                    invoiceViewModel: invoiceViewModel,
+                    transactionViewModel: transactionViewModel,
+                    userId: authViewModel.userId,
+                    onDone: () => context.goBack(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/accounts/:id/monthly-balance',
+            builder: (context, state) => RoutedScreenScaffold(
+              body: _accountGuard(
+                accountViewModel,
+                state.pathParameters['id'],
+                (context, account) => AccountMonthlyBalanceScreen(
+                  userId: authViewModel.userId ?? '',
                   account: account,
                   accountViewModel: accountViewModel,
                   categoryViewModel: categoryViewModel,
                   serviceViewModel: serviceViewModel,
                   invoiceViewModel: invoiceViewModel,
                   transactionViewModel: transactionViewModel,
-                  userId: authViewModel.userId,
+                  monthlyBalanceViewModel: monthlyBalanceViewModel,
                   onDone: () => context.goBack(),
                 ),
               ),
@@ -342,15 +338,22 @@ GoRouter buildAppRouter({
               body: _accountGuard(
                 accountViewModel,
                 state.pathParameters['id'],
-                (context, account) => AccountJustifyUncontrolledScreen(
+                (context, account) => OpeningBalanceGate(
+                  monthlyBalanceViewModel: monthlyBalanceViewModel,
                   account: account,
-                  accountViewModel: accountViewModel,
-                  categoryViewModel: categoryViewModel,
-                  serviceViewModel: serviceViewModel,
-                  invoiceViewModel: invoiceViewModel,
-                  transactionViewModel: transactionViewModel,
-                  userId: authViewModel.userId,
-                  onDone: () => context.goBack(),
+                  onCompleteBalance: () =>
+                      context.push('/accounts/${account.id}/monthly-balance'),
+                  onBack: () => context.goBack(),
+                  child: AccountJustifyUncontrolledScreen(
+                    account: account,
+                    accountViewModel: accountViewModel,
+                    categoryViewModel: categoryViewModel,
+                    serviceViewModel: serviceViewModel,
+                    invoiceViewModel: invoiceViewModel,
+                    transactionViewModel: transactionViewModel,
+                    userId: authViewModel.userId,
+                    onDone: () => context.goBack(),
+                  ),
                 ),
               ),
             ),
@@ -400,8 +403,7 @@ GoRouter buildAppRouter({
                   category: category,
                   categoryViewModel: categoryViewModel,
                   currency: accountViewModel.primaryCurrency,
-                  onEdit: () =>
-                      context.push('/categories/${category.id}/edit'),
+                  onEdit: () => context.push('/categories/${category.id}/edit'),
                   onBack: () => context.goBack(),
                 ),
               ),
@@ -529,6 +531,7 @@ GoRouter buildAppRouter({
                   serviceViewModel: serviceViewModel,
                   categoryViewModel: categoryViewModel,
                   accountViewModel: accountViewModel,
+                  monthlyBalanceViewModel: monthlyBalanceViewModel,
                   currency: accountViewModel.primaryCurrency,
                   onEdit: () => context.push('/invoices/${invoice.id}/edit'),
                   onBack: () => context.goBack(),
@@ -573,7 +576,7 @@ GoRouter buildAppRouter({
           ),
           GoRoute(
             path: '/statistics',
-            builder: (context, state) => StatisticsScreen(
+            builder: (context, state) => TransactionsStatisticsScreen(
               transactionViewModel: transactionViewModel,
               categoryViewModel: categoryViewModel,
               currency: accountViewModel.primaryCurrency,

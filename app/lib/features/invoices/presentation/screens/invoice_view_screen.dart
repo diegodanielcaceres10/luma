@@ -5,6 +5,7 @@ import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
+import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -24,6 +25,7 @@ class InvoiceViewScreen extends StatelessWidget {
   final ServiceViewModel serviceViewModel;
   final CategoryViewModel categoryViewModel;
   final AccountViewModel accountViewModel;
+  final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final String currency;
   final VoidCallback onEdit;
   final VoidCallback onBack;
@@ -36,6 +38,7 @@ class InvoiceViewScreen extends StatelessWidget {
     required this.serviceViewModel,
     required this.categoryViewModel,
     required this.accountViewModel,
+    required this.monthlyBalanceViewModel,
     required this.currency,
     required this.onEdit,
     required this.onBack,
@@ -133,6 +136,10 @@ class InvoiceViewScreen extends StatelessWidget {
         serviceName: serviceName,
         category: category,
         accounts: accountViewModel.activeAccounts,
+        pendingAccountIds: {
+          for (final account in accountViewModel.activeAccounts)
+            if (monthlyBalanceViewModel.isAccountPending(account.id)) account.id,
+        },
         currency: currency,
       ),
     );

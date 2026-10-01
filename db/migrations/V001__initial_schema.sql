@@ -6,8 +6,26 @@ create table accounts (
   balance     numeric(12, 2) not null default 0,
   is_active   boolean not null default true,
   created_at  timestamptz not null default now(),
+  balance_updated_at timestamptz not null default now(),
   unique (user_id, name)
 );
+
+create or replace function public.set_account_balance_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.balance is distinct from old.balance then
+    new.balance_updated_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+create trigger accounts_set_balance_updated_at
+  before update on accounts
+  for each row
+  execute function public.set_account_balance_updated_at();
 
 -- ─── categories ─────────────────────────────────────────
 create table categories (

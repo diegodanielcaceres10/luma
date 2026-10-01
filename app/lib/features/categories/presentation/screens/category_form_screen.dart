@@ -7,6 +7,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart'
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
+import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/category.dart';
 import '../view_models/category_view_model.dart';
@@ -102,6 +103,9 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final confirmed = await showConfirmDialog(context);
+    if (!confirmed || !mounted) return;
 
     final vm = widget.categoryViewModel;
     // Budgets only apply to expenses; ignore the switch for income.

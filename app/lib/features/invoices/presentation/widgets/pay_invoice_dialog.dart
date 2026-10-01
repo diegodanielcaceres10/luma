@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../accounts/data/models/account.dart';
+import '../../../accounts/presentation/widgets/opening_balance_gate.dart';
 import '../../../categories/data/models/category.dart';
 import '../../data/models/invoice.dart';
 
@@ -27,6 +28,9 @@ class PayInvoiceDialog extends StatefulWidget {
   final String serviceName;
   final Category category;
   final List<Account> accounts;
+
+  /// Accounts without an opening balance this month; they can't pay.
+  final Set<String> pendingAccountIds;
   final String currency;
 
   const PayInvoiceDialog({
@@ -35,6 +39,7 @@ class PayInvoiceDialog extends StatefulWidget {
     required this.serviceName,
     required this.category,
     required this.accounts,
+    required this.pendingAccountIds,
     required this.currency,
   });
 
@@ -198,14 +203,17 @@ class _PayInvoiceDialogState extends State<PayInvoiceDialog> {
                   'Seleccioná una cuenta',
                   style: TextStyle(color: AppColors.authTextSecondary),
                 ),
-                items: accounts
-                    .map((a) => DropdownMenuItem(
-                          value: a,
-                          child: Text(
-                            '${a.name} - ${formatCurrency(a.balance, widget.currency)}',
-                          ),
-                        ))
-                    .toList(),
+                items: accounts.map((a) {
+                  final isPending = widget.pendingAccountIds.contains(a.id);
+                  return DropdownMenuItem(
+                    value: a,
+                    enabled: !isPending,
+                    child: accountOptionLabel(
+                      '${a.name} - ${formatCurrency(a.balance, widget.currency)}',
+                      isPending: isPending,
+                    ),
+                  );
+                }).toList(),
                 onChanged: (value) => setState(() => _selectedAccount = value),
               ),
             const SizedBox(height: 20),

@@ -33,7 +33,7 @@ class DashboardScreen extends StatefulWidget {
   final InvoiceViewModel invoiceViewModel;
   final ServiceViewModel serviceViewModel;
   final VoidCallback? onSeeAllMovements;
-  final VoidCallback onOpenMonthlyBalances;
+  final ValueChanged<String> onOpenMonthlyBalance;
   final ValueChanged<String> onOpenAddTransaction;
   final VoidCallback onGoToAccounts;
   final VoidCallback onManageAccounts;
@@ -49,7 +49,7 @@ class DashboardScreen extends StatefulWidget {
     required this.monthlyBalanceViewModel,
     required this.invoiceViewModel,
     required this.serviceViewModel,
-    required this.onOpenMonthlyBalances,
+    required this.onOpenMonthlyBalance,
     required this.onOpenAddTransaction,
     required this.onGoToAccounts,
     required this.onManageAccounts,
@@ -166,13 +166,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final options = [
       _QuickActionOption(
-        icon: Icons.arrow_downward_rounded,
-        iconColor: AppColors.authIncome,
-        title: 'Agregar ingreso',
-        subtitle: 'Sumá dinero a tu cuenta',
-        onTap: () => widget.onOpenAddTransaction('income'),
-      ),
-      _QuickActionOption(
         icon: Icons.arrow_upward_rounded,
         iconColor: AppColors.authExpense,
         title: 'Agregar gasto',
@@ -180,8 +173,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTap: () => widget.onOpenAddTransaction('expense'),
       ),
       _QuickActionOption(
+        icon: Icons.arrow_downward_rounded,
+        iconColor: AppColors.authIncome,
+        title: 'Agregar ingreso',
+        subtitle: 'Sumá dinero a tu cuenta',
+        onTap: () => widget.onOpenAddTransaction('income'),
+      ),
+      _QuickActionOption(
         icon: Icons.request_page_outlined,
-        iconColor: AppColors.authAccent,
+        iconColor: AppColors.authInvoice,
         title: 'Facturas por pagar',
         subtitle: pendingInvoicesCount > 0
             ? '$pendingInvoicesCount pendiente'
@@ -191,7 +191,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       _QuickActionOption(
         icon: Icons.swap_horiz_rounded,
-        iconColor: AppColors.authAccent,
+        iconColor: AppColors.authTransfer,
         title: 'Transferencias entre cuentas',
         subtitle: 'Movés dinero de una cuenta a otra',
         onTap: widget.onGoToTransfers,
@@ -250,10 +250,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 currency: accountViewModel.primaryCurrency,
                 netResult: transactionViewModel.netResultWithUncontrolled,
                 isLoadingNetResult: transactionViewModel.isLoading,
-                pendingAccountsCount: pendingAccounts.length,
-                onCompletePendingBalances: pendingAccounts.isEmpty
-                    ? null
-                    : widget.onOpenMonthlyBalances,
+                pendingAccountIds: {
+                  for (final account in pendingAccounts) account.id,
+                },
+                onCompletePendingBalance: widget.onOpenMonthlyBalance,
                 onManageAccounts: widget.onManageAccounts,
                 accounts: activeAccounts,
                 pendingInvoicesTotal: pendingInvoicesTotal,
@@ -473,8 +473,10 @@ class _BalanceCard extends StatelessWidget {
   /// [TransactionViewModel.netResultWithUncontrolled]).
   final double netResult;
   final bool isLoadingNetResult;
-  final int pendingAccountsCount;
-  final VoidCallback? onCompletePendingBalances;
+
+  /// Ids of the accounts without an opening balance this month.
+  final Set<String> pendingAccountIds;
+  final ValueChanged<String> onCompletePendingBalance;
   final VoidCallback onManageAccounts;
 
   /// Active accounts, for the breakdown that expands in the card.
@@ -493,8 +495,8 @@ class _BalanceCard extends StatelessWidget {
     required this.isLoadingNetResult,
     required this.onManageAccounts,
     required this.accounts,
-    this.pendingAccountsCount = 0,
-    this.onCompletePendingBalances,
+    required this.onCompletePendingBalance,
+    this.pendingAccountIds = const {},
     this.pendingInvoicesTotal = 0,
     this.pendingInvoicesCount = 0,
     this.isLoadingPendingInvoices = false,
@@ -634,20 +636,19 @@ class _BalanceCard extends StatelessWidget {
                 ),
               ],
             ],
-            if (pendingAccountsCount > 0) ...[
+            if (pendingAccountIds.isNotEmpty) ...[
               const SizedBox(height: 16),
               const Divider(color: Colors.white24, height: 1),
               const SizedBox(height: 16),
-              _PendingBalancesAlert(
-                count: pendingAccountsCount,
-                onTap: onCompletePendingBalances,
-              ),
+              _PendingBalancesAlert(count: pendingAccountIds.length),
             ],
             const SizedBox(height: 8),
             _BalanceAccountsExpander(
               accounts: accounts,
               currency: currency,
               onManageAccounts: onManageAccounts,
+              pendingAccountIds: pendingAccountIds,
+              onCompletePendingBalance: onCompletePendingBalance,
             ),
           ],
         ),
@@ -664,11 +665,15 @@ class _BalanceAccountsExpander extends StatefulWidget {
   final List<Account> accounts;
   final String currency;
   final VoidCallback onManageAccounts;
+  final Set<String> pendingAccountIds;
+  final ValueChanged<String> onCompletePendingBalance;
 
   const _BalanceAccountsExpander({
     required this.accounts,
     required this.currency,
     required this.onManageAccounts,
+    required this.pendingAccountIds,
+    required this.onCompletePendingBalance,
   });
 
   @override
@@ -754,44 +759,110 @@ class _BalanceAccountsExpanderState extends State<_BalanceAccountsExpander> {
         ),
         const SizedBox(height: 4),
         for (final account in widget.accounts)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    account.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  formatCurrency(account.balance, widget.currency),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
+          _AccountBalanceRow(
+            account: account,
+            currency: widget.currency,
+            isPending: widget.pendingAccountIds.contains(account.id),
+            onCompletePendingBalance: () =>
+                widget.onCompletePendingBalance(account.id),
           ),
       ],
     );
   }
 }
 
+/// One account of the expanded breakdown: name and balance, plus a link to
+/// load its opening balance when it is still missing this month.
+class _AccountBalanceRow extends StatelessWidget {
+  final Account account;
+  final String currency;
+  final bool isPending;
+  final VoidCallback onCompletePendingBalance;
+
+  const _AccountBalanceRow({
+    required this.account,
+    required this.currency,
+    required this.isPending,
+    required this.onCompletePendingBalance,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  account.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                formatCurrency(account.balance, currency),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          if (isPending) ...[
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: onCompletePendingBalance,
+              borderRadius: BorderRadius.circular(8),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Color(0xFFFBBF24),
+                      size: 16,
+                    ),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Falta cargar el saldo inicial',
+                        style: TextStyle(
+                          color: Color(0xFFFBBF24),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: Color(0xFFFBBF24),
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _PendingBalancesAlert extends StatelessWidget {
   final int count;
-  final VoidCallback? onTap;
 
-  const _PendingBalancesAlert({required this.count, this.onTap});
+  const _PendingBalancesAlert({required this.count});
 
   @override
   Widget build(BuildContext context) {
@@ -799,32 +870,18 @@ class _PendingBalancesAlert extends StatelessWidget {
         ? 'Falta cargar el saldo inicial de 1 cuenta este mes'
         : 'Faltan cargar los saldos iniciales de $count cuentas este mes';
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Row(
-        children: [
-          const Icon(Icons.warning_amber_rounded,
-              color: Color(0xFFFBBF24), size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-            ),
+    return Row(
+      children: [
+        const Icon(Icons.warning_amber_rounded,
+            color: Color(0xFFFBBF24), size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
-          const Text(
-            'Completar',
-            style: TextStyle(
-              color: Color(0xFFFBBF24),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded,
-              color: Color(0xFFFBBF24), size: 16),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
