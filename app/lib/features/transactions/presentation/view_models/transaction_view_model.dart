@@ -412,19 +412,19 @@ class TransactionViewModel extends ChangeNotifier {
     }
   }
 
-  /// Creates a transfer as two uncategorized rows flagged `isTransfer`: an
-  /// expense on the origin account and an income on the destination.
+  /// Creates one side of a transfer between own accounts: a single
+  /// uncategorized row flagged `isTransfer` on [accountId], an expense when
+  /// money leaves it and an income when money enters it.
   ///
-  /// The two inserts are not atomic together: if the second fails, the first
-  /// stays committed. Returns true if both were created.
+  /// The counterpart row on the other account is not created; the user
+  /// registers it manually. Returns true if the row was created.
   Future<bool> createTransfer({
     required String userId,
-    required String originAccountId,
-    required String destinationAccountId,
+    required String accountId,
+    required String type,
     required double amount,
     required DateTime date,
-    String? originDescription,
-    String? destinationDescription,
+    String? description,
   }) async {
     _isSubmitting = true;
     _errorMessage = null;
@@ -434,19 +434,10 @@ class TransactionViewModel extends ChangeNotifier {
     try {
       await _repository.create(
         userId: userId,
-        accountId: originAccountId,
-        type: 'expense',
+        accountId: accountId,
+        type: type,
         amount: amount,
-        description: originDescription,
-        date: date,
-        isTransfer: true,
-      );
-      await _repository.create(
-        userId: userId,
-        accountId: destinationAccountId,
-        type: 'income',
-        amount: amount,
-        description: destinationDescription,
+        description: description,
         date: date,
         isTransfer: true,
       );

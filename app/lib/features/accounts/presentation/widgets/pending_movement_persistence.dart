@@ -26,15 +26,15 @@ Future<void> savePendingMovement({
         description: movement.description,
         date: movement.date,
       ),
-    TransferPendingMovement(:final otherAccountId) =>
-      await transactionViewModel.createTransfer(
+    // Only this account's side is persisted; the other account's side is
+    // registered manually by the user.
+    TransferPendingMovement() => await transactionViewModel.createTransfer(
         userId: userId,
-        originAccountId: movement.amount < 0 ? accountId : otherAccountId,
-        destinationAccountId: movement.amount < 0 ? otherAccountId : accountId,
+        accountId: accountId,
+        type: movement.amount < 0 ? 'expense' : 'income',
         amount: movement.amount.abs(),
         date: movement.date,
-        originDescription: movement.description,
-        destinationDescription: movement.description,
+        description: movement.description ?? movement.displayLabel,
       ),
     InvoicePendingMovement(:final invoice, :final category) =>
       await invoiceViewModel.payInvoice(
