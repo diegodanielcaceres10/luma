@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+
+import { AnalyticsService } from '../../services/analytics';
 
 @Component({
   selector: 'app-footer',
@@ -7,5 +9,6 @@ import { RouterLink } from '@angular/router';
   templateUrl: './footer.html',
 })
 export class FooterComponent {
+  protected readonly analytics = inject(AnalyticsService);
   protected readonly year = new Date().getFullYear();
 }

@@ -1,8 +1,14 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  ApplicationConfig,
+  inject,
+  provideAppInitializer,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 
 import { routes } from './app.routes';
 import { provideClientHydration } from '@angular/platform-browser';
+import { AnalyticsService } from './services/analytics';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,5 +22,6 @@ export const appConfig: ApplicationConfig = {
       }),
     ),
     provideClientHydration(),
+    provideAppInitializer(() => inject(AnalyticsService).init()),
   ],
 };
