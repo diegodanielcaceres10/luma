@@ -397,64 +397,66 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               ),
               const SizedBox(height: 24),
             ],
-            const Text(
-              'Gastos por categoría',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.authTextSecondary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              formatCurrency(categorizedTotal, widget.currency),
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-            Text(
-              isCurrentMonth
-                  ? 'gastados este mes'
-                  : 'gastados en $monthInSentence',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.authTextFooter,
-              ),
-            ),
-            const SizedBox(height: 20),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: AppColors.authCardFill,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.authCardBorder),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _CategoryDonutChart(
-                      breakdown: categorizedBreakdown,
-                      total: categorizedTotal,
-                      currency: widget.currency,
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Column(
-                        children: categorizedBreakdown
-                            .map((c) => _CategoryLegendRow(
-                                  category: c,
-                                  currency: widget.currency,
-                                ))
-                            .toList(),
-                      ),
-                    ),
-                  ],
+            if (categorizedBreakdown.isNotEmpty) ...[
+              const Text(
+                'Gastos por categoría',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.authTextSecondary,
                 ),
               ),
-            ),
+              const SizedBox(height: 4),
+              Text(
+                formatCurrency(categorizedTotal, widget.currency),
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.authTextPrimary,
+                ),
+              ),
+              Text(
+                isCurrentMonth
+                    ? 'gastados este mes'
+                    : 'gastados en $monthInSentence',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.authTextFooter,
+                ),
+              ),
+              const SizedBox(height: 20),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.authCardFill,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.authCardBorder),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _CategoryDonutChart(
+                        breakdown: categorizedBreakdown,
+                        total: categorizedTotal,
+                        currency: widget.currency,
+                      ),
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Column(
+                          children: categorizedBreakdown
+                              .map((c) => _CategoryLegendRow(
+                                    category: c,
+                                    currency: widget.currency,
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         );
       },
