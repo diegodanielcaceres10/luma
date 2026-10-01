@@ -112,7 +112,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             _PreferenceCard(
               child: _SwitchRow(
                 label: 'Notificaciones habilitadas',
-                value: prefs.notificationsEnabled,
+                // Web cannot enable this, so never show a stored mobile value.
+                value: !kIsWeb && prefs.notificationsEnabled,
                 onChanged: kIsWeb ? null : vm.setNotificationsEnabled,
               ),
             ),
@@ -136,7 +137,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             _PreferenceCard(
               child: _SwitchRow(
                 label: 'Bloqueo con biometría',
-                value: prefs.biometricLockEnabled,
+                value: !kIsWeb && prefs.biometricLockEnabled,
                 onChanged: kIsWeb
                     ? null
                     : (widget.appLockViewModel.isSupported
