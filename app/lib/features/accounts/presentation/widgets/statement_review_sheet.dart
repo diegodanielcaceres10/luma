@@ -101,8 +101,8 @@ class _PrivacyNotice extends StatelessWidget {
               '(Gemini): Google puede usarla para mejorar sus productos y '
               'personas de su equipo podrían leerla.\n\n'
               'Recortala para que solo se vean las líneas de movimientos. '
-              'No incluyas tu nombre, el número de cuenta, el IBAN ni nada '
-              'que no quieras compartir.',
+              'No incluyas datos sensibles (tu nombre, números de cuenta o '
+              'de tarjeta, documentos) ni nada que no quieras compartir.',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
@@ -510,8 +510,9 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
     // so the picker never receives an initialDate outside [first, last].
     final first = widget.range.start;
     final last = widget.range.end;
-    final initial =
-        _date.isBefore(first) ? first : (_date.isAfter(last) ? last : _date);
+    final initial = _date.isBefore(first)
+        ? first
+        : (_date.isAfter(last) ? last : _date);
 
     final picked = await showDatePicker(
       context: context,

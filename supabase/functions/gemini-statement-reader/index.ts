@@ -54,8 +54,9 @@ Reglas:
 - "date": fecha de la operación en formato ISO. Hoy es ${today}: si la
   línea no trae año, usá el año más reciente que no quede en el futuro.
   Si no se puede leer, null.
-- "description": comercio o concepto, corto. Nunca incluyas nombres
-  de personas titulares, números de cuenta, IBAN ni números de tarjeta.
+- "description": comercio o concepto, corto. Nunca incluyas datos
+  sensibles: nombres de titulares, números de cuenta o de tarjeta,
+  documentos de identidad ni otros identificadores personales.
   Si no se lee, null.
 - Ignorá saldos, totales, encabezados y cualquier línea que no sea un
   movimiento.
