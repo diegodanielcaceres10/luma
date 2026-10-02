@@ -7,6 +7,8 @@ import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
 import '../../../../core/widgets/month_filter_button.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../auth/presentation/view_models/preferences_view_model.dart';
+import '../../../notifications/presentation/widgets/notifications_hint.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../data/models/invoice.dart';
 import '../utils/month_names.dart';
@@ -17,6 +19,7 @@ enum _StatusFilter { all, pending, paid, cancelled }
 class InvoicesScreen extends StatefulWidget {
   final InvoiceViewModel invoiceViewModel;
   final ServiceViewModel serviceViewModel;
+  final PreferencesViewModel preferencesViewModel;
   final String currency;
 
   /// Status filter this instance starts with, as it comes from the URL
@@ -35,15 +38,20 @@ class InvoicesScreen extends StatefulWidget {
   /// Opens the create form.
   final VoidCallback onOpenForm;
 
+  /// Opens Preferencias, from the notifications hint.
+  final VoidCallback onOpenPreferences;
+
   final VoidCallback? onBack;
 
   const InvoicesScreen({
     super.key,
     required this.invoiceViewModel,
     required this.serviceViewModel,
+    required this.preferencesViewModel,
     required this.currency,
     required this.onOpenView,
     required this.onOpenForm,
+    required this.onOpenPreferences,
     this.onBack,
     this.initialFilter,
     this.initialMonth,
@@ -191,6 +199,11 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                   tooltip: 'Nueva factura',
                   onPressed: widget.onOpenForm,
                 ),
+              ),
+              const SizedBox(height: 12),
+              NotificationsHint(
+                preferencesViewModel: widget.preferencesViewModel,
+                onOpenPreferences: widget.onOpenPreferences,
               ),
               const SizedBox(height: 16),
               if (isInitialLoad)
