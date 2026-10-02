@@ -461,6 +461,7 @@ GoRouter buildAppRouter({
                   service: service,
                   serviceViewModel: serviceViewModel,
                   categoryViewModel: categoryViewModel,
+                  invoiceViewModel: invoiceViewModel,
                   currency: accountViewModel.primaryCurrency,
                   onEdit: () => context.push('/services/${service.id}/edit'),
                   onBack: () => context.goBack(),
