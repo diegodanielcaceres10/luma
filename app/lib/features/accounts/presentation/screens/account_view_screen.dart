@@ -6,6 +6,7 @@ import '../../../../core/utils/date_time_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
+import '../widgets/account_trend_section.dart';
 import '../widgets/month_variation_indicator.dart';
 
 enum _AccountAction { edit, updateBalance, justifyUncontrolled }
@@ -204,6 +205,12 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 16),
+              AccountTrendSection(
+                history: widget.accountViewModel.openingHistoryOf(current.id),
+                currentBalance: current.balance,
+                currency: currency,
               ),
             ],
           );
