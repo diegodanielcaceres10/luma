@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
@@ -8,8 +10,12 @@ import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/data/models/invoice.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
+import '../../../transactions/data/models/transaction_entry.dart';
 import '../../data/models/account.dart';
+import '../../data/models/scanned_movement.dart';
+import '../../data/services/statement_scan_service.dart';
 import '../view_models/account_view_model.dart';
+import 'statement_review_sheet.dart';
 
 /// A movement (income, expense, transfer or paid invoice) accumulated by
 /// [PendingMovementsSection] before it is actually persisted. The owning
@@ -117,6 +123,16 @@ class PendingMovementsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Swaps [old] for [updated] keeping its position in the list, so editing
+  /// a movement doesn't send it to the bottom. Does nothing if [old] is no
+  /// longer queued.
+  void replace(PendingMovement old, PendingMovement updated) {
+    final index = _movements.indexOf(old);
+    if (index == -1) return;
+    _movements[index] = updated;
+    notifyListeners();
+  }
+
   void removeWhere(bool Function(PendingMovement movement) test) {
     _movements.removeWhere(test);
     notifyListeners();
@@ -170,15 +186,18 @@ class PendingMovementsSection extends StatelessWidget {
   final Widget? helperText;
   final bool enabled;
 
-  /// Which options the "Agregar movimiento" sheet offers. Defaults to all
-  /// four; a screen that only makes sense for some of them (e.g. one that
-  /// can't yet justify transfers or invoice payments without moving the
-  /// balance) can pass a smaller set.
-  final Set<PendingMovementKind> allowedKinds;
-
   /// Dates the add-movement dialogs accept, and the one they start on (its
   /// end). Defaults to any date from 2020 up to today.
   final DateTimeRange? dateRange;
+
+  /// Transactions already saved, used to flag scanned statement lines that
+  /// may duplicate one of this account's movements. Optional: without it
+  /// only lines already queued in [controller] are checked.
+  final List<TransactionEntry> existingTransactions;
+
+  /// Reads statement screenshots. Defaults to the Supabase-backed service;
+  /// override it in tests.
+  final StatementScanService? scanService;
 
   const PendingMovementsSection({
     super.key,
@@ -192,33 +211,47 @@ class PendingMovementsSection extends StatelessWidget {
     this.title = 'Movimientos para justificar la diferencia',
     this.helperText,
     this.enabled = true,
-    this.allowedKinds = const {
-      PendingMovementKind.income,
-      PendingMovementKind.expense,
-      PendingMovementKind.transfer,
-      PendingMovementKind.invoice,
-    },
     this.dateRange,
+    this.existingTransactions = const [],
+    this.scanService,
   });
 
-  /// Opens the bottom sheet behind the "Add movement" button to pick between
+  /// Opens the bottom sheet behind the "Add movement" button (or, with
+  /// [editing], behind a row's pencil icon, replacing that row with the
+  /// result and carrying over its amount, date and description) to pick between
   /// Expense, Income, Service invoice and Transfer ([PendingMovementKind]),
-  /// filtered down to [allowedKinds]. Expense and Income open
+  /// Expense and Income open
   /// [_AddMovementDialog] with categories filtered by that
   /// type. Transfer opens [_AddTransferDialog] to choose the other account
   /// and the direction. Service invoice first opens
   /// [_SelectPendingInvoiceSheet] to pick one and, if its category resolves,
   /// [_AddInvoiceDialog] to confirm amount and date.
-  Future<void> _showAddMovementDialog(BuildContext context) async {
-    final type = await showModalBottomSheet<PendingMovementKind>(
-      context: context,
-      backgroundColor: AppColors.authBackgroundBottom,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => _MovementTypeSheet(allowedKinds: allowedKinds),
-    );
+  Future<void> _showMovementFlow(
+    BuildContext context, {
+    PendingMovement? editing,
+  }) async {
+    final PendingMovementKind? type;
+    if (editing == null) {
+      type = await _pickKind(context);
+    } else {
+      // The sign already says whether it is an income or an expense, so the
+      // sheet offers "Categorizar" instead of asking for that again. A
+      // service invoice is always an expense.
+      final isExpense = editing.amount < 0;
+      type = await _pickKind(
+        context,
+        title: 'Editar movimiento',
+        categorizeKind: isExpense
+            ? PendingMovementKind.expense
+            : PendingMovementKind.income,
+        offerInvoice: isExpense,
+      );
+    }
     if (type == null || !context.mounted) return;
+
+    void save(PendingMovement movement) => editing == null
+        ? controller.add(movement)
+        : controller.replace(editing, movement);
 
     switch (type) {
       case PendingMovementKind.income:
@@ -230,8 +263,9 @@ class PendingMovementsSection extends StatelessWidget {
           builder: (dialogContext) => _AddMovementDialog(
             categoryViewModel: categoryViewModel,
             categoryType: categoryType,
-            onSave: controller.add,
+            onSave: save,
             dateRange: dateRange,
+            initial: editing,
           ),
         );
       case PendingMovementKind.transfer:
@@ -240,21 +274,48 @@ class PendingMovementsSection extends StatelessWidget {
           builder: (dialogContext) => _AddTransferDialog(
             currentAccount: currentAccount,
             accountViewModel: accountViewModel,
-            onSave: controller.add,
+            onSave: save,
             dateRange: dateRange,
+            initial: editing,
           ),
         );
       case PendingMovementKind.invoice:
-        return _showAddInvoiceFlow(context);
+        return _showAddInvoiceFlow(context, save: save, editing: editing);
     }
   }
 
-  /// Second half of the "Service invoice" case of [_showAddMovementDialog]:
+  Future<PendingMovementKind?> _pickKind(
+    BuildContext context, {
+    String title = 'Agregar movimiento',
+    PendingMovementKind? categorizeKind,
+    bool offerInvoice = true,
+  }) {
+    return showModalBottomSheet<PendingMovementKind>(
+      context: context,
+      backgroundColor: AppColors.authBackgroundBottom,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _MovementTypeSheet(
+        title: title,
+        categorizeKind: categorizeKind,
+        offerInvoice: offerInvoice,
+      ),
+    );
+  }
+
+  /// Second half of the "Service invoice" case of [_showMovementFlow]:
   /// pick which invoice to pay (excluding those already queued in
   /// [controller], so one can't be paid twice before saving) and, if the
   /// service has a resolved category, confirm amount and date.
-  Future<void> _showAddInvoiceFlow(BuildContext context) async {
+  Future<void> _showAddInvoiceFlow(
+    BuildContext context, {
+    required void Function(PendingMovement movement) save,
+    PendingMovement? editing,
+  }) async {
+    // The invoice of the movement being edited stays selectable.
     final alreadyQueuedIds = controller.movements
+        .where((m) => m != editing)
         .whereType<InvoicePendingMovement>()
         .map((m) => m.invoice.id)
         .toSet();
@@ -297,10 +358,102 @@ class PendingMovementsSection extends StatelessWidget {
         invoice: invoice,
         serviceName: serviceName,
         category: category,
-        onSave: controller.add,
+        onSave: save,
         dateRange: dateRange,
+        initial: editing,
       ),
     );
+  }
+
+  /// "Importar desde una captura" flow: pick an image, have it read, let the
+  /// user review the detected lines and queue the confirmed ones in
+  /// [controller]. Only income and expense lines are detected; transfers and
+  /// invoices are still added by hand.
+  Future<void> _importFromImage(BuildContext context) async {
+    final source = await showStatementSourceSheet(context);
+    if (source == null || !context.mounted) return;
+
+    final XFile? picked = await ImagePicker().pickImage(
+      source: source,
+      imageQuality: 85,
+      maxWidth: 2000,
+    );
+    if (picked == null || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.authAccent),
+        ),
+      ),
+    );
+
+    final List<ScannedMovement> scanned;
+    try {
+      final bytes = await picked.readAsBytes();
+      scanned =
+          await (scanService ?? StatementScanService(Supabase.instance.client))
+              .scan(imageBytes: bytes, mimeType: _supportedMimeType(picked));
+    } catch (_) {
+      navigator.pop();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Servicio no disponible. Intente más tarde o consulte a su '
+            'administrador.',
+          ),
+        ),
+      );
+      return;
+    }
+    navigator.pop();
+
+    if (!context.mounted) return;
+    if (scanned.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('No se detectaron movimientos en la imagen.'),
+        ),
+      );
+      return;
+    }
+
+    final known = <KnownMovement>[];
+    for (final m in controller.movements) {
+      known.add((amount: m.amount, date: m.date));
+    }
+    for (final t in existingTransactions) {
+      if (t.account.id != currentAccount.id) continue;
+      known.add((
+        amount: t.type == 'expense' ? -t.amount : t.amount,
+        date: t.date,
+      ));
+    }
+
+    final confirmed = await showStatementReviewSheet(
+      context,
+      movements: scanned,
+      currency: currency,
+      categoryViewModel: categoryViewModel,
+      dateRange: dateRange,
+      known: known,
+    );
+    if (confirmed == null) return;
+    confirmed.forEach(controller.add);
+  }
+
+  /// The Edge Function only accepts JPG, PNG and WEBP; with `imageQuality`
+  /// set the picker re-encodes to one of them, so anything else is JPEG.
+  static String _supportedMimeType(XFile file) {
+    const supported = {'image/jpeg', 'image/png', 'image/webp'};
+    final mime = file.mimeType;
+    return mime != null && supported.contains(mime) ? mime : 'image/jpeg';
   }
 
   @override
@@ -314,19 +467,38 @@ class PendingMovementsSection extends StatelessWidget {
           children: [
             _MovementsSectionHeader(
               title: title,
-              onAddMovement: () => _showAddMovementDialog(context),
+              onAddMovement: () => _showMovementFlow(context),
               enabled: enabled,
             ),
             if (helperText != null) ...[
               const SizedBox(height: 4),
               helperText!,
             ],
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: enabled ? () => _importFromImage(context) : null,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.authAccent,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                label: const Text(
+                  'Importar desde una captura',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
             if (movements.isNotEmpty) ...[
               const SizedBox(height: 12),
               _MovementsList(
                 movements: movements,
                 currency: currency,
                 onDelete: controller.remove,
+                onEdit: (movement) =>
+                    _showMovementFlow(context, editing: movement),
                 enabled: enabled,
               ),
             ],
@@ -425,9 +597,20 @@ class _MovementReadOnlyTile extends StatelessWidget {
 enum PendingMovementKind { income, expense, transfer, invoice }
 
 class _MovementTypeSheet extends StatelessWidget {
-  final Set<PendingMovementKind> allowedKinds;
+  final String title;
 
-  const _MovementTypeSheet({required this.allowedKinds});
+  /// When set (editing), replaces the Expense/Income options with a single
+  /// "Categorizar" one that resolves to this kind.
+  final PendingMovementKind? categorizeKind;
+
+  /// Whether the "Factura de servicio" option is shown.
+  final bool offerInvoice;
+
+  const _MovementTypeSheet({
+    this.title = 'Agregar movimiento',
+    this.categorizeKind,
+    this.offerInvoice = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -450,16 +633,23 @@ class _MovementTypeSheet extends StatelessWidget {
                 ),
               ),
             ),
-            const Text(
-              'Agregar movimiento',
-              style: TextStyle(
+            Text(
+              title,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: AppColors.authTextPrimary,
               ),
             ),
             const SizedBox(height: 8),
-            if (allowedKinds.contains(PendingMovementKind.expense))
+            if (categorizeKind != null)
+              _MovementTypeOption(
+                icon: Icons.sell_outlined,
+                iconColor: AppColors.authAccent,
+                label: 'Categorizar',
+                onTap: () => Navigator.of(context).pop(categorizeKind),
+              ),
+            if (categorizeKind == null)
               _MovementTypeOption(
                 icon: Icons.arrow_upward_rounded,
                 iconColor: AppColors.authExpense,
@@ -467,7 +657,7 @@ class _MovementTypeSheet extends StatelessWidget {
                 onTap: () =>
                     Navigator.of(context).pop(PendingMovementKind.expense),
               ),
-            if (allowedKinds.contains(PendingMovementKind.income))
+            if (categorizeKind == null)
               _MovementTypeOption(
                 icon: Icons.arrow_downward_rounded,
                 iconColor: AppColors.authIncome,
@@ -475,7 +665,7 @@ class _MovementTypeSheet extends StatelessWidget {
                 onTap: () =>
                     Navigator.of(context).pop(PendingMovementKind.income),
               ),
-            if (allowedKinds.contains(PendingMovementKind.invoice))
+            if (offerInvoice)
               _MovementTypeOption(
                 icon: Icons.request_page_outlined,
                 iconColor: AppColors.authInvoice,
@@ -483,14 +673,13 @@ class _MovementTypeSheet extends StatelessWidget {
                 onTap: () =>
                     Navigator.of(context).pop(PendingMovementKind.invoice),
               ),
-            if (allowedKinds.contains(PendingMovementKind.transfer))
-              _MovementTypeOption(
-                icon: Icons.swap_horiz_rounded,
-                iconColor: AppColors.authTransfer,
-                label: 'Transferencia',
-                onTap: () =>
-                    Navigator.of(context).pop(PendingMovementKind.transfer),
-              ),
+            _MovementTypeOption(
+              icon: Icons.swap_horiz_rounded,
+              iconColor: AppColors.authTransfer,
+              label: 'Transferencia',
+              onTap: () =>
+                  Navigator.of(context).pop(PendingMovementKind.transfer),
+            ),
           ],
         ),
       ),
@@ -595,6 +784,7 @@ class _MovementsList extends StatelessWidget {
   final List<PendingMovement> movements;
   final String currency;
   final void Function(PendingMovement movement) onDelete;
+  final void Function(PendingMovement movement) onEdit;
 
   final bool enabled;
 
@@ -602,6 +792,7 @@ class _MovementsList extends StatelessWidget {
     required this.movements,
     required this.currency,
     required this.onDelete,
+    required this.onEdit,
     this.enabled = true,
   });
 
@@ -621,6 +812,7 @@ class _MovementsList extends StatelessWidget {
               movement: movements[i],
               currency: currency,
               onDelete: enabled ? () => onDelete(movements[i]) : null,
+              onEdit: enabled ? () => onEdit(movements[i]) : null,
             ),
             if (i < movements.length - 1)
               const Divider(color: AppColors.authCardBorder, height: 1),
@@ -636,11 +828,13 @@ class _MovementListTile extends StatelessWidget {
   final String currency;
 
   final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
 
   const _MovementListTile({
     required this.movement,
     required this.currency,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
@@ -704,6 +898,16 @@ class _MovementListTile extends StatelessWidget {
             ),
           ),
           IconButton(
+            onPressed: onEdit,
+            icon: const Icon(
+              Icons.edit_outlined,
+              size: 20,
+              color: AppColors.authTextSecondary,
+            ),
+            tooltip: 'Editar',
+            visualDensity: VisualDensity.compact,
+          ),
+          IconButton(
             onPressed: onDelete,
             icon: const Icon(
               Icons.delete_outline_rounded,
@@ -745,6 +949,19 @@ const _kDialogFieldDecoration = InputDecoration(
   ),
 );
 
+/// Date a dialog starts on: [preferred] clamped into [range] (any date from
+/// 2020 up to today when null), or the range's end when there is none.
+DateTime _initialDateFor(DateTime? preferred, DateTimeRange? range) {
+  final first = range?.start ?? DateTime(2020);
+  final last = range?.end ?? DateTime.now();
+  if (preferred == null || preferred.isAfter(last)) return last;
+  return preferred.isBefore(first) ? first : preferred;
+}
+
+/// Shared with the statement review sheet so its dialogs look like these.
+const kMovementDialogLabelStyle = _kDialogLabelStyle;
+const kMovementDialogFieldDecoration = _kDialogFieldDecoration;
+
 class _AddMovementDialog extends StatefulWidget {
   final CategoryViewModel categoryViewModel;
 
@@ -754,11 +971,16 @@ class _AddMovementDialog extends StatefulWidget {
 
   final DateTimeRange? dateRange;
 
+  /// Movement being edited; its amount, date, description and category
+  /// (when it fits [categoryType]) prefill the form.
+  final PendingMovement? initial;
+
   const _AddMovementDialog({
     required this.categoryViewModel,
     required this.categoryType,
     required this.onSave,
     this.dateRange,
+    this.initial,
   });
 
   @override
@@ -771,7 +993,32 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
   final _descriptionController = TextEditingController();
 
   Category? _selectedCategory;
-  late DateTime _selectedDate = widget.dateRange?.end ?? DateTime.now();
+  late DateTime _selectedDate =
+      _initialDateFor(widget.initial?.date, widget.dateRange);
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    if (initial == null) return;
+
+    _amountController.text = initial.amount.abs().toStringAsFixed(2);
+    _descriptionController.text = initial.description ?? '';
+
+    final previous = switch (initial) {
+      CategoryPendingMovement(:final category) => category,
+      InvoicePendingMovement(:final category) => category,
+      _ => null,
+    };
+    // Look it up again so the dropdown gets the instance it lists, and only
+    // keep it when it fits the (possibly changed) type.
+    final match = previous == null
+        ? null
+        : widget.categoryViewModel.categoryById(previous.id);
+    if (match != null && match.type == widget.categoryType) {
+      _selectedCategory = match;
+    }
+  }
 
   @override
   void dispose() {
@@ -837,9 +1084,9 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
         borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: AppColors.authCardBorder),
       ),
-      title: const Text(
-        'Agregar movimiento',
-        style: TextStyle(
+      title: Text(
+        widget.initial == null ? 'Agregar movimiento' : 'Editar movimiento',
+        style: const TextStyle(
           color: AppColors.authTextPrimary,
           fontWeight: FontWeight.w700,
         ),
@@ -974,7 +1221,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: _save,
-          child: const Text('Agregar'),
+          child: Text(widget.initial == null ? 'Agregar' : 'Guardar'),
         ),
       ],
     );
@@ -990,11 +1237,16 @@ class _AddTransferDialog extends StatefulWidget {
 
   final DateTimeRange? dateRange;
 
+  /// Movement being edited; its amount, direction, date and description
+  /// prefill the form.
+  final PendingMovement? initial;
+
   const _AddTransferDialog({
     required this.currentAccount,
     required this.accountViewModel,
     required this.onSave,
     this.dateRange,
+    this.initial,
   });
 
   @override
@@ -1010,7 +1262,27 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
 
   bool _isIncoming = true;
 
-  late DateTime _selectedDate = widget.dateRange?.end ?? DateTime.now();
+  late DateTime _selectedDate =
+      _initialDateFor(widget.initial?.date, widget.dateRange);
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    if (initial == null) return;
+
+    _amountController.text = initial.amount.abs().toStringAsFixed(2);
+    _descriptionController.text = initial.description ?? '';
+    _isIncoming = initial.amount > 0;
+
+    if (initial is TransferPendingMovement) {
+      final stillAvailable = widget.accountViewModel.activeAccounts.any(
+        (a) =>
+            a.id == initial.otherAccountId && a.id != widget.currentAccount.id,
+      );
+      if (stillAvailable) _otherAccountId = initial.otherAccountId;
+    }
+  }
 
   @override
   void dispose() {
@@ -1078,9 +1350,11 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
         borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: AppColors.authCardBorder),
       ),
-      title: const Text(
-        'Agregar transferencia',
-        style: TextStyle(
+      title: Text(
+        widget.initial == null
+            ? 'Agregar transferencia'
+            : 'Editar transferencia',
+        style: const TextStyle(
           color: AppColors.authTextPrimary,
           fontWeight: FontWeight.w700,
         ),
@@ -1099,25 +1373,29 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
                   style: TextStyle(color: AppColors.authExpense, fontSize: 13),
                 )
               else ...[
-                const Text('Dirección', style: _kDialogLabelStyle),
-                const SizedBox(height: 6),
-                SegmentedButton<bool>(
-                  style: SegmentedButton.styleFrom(
-                    backgroundColor: AppColors.authCardFill,
-                    foregroundColor: AppColors.authTextSecondary,
-                    selectedBackgroundColor: AppColors.authAccent,
-                    selectedForegroundColor: AppColors.authBackgroundBottom,
-                    side: const BorderSide(color: AppColors.authCardBorder),
+                // When editing, the movement's sign already fixes the
+                // direction, so it is not offered again.
+                if (widget.initial == null) ...[
+                  const Text('Dirección', style: _kDialogLabelStyle),
+                  const SizedBox(height: 6),
+                  SegmentedButton<bool>(
+                    style: SegmentedButton.styleFrom(
+                      backgroundColor: AppColors.authCardFill,
+                      foregroundColor: AppColors.authTextSecondary,
+                      selectedBackgroundColor: AppColors.authAccent,
+                      selectedForegroundColor: AppColors.authBackgroundBottom,
+                      side: const BorderSide(color: AppColors.authCardBorder),
+                    ),
+                    segments: const [
+                      ButtonSegment(value: true, label: Text('Entra')),
+                      ButtonSegment(value: false, label: Text('Sale')),
+                    ],
+                    selected: {_isIncoming},
+                    onSelectionChanged: (selection) =>
+                        setState(() => _isIncoming = selection.first),
                   ),
-                  segments: const [
-                    ButtonSegment(value: true, label: Text('Entra')),
-                    ButtonSegment(value: false, label: Text('Sale')),
-                  ],
-                  selected: {_isIncoming},
-                  onSelectionChanged: (selection) =>
-                      setState(() => _isIncoming = selection.first),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
+                ],
                 Text(
                   _isIncoming
                       ? 'Otra cuenta (de dónde sale)'
@@ -1232,7 +1510,7 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: otherAccounts.isEmpty ? null : _save,
-          child: const Text('Agregar'),
+          child: Text(widget.initial == null ? 'Agregar' : 'Guardar'),
         ),
       ],
     );
@@ -1372,12 +1650,18 @@ class _AddInvoiceDialog extends StatefulWidget {
 
   final DateTimeRange? dateRange;
 
+  /// Movement being edited; its amount and date prefill the form instead of
+  /// the invoice's own amount, so a statement line keeps what was really
+  /// paid and when.
+  final PendingMovement? initial;
+
   const _AddInvoiceDialog({
     required this.invoice,
     required this.serviceName,
     required this.category,
     required this.onSave,
     this.dateRange,
+    this.initial,
   });
 
   @override
@@ -1387,13 +1671,15 @@ class _AddInvoiceDialog extends StatefulWidget {
 class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _amountController;
-  late DateTime _selectedDate = widget.dateRange?.end ?? DateTime.now();
+  late DateTime _selectedDate =
+      _initialDateFor(widget.initial?.date, widget.dateRange);
 
   @override
   void initState() {
     super.initState();
     _amountController = TextEditingController(
-      text: widget.invoice.amount.toStringAsFixed(2),
+      text: (widget.initial?.amount.abs() ?? widget.invoice.amount)
+          .toStringAsFixed(2),
     );
   }
 
@@ -1544,7 +1830,7 @@ class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: _save,
-          child: const Text('Agregar'),
+          child: Text(widget.initial == null ? 'Agregar' : 'Guardar'),
         ),
       ],
     );

@@ -216,6 +216,11 @@ class InvoiceViewModel extends ChangeNotifier {
   /// The transaction goes through [TransactionViewModel] (not the repository)
   /// so it reloads its own lists; otherwise the Dashboard and Movements
   /// would not see the new expense until a manual reload.
+  ///
+  /// With [justifying] (month and year of the opening balance being
+  /// justified) the expense is registered as a justifying transaction: it
+  /// does not move `accounts.balance` and is only discounted from
+  /// `uncontrolled_expenses_total`.
   Future<bool> payInvoice({
     required Invoice invoice,
     required String userId,
@@ -224,21 +229,35 @@ class InvoiceViewModel extends ChangeNotifier {
     required double amount,
     String? description,
     DateTime? date,
+    ({int month, int year})? justifying,
   }) async {
     _payingIds.add(invoice.id);
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final created = await _transactionViewModel.createTransaction(
-        userId: userId,
-        accountId: accountId,
-        categoryId: categoryId,
-        type: 'expense',
-        amount: amount,
-        description: description,
-        date: date ?? DateTime.now(),
-      );
+      final paymentDate = date ?? DateTime.now();
+      final created = justifying == null
+          ? await _transactionViewModel.createTransaction(
+              userId: userId,
+              accountId: accountId,
+              categoryId: categoryId,
+              type: 'expense',
+              amount: amount,
+              description: description,
+              date: paymentDate,
+            )
+          : await _transactionViewModel.createJustifyingTransaction(
+              userId: userId,
+              accountId: accountId,
+              categoryId: categoryId,
+              type: 'expense',
+              amount: amount,
+              description: description,
+              date: paymentDate,
+              month: justifying.month,
+              year: justifying.year,
+            );
       final transactionId = _transactionViewModel.lastCreatedTransactionId;
       if (!created || transactionId == null) {
         _errorMessage = _transactionViewModel.errorMessage ??

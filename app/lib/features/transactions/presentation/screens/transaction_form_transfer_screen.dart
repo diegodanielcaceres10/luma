@@ -10,8 +10,10 @@ import '../../../accounts/presentation/view_models/monthly_balance_view_model.da
 import '../../../accounts/presentation/widgets/opening_balance_gate.dart';
 import '../view_models/transaction_view_model.dart';
 
-/// Form to transfer money between own accounts. Saving creates an expense on
-/// the origin account and an income on the destination (see
+/// Form to register one side of a transfer between own accounts. Saving
+/// creates a single row on the chosen account (an expense if money leaves it,
+/// an income if money enters it); the other account is only mentioned in the
+/// description, so its side must be registered manually (see
 /// [TransactionViewModel.createTransfer]).
 class TransactionFormTransferScreen extends StatefulWidget {
   final String? userId;
@@ -41,8 +43,9 @@ class _TransactionFormTransferScreenState
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
 
-  String? _originAccountId;
-  String? _destinationAccountId;
+  String? _accountId;
+  String? _otherAccountId;
+  bool _isIncoming = false;
   DateTime _selectedDate = DateTime.now();
 
   static const _fieldDecoration = InputDecoration(
@@ -94,26 +97,25 @@ class _TransactionFormTransferScreenState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_originAccountId == null || _destinationAccountId == null) return;
+    if (_accountId == null || _otherAccountId == null) return;
 
     final confirmed = await showConfirmDialog(context);
     if (!confirmed || !mounted) return;
 
     final amount = double.parse(_amountController.text.replaceAll(',', '.'));
-    final accounts = widget.accountViewModel.activeAccounts;
-    final originName =
-        accounts.firstWhere((a) => a.id == _originAccountId).name;
-    final destinationName =
-        accounts.firstWhere((a) => a.id == _destinationAccountId).name;
+    final otherName = widget.accountViewModel.activeAccounts
+        .firstWhere((a) => a.id == _otherAccountId)
+        .name;
 
     final success = await widget.transactionViewModel.createTransfer(
       userId: widget.userId ?? '',
-      originAccountId: _originAccountId!,
-      destinationAccountId: _destinationAccountId!,
+      accountId: _accountId!,
+      type: _isIncoming ? 'income' : 'expense',
       amount: amount,
       date: _selectedDate,
-      originDescription: 'Transferencia a $destinationName',
-      destinationDescription: 'Transferencia desde $originName',
+      description: _isIncoming
+          ? 'Transferencia desde $otherName'
+          : 'Transferencia a $otherName',
     );
 
     if (!mounted) return;
@@ -163,11 +165,11 @@ class _TransactionFormTransferScreenState
 
           // Each dropdown excludes the account picked in the other one, and a
           // selection that is no longer available is cleared.
-          final originOptions = accounts
-              .where((Account a) => a.id != _destinationAccountId)
+          final accountOptions = accounts
+              .where((Account a) => a.id != _otherAccountId)
               .toList();
-          final destinationOptions =
-              accounts.where((Account a) => a.id != _originAccountId).toList();
+          final otherOptions =
+              accounts.where((Account a) => a.id != _accountId).toList();
 
           return Form(
             key: _formKey,
@@ -197,22 +199,22 @@ class _TransactionFormTransferScreenState
                           style: TextStyle(color: AppColors.authExpense),
                         )
                       else ...[
-                        const Text('Cuenta de origen',
+                        const Text('Cuenta donde impacta',
                             style:
                                 TextStyle(color: AppColors.authTextSecondary)),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String?>(
-                          initialValue: _originAccountId,
+                          initialValue: _accountId,
                           dropdownColor: AppColors.authBackgroundBottom,
                           style:
                               const TextStyle(color: AppColors.authTextPrimary),
                           hint: const Text(
-                            'Seleccioná la cuenta de origen',
+                            'Seleccioná la cuenta',
                             style:
                                 TextStyle(color: AppColors.authTextSecondary),
                           ),
                           decoration: _fieldDecoration,
-                          items: originOptions
+                          items: accountOptions
                               .map(
                                 (Account a) => _accountItem(a),
                               )
@@ -220,46 +222,78 @@ class _TransactionFormTransferScreenState
                           onChanged: isSubmitting
                               ? null
                               : (value) => setState(() {
-                                    _originAccountId = value;
+                                    _accountId = value;
                                     if (value != null &&
-                                        value == _destinationAccountId) {
-                                      _destinationAccountId = null;
+                                        value == _otherAccountId) {
+                                      _otherAccountId = null;
                                     }
                                   }),
                         ),
                         const SizedBox(height: 20),
-                        const Text('Cuenta de destino',
+                        const Text('Sentido',
                             style:
                                 TextStyle(color: AppColors.authTextSecondary)),
                         const SizedBox(height: 8),
+                        SegmentedButton<bool>(
+                          style: SegmentedButton.styleFrom(
+                            backgroundColor: AppColors.authCardFill,
+                            foregroundColor: AppColors.authTextSecondary,
+                            selectedBackgroundColor: AppColors.authAccent,
+                            selectedForegroundColor:
+                                AppColors.authBackgroundBottom,
+                            side:
+                                const BorderSide(color: AppColors.authCardBorder),
+                          ),
+                          segments: const [
+                            ButtonSegment(value: false, label: Text('Sale')),
+                            ButtonSegment(value: true, label: Text('Entra')),
+                          ],
+                          selected: {_isIncoming},
+                          onSelectionChanged: isSubmitting
+                              ? null
+                              : (selection) =>
+                                  setState(() => _isIncoming = selection.first),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                            _isIncoming
+                                ? 'Otra cuenta (de dónde sale)'
+                                : 'Otra cuenta (a dónde va)',
+                            style: const TextStyle(
+                                color: AppColors.authTextSecondary)),
+                        const SizedBox(height: 8),
                         DropdownButtonFormField<String?>(
-                          initialValue: _destinationAccountId,
+                          initialValue: _otherAccountId,
+                          isExpanded: true,
                           dropdownColor: AppColors.authBackgroundBottom,
                           style:
                               const TextStyle(color: AppColors.authTextPrimary),
                           hint: const Text(
-                            'Seleccioná la cuenta de destino',
+                            'Seleccioná la otra cuenta',
                             style:
                                 TextStyle(color: AppColors.authTextSecondary),
                           ),
                           decoration: _fieldDecoration,
-                          items: destinationOptions
+                          items: otherOptions
                               .map(
-                                (Account a) => _accountItem(a),
+                                (Account a) => DropdownMenuItem<String?>(
+                                  value: a.id,
+                                  child: Text(a.name,
+                                      overflow: TextOverflow.ellipsis),
+                                ),
                               )
                               .toList(),
                           onChanged: isSubmitting
                               ? null
                               : (value) => setState(() {
-                                    _destinationAccountId = value;
-                                    if (value != null &&
-                                        value == _originAccountId) {
-                                      _originAccountId = null;
+                                    _otherAccountId = value;
+                                    if (value != null && value == _accountId) {
+                                      _accountId = null;
                                     }
                                   }),
                         ),
                         const SizedBox(height: 20),
-                        const Text('Monto a transferir',
+                        const Text('Monto',
                             style:
                                 TextStyle(color: AppColors.authTextSecondary)),
                         const SizedBox(height: 8),
@@ -324,8 +358,8 @@ class _TransactionFormTransferScreenState
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             onPressed: isSubmitting ||
-                                    _originAccountId == null ||
-                                    _destinationAccountId == null
+                                    _accountId == null ||
+                                    _otherAccountId == null
                                 ? null
                                 : _submit,
                             child: isSubmitting

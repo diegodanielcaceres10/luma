@@ -5,8 +5,10 @@ import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../data/models/service.dart';
 import '../view_models/service_view_model.dart';
+import '../widgets/service_trend_section.dart';
 
 enum _ServiceAction { edit }
 
@@ -14,6 +16,7 @@ class ServiceViewScreen extends StatelessWidget {
   final Service service;
   final ServiceViewModel serviceViewModel;
   final CategoryViewModel categoryViewModel;
+  final InvoiceViewModel invoiceViewModel;
   final String currency;
   final VoidCallback onEdit;
   final VoidCallback onBack;
@@ -23,6 +26,7 @@ class ServiceViewScreen extends StatelessWidget {
     required this.service,
     required this.serviceViewModel,
     required this.categoryViewModel,
+    required this.invoiceViewModel,
     required this.currency,
     required this.onEdit,
     required this.onBack,
@@ -38,7 +42,11 @@ class ServiceViewScreen extends StatelessWidget {
     return SafeArea(
       top: false,
       child: ListenableBuilder(
-        listenable: Listenable.merge([serviceViewModel, categoryViewModel]),
+        listenable: Listenable.merge([
+          serviceViewModel,
+          categoryViewModel,
+          invoiceViewModel,
+        ]),
         builder: (context, _) {
           final current = _currentService();
           final category = categoryViewModel.categoryById(current.categoryId);
@@ -156,6 +164,16 @@ class ServiceViewScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 16),
+              ServiceTrendSection(
+                service: current,
+                currency: currency,
+                color: colorFromHex(
+                  category?.color,
+                  fallback: AppColors.authAccent,
+                ),
+                invoiceViewModel: invoiceViewModel,
               ),
             ],
           );

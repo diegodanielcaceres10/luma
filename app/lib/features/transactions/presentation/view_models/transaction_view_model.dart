@@ -99,6 +99,15 @@ class TransactionViewModel extends ChangeNotifier {
 
   List<CategoryTotal> get categoryBreakdown => _breakdownOf(_transactions);
 
+  /// Entries of one category since [since], for the category trend. Does
+  /// not touch this view model's state; errors reach the caller.
+  Future<List<TransactionEntry>> fetchCategoryEntries({
+    required String categoryId,
+    required DateTime since,
+  }) {
+    return _repository.getForCategory(categoryId: categoryId, since: since);
+  }
+
   static double _sumByType(List<TransactionEntry> entries, String type) {
     return entries
         .where((t) => t.type == type && !t.isTransfer)
@@ -368,6 +377,9 @@ class TransactionViewModel extends ChangeNotifier {
   /// `uncontrolled_expenses_total`. Devuelve true si se creó
   /// correctamente; en ese caso ya deja `_transactions` actualizado con
   /// el mes actual recargado, igual que [createTransaction].
+  ///
+  /// Con [isTransfer] la fila queda marcada como transferencia (el llamador
+  /// no pasa categoría), igual que [createTransfer].
   Future<bool> createJustifyingTransaction({
     required String userId,
     required String accountId,
@@ -378,6 +390,7 @@ class TransactionViewModel extends ChangeNotifier {
     required DateTime date,
     required int month,
     required int year,
+    bool isTransfer = false,
   }) async {
     _isSubmitting = true;
     _errorMessage = null;
@@ -395,6 +408,7 @@ class TransactionViewModel extends ChangeNotifier {
         date: date,
         month: month,
         year: year,
+        isTransfer: isTransfer,
       );
       await loadCurrentMonth();
       await _refreshStatisticsMonth();
@@ -412,19 +426,19 @@ class TransactionViewModel extends ChangeNotifier {
     }
   }
 
-  /// Creates a transfer as two uncategorized rows flagged `isTransfer`: an
-  /// expense on the origin account and an income on the destination.
+  /// Creates one side of a transfer between own accounts: a single
+  /// uncategorized row flagged `isTransfer` on [accountId], an expense when
+  /// money leaves it and an income when money enters it.
   ///
-  /// The two inserts are not atomic together: if the second fails, the first
-  /// stays committed. Returns true if both were created.
+  /// The counterpart row on the other account is not created; the user
+  /// registers it manually. Returns true if the row was created.
   Future<bool> createTransfer({
     required String userId,
-    required String originAccountId,
-    required String destinationAccountId,
+    required String accountId,
+    required String type,
     required double amount,
     required DateTime date,
-    String? originDescription,
-    String? destinationDescription,
+    String? description,
   }) async {
     _isSubmitting = true;
     _errorMessage = null;
@@ -434,19 +448,10 @@ class TransactionViewModel extends ChangeNotifier {
     try {
       await _repository.create(
         userId: userId,
-        accountId: originAccountId,
-        type: 'expense',
+        accountId: accountId,
+        type: type,
         amount: amount,
-        description: originDescription,
-        date: date,
-        isTransfer: true,
-      );
-      await _repository.create(
-        userId: userId,
-        accountId: destinationAccountId,
-        type: 'income',
-        amount: amount,
-        description: destinationDescription,
+        description: description,
         date: date,
         isTransfer: true,
       );

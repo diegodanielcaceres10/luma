@@ -6,6 +6,8 @@ import '../../../../core/utils/date_time_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
+import '../widgets/account_trend_section.dart';
+import '../widgets/month_variation_indicator.dart';
 
 enum _AccountAction { edit, updateBalance, justifyUncontrolled }
 
@@ -36,6 +38,7 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
   void initState() {
     super.initState();
     widget.accountViewModel.loadUncontrolledTotal(widget.account.id);
+    widget.accountViewModel.loadOpeningHistory(widget.account.id);
   }
 
   Account _currentAccount() {
@@ -57,6 +60,8 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
           final uncontrolled =
               widget.accountViewModel.uncontrolledTotalOf(current.id);
           final hasUncontrolled = uncontrolled.abs() >= 0.005;
+          final variation =
+              widget.accountViewModel.monthVariationOf(current.id);
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -120,6 +125,13 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    if (variation != null) ...[
+                      const SizedBox(height: 8),
+                      MonthVariationIndicator(
+                        variation: variation,
+                        currency: currency,
+                      ),
+                    ],
                     const SizedBox(height: 6),
                     Text(
                       'Última actualización: '
@@ -193,6 +205,12 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 16),
+              AccountTrendSection(
+                history: widget.accountViewModel.openingHistoryOf(current.id),
+                currentBalance: current.balance,
+                currency: currency,
               ),
             ],
           );

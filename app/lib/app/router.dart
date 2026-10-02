@@ -402,6 +402,7 @@ GoRouter buildAppRouter({
                 (context, category) => CategoryViewScreen(
                   category: category,
                   categoryViewModel: categoryViewModel,
+                  transactionViewModel: transactionViewModel,
                   currency: accountViewModel.primaryCurrency,
                   onEdit: () => context.push('/categories/${category.id}/edit'),
                   onBack: () => context.goBack(),
@@ -460,6 +461,7 @@ GoRouter buildAppRouter({
                   service: service,
                   serviceViewModel: serviceViewModel,
                   categoryViewModel: categoryViewModel,
+                  invoiceViewModel: invoiceViewModel,
                   currency: accountViewModel.primaryCurrency,
                   onEdit: () => context.push('/services/${service.id}/edit'),
                   onBack: () => context.goBack(),

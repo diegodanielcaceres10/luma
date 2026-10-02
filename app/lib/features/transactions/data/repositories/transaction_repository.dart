@@ -10,6 +10,13 @@ class TransactionRepository {
     return _service.fetchForMonth(month);
   }
 
+  Future<List<TransactionEntry>> getForCategory({
+    required String categoryId,
+    required DateTime since,
+  }) {
+    return _service.fetchForCategory(categoryId: categoryId, since: since);
+  }
+
   Future<List<TransactionEntry>> getAll() {
     return _service.fetchAll();
   }
@@ -46,6 +53,7 @@ class TransactionRepository {
     required DateTime date,
     required int month,
     required int year,
+    bool isTransfer = false,
   }) {
     return _service.createJustifyingTransaction(
       userId: userId,
@@ -57,6 +65,7 @@ class TransactionRepository {
       date: date,
       month: month,
       year: year,
+      isTransfer: isTransfer,
     );
   }
 

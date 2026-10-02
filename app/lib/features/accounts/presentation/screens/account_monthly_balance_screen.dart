@@ -428,6 +428,7 @@ class _AccountMonthlyBalanceScreenState
           currency: currency,
           enabled: !_isSaving,
           dateRange: _previousMonth,
+          existingTransactions: widget.transactionViewModel.allTransactions,
           helperText: remainder == null
               ? null
               : Text(

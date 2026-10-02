@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../data/models/account.dart';
+import '../../data/models/monthly_opening_balance.dart';
 import '../../data/repositories/account_repository.dart';
 
 enum AccountSubmitError { duplicate, generic }
@@ -27,6 +28,7 @@ class AccountViewModel extends ChangeNotifier {
   AccountSubmitError? _submitError;
   List<Account> _accounts = [];
   final Map<String, double> _uncontrolledTotals = {};
+  final Map<String, List<MonthlyOpeningBalance>> _openingHistories = {};
 
   bool get isLoading => _isLoading;
 
@@ -71,6 +73,41 @@ class AccountViewModel extends ChangeNotifier {
         accountId: accountId,
         month: now.month,
         year: now.year,
+      );
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Opening balances of [accountId] for the last months, newest first, or an
+  /// empty list if they have not been loaded (see [loadOpeningHistory]).
+  List<MonthlyOpeningBalance> openingHistoryOf(String accountId) =>
+      _openingHistories[accountId] ?? const [];
+
+  /// How much the balance of [accountId] moved since the start of the
+  /// current month, or null if that month has no opening balance yet. It
+  /// reads the live balance, so it follows every balance update on its own.
+  double? monthVariationOf(String accountId) {
+    for (final account in _accounts) {
+      if (account.id != accountId) continue;
+      final now = DateTime.now();
+      return monthVariation(
+        currentBalance: account.balance,
+        history: openingHistoryOf(accountId),
+        month: now.month,
+        year: now.year,
+      );
+    }
+    return null;
+  }
+
+  /// Loads the opening balances of [accountId] for the last [months] months.
+  /// A failure is ignored on purpose: it is secondary information, and the
+  /// previous value (if any) is kept.
+  Future<void> loadOpeningHistory(String accountId, {int months = 3}) async {
+    try {
+      _openingHistories[accountId] = await _repository.getOpeningBalances(
+        accountId: accountId,
+        months: months,
       );
       notifyListeners();
     } catch (_) {}
