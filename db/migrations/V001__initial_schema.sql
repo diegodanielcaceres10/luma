@@ -233,7 +233,8 @@ create or replace function public.create_justifying_transaction(
   p_description text,
   p_date        date,
   p_month       integer,
-  p_year        integer
+  p_year        integer,
+  p_is_transfer boolean default false
 )
 returns uuid
 language plpgsql
@@ -257,7 +258,7 @@ begin
   )
   values (
     p_user_id, p_account_id, p_category_id, p_type, p_amount, p_description,
-    p_date, false
+    p_date, p_is_transfer
   )
   returning id into v_id;
 
@@ -279,7 +280,7 @@ end;
 $$;
 
 grant execute on function public.create_justifying_transaction(
-  uuid, uuid, uuid, text, numeric, text, date, integer, integer
+  uuid, uuid, uuid, text, numeric, text, date, integer, integer, boolean
 ) to authenticated;
 
 create or replace function public.delete_transaction(

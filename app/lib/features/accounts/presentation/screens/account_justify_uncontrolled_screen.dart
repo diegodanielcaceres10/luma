@@ -11,11 +11,13 @@ import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
+import '../widgets/pending_movement_persistence.dart';
 import '../widgets/pending_movements_section.dart';
 
 /// Lets the user justify part (or all) of an account's uncontrolled
 /// (undeclared) balance for the current month by loading the real
-/// income/expense movements that explain it. Unlike
+/// movements that explain it (income, expense, transfers and invoice
+/// payments, all saved as justifying transactions). Unlike
 /// [AccountUpdateBalanceScreen], there is no "enter a new balance" first
 /// step: the amount to justify is the account's current
 /// `uncontrolled_expenses_total`, read on open, not typed in.
@@ -148,25 +150,15 @@ class _AccountJustifyUncontrolledScreenState
 
     try {
       for (final movement in _movementsController.movements) {
-        final categoryMovement = movement as CategoryPendingMovement;
-        final success =
-            await widget.transactionViewModel.createJustifyingTransaction(
+        await saveJustifyingMovement(
+          movement: movement,
           userId: userId,
           accountId: account.id,
-          categoryId: categoryMovement.category?.id,
-          type: categoryMovement.type,
-          amount: movement.amount.abs(),
-          description: movement.description,
-          date: movement.date,
           month: now.month,
           year: now.year,
+          transactionViewModel: widget.transactionViewModel,
+          invoiceViewModel: widget.invoiceViewModel,
         );
-        if (!success) {
-          throw Exception(
-            widget.transactionViewModel.errorMessage ??
-                'No se pudo guardar un movimiento.',
-          );
-        }
         saved.add(movement);
       }
 
@@ -205,10 +197,6 @@ class _AccountJustifyUncontrolledScreenState
           // Transferencia y Factura de servicio quedan para una próxima
           // entrega: justificarlas sin mover el saldo de esta cuenta
           // requiere lógica propia (ver notas de la conversación).
-          allowedKinds: const {
-            PendingMovementKind.income,
-            PendingMovementKind.expense,
-          },
           dateRange: currentMonthRange(),
           existingTransactions: widget.transactionViewModel.allTransactions,
           helperText: remainder == null

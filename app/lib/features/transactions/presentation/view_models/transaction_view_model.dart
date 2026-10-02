@@ -377,6 +377,9 @@ class TransactionViewModel extends ChangeNotifier {
   /// `uncontrolled_expenses_total`. Devuelve true si se creó
   /// correctamente; en ese caso ya deja `_transactions` actualizado con
   /// el mes actual recargado, igual que [createTransaction].
+  ///
+  /// Con [isTransfer] la fila queda marcada como transferencia (el llamador
+  /// no pasa categoría), igual que [createTransfer].
   Future<bool> createJustifyingTransaction({
     required String userId,
     required String accountId,
@@ -387,6 +390,7 @@ class TransactionViewModel extends ChangeNotifier {
     required DateTime date,
     required int month,
     required int year,
+    bool isTransfer = false,
   }) async {
     _isSubmitting = true;
     _errorMessage = null;
@@ -404,6 +408,7 @@ class TransactionViewModel extends ChangeNotifier {
         date: date,
         month: month,
         year: year,
+        isTransfer: isTransfer,
       );
       await loadCurrentMonth();
       await _refreshStatisticsMonth();

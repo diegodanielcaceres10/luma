@@ -53,6 +53,7 @@ class TransactionRepository {
     required DateTime date,
     required int month,
     required int year,
+    bool isTransfer = false,
   }) {
     return _service.createJustifyingTransaction(
       userId: userId,
@@ -64,6 +65,7 @@ class TransactionRepository {
       date: date,
       month: month,
       year: year,
+      isTransfer: isTransfer,
     );
   }
 

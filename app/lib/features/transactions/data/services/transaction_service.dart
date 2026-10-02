@@ -108,6 +108,7 @@ class TransactionService {
     required DateTime date,
     required int month,
     required int year,
+    bool isTransfer = false,
   }) async {
     final id = await _client.rpc('create_justifying_transaction', params: {
       'p_user_id': userId,
@@ -119,6 +120,7 @@ class TransactionService {
       'p_date': _formatDate(date),
       'p_month': month,
       'p_year': year,
+      'p_is_transfer': isTransfer,
     });
 
     return id as String;
