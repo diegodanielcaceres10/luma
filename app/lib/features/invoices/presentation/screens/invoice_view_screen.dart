@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
@@ -171,11 +172,6 @@ class InvoiceViewScreen extends StatelessWidget {
     }
   }
 
-  static String _formatDate(DateTime date) =>
-      '${date.day.toString().padLeft(2, '0')}/'
-      '${date.month.toString().padLeft(2, '0')}/'
-      '${date.year}';
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -243,7 +239,7 @@ class InvoiceViewScreen extends StatelessWidget {
               label: 'Vencimiento',
               value: Text(
                 current.dueDate != null
-                    ? _formatDate(current.dueDate!)
+                    ? formatDate(current.dueDate!)
                     : 'Sin vencimiento',
                 style: _valueStyle,
               ),
@@ -274,13 +270,13 @@ class InvoiceViewScreen extends StatelessWidget {
             if (current.paid && current.paidAt != null)
               _DetailRow(
                 label: 'Fecha de pago',
-                value: Text(_formatDate(current.paidAt!), style: _valueStyle),
+                value: Text(formatDate(current.paidAt!), style: _valueStyle),
               ),
             if (current.cancelled && current.cancelledAt != null)
               _DetailRow(
                 label: 'Fecha de cancelación',
                 value: Text(
-                  _formatDate(current.cancelledAt!),
+                  formatDate(current.cancelledAt!),
                   style: _valueStyle,
                 ),
               ),

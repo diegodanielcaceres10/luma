@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
@@ -93,12 +94,12 @@ class _AccountMonthlyBalanceScreenState
   double _savedMovementsTotal = 0;
   bool _adjustmentApplied = false;
 
-  String get _monthLabel => _monthNames[DateTime.now().month - 1];
+  String get _monthLabel => _monthNames[nowLocal().month - 1];
 
   /// The movements belong to the previous cycle, so they can only be dated in
   /// the previous month.
   DateTimeRange get _previousMonth {
-    final now = DateTime.now();
+    final now = nowLocal();
     return DateTimeRange(
       start: DateTime(now.year, now.month - 1),
       end: DateTime(now.year, now.month, 0),
@@ -577,7 +578,7 @@ class _AccountMonthlyBalanceScreenState
   @override
   Widget build(BuildContext context) {
     final currency = widget.accountViewModel.primaryCurrency;
-    final year = DateTime.now().year;
+    final year = nowLocal().year;
 
     return SafeArea(
       top: false,

@@ -1,4 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/utils/app_clock.dart';
+import '../../../../core/utils/date_format.dart';
 import '../models/invoice.dart';
 
 class InvoiceService {
@@ -39,9 +41,7 @@ class InvoiceService {
       'amount': amount,
       'due_date': dueDate == null
           ? null
-          : '${dueDate.year.toString().padLeft(4, '0')}-'
-              '${dueDate.month.toString().padLeft(2, '0')}-'
-              '${dueDate.day.toString().padLeft(2, '0')}',
+          : formatDbDate(dueDate),
     });
   }
 
@@ -49,10 +49,8 @@ class InvoiceService {
   /// daily notifications routine (`NotificationSchedulerService`). It does
   /// not filter by user because RLS (`auth.uid() = user_id`) already does.
   Future<List<Invoice>> fetchDueToday() async {
-    final now = DateTime.now();
-    final today = '${now.year.toString().padLeft(4, '0')}-'
-        '${now.month.toString().padLeft(2, '0')}-'
-        '${now.day.toString().padLeft(2, '0')}';
+    final now = nowLocal();
+    final today = formatDbDate(now);
 
     final rows = await _client
         .from('invoices')
@@ -83,9 +81,7 @@ class InvoiceService {
       'amount': amount,
       'due_date': dueDate == null
           ? null
-          : '${dueDate.year.toString().padLeft(4, '0')}-'
-              '${dueDate.month.toString().padLeft(2, '0')}-'
-              '${dueDate.day.toString().padLeft(2, '0')}',
+          : formatDbDate(dueDate),
     }).eq('id', id);
   }
 
@@ -94,7 +90,7 @@ class InvoiceService {
   Future<void> cancel({required String id}) async {
     await _client.from('invoices').update({
       'cancelled': true,
-      'cancelled_at': DateTime.now().toUtc().toIso8601String(),
+      'cancelled_at': nowLocal().toUtc().toIso8601String(),
     }).eq('id', id);
   }
 
@@ -106,7 +102,7 @@ class InvoiceService {
   }) async {
     await _client.from('invoices').update({
       'paid': true,
-      'paid_at': DateTime.now().toUtc().toIso8601String(),
+      'paid_at': nowLocal().toUtc().toIso8601String(),
       'transaction_id': transactionId,
     }).eq('id', id);
   }

@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
 import '../../../../core/widgets/month_filter_button.dart';
 import '../../../../core/widgets/screen_header.dart';
@@ -75,7 +77,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   }
 
   static DateTime _currentMonth() {
-    final now = DateTime.now();
+    final now = nowLocal();
     return DateTime(now.year, now.month);
   }
 
@@ -354,8 +356,7 @@ class _InvoiceRow extends StatelessWidget {
     final subtitleParts = <String>[
       '${kMonthNames[invoice.month - 1]} ${invoice.year}',
       if (dueDate != null)
-        'vence el ${dueDate.day.toString().padLeft(2, '0')}/'
-            '${dueDate.month.toString().padLeft(2, '0')}',
+        'vence el ${formatDate(dueDate)}',
     ];
 
     return Column(

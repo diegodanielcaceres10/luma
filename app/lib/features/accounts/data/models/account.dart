@@ -1,3 +1,5 @@
+import '../../../../core/utils/app_clock.dart';
+
 class Account {
   final String id;
   final String name;
@@ -22,7 +24,7 @@ class Account {
       balance: (map['balance'] as num).toDouble(),
       isActive: map['is_active'] as bool,
       balanceUpdatedAt:
-          DateTime.parse(map['balance_updated_at'] as String).toLocal(),
+          asLocal(DateTime.parse(map['balance_updated_at'] as String)),
     );
   }
 

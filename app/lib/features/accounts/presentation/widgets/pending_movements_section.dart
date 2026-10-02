@@ -4,7 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/data/models/invoice.dart';
@@ -158,11 +160,6 @@ const _kMonthAbbreviations = [
   'nov',
   'dic',
 ];
-
-String formatMovementDate(DateTime date) {
-  final month = _kMonthAbbreviations[date.month - 1];
-  return '${date.day} $month ${date.year}';
-}
 
 /// Header, "Add movement" button and accumulated list for a set of
 /// [PendingMovement]s backed by [controller]. Tapping the button walks the
@@ -879,7 +876,7 @@ class _MovementListTile extends StatelessWidget {
                 ],
                 const SizedBox(height: 2),
                 Text(
-                  formatMovementDate(movement.date),
+                  formatDate(movement.date),
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.authTextSecondary,
@@ -953,7 +950,7 @@ const _kDialogFieldDecoration = InputDecoration(
 /// 2020 up to today when null), or the range's end when there is none.
 DateTime _initialDateFor(DateTime? preferred, DateTimeRange? range) {
   final first = range?.start ?? DateTime(2020);
-  final last = range?.end ?? DateTime.now();
+  final last = range?.end ?? nowLocal();
   if (preferred == null || preferred.isAfter(last)) return last;
   return preferred.isBefore(first) ? first : preferred;
 }
@@ -1032,7 +1029,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
       context: context,
       initialDate: _selectedDate,
       firstDate: widget.dateRange?.start ?? DateTime(2020),
-      lastDate: widget.dateRange?.end ?? DateTime.now(),
+      lastDate: widget.dateRange?.end ?? nowLocal(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -1188,9 +1185,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${_selectedDate.day.toString().padLeft(2, '0')}/'
-                        '${_selectedDate.month.toString().padLeft(2, '0')}/'
-                        '${_selectedDate.year}',
+                        formatDate(_selectedDate),
                         style:
                             const TextStyle(color: AppColors.authTextPrimary),
                       ),
@@ -1296,7 +1291,7 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
       context: context,
       initialDate: _selectedDate,
       firstDate: widget.dateRange?.start ?? DateTime(2020),
-      lastDate: widget.dateRange?.end ?? DateTime.now(),
+      lastDate: widget.dateRange?.end ?? nowLocal(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -1476,9 +1471,7 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '${_selectedDate.day.toString().padLeft(2, '0')}/'
-                          '${_selectedDate.month.toString().padLeft(2, '0')}/'
-                          '${_selectedDate.year}',
+                          formatDate(_selectedDate),
                           style:
                               const TextStyle(color: AppColors.authTextPrimary),
                         ),
@@ -1610,7 +1603,7 @@ class _SelectPendingInvoiceSheet extends StatelessWidget {
                                     dueDate == null
                                         ? monthYear
                                         : '$monthYear · vence '
-                                            '${formatMovementDate(dueDate)}',
+                                            '${formatDate(dueDate)}',
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: AppColors.authTextSecondary,
@@ -1694,7 +1687,7 @@ class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
       context: context,
       initialDate: _selectedDate,
       firstDate: widget.dateRange?.start ?? DateTime(2020),
-      lastDate: widget.dateRange?.end ?? DateTime.now(),
+      lastDate: widget.dateRange?.end ?? nowLocal(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -1796,9 +1789,7 @@ class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${_selectedDate.day.toString().padLeft(2, '0')}/'
-                        '${_selectedDate.month.toString().padLeft(2, '0')}/'
-                        '${_selectedDate.year}',
+                        formatDate(_selectedDate),
                         style: const TextStyle(
                           color: AppColors.authTextPrimary,
                         ),

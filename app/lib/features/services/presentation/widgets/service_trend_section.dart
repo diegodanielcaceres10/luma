@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/monthly_bar_chart.dart';
 import '../../../../core/widgets/trend_card.dart';
@@ -52,7 +53,7 @@ class ServiceTrendSection extends StatelessWidget {
     final trend = buildServiceTrend(
       serviceId: service.id,
       invoices: invoiceViewModel.invoices,
-      today: DateTime.now(),
+      today: nowLocal(),
     );
 
     if (trend.isEmpty) {

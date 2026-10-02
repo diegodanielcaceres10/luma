@@ -3,13 +3,14 @@ import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../view_models/transaction_view_model.dart' show CategoryTotal;
 import '../view_models/transactions_statistics_report.dart';
 
@@ -81,8 +82,7 @@ class TransactionsStatisticsScreenPdfBuilder {
       (await rootBundle.load('assets/logo.png')).buffer.asUint8List(),
     );
 
-    final generatedOn =
-        DateFormat('dd-MM-yyyy HH:mm', 'es').format(DateTime.now());
+    final generatedOn = formatDateTime(nowLocal());
 
     final doc = pw.Document(
       title: 'Estadísticas ${data.monthLabel}',

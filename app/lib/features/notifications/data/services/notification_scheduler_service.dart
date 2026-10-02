@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../../../../core/config/app_env.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../accounts/data/repositories/account_repository.dart';
 import '../../../accounts/data/services/account_service.dart';
 import '../../../auth/data/repositories/preferences_repository.dart';
@@ -179,7 +180,7 @@ Future<void> _notifyMissingInvoices({
   required List<Service> services,
   required LocalNotificationsService notifications,
 }) async {
-  final today = DateTime.now();
+  final today = nowLocal();
   final candidates = services
       .where((service) => service.isActive && service.dueDay != null)
       .toList();
@@ -207,7 +208,7 @@ Future<void> _notifyStaleAccounts({
   required AccountRepository accountRepository,
   required LocalNotificationsService notifications,
 }) async {
-  final today = DateTime.now();
+  final today = nowLocal();
   final accounts = await accountRepository.getAccounts();
   final stale = staleAccounts(accounts: accounts, today: today);
 

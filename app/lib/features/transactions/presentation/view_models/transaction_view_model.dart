@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../accounts/data/repositories/monthly_balance_repository.dart';
 import '../../data/models/transaction_entry.dart';
 import '../../data/repositories/transaction_repository.dart';
@@ -145,13 +146,13 @@ class TransactionViewModel extends ChangeNotifier {
   bool get isStatisticsCurrentMonth {
     final month = _statisticsMonth;
     if (month == null) return true;
-    final now = DateTime.now();
+    final now = nowLocal();
     return month.year == now.year && month.month == now.month;
   }
 
   DateTime get statisticsMonth {
     if (isStatisticsCurrentMonth) {
-      final now = DateTime.now();
+      final now = nowLocal();
       return DateTime(now.year, now.month);
     }
     return _statisticsMonth!;
@@ -224,7 +225,7 @@ class TransactionViewModel extends ChangeNotifier {
     _statisticsTransactions = [];
     _statisticsPreviousTransactions = [];
 
-    final now = DateTime.now();
+    final now = nowLocal();
     if (target.year == now.year && target.month == now.month) {
       _statisticsMonth = null;
       _isLoadingStatistics = false;
@@ -282,7 +283,7 @@ class TransactionViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final now = DateTime.now();
+      final now = nowLocal();
       final previousMonth = DateTime(now.year, now.month - 1);
       final results = await Future.wait([
         _repository.getForMonth(now),

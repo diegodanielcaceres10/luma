@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/scanned_movement.dart';
@@ -182,7 +184,7 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
 
   DateTimeRange get _range =>
       widget.dateRange ??
-      DateTimeRange(start: DateTime(2020), end: DateTime.now());
+      DateTimeRange(start: DateTime(2020), end: nowLocal());
 
   @override
   void initState() {
@@ -378,7 +380,7 @@ class _ReviewTile extends StatelessWidget {
         amount > 0 ? AppColors.authIncome : AppColors.authExpense;
 
     final date = movement.date;
-    final dateText = date == null ? 'Sin fecha' : formatMovementDate(date);
+    final dateText = date == null ? 'Sin fecha' : formatDate(date);
 
     String? warning;
     if (!item.inRange) {
@@ -643,7 +645,7 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        formatMovementDate(_date),
+                        formatDate(_date),
                         style:
                             const TextStyle(color: AppColors.authTextPrimary),
                       ),

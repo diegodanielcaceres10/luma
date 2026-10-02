@@ -2,11 +2,11 @@ import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
@@ -1173,8 +1173,6 @@ class _RecentMovements extends StatelessWidget {
       );
     }
 
-    final dateFormat = DateFormat('d MMM yyyy', 'es');
-
     return Column(
       children: movements.map((m) {
         final sign = m.isIncome ? '+' : '-';
@@ -1194,7 +1192,7 @@ class _RecentMovements extends StatelessWidget {
                       style: AppTextStyles.authBody,
                     ),
                     Text(
-                      dateFormat.format(m.date),
+                      formatDate(m.date),
                       style: AppTextStyles.authSubtitle.copyWith(fontSize: 12),
                     ),
                   ],

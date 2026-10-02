@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../services/data/models/service.dart';
@@ -70,7 +72,7 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
     _selectedMonth = invoice?.month;
     _dueDate = invoice?.dueDate;
     _yearController = TextEditingController(
-      text: '${invoice?.year ?? DateTime.now().year}',
+      text: '${invoice?.year ?? nowLocal().year}',
     );
     if (invoice != null) {
       _amountController.text = invoice.amount.toStringAsFixed(2);
@@ -92,11 +94,11 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
 
   Future<void> _pickDueDate() async {
     final year =
-        int.tryParse(_yearController.text.trim()) ?? DateTime.now().year;
+        int.tryParse(_yearController.text.trim()) ?? nowLocal().year;
     final picked = await showDatePicker(
       context: context,
       initialDate:
-          _dueDate ?? DateTime(year, _selectedMonth ?? DateTime.now().month),
+          _dueDate ?? DateTime(year, _selectedMonth ?? nowLocal().month),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
       builder: (context, child) => Theme(
@@ -329,9 +331,7 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                       child: _dueDate == null
                           ? null
                           : Text(
-                              '${_dueDate!.day.toString().padLeft(2, '0')}/'
-                              '${_dueDate!.month.toString().padLeft(2, '0')}/'
-                              '${_dueDate!.year}',
+                              formatDate(_dueDate!),
                               style: const TextStyle(
                                   color: AppColors.authTextPrimary),
                             ),

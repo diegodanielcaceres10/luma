@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../utils/app_clock.dart';
 
 String formatMonthLabel(DateTime date) {
   final formatted = DateFormat('MMMM yyyy', 'es').format(date);
@@ -89,7 +90,7 @@ class _MonthPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = nowLocal();
     final currentMonth = DateTime(now.year, now.month);
     final months = List.generate(
       12,

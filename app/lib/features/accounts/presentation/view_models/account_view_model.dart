@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../data/models/account.dart';
 import '../../data/models/monthly_opening_balance.dart';
@@ -67,7 +68,7 @@ class AccountViewModel extends ChangeNotifier {
   /// is ignored on purpose: it is secondary information, and the previous
   /// value (if any) is kept.
   Future<void> loadUncontrolledTotal(String accountId) async {
-    final now = DateTime.now();
+    final now = nowLocal();
     try {
       _uncontrolledTotals[accountId] = await _repository.getUncontrolledTotal(
         accountId: accountId,
@@ -89,7 +90,7 @@ class AccountViewModel extends ChangeNotifier {
   double? monthVariationOf(String accountId) {
     for (final account in _accounts) {
       if (account.id != accountId) continue;
-      final now = DateTime.now();
+      final now = nowLocal();
       return monthVariation(
         currentBalance: account.balance,
         history: openingHistoryOf(accountId),

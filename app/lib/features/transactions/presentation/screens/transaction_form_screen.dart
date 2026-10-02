@@ -3,7 +3,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
@@ -54,7 +56,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   Category? _selectedCategory;
   Account? _selectedAccount;
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = nowLocal();
 
   _EntryMode _mode = _EntryMode.selecting;
 
@@ -113,7 +115,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      lastDate: nowLocal(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -276,7 +278,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             ),
             _scanResultRow(
               'Fecha',
-              result.date != null ? _formatDate(result.date!) : 'No detectada',
+              result.date != null ? formatDate(result.date!) : 'No detectada',
             ),
             const SizedBox(height: 12),
             const Text(
@@ -329,12 +331,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/'
-        '${date.month.toString().padLeft(2, '0')}/'
-        '${date.year}';
-  }
-
   void _applyScanResult(ReceiptScanResult result) {
     setState(() {
       _mode = _EntryMode.form;
@@ -344,7 +340,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       if (result.description != null) {
         _descriptionController.text = result.description!;
       }
-      if (result.date != null && !result.date!.isAfter(DateTime.now())) {
+      if (result.date != null && !result.date!.isAfter(nowLocal())) {
         _selectedDate = result.date!;
       }
     });
@@ -362,7 +358,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _descriptionController.text.trim().isNotEmpty ||
       _selectedCategory != null ||
       _selectedAccount != null ||
-      !DateUtils.isSameDay(_selectedDate, DateTime.now());
+      !DateUtils.isSameDay(_selectedDate, nowLocal());
 
   void _resetForm() {
     setState(() {
@@ -370,7 +366,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _descriptionController.clear();
       _selectedCategory = null;
       _selectedAccount = null;
-      _selectedDate = DateTime.now();
+      _selectedDate = nowLocal();
       _mode = _EntryMode.selecting;
     });
   }
@@ -644,9 +640,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${_selectedDate.day.toString().padLeft(2, '0')}/'
-                            '${_selectedDate.month.toString().padLeft(2, '0')}/'
-                            '${_selectedDate.year}',
+                            formatDate(_selectedDate),
                             style: const TextStyle(
                                 color: AppColors.authTextPrimary),
                           ),

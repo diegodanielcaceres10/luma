@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../services/data/models/service.dart';
 import '../../../transactions/presentation/view_models/transaction_view_model.dart';
 import '../../data/models/invoice.dart';
@@ -38,7 +39,7 @@ class InvoiceViewModel extends ChangeNotifier {
   /// Number of pending invoices for the current month, used by the
   /// Dashboard BalanceCard.
   int get pendingCountForCurrentMonth {
-    final now = DateTime.now();
+    final now = nowLocal();
     return _invoices
         .where((i) => i.isPending && i.month == now.month && i.year == now.year)
         .length;
@@ -52,7 +53,7 @@ class InvoiceViewModel extends ChangeNotifier {
   /// paid or cancelled; for the rest it adds the pending invoice amount, or
   /// the service's approximate amount if no invoice exists yet.
   double pendingAmountForCurrentMonth(List<Service> activeServices) {
-    final now = DateTime.now();
+    final now = nowLocal();
     var total = 0.0;
 
     for (final service in activeServices) {
@@ -236,7 +237,7 @@ class InvoiceViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final paymentDate = date ?? DateTime.now();
+      final paymentDate = date ?? nowLocal();
       final created = justifying == null
           ? await _transactionViewModel.createTransaction(
               userId: userId,

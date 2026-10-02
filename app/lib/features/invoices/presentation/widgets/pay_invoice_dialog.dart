@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/widgets/opening_balance_gate.dart';
 import '../../../categories/data/models/category.dart';
@@ -59,7 +61,7 @@ class _PayInvoiceDialogState extends State<PayInvoiceDialog> {
     _amountController = TextEditingController(
       text: widget.invoice.amount.toStringAsFixed(2),
     );
-    _selectedDate = DateTime.now();
+    _selectedDate = nowLocal();
   }
 
   @override
@@ -234,9 +236,7 @@ class _PayInvoiceDialogState extends State<PayInvoiceDialog> {
                   ),
                 ),
                 child: Text(
-                  '${_selectedDate.day.toString().padLeft(2, '0')}/'
-                  '${_selectedDate.month.toString().padLeft(2, '0')}/'
-                  '${_selectedDate.year}',
+                  formatDate(_selectedDate),
                   style: const TextStyle(color: AppColors.authTextPrimary),
                 ),
               ),

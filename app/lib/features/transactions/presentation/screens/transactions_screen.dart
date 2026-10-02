@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
 import '../../../../core/widgets/month_filter_button.dart';
 import '../../../../core/widgets/screen_header.dart';
@@ -137,7 +138,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   static DateTime _currentMonth() {
-    final now = DateTime.now();
+    final now = nowLocal();
     return DateTime(now.year, now.month);
   }
 
@@ -385,7 +386,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   bool _matchesDateRange(TransactionEntry t) {
-    final now = DateTime.now();
+    final now = nowLocal();
     final today = DateTime(now.year, now.month, now.day);
     final txDate = DateTime(t.date.year, t.date.month, t.date.day);
     switch (_effectiveDateRange) {
@@ -741,7 +742,6 @@ class _MovementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('d MMM. yyyy', 'es');
     final sign = movement.isIncome ? '+' : '-';
     // Disable both actions while either one is running.
     final isBusy = isDeleting || isUpdating;
@@ -768,7 +768,7 @@ class _MovementRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${movement.category.name} · ${dateFormat.format(movement.date)}',
+                      '${movement.category.name} · ${formatDate(movement.date)}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.authTextSecondary,
@@ -914,7 +914,7 @@ class _EditMovementDialogState extends State<_EditMovementDialog> {
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      lastDate: nowLocal(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -963,12 +963,6 @@ class _EditMovementDialogState extends State<_EditMovementDialog> {
   );
 
   static const _labelStyle = TextStyle(color: AppColors.authTextSecondary);
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/'
-        '${date.month.toString().padLeft(2, '0')}/'
-        '${date.year}';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1061,7 +1055,7 @@ class _EditMovementDialogState extends State<_EditMovementDialog> {
               child: InputDecorator(
                 decoration: _fieldDecoration,
                 child: Text(
-                  _formatDate(_selectedDate),
+                  formatDate(_selectedDate),
                   style: const TextStyle(color: AppColors.authTextPrimary),
                 ),
               ),
