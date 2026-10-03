@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
+import '../../../../core/utils/image_crop_picker.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/data/models/invoice.dart';
@@ -370,12 +370,8 @@ class PendingMovementsSection extends StatelessWidget {
     final source = await showStatementSourceSheet(context);
     if (source == null || !context.mounted) return;
 
-    final XFile? picked = await ImagePicker().pickImage(
-      source: source,
-      imageQuality: 85,
-      maxWidth: 2000,
-    );
-    if (picked == null || !context.mounted) return;
+    final image = await pickAndCropImage(context, source, maxWidth: 2000);
+    if (image == null || !context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context, rootNavigator: true);
@@ -393,10 +389,9 @@ class PendingMovementsSection extends StatelessWidget {
 
     final List<ScannedMovement> scanned;
     try {
-      final bytes = await picked.readAsBytes();
       scanned =
           await (scanService ?? StatementScanService(Supabase.instance.client))
-              .scan(imageBytes: bytes, mimeType: _supportedMimeType(picked));
+              .scan(imageBytes: image.bytes, mimeType: image.mimeType);
     } catch (_) {
       navigator.pop();
       messenger.showSnackBar(
@@ -443,14 +438,6 @@ class PendingMovementsSection extends StatelessWidget {
     );
     if (confirmed == null) return;
     confirmed.forEach(controller.add);
-  }
-
-  /// The Edge Function only accepts JPG, PNG and WEBP; with `imageQuality`
-  /// set the picker re-encodes to one of them, so anything else is JPEG.
-  static String _supportedMimeType(XFile file) {
-    const supported = {'image/jpeg', 'image/png', 'image/webp'};
-    final mime = file.mimeType;
-    return mime != null && supported.contains(mime) ? mime : 'image/jpeg';
   }
 
   @override

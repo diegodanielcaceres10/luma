@@ -6,6 +6,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
+import '../../../../core/utils/image_crop_picker.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
@@ -205,18 +206,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final source = await _pickImageSource();
     if (source == null || !mounted) return;
 
-    final XFile? picked = await ImagePicker().pickImage(
-      source: source,
-      imageQuality: 85,
-    );
-    if (picked == null || !mounted) return;
+    final image = await pickAndCropImage(context, source);
+    if (image == null || !mounted) return;
 
     setState(() => _isScanning = true);
     try {
-      final bytes = await picked.readAsBytes();
       final result = await _receiptScanService.scan(
-        imageBytes: bytes,
-        mimeType: picked.mimeType ?? 'image/jpeg',
+        imageBytes: image.bytes,
+        mimeType: image.mimeType,
       );
       if (!mounted) return;
 

@@ -1,0 +1,117 @@
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../app/theme/app_colors.dart';
+
+/// An image already cropped by the user, ready to be sent for scanning.
+typedef PickedImage = ({Uint8List bytes, String mimeType});
+
+/// Lets the user choose a photo from [source].
+typedef ImagePickFn = Future<XFile?> Function(ImageSource source);
+
+/// Shows the cropper for the image at [sourcePath]. Returns the cropped bytes
+/// or null when the user cancels.
+typedef ImageCropFn = Future<Uint8List?> Function(String sourcePath);
+
+/// Picks an image and lets the user crop it. Returns null if the user cancels
+/// either step.
+///
+/// The picker and the cropper are injected so the flow can be tested without
+/// the platform plugins.
+Future<PickedImage?> pickCroppedImage({
+  required ImageSource source,
+  required ImagePickFn pick,
+  required ImageCropFn crop,
+}) async {
+  final picked = await pick(source);
+  if (picked == null) return null;
+
+  final bytes = await crop(picked.path);
+  if (bytes == null) return null;
+
+  return (bytes: bytes, mimeType: detectImageMimeType(bytes));
+}
+
+/// Mime type of [bytes] from their magic numbers. The cropper re-encodes the
+/// image, so the picker's mime type can no longer be trusted. Anything that is
+/// not PNG or WEBP is reported as JPEG, the default output of the cropper.
+String detectImageMimeType(Uint8List bytes) {
+  final isPng = bytes.length >= 4 &&
+      bytes[0] == 0x89 &&
+      bytes[1] == 0x50 &&
+      bytes[2] == 0x4E &&
+      bytes[3] == 0x47;
+  if (isPng) return 'image/png';
+
+  // RIFF....WEBP
+  final isWebp = bytes.length >= 12 &&
+      bytes[0] == 0x52 &&
+      bytes[1] == 0x49 &&
+      bytes[2] == 0x46 &&
+      bytes[3] == 0x46 &&
+      bytes[8] == 0x57 &&
+      bytes[9] == 0x45 &&
+      bytes[10] == 0x42 &&
+      bytes[11] == 0x50;
+  if (isWebp) return 'image/webp';
+
+  return 'image/jpeg';
+}
+
+/// Picks a photo from the gallery or the camera and opens the crop screen
+/// before returning it. Returns null if the user cancels.
+///
+/// The photo is picked untouched and compressed once, when it is cropped, so
+/// it is not re-encoded twice.
+Future<PickedImage?> pickAndCropImage(
+  BuildContext context,
+  ImageSource source, {
+  int imageQuality = 85,
+  int? maxWidth,
+}) {
+  return pickCroppedImage(
+    source: source,
+    pick: (source) => ImagePicker().pickImage(source: source),
+    crop: (sourcePath) async {
+      // The picker is async; the screen may be gone by now.
+      if (!context.mounted) return null;
+
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: sourcePath,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: imageQuality,
+        maxWidth: maxWidth,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Recortar',
+            toolbarColor: AppColors.authBackgroundTop,
+            toolbarWidgetColor: AppColors.authTextPrimary,
+            backgroundColor: AppColors.authBackgroundTop,
+            activeControlsWidgetColor: AppColors.authAccent,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+          ),
+          IOSUiSettings(
+            title: 'Recortar',
+            doneButtonTitle: 'Listo',
+            cancelButtonTitle: 'Cancelar',
+          ),
+          WebUiSettings(
+            context: context,
+            translations: const WebTranslations(
+              title: 'Recortar',
+              rotateLeftTooltip: 'Girar 90° a la izquierda',
+              rotateRightTooltip: 'Girar 90° a la derecha',
+              cancelButton: 'Cancelar',
+              cropButton: 'Recortar',
+            ),
+          ),
+        ],
+      );
+      return cropped?.readAsBytes();
+    },
+  );
+}
