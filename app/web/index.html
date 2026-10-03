@@ -39,6 +39,21 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.css"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+    <style>
+      /* App accent (#4CBB7A) over the default cropperjs blue. */
+      .cropper-view-box {
+        outline-color: rgba(76, 187, 122, 0.85);
+      }
+      .cropper-line,
+      .cropper-point,
+      .cropper-point.point-se::before {
+        background-color: #4cbb7a;
+      }
+      .cropper-modal {
+        background-color: #12291d;
+        opacity: 0.7;
+      }
+    </style>
   </head>
   <body>
     <script src="flutter_bootstrap.js" async></script>

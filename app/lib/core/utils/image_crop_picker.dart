@@ -5,6 +5,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../widgets/themed_cropper_dialog.dart';
 
 /// An image already cropped by the user, ready to be sent for scanning.
 typedef PickedImage = ({Uint8List bytes, String mimeType});
@@ -79,6 +80,7 @@ Future<PickedImage?> pickAndCropImage(
       // The picker is async; the screen may be gone by now.
       if (!context.mounted) return null;
 
+      final webSide = webCropperSideFor(MediaQuery.sizeOf(context));
       final cropped = await ImageCropper().cropImage(
         sourcePath: sourcePath,
         compressFormat: ImageCompressFormat.jpg,
@@ -91,6 +93,13 @@ Future<PickedImage?> pickAndCropImage(
             toolbarWidgetColor: AppColors.authTextPrimary,
             backgroundColor: AppColors.authBackgroundTop,
             activeControlsWidgetColor: AppColors.authAccent,
+            // Dark app: light icons on the status and navigation bars.
+            statusBarLight: false,
+            navBarLight: false,
+            dimmedLayerColor:
+                AppColors.authBackgroundTop.withValues(alpha: 0.7),
+            cropFrameColor: AppColors.authAccent,
+            cropGridColor: AppColors.authTextPrimary.withValues(alpha: 0.5),
             initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
           ),
@@ -101,12 +110,15 @@ Future<PickedImage?> pickAndCropImage(
           ),
           WebUiSettings(
             context: context,
-            translations: const WebTranslations(
-              title: 'Recortar',
-              rotateLeftTooltip: 'Girar 90° a la izquierda',
-              rotateRightTooltip: 'Girar 90° a la derecha',
-              cancelButton: 'Cancelar',
-              cropButton: 'Recortar',
+            size: CropperSize(width: webSide.floor(), height: webSide.floor()),
+            customDialogBuilder: (cropper, initCropper, crop, rotate, scale) =>
+                ThemedCropperDialog(
+              cropper: cropper,
+              initCropper: initCropper,
+              crop: crop,
+              rotate: rotate,
+              scale: scale,
+              cropperSide: webSide.floorToDouble(),
             ),
           ),
         ],
