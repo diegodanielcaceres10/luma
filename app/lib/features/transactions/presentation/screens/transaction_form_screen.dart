@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -7,6 +6,7 @@ import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/utils/image_crop_picker.dart';
+import '../../../../core/widgets/ai_image_source_sheet.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
@@ -61,7 +61,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   _EntryMode _mode = _EntryMode.selecting;
 
-  // POC: prefill the form from a receipt photo; the user reviews it before
+  // FEAT: prefill the form from a receipt photo; the user reviews it before
   // saving.
   final _receiptScanService = ReceiptScanService(Supabase.instance.client);
   bool _isScanning = false;
@@ -174,36 +174,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
   }
 
-  Future<ImageSource?> _pickImageSource() {
-    return showModalBottomSheet<ImageSource>(
-      context: context,
-      backgroundColor: AppColors.authBackgroundBottom,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_rounded,
-                  color: AppColors.authTextPrimary),
-              title: const Text('Sacar foto',
-                  style: TextStyle(color: AppColors.authTextPrimary)),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_rounded,
-                  color: AppColors.authTextPrimary),
-              title: const Text('Elegir de la galería',
-                  style: TextStyle(color: AppColors.authTextPrimary)),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _scanReceipt() async {
-    final source = await _pickImageSource();
+    final source = await showAiImageSourceSheet(
+      context,
+      title: 'Escanear un ticket',
+    );
     if (source == null || !mounted) return;
 
     final image = await pickAndCropImage(context, source);
@@ -451,7 +426,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           const SizedBox(height: 16),
           _EntryModeCard(
             icon: Icons.document_scanner_rounded,
-            title: 'Escanear ticket (POC)',
+            title: 'Escanear ticket',
             subtitle: 'Tomá una foto del ticket y extraemos la información '
                 'automáticamente.',
             highlighted: true,
@@ -598,8 +573,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         style: TextStyle(color: AppColors.authTextSecondary),
                       ),
                       items: accounts.map((a) {
-                        final isPending =
-                            widget.monthlyBalanceViewModel.isAccountPending(a.id);
+                        final isPending = widget.monthlyBalanceViewModel
+                            .isAccountPending(a.id);
                         return DropdownMenuItem(
                           value: a,
                           enabled: !isPending,

@@ -7,6 +7,7 @@ import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/utils/image_crop_picker.dart';
+import '../../../../core/widgets/ai_image_source_sheet.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/data/models/invoice.dart';
@@ -367,7 +368,12 @@ class PendingMovementsSection extends StatelessWidget {
   /// [controller]. Only income and expense lines are detected; transfers and
   /// invoices are still added by hand.
   Future<void> _importFromImage(BuildContext context) async {
-    final source = await showStatementSourceSheet(context);
+    // Statements are read from existing files, never from a fresh photo.
+    final source = await showAiImageSourceSheet(
+      context,
+      title: 'Importar desde una captura',
+      allowCamera: false,
+    );
     if (source == null || !context.mounted) return;
 
     final image = await pickAndCropImage(context, source, maxWidth: 2000);

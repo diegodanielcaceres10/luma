@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
@@ -10,113 +9,6 @@ import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/scanned_movement.dart';
 import 'pending_movements_section.dart';
-
-/// Asks where the statement screenshot comes from. Resolves to null when the
-/// user dismisses the sheet.
-Future<ImageSource?> showStatementSourceSheet(BuildContext context) {
-  return showModalBottomSheet<ImageSource>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: AppColors.authBackgroundBottom,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (context) => SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Importar desde una captura',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const _PrivacyNotice(),
-            const SizedBox(height: 8),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(
-                Icons.photo_library_rounded,
-                color: AppColors.authTextPrimary,
-              ),
-              title: const Text(
-                'Elegir de la galería',
-                style: TextStyle(color: AppColors.authTextPrimary),
-              ),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(
-                Icons.photo_camera_rounded,
-                color: AppColors.authTextPrimary,
-              ),
-              title: const Text(
-                'Sacar foto',
-                style: TextStyle(color: AppColors.authTextPrimary),
-              ),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// Warning shown every time before a statement image is picked. The image is
-/// read by a free-tier AI service whose provider may use and review it.
-class _PrivacyNotice extends StatelessWidget {
-  const _PrivacyNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.authExpense.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.authExpense.withValues(alpha: 0.5),
-        ),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            size: 20,
-            color: AppColors.authExpense,
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Esta función es de uso personal y con fines educativos y de '
-              'desarrollo. La captura se envía a un servicio de IA gratuito '
-              '(Gemini): Google puede usarla para mejorar sus productos y '
-              'personas de su equipo podrían leerla.\n\n'
-              'Recortala para que solo se vean las líneas de movimientos. '
-              'No incluyas datos sensibles (tu nombre, números de cuenta o '
-              'de tarjeta, documentos) ni nada que no quieras compartir.',
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// Lets the user review [movements] read from a statement and returns the
 /// ones they confirm as [PendingMovement]s (null if they dismiss the sheet).

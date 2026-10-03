@@ -1,4 +1,4 @@
-// POC: recibe la foto de un ticket/factura en base64 y le pide a la
+// FEAT: recibe la foto de un ticket/factura en base64 y le pide a la
 // Gemini API (tier gratuito) que devuelva los datos ya estructurados,
 // para precompletar el formulario de "Añadir ingreso/gasto" en la app.
 //
