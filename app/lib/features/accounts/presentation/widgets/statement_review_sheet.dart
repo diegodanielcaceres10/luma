@@ -492,9 +492,10 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
   @override
   void initState() {
     super.initState();
+    // The sign of the amount is the only thing that defines the type.
     _amountController = TextEditingController(
-      text: widget.movement.amount.toStringAsFixed(2),
-    );
+      text: widget.movement.signedAmount.toStringAsFixed(2),
+    )..addListener(_onAmountChanged);
     _descriptionController = TextEditingController(
       text: widget.movement.description ?? '',
     );
@@ -505,6 +506,17 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
     _amountController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  void _onAmountChanged() {
+    final type = typeFromAmountText(_amountController.text);
+    if (type == _type) return;
+
+    setState(() {
+      _type = type;
+      // A category only fits the type it was created for.
+      if (_category?.type != type) _category = null;
+    });
   }
 
   Future<void> _pickDate() async {
@@ -539,14 +551,14 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
   void _save() {
     if (!_formKey.currentState!.validate()) return;
 
-    final amount = double.parse(_amountController.text.replaceAll(',', '.'));
+    final signed = parseSignedAmount(_amountController.text)!;
     final description = _descriptionController.text.trim();
 
     Navigator.of(context).pop(
       _EditResult(
         ScannedMovement(
-          type: _type,
-          amount: amount,
+          type: typeFromAmountText(_amountController.text),
+          amount: signed.abs(),
           date: _date,
           description: description.isEmpty ? null : description,
         ),
@@ -582,46 +594,33 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SegmentedButton<String>(
-                style: SegmentedButton.styleFrom(
-                  backgroundColor: AppColors.authCardFill,
-                  foregroundColor: AppColors.authTextSecondary,
-                  selectedBackgroundColor: AppColors.authAccent,
-                  selectedForegroundColor: AppColors.authBackgroundBottom,
-                  side: const BorderSide(color: AppColors.authCardBorder),
-                ),
-                segments: const [
-                  ButtonSegment(value: 'expense', label: Text('Gasto')),
-                  ButtonSegment(value: 'income', label: Text('Ingreso')),
-                ],
-                selected: {_type},
-                onSelectionChanged: (selection) => setState(() {
-                  _type = selection.first;
-                  // A category only fits the type it was created for.
-                  if (_category?.type != _type) _category = null;
-                }),
-              ),
-              const SizedBox(height: 16),
               const Text('Monto', style: kMovementDialogLabelStyle),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _amountController,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
+                  signed: true,
                 ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(
-                    RegExp(r'^\d*[.,]?\d{0,2}'),
+                    RegExp(r'^-?\d*[.,]?\d{0,2}'),
                   ),
                 ],
                 style: const TextStyle(color: AppColors.authTextPrimary),
-                decoration:
-                    kMovementDialogFieldDecoration.copyWith(hintText: '0,00'),
+                decoration: kMovementDialogFieldDecoration.copyWith(
+                  hintText: '0,00',
+                  helperText: 'Negativo es gasto, positivo es ingreso',
+                  helperStyle: const TextStyle(
+                    color: AppColors.authTextSecondary,
+                    fontSize: 12,
+                  ),
+                ),
                 validator: (value) {
-                  final text = (value ?? '').trim().replaceAll(',', '.');
+                  final text = (value ?? '').trim();
                   if (text.isEmpty) return 'Ingresa un monto';
-                  final parsed = double.tryParse(text);
-                  if (parsed == null || parsed <= 0) return 'Monto inválido';
+                  final parsed = parseSignedAmount(text);
+                  if (parsed == null || parsed == 0) return 'Monto inválido';
                   return null;
                 },
               ),
@@ -707,7 +706,7 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: _save,
-          child: const Text('Guardar'),
+          child: const Text('Agregar'),
         ),
       ],
     );

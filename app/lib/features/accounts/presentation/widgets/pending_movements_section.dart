@@ -1203,7 +1203,7 @@ class _AddMovementDialogState extends State<_AddMovementDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: _save,
-          child: Text(widget.initial == null ? 'Agregar' : 'Guardar'),
+          child: const Text('Agregar'),
         ),
       ],
     );
@@ -1490,7 +1490,7 @@ class _AddTransferDialogState extends State<_AddTransferDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: otherAccounts.isEmpty ? null : _save,
-          child: Text(widget.initial == null ? 'Agregar' : 'Guardar'),
+          child: const Text('Agregar'),
         ),
       ],
     );
@@ -1808,7 +1808,7 @@ class _AddInvoiceDialogState extends State<_AddInvoiceDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: _save,
-          child: Text(widget.initial == null ? 'Agregar' : 'Guardar'),
+          child: const Text('Agregar'),
         ),
       ],
     );
