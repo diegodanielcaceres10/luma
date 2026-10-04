@@ -33,9 +33,6 @@ class InvoiceViewModel extends ChangeNotifier {
   InvoiceSubmitError? get submitError => _submitError;
   List<Invoice> get invoices => _invoices;
 
-  /// Number of pending invoices, e.g. for the Dashboard quick-access badge.
-  int get pendingCount => _invoices.where((i) => i.isPending).length;
-
   /// Number of pending invoices for the current month, used by the
   /// Dashboard BalanceCard.
   int get pendingCountForCurrentMonth {

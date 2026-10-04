@@ -79,9 +79,6 @@ class TransactionViewModel extends ChangeNotifier {
   double get previousMonthExpenses =>
       _sumByType(_previousMonthTransactions, 'expense');
 
-  double get previousMonthNetResult =>
-      previousMonthIncome - previousMonthExpenses;
-
   /// Percent change vs. the previous month; null when there is no base to
   /// compare against.
   double? get incomeChangePercent =>
@@ -90,15 +87,10 @@ class TransactionViewModel extends ChangeNotifier {
   double? get expenseChangePercent =>
       _percentChange(previousMonthExpenses, totalExpenses);
 
-  double? get netResultChangePercent =>
-      _percentChange(previousMonthNetResult, netResult);
-
   double? _percentChange(double previous, double current) {
     if (previous == 0) return null;
     return ((current - previous) / previous.abs()) * 100;
   }
-
-  List<CategoryTotal> get categoryBreakdown => _breakdownOf(_transactions);
 
   /// Entries of one category since [since], for the category trend. Does
   /// not touch this view model's state; errors reach the caller.

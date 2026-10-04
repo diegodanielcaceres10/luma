@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 abstract final class AppColors {
   static const primary = Color(0xFF4F46E5);
-  static const primaryDark = Color(0xFF3730A3);
 
   static const background = Color(0xFFF8FAFC);
   static const surface = Color(0xFFFFFFFF);
@@ -18,7 +17,6 @@ abstract final class AppColors {
   // Auth screens (dark, brand background).
   static const authBackgroundTop = Color(0xFF12291D);
   static const authBackgroundBottom = Color(0xFF020604);
-  static const authGlow = Color(0xFF1F7A4C);
 
   static const authAccent = Color(0xFF4CBB7A);
   static const authAccentDark = Color(0xFF1F7A4C);
