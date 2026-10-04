@@ -512,7 +512,7 @@ class _ExportPdfButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
+    return OutlinedButton(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.authAccent,
         side: const BorderSide(color: AppColors.authCardBorder),
@@ -522,17 +522,33 @@ class _ExportPdfButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       ),
       onPressed: onPressed,
-      icon: isLoading
-          ? const SizedBox(
-              width: 16,
-              height: 16,
+      // The label stays in the tree (hidden) so the button keeps its size
+      // while only the spinner is visible.
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Opacity(
+            opacity: isLoading ? 0 : 1,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18),
+                const SizedBox(width: 8),
+                Text(label),
+              ],
+            ),
+          ),
+          if (isLoading)
+            const SizedBox(
+              width: 18,
+              height: 18,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
                 color: AppColors.authAccent,
               ),
-            )
-          : Icon(icon, size: 18),
-      label: Text(isLoading ? 'Generando…' : label),
+            ),
+        ],
+      ),
     );
   }
 }
