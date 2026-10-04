@@ -60,6 +60,9 @@ class TransactionsStatisticsScreenPdfBuilder {
   static const _donutSize = 100.0;
   static const _donutStroke = 13.0;
 
+  // Compact spacing so a typical month (a few categories) fits on one page.
+  static const _sectionGap = 18.0;
+
   // A row cannot break across pages, so a long legend is laid out below the
   // donut (one widget per row) instead of beside it.
   static const _maxSideBySideLegendItems = 12;
@@ -93,7 +96,7 @@ class TransactionsStatisticsScreenPdfBuilder {
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.fromLTRB(36, 40, 36, 40),
+        margin: const pw.EdgeInsets.fromLTRB(36, 28, 36, 28),
         footer: (context) => pw.Padding(
           padding: const pw.EdgeInsets.only(top: 12),
           child: pw.Column(
@@ -132,21 +135,21 @@ class TransactionsStatisticsScreenPdfBuilder {
 
           return [
             _header(data, logo),
-            pw.SizedBox(height: 22),
+            pw.SizedBox(height: 16),
             _summaryRow(data),
             if (report.hasUncontrolledTotal) ...[
               pw.SizedBox(height: 10),
               _uncontrolledCard(report, data.currency),
             ],
             if (report.breakdown.isEmpty) ...[
-              pw.SizedBox(height: 26),
+              pw.SizedBox(height: _sectionGap),
               pw.Text(
                 'No hay gastos registrados en ${data.monthLabel.toLowerCase()}.',
                 style: const pw.TextStyle(fontSize: 11, color: _textSecondary),
               ),
             ] else ...[
               if (report.expenseTypeBreakdown.isNotEmpty) ...[
-                pw.SizedBox(height: 26),
+                pw.SizedBox(height: _sectionGap),
                 ..._breakdownSection(
                   title: 'Categorizado, sin categoría y no declarado',
                   total: report.expenseTypeTotal,
@@ -156,7 +159,7 @@ class TransactionsStatisticsScreenPdfBuilder {
                 ),
               ],
               if (report.categorizedBreakdown.isNotEmpty) ...[
-                pw.SizedBox(height: 26),
+                pw.SizedBox(height: _sectionGap),
                 ..._breakdownSection(
                   title: 'Gastos por categoría',
                   total: report.categorizedTotal,
@@ -209,7 +212,7 @@ class TransactionsStatisticsScreenPdfBuilder {
           data.monthLabel,
           style: const pw.TextStyle(fontSize: 14, color: _textSecondary),
         ),
-        pw.SizedBox(height: 14),
+        pw.SizedBox(height: 10),
         pw.Container(height: 1, color: _border),
       ],
     );
@@ -404,14 +407,14 @@ class TransactionsStatisticsScreenPdfBuilder {
         'gastados en ${data.monthLabel.toLowerCase()}',
         style: const pw.TextStyle(fontSize: 10, color: _textSecondary),
       ),
-      pw.SizedBox(height: 14),
+      pw.SizedBox(height: 10),
       if (isLongLegend) ...[
         donut,
         pw.SizedBox(height: 10),
         ...legendRows,
       ] else
         pw.Container(
-          padding: const pw.EdgeInsets.all(14),
+          padding: const pw.EdgeInsets.all(12),
           decoration: pw.BoxDecoration(
             color: _cardFill,
             borderRadius: pw.BorderRadius.circular(8),
@@ -522,7 +525,7 @@ class TransactionsStatisticsScreenPdfBuilder {
 
   static pw.Widget _legendRow(CategoryTotal item, String currency) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.symmetric(vertical: 3),
       child: pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
