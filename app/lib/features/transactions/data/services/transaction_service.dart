@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/utils/date_format.dart';
 import '../models/transaction_entry.dart';
 
 class TransactionService {
@@ -15,8 +16,8 @@ class TransactionService {
         .select(
           '*, categories(id, name, color), accounts(id, name)',
         )
-        .gte('date', _formatDate(start))
-        .lt('date', _formatDate(end))
+        .gte('date', formatDbDate(start))
+        .lt('date', formatDbDate(end))
         .order('date', ascending: false)
         .order('created_at', ascending: false);
 
@@ -38,7 +39,7 @@ class TransactionService {
         )
         .eq('category_id', categoryId)
         .eq('is_transfer', false)
-        .gte('date', _formatDate(since))
+        .gte('date', formatDbDate(since))
         .order('date', ascending: false);
 
     return (rows as List)
@@ -83,7 +84,7 @@ class TransactionService {
       'p_type': type,
       'p_amount': amount,
       'p_description': description,
-      'p_date': _formatDate(date),
+      'p_date': formatDbDate(date),
       'p_is_transfer': isTransfer,
     });
 
@@ -117,7 +118,7 @@ class TransactionService {
       'p_type': type,
       'p_amount': amount,
       'p_description': description,
-      'p_date': _formatDate(date),
+      'p_date': formatDbDate(date),
       'p_month': month,
       'p_year': year,
       'p_is_transfer': isTransfer,
@@ -137,7 +138,7 @@ class TransactionService {
     await _client.from('transactions').update({
       'category_id': categoryId,
       'description': description,
-      'date': _formatDate(date),
+      'date': formatDbDate(date),
     }).eq('id', transactionId);
   }
 
@@ -151,12 +152,5 @@ class TransactionService {
       'p_user_id': userId,
       'p_transaction_id': transactionId,
     });
-  }
-
-  String _formatDate(DateTime date) {
-    final y = date.year.toString().padLeft(4, '0');
-    final m = date.month.toString().padLeft(2, '0');
-    final d = date.day.toString().padLeft(2, '0');
-    return '$y-$m-$d';
   }
 }

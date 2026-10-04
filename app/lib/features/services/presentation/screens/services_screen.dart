@@ -5,13 +5,16 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/data/models/category.dart';
+import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../notifications/presentation/widgets/notifications_hint.dart';
 import '../../data/models/service.dart';
 import '../view_models/service_view_model.dart';
 
 class ServicesScreen extends StatelessWidget {
   final ServiceViewModel serviceViewModel;
   final CategoryViewModel categoryViewModel;
+  final PreferencesViewModel preferencesViewModel;
   final String currency;
 
   final ValueChanged<Service> onOpenView;
@@ -19,15 +22,20 @@ class ServicesScreen extends StatelessWidget {
   /// Opens the create form.
   final VoidCallback onOpenForm;
 
+  /// Opens Preferencias, from the notifications hint.
+  final VoidCallback onOpenPreferences;
+
   final VoidCallback? onBack;
 
   const ServicesScreen({
     super.key,
     required this.serviceViewModel,
     required this.categoryViewModel,
+    required this.preferencesViewModel,
     required this.currency,
     required this.onOpenView,
     required this.onOpenForm,
+    required this.onOpenPreferences,
     this.onBack,
   });
 
@@ -51,6 +59,11 @@ class ServicesScreen extends StatelessWidget {
                   tooltip: 'Nuevo servicio',
                   onPressed: onOpenForm,
                 ),
+              ),
+              const SizedBox(height: 12),
+              NotificationsHint(
+                preferencesViewModel: preferencesViewModel,
+                onOpenPreferences: onOpenPreferences,
               ),
               const SizedBox(height: 16),
               if (serviceViewModel.isLoading && services.isEmpty)

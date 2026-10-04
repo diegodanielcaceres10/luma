@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
-import '../../../../core/utils/date_time_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/utils/app_clock.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../data/services/biometric_service.dart';
@@ -85,7 +86,7 @@ class AppLockViewModel extends ChangeNotifier {
   /// Called from `didChangeAppLifecycleState` when the app moves to
   /// `paused` (background).
   void onAppPaused() {
-    _pausedAt = DateTime.now();
+    _pausedAt = nowLocal();
   }
 
   /// Called from `didChangeAppLifecycleState` when the app returns to
@@ -97,7 +98,7 @@ class AppLockViewModel extends ChangeNotifier {
 
     if (!_lockPreferenceActive || pausedAt == null) return;
 
-    final elapsed = DateTime.now().difference(pausedAt);
+    final elapsed = nowLocal().difference(pausedAt);
     if (elapsed >= kAppLockRelockThreshold) {
       _isLocked = true;
       notifyListeners();

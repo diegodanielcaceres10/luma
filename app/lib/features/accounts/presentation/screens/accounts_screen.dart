@@ -3,25 +3,33 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
-import '../../../../core/utils/date_time_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../auth/presentation/view_models/preferences_view_model.dart';
+import '../../../notifications/presentation/widgets/notifications_hint.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 
 class AccountsScreen extends StatelessWidget {
   final AccountViewModel accountViewModel;
+  final PreferencesViewModel preferencesViewModel;
 
   final ValueChanged<Account> onOpenView;
 
   final VoidCallback onOpenForm;
+
+  /// Opens Preferencias, from the notifications hint.
+  final VoidCallback onOpenPreferences;
 
   final VoidCallback? onBack;
 
   const AccountsScreen({
     super.key,
     required this.accountViewModel,
+    required this.preferencesViewModel,
     required this.onOpenView,
     required this.onOpenForm,
+    required this.onOpenPreferences,
     this.onBack,
   });
 
@@ -49,7 +57,12 @@ class AccountsScreen extends StatelessWidget {
                   onPressed: onOpenForm,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
+              NotificationsHint(
+                preferencesViewModel: preferencesViewModel,
+                onOpenPreferences: onOpenPreferences,
+              ),
+              const SizedBox(height: 20),
               _TotalCard(
                 isLoading: accountViewModel.isLoading,
                 total: accountViewModel.totalBalance,

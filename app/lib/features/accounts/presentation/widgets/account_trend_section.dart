@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/monthly_bar_chart.dart';
 import '../../../../core/widgets/trend_card.dart';
@@ -35,7 +36,7 @@ class AccountTrendSection extends StatelessWidget {
     final trend = buildAccountTrend(
       history: history,
       currentBalance: currentBalance,
-      today: DateTime.now(),
+      today: nowLocal(),
     );
 
     if (trend.isEmpty) {

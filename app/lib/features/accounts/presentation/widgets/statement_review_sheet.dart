@@ -1,120 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/scanned_movement.dart';
 import 'pending_movements_section.dart';
-
-/// Asks where the statement screenshot comes from. Resolves to null when the
-/// user dismisses the sheet.
-Future<ImageSource?> showStatementSourceSheet(BuildContext context) {
-  return showModalBottomSheet<ImageSource>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: AppColors.authBackgroundBottom,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (context) => SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Importar desde una captura',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const _PrivacyNotice(),
-            const SizedBox(height: 8),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(
-                Icons.photo_library_rounded,
-                color: AppColors.authTextPrimary,
-              ),
-              title: const Text(
-                'Elegir de la galería',
-                style: TextStyle(color: AppColors.authTextPrimary),
-              ),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(
-                Icons.photo_camera_rounded,
-                color: AppColors.authTextPrimary,
-              ),
-              title: const Text(
-                'Sacar foto',
-                style: TextStyle(color: AppColors.authTextPrimary),
-              ),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// Warning shown every time before a statement image is picked. The image is
-/// read by a free-tier AI service whose provider may use and review it.
-class _PrivacyNotice extends StatelessWidget {
-  const _PrivacyNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.authExpense.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.authExpense.withValues(alpha: 0.5),
-        ),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            size: 20,
-            color: AppColors.authExpense,
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Esta función es de uso personal y con fines educativos y de '
-              'desarrollo. La captura se envía a un servicio de IA gratuito '
-              '(Gemini): Google puede usarla para mejorar sus productos y '
-              'personas de su equipo podrían leerla.\n\n'
-              'Recortala para que solo se vean las líneas de movimientos. '
-              'No incluyas datos sensibles (tu nombre, números de cuenta o '
-              'de tarjeta, documentos) ni nada que no quieras compartir.',
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// Lets the user review [movements] read from a statement and returns the
 /// ones they confirm as [PendingMovement]s (null if they dismiss the sheet).
@@ -182,7 +76,7 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
 
   DateTimeRange get _range =>
       widget.dateRange ??
-      DateTimeRange(start: DateTime(2020), end: DateTime.now());
+      DateTimeRange(start: DateTime(2020), end: nowLocal());
 
   @override
   void initState() {
@@ -378,7 +272,7 @@ class _ReviewTile extends StatelessWidget {
         amount > 0 ? AppColors.authIncome : AppColors.authExpense;
 
     final date = movement.date;
-    final dateText = date == null ? 'Sin fecha' : formatMovementDate(date);
+    final dateText = date == null ? 'Sin fecha' : formatDate(date);
 
     String? warning;
     if (!item.inRange) {
@@ -490,9 +384,10 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
   @override
   void initState() {
     super.initState();
+    // The sign of the amount is the only thing that defines the type.
     _amountController = TextEditingController(
-      text: widget.movement.amount.toStringAsFixed(2),
-    );
+      text: widget.movement.signedAmount.toStringAsFixed(2),
+    )..addListener(_onAmountChanged);
     _descriptionController = TextEditingController(
       text: widget.movement.description ?? '',
     );
@@ -503,6 +398,17 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
     _amountController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  void _onAmountChanged() {
+    final type = typeFromAmountText(_amountController.text);
+    if (type == _type) return;
+
+    setState(() {
+      _type = type;
+      // A category only fits the type it was created for.
+      if (_category?.type != type) _category = null;
+    });
   }
 
   Future<void> _pickDate() async {
@@ -537,14 +443,14 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
   void _save() {
     if (!_formKey.currentState!.validate()) return;
 
-    final amount = double.parse(_amountController.text.replaceAll(',', '.'));
+    final signed = parseSignedAmount(_amountController.text)!;
     final description = _descriptionController.text.trim();
 
     Navigator.of(context).pop(
       _EditResult(
         ScannedMovement(
-          type: _type,
-          amount: amount,
+          type: typeFromAmountText(_amountController.text),
+          amount: signed.abs(),
           date: _date,
           description: description.isEmpty ? null : description,
         ),
@@ -580,46 +486,33 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SegmentedButton<String>(
-                style: SegmentedButton.styleFrom(
-                  backgroundColor: AppColors.authCardFill,
-                  foregroundColor: AppColors.authTextSecondary,
-                  selectedBackgroundColor: AppColors.authAccent,
-                  selectedForegroundColor: AppColors.authBackgroundBottom,
-                  side: const BorderSide(color: AppColors.authCardBorder),
-                ),
-                segments: const [
-                  ButtonSegment(value: 'expense', label: Text('Gasto')),
-                  ButtonSegment(value: 'income', label: Text('Ingreso')),
-                ],
-                selected: {_type},
-                onSelectionChanged: (selection) => setState(() {
-                  _type = selection.first;
-                  // A category only fits the type it was created for.
-                  if (_category?.type != _type) _category = null;
-                }),
-              ),
-              const SizedBox(height: 16),
               const Text('Monto', style: kMovementDialogLabelStyle),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _amountController,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
+                  signed: true,
                 ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(
-                    RegExp(r'^\d*[.,]?\d{0,2}'),
+                    RegExp(r'^-?\d*[.,]?\d{0,2}'),
                   ),
                 ],
                 style: const TextStyle(color: AppColors.authTextPrimary),
-                decoration:
-                    kMovementDialogFieldDecoration.copyWith(hintText: '0,00'),
+                decoration: kMovementDialogFieldDecoration.copyWith(
+                  hintText: '0,00',
+                  helperText: 'Negativo es gasto, positivo es ingreso',
+                  helperStyle: const TextStyle(
+                    color: AppColors.authTextSecondary,
+                    fontSize: 12,
+                  ),
+                ),
                 validator: (value) {
-                  final text = (value ?? '').trim().replaceAll(',', '.');
+                  final text = (value ?? '').trim();
                   if (text.isEmpty) return 'Ingresa un monto';
-                  final parsed = double.tryParse(text);
-                  if (parsed == null || parsed <= 0) return 'Monto inválido';
+                  final parsed = parseSignedAmount(text);
+                  if (parsed == null || parsed == 0) return 'Monto inválido';
                   return null;
                 },
               ),
@@ -643,7 +536,7 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        formatMovementDate(_date),
+                        formatDate(_date),
                         style:
                             const TextStyle(color: AppColors.authTextPrimary),
                       ),
@@ -705,7 +598,7 @@ class _EditScannedDialogState extends State<_EditScannedDialog> {
             foregroundColor: AppColors.authBackgroundBottom,
           ),
           onPressed: _save,
-          child: const Text('Guardar'),
+          child: const Text('Agregar'),
         ),
       ],
     );

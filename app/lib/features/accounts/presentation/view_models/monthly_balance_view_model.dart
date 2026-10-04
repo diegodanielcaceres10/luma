@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/utils/app_clock.dart';
 import '../../data/models/account.dart';
 import '../../data/repositories/monthly_balance_repository.dart';
 
@@ -22,8 +23,8 @@ class MonthlyBalanceViewModel extends ChangeNotifier {
   /// balance is missing.
   bool get checked => _checked;
 
-  int get currentMonth => DateTime.now().month;
-  int get currentYear => DateTime.now().year;
+  int get currentMonth => nowLocal().month;
+  int get currentYear => nowLocal().year;
 
   /// True while the account has no opening balance for the current month.
   /// Also true before the first check, so nothing is allowed by mistake.

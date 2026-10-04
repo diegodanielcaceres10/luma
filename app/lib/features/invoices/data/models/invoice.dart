@@ -1,3 +1,5 @@
+import '../../../../core/utils/app_clock.dart';
+
 class Invoice {
   final String id;
   final String serviceId;
@@ -41,12 +43,12 @@ class Invoice {
           : null,
       paid: map['paid'] as bool,
       paidAt: map['paid_at'] != null
-          ? DateTime.parse(map['paid_at'] as String)
+          ? asLocal(DateTime.parse(map['paid_at'] as String))
           : null,
       transactionId: map['transaction_id'] as String?,
       cancelled: map['cancelled'] as bool? ?? false,
       cancelledAt: map['cancelled_at'] != null
-          ? DateTime.parse(map['cancelled_at'] as String)
+          ? asLocal(DateTime.parse(map['cancelled_at'] as String))
           : null,
     );
   }

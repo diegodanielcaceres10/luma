@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
@@ -46,7 +48,7 @@ class _TransactionFormTransferScreenState
   String? _accountId;
   String? _otherAccountId;
   bool _isIncoming = false;
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = nowLocal();
 
   static const _fieldDecoration = InputDecoration(
     filled: true,
@@ -335,9 +337,7 @@ class _TransactionFormTransferScreenState
                               ),
                             ),
                             child: Text(
-                              '${_selectedDate.day.toString().padLeft(2, '0')}/'
-                              '${_selectedDate.month.toString().padLeft(2, '0')}/'
-                              '${_selectedDate.year}',
+                              formatDate(_selectedDate),
                               style: const TextStyle(
                                   color: AppColors.authTextPrimary),
                             ),

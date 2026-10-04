@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../models/account.dart';
 import '../models/monthly_opening_balance.dart';
 
@@ -33,7 +34,7 @@ class AccountService {
         .single();
 
     final accountId = inserted['id'] as String;
-    final now = DateTime.now();
+    final now = nowLocal();
 
     // The initial balance entered when creating the account is, by
     // definition, the opening balance of the current month — it is used so
@@ -120,7 +121,7 @@ class AccountService {
     required String accountId,
     required int months,
   }) async {
-    final now = DateTime.now();
+    final now = nowLocal();
     // DateTime normalizes an out-of-range month into the previous year.
     final oldest = DateTime(now.year, now.month - (months - 1));
     final oldestIndex = oldest.year * 12 + oldest.month;

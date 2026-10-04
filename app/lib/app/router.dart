@@ -229,9 +229,11 @@ GoRouter buildAppRouter({
             builder: (context, state) => RoutedScreenScaffold(
               body: AccountsScreen(
                 accountViewModel: accountViewModel,
+                preferencesViewModel: preferencesViewModel,
                 onOpenView: (account) =>
                     context.push('/accounts/${account.id}'),
                 onOpenForm: () => context.push('/accounts/new'),
+                onOpenPreferences: () => context.push('/profile/preferences'),
               ),
             ),
           ),
@@ -363,10 +365,12 @@ GoRouter buildAppRouter({
             builder: (context, state) => RoutedScreenScaffold(
               body: AccountsScreen(
                 accountViewModel: accountViewModel,
+                preferencesViewModel: preferencesViewModel,
                 onBack: () => context.goBack(),
                 onOpenView: (account) =>
                     context.push('/accounts/${account.id}'),
                 onOpenForm: () => context.push('/accounts/new'),
+                onOpenPreferences: () => context.push('/profile/preferences'),
               ),
             ),
           ),
@@ -431,10 +435,12 @@ GoRouter buildAppRouter({
               body: ServicesScreen(
                 serviceViewModel: serviceViewModel,
                 categoryViewModel: categoryViewModel,
+                preferencesViewModel: preferencesViewModel,
                 currency: accountViewModel.primaryCurrency,
                 onOpenView: (service) =>
                     context.push('/services/${service.id}'),
                 onOpenForm: () => context.push('/services/new'),
+                onOpenPreferences: () => context.push('/profile/preferences'),
               ),
             ),
           ),
@@ -495,10 +501,12 @@ GoRouter buildAppRouter({
                 body: InvoicesScreen(
                   invoiceViewModel: invoiceViewModel,
                   serviceViewModel: serviceViewModel,
+                  preferencesViewModel: preferencesViewModel,
                   currency: accountViewModel.primaryCurrency,
                   onOpenView: (invoice) =>
                       context.push('/invoices/${invoice.id}'),
                   onOpenForm: () => context.push('/invoices/new'),
+                  onOpenPreferences: () => context.push('/profile/preferences'),
                   // Each push builds a new InvoicesScreen, so reading the query
                   // param once is enough.
                   initialFilter: state.uri.queryParameters['filter'],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/month_range.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
@@ -166,7 +167,7 @@ class _AccountUpdateBalanceScreenState
       }
 
       if (remainder.abs() >= kRemainderEpsilon) {
-        final now = DateTime.now();
+        final now = nowLocal();
         final success =
             await widget.accountViewModel.applyUncontrolledAdjustment(
           userId: userId,

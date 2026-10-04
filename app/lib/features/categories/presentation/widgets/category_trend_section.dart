@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/monthly_bar_chart.dart';
@@ -37,7 +38,7 @@ class _CategoryTrendSectionState extends State<CategoryTrendSection> {
   }
 
   Future<CategoryTrend> _load() async {
-    final today = DateTime.now();
+    final today = nowLocal();
     final entries = await widget.transactionViewModel.fetchCategoryEntries(
       categoryId: widget.category.id,
       since: categoryTrendStart(today),

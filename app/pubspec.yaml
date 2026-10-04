@@ -2,7 +2,7 @@ name: luma
 description: "A new Flutter project."
 publish_to: "none"
 
-version: 1.5.0
+version: 1.6.0
 
 environment:
   sdk: ^3.5.3
@@ -21,6 +21,7 @@ dependencies:
   printing: ^5.13.0
   google_sign_in: ^7.2.0
   image_picker: ^1.1.1
+  image_cropper: ^12.2.1
   package_info_plus: ^9.0.0
   shared_preferences: ^2.5.5
   local_auth: ^3.0.2

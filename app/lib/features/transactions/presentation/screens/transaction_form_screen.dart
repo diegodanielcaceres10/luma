@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/utils/date_format.dart';
+import '../../../../core/utils/image_crop_picker.dart';
+import '../../../../core/widgets/ai_image_source_sheet.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
@@ -54,11 +57,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   Category? _selectedCategory;
   Account? _selectedAccount;
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = nowLocal();
 
   _EntryMode _mode = _EntryMode.selecting;
 
-  // POC: prefill the form from a receipt photo; the user reviews it before
+  // FEAT: prefill the form from a receipt photo; the user reviews it before
   // saving.
   final _receiptScanService = ReceiptScanService(Supabase.instance.client);
   bool _isScanning = false;
@@ -113,7 +116,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      lastDate: nowLocal(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -171,50 +174,21 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     }
   }
 
-  Future<ImageSource?> _pickImageSource() {
-    return showModalBottomSheet<ImageSource>(
-      context: context,
-      backgroundColor: AppColors.authBackgroundBottom,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_rounded,
-                  color: AppColors.authTextPrimary),
-              title: const Text('Sacar foto',
-                  style: TextStyle(color: AppColors.authTextPrimary)),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_rounded,
-                  color: AppColors.authTextPrimary),
-              title: const Text('Elegir de la galería',
-                  style: TextStyle(color: AppColors.authTextPrimary)),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _scanReceipt() async {
-    final source = await _pickImageSource();
+    final source = await showAiImageSourceSheet(
+      context,
+      title: 'Escanear un ticket',
+    );
     if (source == null || !mounted) return;
 
-    final XFile? picked = await ImagePicker().pickImage(
-      source: source,
-      imageQuality: 85,
-    );
-    if (picked == null || !mounted) return;
+    final image = await pickAndCropImage(context, source);
+    if (image == null || !mounted) return;
 
     setState(() => _isScanning = true);
     try {
-      final bytes = await picked.readAsBytes();
       final result = await _receiptScanService.scan(
-        imageBytes: bytes,
-        mimeType: picked.mimeType ?? 'image/jpeg',
+        imageBytes: image.bytes,
+        mimeType: image.mimeType,
       );
       if (!mounted) return;
 
@@ -276,7 +250,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             ),
             _scanResultRow(
               'Fecha',
-              result.date != null ? _formatDate(result.date!) : 'No detectada',
+              result.date != null ? formatDate(result.date!) : 'No detectada',
             ),
             const SizedBox(height: 12),
             const Text(
@@ -329,12 +303,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/'
-        '${date.month.toString().padLeft(2, '0')}/'
-        '${date.year}';
-  }
-
   void _applyScanResult(ReceiptScanResult result) {
     setState(() {
       _mode = _EntryMode.form;
@@ -344,7 +312,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       if (result.description != null) {
         _descriptionController.text = result.description!;
       }
-      if (result.date != null && !result.date!.isAfter(DateTime.now())) {
+      if (result.date != null && !result.date!.isAfter(nowLocal())) {
         _selectedDate = result.date!;
       }
     });
@@ -362,7 +330,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _descriptionController.text.trim().isNotEmpty ||
       _selectedCategory != null ||
       _selectedAccount != null ||
-      !DateUtils.isSameDay(_selectedDate, DateTime.now());
+      !DateUtils.isSameDay(_selectedDate, nowLocal());
 
   void _resetForm() {
     setState(() {
@@ -370,7 +338,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _descriptionController.clear();
       _selectedCategory = null;
       _selectedAccount = null;
-      _selectedDate = DateTime.now();
+      _selectedDate = nowLocal();
       _mode = _EntryMode.selecting;
     });
   }
@@ -458,7 +426,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           const SizedBox(height: 16),
           _EntryModeCard(
             icon: Icons.document_scanner_rounded,
-            title: 'Escanear ticket (POC)',
+            title: 'Escanear ticket',
             subtitle: 'Tomá una foto del ticket y extraemos la información '
                 'automáticamente.',
             highlighted: true,
@@ -605,8 +573,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         style: TextStyle(color: AppColors.authTextSecondary),
                       ),
                       items: accounts.map((a) {
-                        final isPending =
-                            widget.monthlyBalanceViewModel.isAccountPending(a.id);
+                        final isPending = widget.monthlyBalanceViewModel
+                            .isAccountPending(a.id);
                         return DropdownMenuItem(
                           value: a,
                           enabled: !isPending,
@@ -644,9 +612,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${_selectedDate.day.toString().padLeft(2, '0')}/'
-                            '${_selectedDate.month.toString().padLeft(2, '0')}/'
-                            '${_selectedDate.year}',
+                            formatDate(_selectedDate),
                             style: const TextStyle(
                                 color: AppColors.authTextPrimary),
                           ),

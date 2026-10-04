@@ -3,6 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../../../../core/config/app_env.dart';
+import '../../../../core/utils/app_clock.dart';
+import '../../../accounts/data/repositories/account_repository.dart';
+import '../../../accounts/data/services/account_service.dart';
 import '../../../auth/data/repositories/preferences_repository.dart';
 import '../../../invoices/data/repositories/invoice_repository.dart';
 import '../../../invoices/data/services/invoice_service.dart';
@@ -10,6 +13,7 @@ import '../../../services/data/models/service.dart';
 import '../../../services/data/repositories/service_repository.dart';
 import '../../../services/data/services/service_service.dart';
 import '../../domain/missing_invoice_rule.dart';
+import '../../domain/stale_accounts_rule.dart';
 import 'local_notifications_service.dart';
 
 /// Nombre único de la tarea periódica ante Workmanager/WorkManager
@@ -138,6 +142,13 @@ Future<void> _runDailyChecks() async {
       notifications: notifications,
     );
   } catch (_) {}
+
+  try {
+    await _notifyStaleAccounts(
+      accountRepository: AccountRepository(AccountService(client)),
+      notifications: notifications,
+    );
+  } catch (_) {}
 }
 
 Future<void> _notifyInvoicesDueToday({
@@ -169,7 +180,7 @@ Future<void> _notifyMissingInvoices({
   required List<Service> services,
   required LocalNotificationsService notifications,
 }) async {
-  final today = DateTime.now();
+  final today = nowLocal();
   final candidates = services
       .where((service) => service.isActive && service.dueDay != null)
       .toList();
@@ -189,6 +200,26 @@ Future<void> _notifyMissingInvoices({
               today.day) &
           0x7fffffff,
       serviceName: service.name,
+    );
+  }
+}
+
+Future<void> _notifyStaleAccounts({
+  required AccountRepository accountRepository,
+  required LocalNotificationsService notifications,
+}) async {
+  final today = nowLocal();
+  final accounts = await accountRepository.getAccounts();
+  final stale = staleAccounts(accounts: accounts, today: today);
+
+  for (final entry in stale) {
+    await notifications.showStaleAccount(
+      // Salted with the date so the id is stable within a day only.
+      id: Object.hash('stale-account', entry.account.id, today.year,
+              today.month, today.day) &
+          0x7fffffff,
+      accountName: entry.account.name,
+      days: entry.days,
     );
   }
 }

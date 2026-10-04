@@ -23,7 +23,8 @@ class LocalNotificationsService {
   static const _invoicesChannelId = 'invoices_due';
   static const _invoicesChannelName = 'Vencimientos de facturas';
   static const _invoicesChannelDescription =
-      'Avisa cuando una factura vence hoy o falta cargarla';
+      'Avisa cuando una factura vence hoy, falta cargarla o una cuenta lleva '
+      'días sin actualizarse';
 
   /// Mismo verde que la hoja del logo (`authAccentDark` en
   /// `AppColors`) — tiñe el círculo detrás del ícono chico en la barra de
@@ -126,6 +127,35 @@ class LocalNotificationsService {
       'Falta cargar la factura: $serviceName',
       '$serviceName vence hoy y todavía no cargaste la factura de este '
           'mes. Ingresala para tenerla al día.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _invoicesChannelId,
+          _invoicesChannelName,
+          channelDescription: _invoicesChannelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+          color: _brandColor,
+          largeIcon: DrawableResourceAndroidBitmap('ic_launcher'),
+        ),
+      ),
+    );
+  }
+
+  /// Reminder for an active account whose balance has not changed for
+  /// [days] days. [id] must be stable per account and day so a repeated run
+  /// does not show it twice.
+  Future<void> showStaleAccount({
+    required int id,
+    required String accountName,
+    required int days,
+  }) async {
+    await initialize();
+
+    await _plugin.show(
+      id,
+      'Cuenta sin actualizar: $accountName',
+      'Hace $days días que no se actualiza el saldo de $accountName. '
+          'Revisá si te falta cargar movimientos.',
       const NotificationDetails(
         android: AndroidNotificationDetails(
           _invoicesChannelId,

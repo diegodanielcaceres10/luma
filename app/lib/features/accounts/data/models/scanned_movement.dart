@@ -95,3 +95,17 @@ bool isPossibleDuplicate(
         k.date.day == date.day,
   );
 }
+
+/// Type implied by the sign of an amount the user typed: 'expense' when it
+/// starts with a minus sign, 'income' otherwise.
+String typeFromAmountText(String text) =>
+    text.trim().startsWith('-') ? 'expense' : 'income';
+
+/// Parses an amount typed by the user, with an optional leading minus sign and
+/// either '.' or ',' as decimal separator. Null when it is not a finite
+/// number.
+double? parseSignedAmount(String text) {
+  final value = double.tryParse(text.trim().replaceAll(',', '.'));
+  if (value == null || !value.isFinite) return null;
+  return value;
+}
