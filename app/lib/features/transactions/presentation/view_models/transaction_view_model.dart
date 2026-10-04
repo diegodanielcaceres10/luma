@@ -199,6 +199,11 @@ class TransactionViewModel extends ChangeNotifier {
   List<CategoryTotal> get statisticsCategoryBreakdown =>
       _breakdownOf(_statisticsEntries);
 
+  /// Entries of the statistics month, newest first, transfers included.
+  /// Returns a copy, so callers can keep it as a snapshot.
+  List<TransactionEntry> get statisticsEntries =>
+      List.unmodifiable(_statisticsEntries);
+
   /// Signed sum of uncontrolled adjustments for the statistics month across
   /// all accounts (negative is an expense, positive an income).
   double get statisticsUncontrolledTotal => isStatisticsCurrentMonth

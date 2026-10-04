@@ -35,11 +35,13 @@ class TransactionsStatisticsScreen extends StatefulWidget {
 class _TransactionsStatisticsScreenState
     extends State<TransactionsStatisticsScreen> {
   bool _isExportingPdf = false;
+  bool _isExportingFullPdf = false;
 
   /// Generates the month's PDF and downloads it (web) or opens the share
-  /// sheet (mobile). Only offered for closed months.
-  Future<void> _exportPdf() async {
-    if (_isExportingPdf) return;
+  /// sheet (mobile). Only offered for closed months. With
+  /// [includeMovements] the PDF also lists the month's movements.
+  Future<void> _exportPdf({bool includeMovements = false}) async {
+    if (_isExportingPdf || _isExportingFullPdf) return;
 
     // Snapshot before the first await so the PDF matches the month where the
     // user tapped, even if they switch months while it generates.
@@ -58,9 +60,13 @@ class _TransactionsStatisticsScreenState
       incomeChangePercent: vm.statisticsIncomeChangePercent,
       expenseChangePercent: vm.statisticsExpenseChangePercent,
       netChangePercent: vm.statisticsNetResultChangePercent,
+      movements: includeMovements ? vm.statisticsEntries : null,
     );
 
-    setState(() => _isExportingPdf = true);
+    setState(() {
+      _isExportingPdf = !includeMovements;
+      _isExportingFullPdf = includeMovements;
+    });
     try {
       final bytes = await TransactionsStatisticsScreenPdfBuilder.build(data);
       await Printing.sharePdf(bytes: bytes, filename: data.fileName);
@@ -71,7 +77,12 @@ class _TransactionsStatisticsScreenState
         );
       }
     } finally {
-      if (mounted) setState(() => _isExportingPdf = false);
+      if (mounted) {
+        setState(() {
+          _isExportingPdf = false;
+          _isExportingFullPdf = false;
+        });
+      }
     }
   }
 
@@ -112,8 +123,12 @@ class _TransactionsStatisticsScreenState
         final header = _StatisticsHeader(
           selectedMonth: month,
           onMonthChanged: vm.loadStatisticsMonth,
-          onExportPdf: canExportPdf ? _exportPdf : null,
+          onExportPdf: canExportPdf ? () => _exportPdf() : null,
+          onExportFullPdf: canExportPdf
+              ? () => _exportPdf(includeMovements: true)
+              : null,
           isExportingPdf: _isExportingPdf,
+          isExportingFullPdf: _isExportingFullPdf,
         );
 
         // Budgets track the current month only.
@@ -420,13 +435,19 @@ class _StatisticsHeader extends StatelessWidget {
 
   /// Null hides the "Exportar PDF" button.
   final VoidCallback? onExportPdf;
+
+  /// Null hides the "Exportar PDF completo" button (summary and movements).
+  final VoidCallback? onExportFullPdf;
   final bool isExportingPdf;
+  final bool isExportingFullPdf;
 
   const _StatisticsHeader({
     required this.selectedMonth,
     required this.onMonthChanged,
     this.onExportPdf,
+    this.onExportFullPdf,
     this.isExportingPdf = false,
+    this.isExportingFullPdf = false,
   });
 
   @override
@@ -443,32 +464,75 @@ class _StatisticsHeader extends StatelessWidget {
             onChanged: onMonthChanged,
           ),
         ),
-        if (onExportPdf != null) ...[
+        if (onExportPdf != null || onExportFullPdf != null) ...[
           const SizedBox(height: 14),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.authAccent,
-              side: const BorderSide(color: AppColors.authCardBorder),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
-            onPressed: isExportingPdf ? null : onExportPdf,
-            icon: isExportingPdf
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.authAccent,
-                    ),
-                  )
-                : const Icon(Icons.picture_as_pdf_outlined, size: 18),
-            label: Text(isExportingPdf ? 'Generando…' : 'Exportar PDF'),
+          // Both buttons are disabled while either export is running.
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              if (onExportPdf != null)
+                _ExportPdfButton(
+                  label: 'Exportar PDF',
+                  icon: Icons.picture_as_pdf_outlined,
+                  isLoading: isExportingPdf,
+                  onPressed:
+                      isExportingPdf || isExportingFullPdf ? null : onExportPdf,
+                ),
+              if (onExportFullPdf != null)
+                _ExportPdfButton(
+                  label: 'Exportar PDF completo',
+                  icon: Icons.description_outlined,
+                  isLoading: isExportingFullPdf,
+                  onPressed: isExportingPdf || isExportingFullPdf
+                      ? null
+                      : onExportFullPdf,
+                ),
+            ],
           ),
         ],
       ],
+    );
+  }
+}
+
+class _ExportPdfButton extends StatelessWidget {
+  final String label;
+
+  final IconData icon;
+  final bool isLoading;
+  final VoidCallback? onPressed;
+
+  const _ExportPdfButton({
+    required this.label,
+    required this.icon,
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.authAccent,
+        side: const BorderSide(color: AppColors.authCardBorder),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      ),
+      onPressed: onPressed,
+      icon: isLoading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.authAccent,
+              ),
+            )
+          : Icon(icon, size: 18),
+      label: Text(isLoading ? 'Generando…' : label),
     );
   }
 }

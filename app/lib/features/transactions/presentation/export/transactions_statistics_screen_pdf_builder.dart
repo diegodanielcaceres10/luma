@@ -11,6 +11,7 @@ import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
+import '../../data/models/transaction_entry.dart' show TransactionEntry;
 import '../view_models/transaction_view_model.dart' show CategoryTotal;
 import '../view_models/transactions_statistics_report.dart';
 
@@ -31,6 +32,11 @@ class TransactionsStatisticsScreenPdfData {
   final double? expenseChangePercent;
   final double? netChangePercent;
 
+  /// Movements of the month, newest first. When not null the PDF is the
+  /// extended report: the summary on the first page and the movements from
+  /// the second page on.
+  final List<TransactionEntry>? movements;
+
   const TransactionsStatisticsScreenPdfData({
     required this.month,
     required this.monthLabel,
@@ -39,15 +45,21 @@ class TransactionsStatisticsScreenPdfData {
     required this.incomeChangePercent,
     required this.expenseChangePercent,
     required this.netChangePercent,
+    this.movements,
   });
 
-  String get fileName =>
-      'luma-estadisticas-${month.year}-${month.month.toString().padLeft(2, '0')}.pdf';
+  String get fileName {
+    final suffix = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+    return movements == null
+        ? 'luma-estadisticas-$suffix.pdf'
+        : 'luma-estadisticas-completo-$suffix.pdf';
+  }
 }
 
 /// Builds the PDF of the statistics screen for a closed month, with the same
-/// sections and order as the screen. Uses the bundled Roboto fonts because
-/// the default PDF fonts lack the € symbol and some accents.
+/// sections and order as the screen. When the data carries movements, they
+/// follow on their own pages after the summary. Uses the bundled Roboto fonts
+/// because the default PDF fonts lack the € symbol and some accents.
 class TransactionsStatisticsScreenPdfBuilder {
   TransactionsStatisticsScreenPdfBuilder._();
 
@@ -56,6 +68,9 @@ class TransactionsStatisticsScreenPdfBuilder {
   static const _textSecondary = PdfColor.fromInt(0xFF6B7280);
   static const _border = PdfColor.fromInt(0xFFE5E7EB);
   static const _cardFill = PdfColor.fromInt(0xFFF9FAFB);
+
+  // Darker than AppColors.authTransfer, which is too light on white paper.
+  static const _transferColor = PdfColor.fromInt(0xFF4A6FA5);
 
   static const _donutSize = 100.0;
   static const _donutStroke = 13.0;
@@ -132,6 +147,7 @@ class TransactionsStatisticsScreenPdfBuilder {
         // the screen only shows it for the month in progress.
         build: (context) {
           final report = data.report;
+          final movements = data.movements;
 
           return [
             _header(data, logo),
@@ -168,6 +184,10 @@ class TransactionsStatisticsScreenPdfBuilder {
                   donutLabel: 'Total gastos',
                 ),
               ],
+            ],
+            if (movements != null) ...[
+              pw.NewPage(),
+              ..._movementsSection(movements, data),
             ],
           ];
         },
@@ -521,6 +541,152 @@ class TransactionsStatisticsScreenPdfBuilder {
 
       startAngle += sweep;
     }
+  }
+
+  /// Title and table of the month's movements, same order as the app.
+  static List<pw.Widget> _movementsSection(
+    List<TransactionEntry> movements,
+    TransactionsStatisticsScreenPdfData data,
+  ) {
+    final count = movements.length;
+
+    return [
+      pw.Text(
+        'Movimientos',
+        style: const pw.TextStyle(
+          fontSize: 20,
+          fontWeight: pw.FontWeight.bold,
+          color: _textPrimary,
+        ),
+      ),
+      pw.SizedBox(height: 2),
+      pw.Text(
+        count == 0
+            ? 'No hay movimientos registrados en '
+                '${data.monthLabel.toLowerCase()}.'
+            : '$count ${count == 1 ? 'movimiento' : 'movimientos'} en '
+                '${data.monthLabel.toLowerCase()}',
+        style: const pw.TextStyle(fontSize: 10, color: _textSecondary),
+      ),
+      if (count > 0) ...[
+        pw.SizedBox(height: 12),
+        _movementsTable(movements, data.currency),
+      ],
+    ];
+  }
+
+  static pw.Widget _movementsTable(
+    List<TransactionEntry> movements,
+    String currency,
+  ) {
+    const headerStyle = pw.TextStyle(
+      fontSize: 8.5,
+      fontWeight: pw.FontWeight.bold,
+      color: _textSecondary,
+    );
+
+    return pw.Table(
+      defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
+      columnWidths: const {
+        0: pw.FixedColumnWidth(56),
+        1: pw.FlexColumnWidth(3),
+        2: pw.FlexColumnWidth(2),
+        3: pw.FlexColumnWidth(2),
+        4: pw.FixedColumnWidth(92),
+      },
+      children: [
+        // The header repeats on every page the table spans.
+        pw.TableRow(
+          repeat: true,
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(
+              bottom: pw.BorderSide(color: _border, width: 0.8),
+            ),
+          ),
+          children: [
+            _tableCell('Fecha', style: headerStyle),
+            _tableCell('Descripción', style: headerStyle),
+            _tableCell('Categoría', style: headerStyle),
+            _tableCell('Cuenta', style: headerStyle),
+            _tableCell(
+              'Importe',
+              style: headerStyle,
+              align: pw.TextAlign.right,
+            ),
+          ],
+        ),
+        for (final movement in movements) _movementRow(movement, currency),
+      ],
+    );
+  }
+
+  static pw.TableRow _movementRow(TransactionEntry movement, String currency) {
+    final description = movement.description?.trim() ?? '';
+    final sign = movement.isIncome ? '+' : '-';
+    // Transfers are neither income nor expense, so they get a neutral color.
+    final amountColor = movement.isTransfer
+        ? _transferColor
+        : _pdfColor(
+            movement.isIncome
+                ? AppColors.authAccentDark
+                : AppColors.authExpense,
+          );
+
+    return pw.TableRow(
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(
+          bottom: pw.BorderSide(color: _border, width: 0.5),
+        ),
+      ),
+      children: [
+        _tableCell(
+          formatDate(movement.date),
+          style: const pw.TextStyle(fontSize: 9, color: _textSecondary),
+        ),
+        _tableCell(
+          description.isNotEmpty ? description : movement.category.name,
+          style: const pw.TextStyle(fontSize: 9.5, color: _textPrimary),
+          maxLines: 2,
+        ),
+        _tableCell(
+          movement.isTransfer ? 'Transferencia' : movement.category.name,
+          style: pw.TextStyle(
+            fontSize: 9,
+            color: movement.isTransfer ? _transferColor : _textSecondary,
+          ),
+        ),
+        _tableCell(
+          movement.account.name,
+          style: const pw.TextStyle(fontSize: 9, color: _textSecondary),
+        ),
+        _tableCell(
+          '$sign${formatCurrency(movement.amount, currency)}',
+          style: pw.TextStyle(
+            fontSize: 9.5,
+            fontWeight: pw.FontWeight.bold,
+            color: amountColor,
+          ),
+          align: pw.TextAlign.right,
+        ),
+      ],
+    );
+  }
+
+  static pw.Widget _tableCell(
+    String text, {
+    required pw.TextStyle style,
+    pw.TextAlign align = pw.TextAlign.left,
+    int maxLines = 1,
+  }) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 5, horizontal: 4),
+      child: pw.Text(
+        text,
+        maxLines: maxLines,
+        textAlign: align,
+        style: style,
+      ),
+    );
   }
 
   static pw.Widget _legendRow(CategoryTotal item, String currency) {
