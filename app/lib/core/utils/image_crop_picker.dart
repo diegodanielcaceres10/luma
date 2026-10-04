@@ -5,6 +5,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../widgets/crop_preview_dialog.dart';
 import '../widgets/themed_cropper_dialog.dart';
 
 /// An image already cropped by the user, ready to be sent for scanning.
@@ -17,23 +18,42 @@ typedef ImagePickFn = Future<XFile?> Function(ImageSource source);
 /// or null when the user cancels.
 typedef ImageCropFn = Future<Uint8List?> Function(String sourcePath);
 
+/// Shows the cropped [bytes] and returns what the user decided to do with
+/// them.
+typedef ImagePreviewFn = Future<CropPreviewAction> Function(Uint8List bytes);
+
 /// Picks an image and lets the user crop it. Returns null if the user cancels
-/// either step.
+/// any step.
 ///
-/// The picker and the cropper are injected so the flow can be tested without
-/// the platform plugins.
+/// When [preview] is given, the cropped image is shown before it is returned.
+/// The user can send it, crop the original photo again (without picking it
+/// anew) or cancel. Without [preview] the cropped image is returned as is.
+///
+/// The picker, the cropper and the preview are injected so the flow can be
+/// tested without the platform plugins.
 Future<PickedImage?> pickCroppedImage({
   required ImageSource source,
   required ImagePickFn pick,
   required ImageCropFn crop,
+  ImagePreviewFn? preview,
 }) async {
   final picked = await pick(source);
   if (picked == null) return null;
 
-  final bytes = await crop(picked.path);
-  if (bytes == null) return null;
+  while (true) {
+    // Always crop from the original photo, never from an earlier crop.
+    final bytes = await crop(picked.path);
+    if (bytes == null) return null;
 
-  return (bytes: bytes, mimeType: detectImageMimeType(bytes));
+    final action =
+        preview == null ? CropPreviewAction.send : await preview(bytes);
+
+    if (action == CropPreviewAction.send) {
+      return (bytes: bytes, mimeType: detectImageMimeType(bytes));
+    }
+    if (action == CropPreviewAction.cancel) return null;
+    // recrop: crop the same photo again.
+  }
 }
 
 /// Mime type of [bytes] from their magic numbers. The cropper re-encodes the
@@ -62,11 +82,13 @@ String detectImageMimeType(Uint8List bytes) {
   return 'image/jpeg';
 }
 
-/// Picks a photo from the gallery or the camera and opens the crop screen
-/// before returning it. Returns null if the user cancels.
+/// Picks a photo from the gallery or the camera, opens the crop screen and
+/// shows a preview of the result before returning it. Returns null if the
+/// user cancels.
 ///
 /// The photo is picked untouched and compressed once, when it is cropped, so
-/// it is not re-encoded twice.
+/// it is not re-encoded twice. The preview shows those same bytes: exactly
+/// what will be sent.
 Future<PickedImage?> pickAndCropImage(
   BuildContext context,
   ImageSource source, {
@@ -76,6 +98,11 @@ Future<PickedImage?> pickAndCropImage(
   return pickCroppedImage(
     source: source,
     pick: (source) => ImagePicker().pickImage(source: source),
+    preview: (bytes) async {
+      // The cropper is async; the screen may be gone by now.
+      if (!context.mounted) return CropPreviewAction.cancel;
+      return showCropPreviewDialog(context, bytes);
+    },
     crop: (sourcePath) async {
       // The picker is async; the screen may be gone by now.
       if (!context.mounted) return null;
