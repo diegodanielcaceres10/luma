@@ -1,0 +1,115 @@
+<section id="lectura-ia" class="relative py-28 md:py-36 border-t border-white/[0.06]">
+  <div class="pointer-events-none absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-teal-500/10 blur-3xl"></div>
+
+  <div class="relative mx-auto max-w-7xl px-6 sm:px-8">
+
+    <!-- Section header -->
+    <div class="mx-auto max-w-3xl text-center mb-16">
+      <div class="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-950/30 px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-teal-400 mb-4">
+        Lectura con IA · Opcional
+      </div>
+      <h2 class="font-serif text-4xl sm:text-5xl font-normal tracking-tight text-white mb-6">
+        Carga un ticket o un extracto
+        <span class="block italic font-serif text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-200">
+          sin escribir cada dato.
+        </span>
+      </h2>
+      <p class="text-base sm:text-lg text-neutral-400 max-w-2xl mx-auto">
+        Luma puede leer una imagen con ayuda de Gemini, la IA de Google, y dejarte los datos listos para revisar. Es una función opcional: la app funciona igual sin ella.
+      </p>
+    </div>
+
+    <!-- The two uses -->
+    <div class="grid gap-6 md:grid-cols-2">
+      <article class="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-neutral-900/60 p-8 backdrop-blur-2xl">
+        <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <h3 class="font-serif text-2xl font-bold text-white mb-2">Escanear un ticket</h3>
+        <p class="text-sm sm:text-base text-neutral-400 leading-relaxed">
+          Toma una foto o elige una imagen del ticket. Luma lee el total, la fecha y el comercio, y precompleta el formulario de ingreso o gasto. Tú revisas y guardas.
+        </p>
+      </article>
+
+      <article class="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-neutral-900/60 p-8 backdrop-blur-2xl">
+        <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-400 ring-1 ring-teal-500/30">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <h3 class="font-serif text-2xl font-bold text-white mb-2">Leer un extracto</h3>
+        <p class="text-sm sm:text-base text-neutral-400 leading-relaxed">
+          Elige una captura con las líneas de movimientos de tu extracto. Luma las convierte en una lista de movimientos pendientes que revisas, corriges y agregas. Aquí solo se puede elegir una imagen existente, no tomar una foto.
+        </p>
+      </article>
+    </div>
+
+    <!-- How it works -->
+    <ol class="mt-6 grid gap-6 rounded-3xl border border-white/[0.08] bg-neutral-900/40 p-8 backdrop-blur-xl md:grid-cols-3">
+      <li class="flex items-start gap-4">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-semibold text-emerald-400 ring-1 ring-emerald-500/30">1</span>
+        <div>
+          <h3 class="text-base font-semibold text-white">Elige la imagen</h3>
+          <p class="text-sm text-neutral-400 mt-1">Desde la galería o con la cámara (la cámara solo en tickets).</p>
+        </div>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-semibold text-emerald-400 ring-1 ring-emerald-500/30">2</span>
+        <div>
+          <h3 class="text-base font-semibold text-white">Recorta y revisa</h3>
+          <p class="text-sm text-neutral-400 mt-1">Deja visible solo lo necesario y mira la vista previa de lo que se va a enviar.</p>
+        </div>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-semibold text-emerald-400 ring-1 ring-emerald-500/30">3</span>
+        <div>
+          <h3 class="text-base font-semibold text-white">Confirma</h3>
+          <p class="text-sm text-neutral-400 mt-1">Los datos leídos llegan para que los revises. Nada se guarda hasta que tú confirmas.</p>
+        </div>
+      </li>
+    </ol>
+
+    <!-- What happens to the image -->
+    <div class="mt-6 relative overflow-hidden rounded-3xl border border-amber-500/30 bg-amber-950/20 p-8 sm:p-10">
+      <div class="flex items-start gap-4">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/30">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h3 class="font-serif text-2xl font-bold text-white mb-4">Qué pasa con tu imagen</h3>
+          <ul class="space-y-3 text-sm sm:text-base text-neutral-300 leading-relaxed">
+            <li class="flex gap-3">
+              <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
+              <span><strong class="text-white">Luma no la guarda.</strong> Viaja solo en memoria: no se sube a ningún almacenamiento ni a la base de datos, y se descarta al terminar la lectura.</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
+              <span><strong class="text-white">Sí llega a Google.</strong> Se envía a la API de Gemini en su nivel gratuito: Google puede usarla para mejorar sus productos y personas de su equipo podrían leerla. Luma no puede borrarla de los sistemas de Google.</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
+              <span><strong class="text-white">Por eso se recorta.</strong> No incluyas datos sensibles: tu nombre, tu dirección, números de cuenta o de tarjeta, ni documentos. Solo se envía la imagen, nunca los datos de tu cuenta.</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"></span>
+              <span><strong class="text-white">Tú decides.</strong> Si no quieres usarla, no la uses: todo se puede cargar a mano.</span>
+            </li>
+          </ul>
+          <a
+            routerLink="/privacidad"
+            class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-emerald-400 underline underline-offset-4 transition-colors hover:text-emerald-300"
+          >
+            Leer la Política de privacidad
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

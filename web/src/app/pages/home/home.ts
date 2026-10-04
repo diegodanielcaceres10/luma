@@ -4,6 +4,7 @@ import { HeroComponent } from '../../components/hero/hero';
 import { AppShowcaseComponent } from '../../components/app-showcase/app-showcase';
 import { FeaturesBentoComponent } from '../../components/features-bento/features-bento';
 import { ExperienceTabsComponent } from '../../components/experience-tabs/experience-tabs';
+import { GeminiSectionComponent } from '../../components/gemini-section/gemini-section';
 import { SecuritySectionComponent } from '../../components/security-section/security-section';
 import { StackSectionComponent } from '../../components/stack-section/stack-section';
 import { CtaBannerComponent } from '../../components/cta-banner/cta-banner';
@@ -17,6 +18,7 @@ import { FooterComponent } from '../../components/footer/footer';
     AppShowcaseComponent,
     FeaturesBentoComponent,
     ExperienceTabsComponent,
+    GeminiSectionComponent,
     SecuritySectionComponent,
     StackSectionComponent,
     CtaBannerComponent,

@@ -39,6 +39,10 @@
               Información financiera que cargás vos mismo: cuentas, categorías,
               transacciones, presupuestos, servicios y facturas asociadas.
             </li>
+            <li>
+              Si usás la lectura con IA, la imagen de un ticket o de un extracto que elijas
+              enviar. Luma no la guarda (ver la sección 5).
+            </li>
           </ul>
         </section>
 
@@ -47,7 +51,7 @@
           <p>
             Los datos se usan únicamente para que la app funcione: mostrar tus movimientos,
             calcular balances y generar los insights y reportes que vos mismo pedís
-            (incluida la exportación en PDF). No se venden, comparten ni usan con fines
+            (incluida la exportación en PDF). No se venden ni se usan con fines
             publicitarios ni comerciales.
           </p>
         </section>
@@ -57,13 +61,59 @@
           <p>
             Los datos se almacenan en <strong>Supabase</strong> (autenticación, base de datos
             PostgreSQL con políticas RLS y storage). La autenticación se realiza mediante <strong>Google Sign-In</strong>.
-            Ninguno de tus datos se comparte con terceros más allá de estos proveedores
-            de infraestructura indispensables para el funcionamiento.
+            Fuera de estos proveedores de infraestructura, indispensables para el
+            funcionamiento, tus datos solo llegan a un tercero en el caso opcional de la
+            lectura con IA, que se explica en la sección siguiente.
           </p>
         </section>
 
         <section>
-          <h2 class="font-serif text-lg font-semibold text-white mb-2">5. Analítica del sitio web</h2>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">5. Lectura con IA (Gemini)</h2>
+          <p class="mb-2">
+            Luma ofrece dos funciones opcionales que leen una imagen con la API de
+            <strong>Gemini</strong>, de Google: escanear un ticket y leer las líneas de
+            movimientos de un extracto. Solo se usan cuando vos elegís una imagen y la
+            enviás después de revisarla.
+          </p>
+          <ul class="list-disc space-y-1 pl-5 text-neutral-400">
+            <li>
+              <strong class="text-neutral-300">Qué se envía:</strong> únicamente la imagen que
+              elegiste, ya recortada por vos, junto con instrucciones fijas de lectura (en el
+              caso del extracto, también la fecha de hoy). No se envían los datos de tu cuenta
+              ni el resto de tu información financiera.
+            </li>
+            <li>
+              <strong class="text-neutral-300">Qué hace Luma con ella:</strong> la reenvía a
+              Gemini sin guardarla, lee la respuesta y la descarta. No se almacena en Supabase
+              Storage ni en ninguna tabla.
+            </li>
+            <li>
+              <strong class="text-neutral-300">Qué puede hacer Google:</strong> Luma usa la API
+              de Gemini en su nivel gratuito. En ese nivel, Google puede usar el contenido
+              enviado para mejorar sus productos, y personas de su equipo podrían leerlo.
+              Una vez enviada, Luma no puede borrar la imagen de los sistemas de Google. Más
+              información en los
+              <a
+                href="https://ai.google.dev/gemini-api/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-emerald-400 underline underline-offset-2 hover:text-emerald-300">términos de la API de Gemini</a>.
+            </li>
+            <li>
+              <strong class="text-neutral-300">Qué te pedimos:</strong> recortá la imagen para
+              que se vea solo lo necesario y no incluyas datos sensibles (tu nombre, tu
+              dirección, números de cuenta o de tarjeta, documentos), ni datos de otras
+              personas.
+            </li>
+            <li>
+              <strong class="text-neutral-300">Es opcional:</strong> si no usás estas
+              funciones, no se envía ninguna imagen a Google. Todo se puede cargar a mano.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">6. Analítica del sitio web</h2>
           <p class="mb-2">
             Este sitio usa <strong>Google Analytics 4</strong> para medir cuántas personas lo
             visitan y qué páginas ven. Solo se activa si lo aceptás en el aviso de cookies:
@@ -88,7 +138,7 @@
         </section>
 
         <section>
-          <h2 class="font-serif text-lg font-semibold text-white mb-2">6. Uso educativo y personal</h2>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">7. Uso educativo y personal</h2>
           <p>
             Este proyecto fue creado para uso personal y como ejercicio de aprendizaje.
             No hay garantías de disponibilidad, respaldo ni soporte continuo. Se recomienda
@@ -97,7 +147,7 @@
         </section>
 
         <section>
-          <h2 class="font-serif text-lg font-semibold text-white mb-2">7. Tus derechos sobre tus datos</h2>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">8. Tus derechos sobre tus datos</h2>
           <p>
             Podés pedir la eliminación de tu cuenta y de todos tus datos en cualquier
             momento contactando al desarrollador a través del
@@ -111,7 +161,7 @@
         </section>
 
         <section>
-          <h2 class="font-serif text-lg font-semibold text-white mb-2">8. Cambios a esta política</h2>
+          <h2 class="font-serif text-lg font-semibold text-white mb-2">9. Cambios a esta política</h2>
           <p>
             Esta política puede actualizarse a medida que el proyecto evolucione.
             Los cambios se van a reflejar en esta misma página.
