@@ -5,15 +5,16 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
-import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
 import '../../../../core/widgets/month_filter_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
-import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/transaction_entry.dart';
 import '../view_models/transaction_view_model.dart';
+import '../widgets/history/edit_movement_dialog.dart';
+import '../widgets/history/history_filter_widgets.dart';
+import '../widgets/history/movement_row.dart';
 
 enum _TypeFilter { all, income, expense }
 
@@ -259,9 +260,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   /// Opens the edit dialog and saves the changes if confirmed.
   Future<void> _openEditDialog(TransactionEntry movement) async {
-    final result = await showDialog<_EditMovementResult>(
+    final result = await showDialog<EditMovementResult>(
       context: context,
-      builder: (_) => _EditMovementDialog(
+      builder: (_) => EditMovementDialog(
         movement: movement,
         categoryViewModel: widget.categoryViewModel,
         currency: widget.currency,
@@ -539,7 +540,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
                 if (_isCurrentMonth(_selectedMonth)) ...[
                   const SizedBox(height: 12),
-                  const _FilterSectionLabel('Período'),
+                  const TransactionsFilterSectionLabel('Período'),
                   const SizedBox(height: 6),
                   FilterChipRow<_DateRangeFilter>(
                     options: const [
@@ -563,7 +564,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ],
                 if (accounts.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  const _FilterSectionLabel('Cuenta'),
+                  const TransactionsFilterSectionLabel('Cuenta'),
                   const SizedBox(height: 6),
                   FilterChipRow<String?>(
                     options: <({String? value, String label})>[
@@ -580,7 +581,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ],
                 if (categories.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  const _FilterSectionLabel('Categoría'),
+                  const TransactionsFilterSectionLabel('Categoría'),
                   const SizedBox(height: 6),
                   FilterChipRow<String?>(
                     options: <({String? value, String label})>[
@@ -597,7 +598,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ],
                 const SizedBox(height: 16),
                 if (filtered.isEmpty)
-                  _EmptyFilteredState(
+                  TransactionsEmptyFilteredState(
                     onClear: hasActiveFilters ? _pushClearFilters : null,
                   )
                 else
@@ -617,7 +618,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         children: [
                           ...List.generate(visible.length, (i) {
                             final movement = visible[i];
-                            return _MovementRow(
+                            return TransactionMovementRow(
                               movement: movement,
                               currency: widget.currency,
                               showDivider:
@@ -659,429 +660,4 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   String _categoryModelKey(TransactionCategory c) => c.id ?? c.name;
 
   String _accountModelKey(TransactionAccount a) => a.id ?? a.name;
-}
-
-class _FilterSectionLabel extends StatelessWidget {
-  final String label;
-
-  const _FilterSectionLabel(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.4,
-        color: AppColors.authTextFooter,
-      ),
-    );
-  }
-}
-
-class _EmptyFilteredState extends StatelessWidget {
-  final VoidCallback? onClear;
-
-  const _EmptyFilteredState({required this.onClear});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 48),
-      child: Column(
-        children: [
-          const Text(
-            'No hay movimientos con estos filtros.',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.authSubtitle,
-          ),
-          if (onClear != null) ...[
-            const SizedBox(height: 12),
-            Center(
-              child: TextButton(
-                onPressed: onClear,
-                child: const Text(
-                  'Quitar filtros',
-                  style: TextStyle(
-                    color: AppColors.authAccent,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _MovementRow extends StatelessWidget {
-  final TransactionEntry movement;
-  final String currency;
-  final bool showDivider;
-
-  final bool isDeleting;
-
-  final bool isUpdating;
-
-  final VoidCallback? onEdit;
-
-  final VoidCallback? onDelete;
-
-  const _MovementRow({
-    required this.movement,
-    required this.currency,
-    required this.showDivider,
-    this.isDeleting = false,
-    this.isUpdating = false,
-    this.onEdit,
-    this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final sign = movement.isIncome ? '+' : '-';
-    // Disable both actions while either one is running.
-    final isBusy = isDeleting || isUpdating;
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      movement.description?.isNotEmpty == true
-                          ? movement.description!
-                          : movement.category.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.authTextPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${movement.category.name} · ${formatDate(movement.date)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.authTextSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '$sign${formatCurrency(movement.amount, currency)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  // Transfers are neither income nor expense: use a neutral color.
-                  color: movement.isTransfer
-                      ? AppColors.authTransfer
-                      : movement.isIncome
-                          ? AppColors.authIncome
-                          : AppColors.authExpense,
-                ),
-              ),
-              if (onEdit != null) ...[
-                const SizedBox(width: 4),
-                _RowActionButton(
-                  icon: Icons.edit_outlined,
-                  tooltip: 'Editar movimiento',
-                  isLoading: isUpdating,
-                  onPressed: isBusy ? null : onEdit,
-                ),
-              ],
-              if (onDelete != null) ...[
-                const SizedBox(width: 4),
-                _RowActionButton(
-                  icon: Icons.delete_outline,
-                  tooltip: 'Eliminar movimiento',
-                  isLoading: isDeleting,
-                  onPressed: isBusy ? null : onDelete,
-                ),
-              ],
-            ],
-          ),
-        ),
-        if (showDivider)
-          const Divider(height: 1, color: AppColors.authCardBorder),
-      ],
-    );
-  }
-}
-
-class _RowActionButton extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final bool isLoading;
-  final VoidCallback? onPressed;
-
-  const _RowActionButton({
-    required this.icon,
-    required this.tooltip,
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 36,
-      height: 36,
-      child: isLoading
-          ? const Center(
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.authTextSecondary,
-                ),
-              ),
-            )
-          : IconButton(
-              padding: EdgeInsets.zero,
-              icon: Icon(icon, size: 20, color: AppColors.authTextSecondary),
-              tooltip: tooltip,
-              onPressed: onPressed,
-            ),
-    );
-  }
-}
-
-class _EditMovementResult {
-  final String? categoryId;
-  final String? description;
-  final DateTime date;
-
-  const _EditMovementResult({
-    required this.categoryId,
-    required this.description,
-    required this.date,
-  });
-}
-
-/// Edit dialog: only category, description and date are editable. Account
-/// and amount are read-only because they affect `accounts.balance`.
-/// Transfers have no category selector.
-class _EditMovementDialog extends StatefulWidget {
-  final TransactionEntry movement;
-  final CategoryViewModel categoryViewModel;
-  final String currency;
-
-  const _EditMovementDialog({
-    required this.movement,
-    required this.categoryViewModel,
-    required this.currency,
-  });
-
-  @override
-  State<_EditMovementDialog> createState() => _EditMovementDialogState();
-}
-
-class _EditMovementDialogState extends State<_EditMovementDialog> {
-  late final TextEditingController _descriptionController;
-  late DateTime _selectedDate;
-  Category? _selectedCategory;
-
-  @override
-  void initState() {
-    super.initState();
-    _descriptionController = TextEditingController(
-      text: widget.movement.description ?? '',
-    );
-    _selectedDate = widget.movement.date;
-    _selectedCategory =
-        widget.categoryViewModel.categoryById(widget.movement.category.id);
-  }
-
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: nowLocal(),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.authAccent,
-            onPrimary: AppColors.authBackgroundBottom,
-            surface: AppColors.authBackgroundBottom,
-            onSurface: AppColors.authTextPrimary,
-          ),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
-  }
-
-  void _confirm() {
-    Navigator.of(context).pop(
-      _EditMovementResult(
-        categoryId: _selectedCategory?.id,
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
-        date: _selectedDate,
-      ),
-    );
-  }
-
-  static const _fieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-    hintStyle: TextStyle(color: AppColors.authTextFooter),
-  );
-
-  static const _labelStyle = TextStyle(color: AppColors.authTextSecondary);
-
-  @override
-  Widget build(BuildContext context) {
-    final movement = widget.movement;
-    final categories = movement.isTransfer
-        ? const <Category>[]
-        : widget.categoryViewModel.byType(movement.type);
-    final sign = movement.isIncome ? '+' : '-';
-
-    return AlertDialog(
-      backgroundColor: AppColors.authBackgroundTop,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.authCardBorder),
-      ),
-      title: const Text(
-        'Editar movimiento',
-        style: TextStyle(
-          color: AppColors.authTextPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${movement.account.name} · '
-              '$sign${formatCurrency(movement.amount, widget.currency)}',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            if (!movement.isTransfer) ...[
-              const Text('Categoría', style: _labelStyle),
-              const SizedBox(height: 8),
-              if (categories.isEmpty)
-                const Text(
-                  'No hay categorías de este tipo. Se guardará sin '
-                  'categoría.',
-                  style: TextStyle(color: AppColors.authTextSecondary),
-                )
-              else
-                DropdownButtonFormField<Category>(
-                  initialValue: _selectedCategory,
-                  dropdownColor: AppColors.authBackgroundBottom,
-                  style: const TextStyle(color: AppColors.authTextPrimary),
-                  decoration: _fieldDecoration,
-                  hint: const Text(
-                    'Sin categoría',
-                    style: TextStyle(color: AppColors.authTextSecondary),
-                  ),
-                  items: [
-                    const DropdownMenuItem<Category>(
-                      value: null,
-                      child: Text(
-                        'Sin categoría',
-                        style: TextStyle(color: AppColors.authTextSecondary),
-                      ),
-                    ),
-                    ...categories.map(
-                      (c) => DropdownMenuItem<Category>(
-                        value: c,
-                        child: Text(c.name),
-                      ),
-                    ),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => _selectedCategory = value),
-                ),
-              const SizedBox(height: 20),
-            ],
-            const Text('Descripción', style: _labelStyle),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _descriptionController,
-              style: const TextStyle(color: AppColors.authTextPrimary),
-              decoration: _fieldDecoration.copyWith(hintText: 'Opcional'),
-            ),
-            const SizedBox(height: 20),
-            const Text('Fecha', style: _labelStyle),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: _pickDate,
-              borderRadius: BorderRadius.circular(14),
-              child: InputDecorator(
-                decoration: _fieldDecoration,
-                child: Text(
-                  formatDate(_selectedDate),
-                  style: const TextStyle(color: AppColors.authTextPrimary),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
-            'Cancelar',
-            style: TextStyle(color: AppColors.authTextSecondary),
-          ),
-        ),
-        TextButton(
-          onPressed: _confirm,
-          child: const Text(
-            'Guardar',
-            style: TextStyle(
-              color: AppColors.authAccent,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }
