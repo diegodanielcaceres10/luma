@@ -1,61 +1,21 @@
-import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:ui' show Color;
 
 import 'package:flutter/foundation.dart' show compute, kIsWeb;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
-import '../../../../core/utils/category_visuals.dart';
-import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
-import '../../data/models/transaction_entry.dart' show TransactionEntry;
-import '../view_models/transaction_view_model.dart' show CategoryTotal;
-import '../view_models/transactions_statistics_report.dart';
+import 'statistics_pdf_breakdown.dart';
+import 'statistics_pdf_movements.dart';
+import 'statistics_pdf_style.dart';
+import 'statistics_pdf_summary.dart';
+import 'transactions_statistics_pdf_data.dart';
+
+export 'transactions_statistics_pdf_data.dart';
 
 const _lumaUrl = 'diegodanielcaceres10.github.io/luma';
-
-/// Snapshot of the statistics for one month, taken at export time so the
-/// PDF does not change if the user switches months meanwhile.
-class TransactionsStatisticsScreenPdfData {
-  final DateTime month;
-
-  final String monthLabel;
-  final String currency;
-  final TransactionsStatisticsReport report;
-
-  // The PDF is only generated for closed months, so the change vs. the
-  // previous month is always comparable.
-  final double? incomeChangePercent;
-  final double? expenseChangePercent;
-  final double? netChangePercent;
-
-  /// Movements of the month, newest first. When not null the PDF is the
-  /// extended report: the summary on the first page and the movements from
-  /// the second page on.
-  final List<TransactionEntry>? movements;
-
-  const TransactionsStatisticsScreenPdfData({
-    required this.month,
-    required this.monthLabel,
-    required this.currency,
-    required this.report,
-    required this.incomeChangePercent,
-    required this.expenseChangePercent,
-    required this.netChangePercent,
-    this.movements,
-  });
-
-  String get fileName {
-    final suffix = '${month.year}-${month.month.toString().padLeft(2, '0')}';
-    return movements == null
-        ? 'luma-estadisticas-$suffix.pdf'
-        : 'luma-estadisticas-completo-$suffix.pdf';
-  }
-}
 
 /// Everything the PDF layout needs, so it can run in a background isolate.
 /// Assets are loaded beforehand because isolates cannot read the bundle.
@@ -82,28 +42,11 @@ class _PdfJob {
 class TransactionsStatisticsScreenPdfBuilder {
   TransactionsStatisticsScreenPdfBuilder._();
 
-  // Print-friendly colors, not the dark theme ones.
-  static const _textPrimary = PdfColor.fromInt(0xFF111827);
-  static const _textSecondary = PdfColor.fromInt(0xFF6B7280);
-  static const _border = PdfColor.fromInt(0xFFE5E7EB);
-  static const _cardFill = PdfColor.fromInt(0xFFF9FAFB);
-
-  // Darker than AppColors.authTransfer, which is too light on white paper.
-  static const _transferColor = PdfColor.fromInt(0xFF4A6FA5);
-
-  static const _donutSize = 100.0;
-  static const _donutStroke = 13.0;
-
   // Compact spacing so a typical month (a few categories) fits on one page.
   static const _sectionGap = 18.0;
 
-  // A row cannot break across pages, so a long legend is laid out below the
-  // donut (one widget per row) instead of beside it.
-  static const _maxSideBySideLegendItems = 12;
-
-  static PdfColor _pdfColor(Color color) => PdfColor.fromInt(color.toARGB32());
-
   static const _copyright = '© 2026 Diego Daniel Caceres';
+
   static const _portfolioLabel = 'diegodanielcaceres10.github.io/nura';
 
   static Future<Uint8List> build(
@@ -157,12 +100,18 @@ class TransactionsStatisticsScreenPdfBuilder {
                   pw.Text(
                     'Generado con Luma · $generatedOn hs',
                     style:
-                        const pw.TextStyle(fontSize: 9, color: _textSecondary),
+                        const pw.TextStyle(
+                          fontSize: 9,
+                          color: kPdfTextSecondary,
+                        ),
                   ),
                   pw.Text(
                     'Página ${context.pageNumber} de ${context.pagesCount}',
                     style:
-                        const pw.TextStyle(fontSize: 9, color: _textSecondary),
+                        const pw.TextStyle(
+                          fontSize: 9,
+                          color: kPdfTextSecondary,
+                        ),
                   ),
                 ],
               ),
@@ -171,7 +120,10 @@ class TransactionsStatisticsScreenPdfBuilder {
                 pw.Text(
                   '$_copyright · $_portfolioLabel · $_lumaUrl',
                   style:
-                      const pw.TextStyle(fontSize: 7.5, color: _textSecondary),
+                      const pw.TextStyle(
+                        fontSize: 7.5,
+                        color: kPdfTextSecondary,
+                      ),
                 ),
               ],
             ],
@@ -184,23 +136,26 @@ class TransactionsStatisticsScreenPdfBuilder {
           final movements = data.movements;
 
           return [
-            _header(data, logo),
+            StatisticsPdfSummary.header(data, logo),
             pw.SizedBox(height: 16),
-            _summaryRow(data),
+            StatisticsPdfSummary.summaryRow(data),
             if (report.hasUncontrolledTotal) ...[
               pw.SizedBox(height: 10),
-              _uncontrolledCard(report, data.currency),
+              StatisticsPdfSummary.uncontrolledCard(report, data.currency),
             ],
             if (report.breakdown.isEmpty) ...[
               pw.SizedBox(height: _sectionGap),
               pw.Text(
                 'No hay gastos registrados en ${data.monthLabel.toLowerCase()}.',
-                style: const pw.TextStyle(fontSize: 11, color: _textSecondary),
+                style: const pw.TextStyle(
+                  fontSize: 11,
+                  color: kPdfTextSecondary,
+                ),
               ),
             ] else ...[
               if (report.expenseTypeBreakdown.isNotEmpty) ...[
                 pw.SizedBox(height: _sectionGap),
-                ..._breakdownSection(
+                ...StatisticsPdfBreakdown.section(
                   title: 'Categorizado, sin categoría y no declarado',
                   total: report.expenseTypeTotal,
                   breakdown: report.expenseTypeBreakdown,
@@ -210,7 +165,7 @@ class TransactionsStatisticsScreenPdfBuilder {
               ],
               if (report.categorizedBreakdown.isNotEmpty) ...[
                 pw.SizedBox(height: _sectionGap),
-                ..._breakdownSection(
+                ...StatisticsPdfBreakdown.section(
                   title: 'Gastos por categoría',
                   total: report.categorizedTotal,
                   breakdown: report.categorizedBreakdown,
@@ -221,7 +176,7 @@ class TransactionsStatisticsScreenPdfBuilder {
             ],
             if (movements != null) ...[
               pw.NewPage(),
-              ..._movementsSection(movements, data),
+              ...StatisticsPdfMovements.section(movements, data),
             ],
           ];
         },
@@ -229,542 +184,5 @@ class TransactionsStatisticsScreenPdfBuilder {
     );
 
     return doc.save();
-  }
-
-  static pw.Widget _header(
-    TransactionsStatisticsScreenPdfData data,
-    pw.MemoryImage logo,
-  ) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Row(
-          children: [
-            pw.Image(logo, width: 18, height: 18),
-            pw.SizedBox(width: 6),
-            pw.Text(
-              'Luma',
-              style: pw.TextStyle(
-                fontSize: 12,
-                fontWeight: pw.FontWeight.bold,
-                color: _pdfColor(AppColors.authAccentDark),
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 6),
-        pw.Text(
-          'Estadísticas',
-          style: const pw.TextStyle(
-            fontSize: 26,
-            fontWeight: pw.FontWeight.bold,
-            color: _textPrimary,
-          ),
-        ),
-        pw.SizedBox(height: 2),
-        pw.Text(
-          data.monthLabel,
-          style: const pw.TextStyle(fontSize: 14, color: _textSecondary),
-        ),
-        pw.SizedBox(height: 10),
-        pw.Container(height: 1, color: _border),
-      ],
-    );
-  }
-
-  static pw.Widget _summaryRow(TransactionsStatisticsScreenPdfData data) {
-    final report = data.report;
-
-    return pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Expanded(
-          child: _summaryCard(
-            label: 'Ingresos',
-            amount: report.income,
-            currency: data.currency,
-            changePercent: data.incomeChangePercent,
-            isFavorable: (p) => p >= 0,
-          ),
-        ),
-        pw.SizedBox(width: 10),
-        pw.Expanded(
-          child: _summaryCard(
-            label: 'Gastos',
-            amount: report.expenses,
-            currency: data.currency,
-            changePercent: data.expenseChangePercent,
-            // For expenses, spending less than last month is the improvement.
-            isFavorable: (p) => p <= 0,
-          ),
-        ),
-        pw.SizedBox(width: 10),
-        pw.Expanded(
-          child: _summaryCard(
-            label: 'Balance del mes',
-            amount: report.netResult,
-            currency: data.currency,
-            changePercent: data.netChangePercent,
-            isFavorable: (p) => p >= 0,
-          ),
-        ),
-      ],
-    );
-  }
-
-  static pw.Widget _summaryCard({
-    required String label,
-    required double amount,
-    required String currency,
-    required double? changePercent,
-    required bool Function(double percent) isFavorable,
-  }) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(12),
-      decoration: pw.BoxDecoration(
-        color: _cardFill,
-        borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: _border, width: 0.8),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            label,
-            style: const pw.TextStyle(fontSize: 10, color: _textSecondary),
-          ),
-          pw.SizedBox(height: 4),
-          pw.Text(
-            formatCurrency(amount, currency),
-            style: const pw.TextStyle(
-              fontSize: 14,
-              fontWeight: pw.FontWeight.bold,
-              color: _textPrimary,
-            ),
-          ),
-          if (changePercent != null) ...[
-            pw.SizedBox(height: 5),
-            pw.Text(
-              '${changePercent > 0 ? '+' : ''}'
-              '${changePercent.toStringAsFixed(0)}% vs. mes anterior',
-              style: pw.TextStyle(
-                fontSize: 8.5,
-                fontWeight: pw.FontWeight.bold,
-                color: _pdfColor(
-                  isFavorable(changePercent)
-                      ? AppColors.authAccentDark
-                      : AppColors.authExpense,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _uncontrolledCard(
-    TransactionsStatisticsReport report,
-    String currency,
-  ) {
-    final tone = _pdfColor(
-      report.isUncontrolledExpense
-          ? AppColors.authExpense
-          : AppColors.authIncome,
-    );
-
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(12),
-      decoration: pw.BoxDecoration(
-        color: _cardFill,
-        borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: _border, width: 0.8),
-      ),
-      child: pw.Row(
-        children: [
-          pw.Expanded(
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  'Sin declarar',
-                  style: const pw.TextStyle(
-                    fontSize: 11,
-                    fontWeight: pw.FontWeight.bold,
-                    color: _textPrimary,
-                  ),
-                ),
-                pw.SizedBox(height: 2),
-                pw.Text(
-                  report.isUncontrolledExpense
-                      ? 'Gasto no controlado este mes'
-                      : 'Ingreso no controlado este mes',
-                  style: const pw.TextStyle(
-                    fontSize: 9.5,
-                    color: _textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          pw.Text(
-            formatCurrency(report.uncontrolledTotal.abs(), currency),
-            style: pw.TextStyle(
-              fontSize: 12,
-              fontWeight: pw.FontWeight.bold,
-              color: tone,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Title, total spent and a donut with its legend, like the screen sections.
-  static List<pw.Widget> _breakdownSection({
-    required String title,
-    required double total,
-    required List<CategoryTotal> breakdown,
-    required TransactionsStatisticsScreenPdfData data,
-    required String donutLabel,
-  }) {
-    final donut = _donutChart(
-      breakdown: breakdown,
-      total: total,
-      currency: data.currency,
-      label: donutLabel,
-    );
-    final legendRows = [
-      for (final item in breakdown) _legendRow(item, data.currency),
-    ];
-    final isLongLegend = breakdown.length > _maxSideBySideLegendItems;
-
-    return [
-      pw.Text(
-        title,
-        style: const pw.TextStyle(
-          fontSize: 11,
-          fontWeight: pw.FontWeight.bold,
-          color: _textSecondary,
-        ),
-      ),
-      pw.SizedBox(height: 4),
-      pw.Text(
-        formatCurrency(total, data.currency),
-        style: const pw.TextStyle(
-          fontSize: 20,
-          fontWeight: pw.FontWeight.bold,
-          color: _textPrimary,
-        ),
-      ),
-      pw.Text(
-        'gastados en ${data.monthLabel.toLowerCase()}',
-        style: const pw.TextStyle(fontSize: 10, color: _textSecondary),
-      ),
-      pw.SizedBox(height: 10),
-      if (isLongLegend) ...[
-        donut,
-        pw.SizedBox(height: 10),
-        ...legendRows,
-      ] else
-        pw.Container(
-          padding: const pw.EdgeInsets.all(12),
-          decoration: pw.BoxDecoration(
-            color: _cardFill,
-            borderRadius: pw.BorderRadius.circular(8),
-            border: pw.Border.all(color: _border, width: 0.8),
-          ),
-          child: pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.center,
-            children: [
-              donut,
-              pw.SizedBox(width: 18),
-              pw.Expanded(child: pw.Column(children: legendRows)),
-            ],
-          ),
-        ),
-    ];
-  }
-
-  static PdfColor _categoryColor(CategoryTotal item) => _pdfColor(
-        colorFromHex(item.category.color, fallback: AppColors.authAccent),
-      );
-
-  static pw.Widget _donutChart({
-    required List<CategoryTotal> breakdown,
-    required double total,
-    required String currency,
-    required String label,
-  }) {
-    final segments = [
-      for (final item in breakdown)
-        if (item.percent > 0)
-          (percent: item.percent, color: _categoryColor(item)),
-    ];
-
-    return pw.SizedBox(
-      width: _donutSize,
-      height: _donutSize,
-      child: pw.Stack(
-        alignment: pw.Alignment.center,
-        children: [
-          pw.CustomPaint(
-            size: const PdfPoint(_donutSize, _donutSize),
-            painter: (canvas, size) => _paintDonut(canvas, size, segments),
-          ),
-          pw.SizedBox(
-            width: _donutSize - _donutStroke * 2 - 10,
-            child: pw.FittedBox(
-              fit: pw.BoxFit.scaleDown,
-              child: pw.Column(
-                mainAxisSize: pw.MainAxisSize.min,
-                children: [
-                  pw.Text(
-                    label,
-                    style:
-                        const pw.TextStyle(fontSize: 8, color: _textSecondary),
-                  ),
-                  pw.SizedBox(height: 2),
-                  pw.Text(
-                    formatCurrency(total, currency),
-                    style: const pw.TextStyle(
-                      fontSize: 10,
-                      fontWeight: pw.FontWeight.bold,
-                      color: _textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Draws each segment as a stroked polyline so it only needs the basic path
-  /// operations. Starts at 12 o'clock and goes clockwise, like the screen.
-  static void _paintDonut(
-    PdfGraphics canvas,
-    PdfPoint size,
-    List<({double percent, PdfColor color})> segments,
-  ) {
-    final center = PdfPoint(size.x / 2, size.y / 2);
-    final radius = (math.min(size.x, size.y) - _donutStroke) / 2;
-    const stepRadians = math.pi / 90; // 2 degrees per line segment
-
-    canvas.setLineWidth(_donutStroke);
-
-    var startAngle = 0.0;
-    for (final segment in segments) {
-      final sweep = (segment.percent / 100) * 2 * math.pi;
-      final steps = math.max(1, (sweep / stepRadians).ceil());
-
-      canvas.setStrokeColor(segment.color);
-      for (var i = 0; i <= steps; i++) {
-        final angle = startAngle + sweep * i / steps;
-        final x = center.x + radius * math.sin(angle);
-        final y = center.y + radius * math.cos(angle);
-        if (i == 0) {
-          canvas.moveTo(x, y);
-        } else {
-          canvas.lineTo(x, y);
-        }
-      }
-      canvas.strokePath();
-
-      startAngle += sweep;
-    }
-  }
-
-  /// Title and table of the month's movements, same order as the app.
-  static List<pw.Widget> _movementsSection(
-    List<TransactionEntry> movements,
-    TransactionsStatisticsScreenPdfData data,
-  ) {
-    final count = movements.length;
-
-    return [
-      pw.Text(
-        'Movimientos',
-        style: const pw.TextStyle(
-          fontSize: 20,
-          fontWeight: pw.FontWeight.bold,
-          color: _textPrimary,
-        ),
-      ),
-      pw.SizedBox(height: 2),
-      pw.Text(
-        count == 0
-            ? 'No hay movimientos registrados en '
-                '${data.monthLabel.toLowerCase()}.'
-            : '$count ${count == 1 ? 'movimiento' : 'movimientos'} en '
-                '${data.monthLabel.toLowerCase()}',
-        style: const pw.TextStyle(fontSize: 10, color: _textSecondary),
-      ),
-      if (count > 0) ...[
-        pw.SizedBox(height: 12),
-        _movementsTable(movements, data.currency),
-      ],
-    ];
-  }
-
-  static pw.Widget _movementsTable(
-    List<TransactionEntry> movements,
-    String currency,
-  ) {
-    const headerStyle = pw.TextStyle(
-      fontSize: 8.5,
-      fontWeight: pw.FontWeight.bold,
-      color: _textSecondary,
-    );
-
-    return pw.Table(
-      defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
-      columnWidths: const {
-        0: pw.FixedColumnWidth(56),
-        1: pw.FlexColumnWidth(3),
-        2: pw.FlexColumnWidth(2),
-        3: pw.FlexColumnWidth(2),
-        4: pw.FixedColumnWidth(92),
-      },
-      children: [
-        // The header repeats on every page the table spans.
-        pw.TableRow(
-          repeat: true,
-          decoration: const pw.BoxDecoration(
-            border: pw.Border(
-              bottom: pw.BorderSide(color: _border, width: 0.8),
-            ),
-          ),
-          children: [
-            _tableCell('Fecha', style: headerStyle),
-            _tableCell('Descripción', style: headerStyle),
-            _tableCell('Categoría', style: headerStyle),
-            _tableCell('Cuenta', style: headerStyle),
-            _tableCell(
-              'Importe',
-              style: headerStyle,
-              align: pw.TextAlign.right,
-            ),
-          ],
-        ),
-        for (final movement in movements) _movementRow(movement, currency),
-      ],
-    );
-  }
-
-  static pw.TableRow _movementRow(TransactionEntry movement, String currency) {
-    final description = movement.description?.trim() ?? '';
-    final sign = movement.isIncome ? '+' : '-';
-    // Transfers are neither income nor expense, so they get a neutral color.
-    final amountColor = movement.isTransfer
-        ? _transferColor
-        : _pdfColor(
-            movement.isIncome
-                ? AppColors.authAccentDark
-                : AppColors.authExpense,
-          );
-
-    return pw.TableRow(
-      decoration: const pw.BoxDecoration(
-        border: pw.Border(
-          bottom: pw.BorderSide(color: _border, width: 0.5),
-        ),
-      ),
-      children: [
-        _tableCell(
-          formatDate(movement.date),
-          style: const pw.TextStyle(fontSize: 9, color: _textSecondary),
-        ),
-        _tableCell(
-          description.isNotEmpty ? description : movement.category.name,
-          style: const pw.TextStyle(fontSize: 9.5, color: _textPrimary),
-          maxLines: 2,
-        ),
-        _tableCell(
-          movement.isTransfer ? 'Transferencia' : movement.category.name,
-          style: pw.TextStyle(
-            fontSize: 9,
-            color: movement.isTransfer ? _transferColor : _textSecondary,
-          ),
-        ),
-        _tableCell(
-          movement.account.name,
-          style: const pw.TextStyle(fontSize: 9, color: _textSecondary),
-        ),
-        _tableCell(
-          '$sign${formatCurrency(movement.amount, currency)}',
-          style: pw.TextStyle(
-            fontSize: 9.5,
-            fontWeight: pw.FontWeight.bold,
-            color: amountColor,
-          ),
-          align: pw.TextAlign.right,
-        ),
-      ],
-    );
-  }
-
-  static pw.Widget _tableCell(
-    String text, {
-    required pw.TextStyle style,
-    pw.TextAlign align = pw.TextAlign.left,
-    int maxLines = 1,
-  }) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 5, horizontal: 4),
-      child: pw.Text(
-        text,
-        maxLines: maxLines,
-        textAlign: align,
-        style: style,
-      ),
-    );
-  }
-
-  static pw.Widget _legendRow(CategoryTotal item, String currency) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 3),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.center,
-        children: [
-          pw.Container(
-            width: 8,
-            height: 8,
-            decoration: pw.BoxDecoration(
-              color: _categoryColor(item),
-              shape: pw.BoxShape.circle,
-            ),
-          ),
-          pw.SizedBox(width: 8),
-          pw.Expanded(
-            child: pw.Text(
-              item.category.name,
-              maxLines: 1,
-              style: const pw.TextStyle(
-                fontSize: 11,
-                fontWeight: pw.FontWeight.bold,
-                color: _textPrimary,
-              ),
-            ),
-          ),
-          pw.SizedBox(width: 6),
-          pw.Text(
-            formatCurrency(item.amount, currency),
-            style: const pw.TextStyle(fontSize: 10.5, color: _textPrimary),
-          ),
-          pw.SizedBox(width: 6),
-          pw.SizedBox(
-            width: 30,
-            child: pw.Text(
-              '${item.percent.toStringAsFixed(0)}%',
-              textAlign: pw.TextAlign.right,
-              style: const pw.TextStyle(fontSize: 10, color: _textSecondary),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
