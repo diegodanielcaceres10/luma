@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
 import '../../../../core/widgets/month_filter_button.dart';
@@ -12,13 +11,10 @@ import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/transaction_entry.dart';
 import '../view_models/transaction_view_model.dart';
+import '../view_models/transactions_filters.dart';
 import '../widgets/history/edit_movement_dialog.dart';
 import '../widgets/history/history_filter_widgets.dart';
 import '../widgets/history/movement_row.dart';
-
-enum _TypeFilter { all, income, expense }
-
-enum _DateRangeFilter { today, thisWeek, last7Days, last15Days, all }
 
 /// Filterable transaction history.
 class TransactionsScreen extends StatefulWidget {
@@ -59,8 +55,8 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  late _TypeFilter _typeFilter;
-  late _DateRangeFilter _dateRange;
+  late TransactionTypeFilter _typeFilter;
+  late TransactionDateRangeFilter _dateRange;
 
   // null means "all". Holds category.id/account.id, or the name if there is
   // no id.
@@ -73,11 +69,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void initState() {
     super.initState();
-    _typeFilter = _typeFromQuery(widget.initialType);
-    _dateRange = _rangeFromQuery(widget.initialRange);
+    _typeFilter = TransactionsFilters.typeFromQuery(widget.initialType);
+    _dateRange = TransactionsFilters.rangeFromQuery(widget.initialRange);
     _categoryKey = widget.initialCategory;
     _accountKey = widget.initialAccount;
-    _selectedMonth = _monthFromQuery(widget.initialMonth);
+    _selectedMonth = TransactionsFilters.monthFromQuery(widget.initialMonth);
     // Load after the first frame: loadAllTransactions notifies listeners
     // synchronously, which would happen during build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -86,109 +82,30 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     });
   }
 
-  static _TypeFilter _typeFromQuery(String? value) {
-    switch (value) {
-      case 'income':
-        return _TypeFilter.income;
-      case 'expense':
-        return _TypeFilter.expense;
-      default:
-        return _TypeFilter.all;
-    }
-  }
-
-  static String? _typeQueryValue(_TypeFilter filter) {
-    switch (filter) {
-      case _TypeFilter.all:
-        return null;
-      case _TypeFilter.income:
-        return 'income';
-      case _TypeFilter.expense:
-        return 'expense';
-    }
-  }
-
-  static _DateRangeFilter _rangeFromQuery(String? value) {
-    switch (value) {
-      case 'today':
-        return _DateRangeFilter.today;
-      case 'week':
-        return _DateRangeFilter.thisWeek;
-      case 'last7':
-        return _DateRangeFilter.last7Days;
-      case 'last15':
-        return _DateRangeFilter.last15Days;
-      default:
-        return _DateRangeFilter.all;
-    }
-  }
-
-  static String? _rangeQueryValue(_DateRangeFilter filter) {
-    switch (filter) {
-      case _DateRangeFilter.all:
-        return null;
-      case _DateRangeFilter.today:
-        return 'today';
-      case _DateRangeFilter.thisWeek:
-        return 'week';
-      case _DateRangeFilter.last7Days:
-        return 'last7';
-      case _DateRangeFilter.last15Days:
-        return 'last15';
-    }
-  }
-
-  static DateTime _currentMonth() {
-    final now = nowLocal();
-    return DateTime(now.year, now.month);
-  }
-
-  static bool _isCurrentMonth(DateTime month) {
-    final current = _currentMonth();
-    return month.year == current.year && month.month == current.month;
-  }
-
   /// Relative date ranges only apply to the current month; in other months
   /// the "Período" filter is hidden and ignored.
-  _DateRangeFilter get _effectiveDateRange =>
-      _isCurrentMonth(_selectedMonth) ? _dateRange : _DateRangeFilter.all;
-
-  /// Parses 'YYYY-MM'; falls back to the current month if missing or
-  /// invalid.
-  static DateTime _monthFromQuery(String? value) {
-    if (value == null) return _currentMonth();
-    final match = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(value);
-    if (match == null) return _currentMonth();
-    final year = int.parse(match.group(1)!);
-    final month = int.parse(match.group(2)!);
-    if (month < 1 || month > 12) return _currentMonth();
-    return DateTime(year, month);
-  }
-
-  /// The current month is the default, so it is omitted from the URL.
-  static String? _monthQueryValue(DateTime month) {
-    if (_isCurrentMonth(month)) return null;
-    final mm = month.month.toString().padLeft(2, '0');
-    return '${month.year}-$mm';
-  }
+  TransactionDateRangeFilter get _effectiveDateRange =>
+      TransactionsFilters.isCurrentMonth(_selectedMonth)
+          ? _dateRange
+          : TransactionDateRangeFilter.all;
 
   /// Pushes a URL with the combined filters; see
   /// [TransactionsScreen.initialType].
   void _pushFilters({
-    required _TypeFilter type,
-    required _DateRangeFilter range,
+    required TransactionTypeFilter type,
+    required TransactionDateRangeFilter range,
     required String? categoryKey,
     required String? accountKey,
     required DateTime month,
   }) {
     final params = <String, String>{};
-    final typeValue = _typeQueryValue(type);
+    final typeValue = TransactionsFilters.typeQueryValue(type);
     if (typeValue != null) params['type'] = typeValue;
-    final rangeValue = _rangeQueryValue(range);
+    final rangeValue = TransactionsFilters.rangeQueryValue(range);
     if (rangeValue != null) params['range'] = rangeValue;
     if (categoryKey != null) params['category'] = categoryKey;
     if (accountKey != null) params['account'] = accountKey;
-    final monthValue = _monthQueryValue(month);
+    final monthValue = TransactionsFilters.monthQueryValue(month);
     if (monthValue != null) params['month'] = monthValue;
 
     final uri = Uri(
@@ -198,7 +115,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     context.push(uri.toString());
   }
 
-  void _pushType(_TypeFilter value) => _pushFilters(
+  void _pushType(TransactionTypeFilter value) => _pushFilters(
         type: value,
         range: _dateRange,
         categoryKey: _categoryKey,
@@ -206,7 +123,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         month: _selectedMonth,
       );
 
-  void _pushRange(_DateRangeFilter value) => _pushFilters(
+  void _pushRange(TransactionDateRangeFilter value) => _pushFilters(
         type: _typeFilter,
         range: value,
         categoryKey: _categoryKey,
@@ -233,18 +150,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   // The date range does not apply outside the current month; reset it.
   void _pushMonth(DateTime value) => _pushFilters(
         type: _typeFilter,
-        range: _isCurrentMonth(value) ? _dateRange : _DateRangeFilter.all,
+        range: TransactionsFilters.isCurrentMonth(value)
+            ? _dateRange
+            : TransactionDateRangeFilter.all,
         categoryKey: _categoryKey,
         accountKey: _accountKey,
         month: value,
       );
 
   void _pushClearFilters() => _pushFilters(
-        type: _TypeFilter.all,
-        range: _DateRangeFilter.all,
+        type: TransactionTypeFilter.all,
+        range: TransactionDateRangeFilter.all,
         categoryKey: null,
         accountKey: null,
-        month: _currentMonth(),
+        month: TransactionsFilters.currentMonth(),
       );
 
   /// Visible rows; starts at [_pageSize] and grows with "Ver más".
@@ -375,70 +294,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     if (mounted) setState(() => _deletingId = null);
   }
 
-  bool _matchesType(TransactionEntry t) {
-    switch (_typeFilter) {
-      case _TypeFilter.all:
-        return true;
-      case _TypeFilter.income:
-        return t.isIncome;
-      case _TypeFilter.expense:
-        return !t.isIncome;
-    }
-  }
+  bool _matchesType(TransactionEntry t) =>
+      TransactionsFilters.matchesType(_typeFilter, t);
 
-  bool _matchesDateRange(TransactionEntry t) {
-    final now = nowLocal();
-    final today = DateTime(now.year, now.month, now.day);
-    final txDate = DateTime(t.date.year, t.date.month, t.date.day);
-    switch (_effectiveDateRange) {
-      case _DateRangeFilter.all:
-        return true;
-      case _DateRangeFilter.today:
-        return txDate == today;
-      case _DateRangeFilter.thisWeek:
-        // Weeks start on Monday.
-        final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
-        return !txDate.isBefore(startOfWeek) && !txDate.isAfter(today);
-      case _DateRangeFilter.last7Days:
-        final start = today.subtract(const Duration(days: 6));
-        return !txDate.isBefore(start) && !txDate.isAfter(today);
-      case _DateRangeFilter.last15Days:
-        final start = today.subtract(const Duration(days: 14));
-        return !txDate.isBefore(start) && !txDate.isAfter(today);
-    }
-  }
+  bool _matchesDateRange(TransactionEntry t) =>
+      TransactionsFilters.matchesDateRange(_effectiveDateRange, t);
 
   bool _matchesMonth(TransactionEntry t) =>
-      t.date.year == _selectedMonth.year &&
-      t.date.month == _selectedMonth.month;
-
-  String _categoryKeyOf(TransactionEntry t) => t.category.id ?? t.category.name;
-
-  String _accountKeyOf(TransactionEntry t) => t.account.id ?? t.account.name;
-
-  /// Categories with at least one transaction under the current type/date
-  /// filters.
-  List<TransactionCategory> _visibleCategories(
-      List<TransactionEntry> typeFiltered) {
-    final Map<String, TransactionCategory> byKey = {};
-    for (final t in typeFiltered) {
-      byKey[_categoryKeyOf(t)] = t.category;
-    }
-    final list = byKey.values.toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
-    return list;
-  }
-
-  List<TransactionAccount> _visibleAccounts(
-      List<TransactionEntry> typeFiltered) {
-    final Map<String, TransactionAccount> byKey = {};
-    for (final t in typeFiltered) {
-      byKey[_accountKeyOf(t)] = t.account;
-    }
-    final list = byKey.values.toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
-    return list;
-  }
+      TransactionsFilters.matchesMonth(_selectedMonth, t);
 
   @override
   Widget build(BuildContext context) {
@@ -479,8 +342,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               .where(_matchesMonth)
               .toList();
           final typeFiltered = dateFiltered.where(_matchesType).toList();
-          final categories = _visibleCategories(typeFiltered);
-          final accounts = _visibleAccounts(typeFiltered);
+          final categories =
+              TransactionsFilters.visibleCategories(typeFiltered);
+          final accounts = TransactionsFilters.visibleAccounts(typeFiltered);
 
           // Ignore a selected category/account hidden by the current filters,
           // without changing state.
@@ -496,18 +360,26 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           var filtered = typeFiltered;
           if (effectiveCategoryKey != null) {
             filtered = filtered
-                .where((t) => _categoryKeyOf(t) == effectiveCategoryKey)
+                .where(
+                  (t) =>
+                      TransactionsFilters.categoryKeyOf(t) ==
+                      effectiveCategoryKey,
+                )
                 .toList();
           }
           if (effectiveAccountKey != null) {
             filtered = filtered
-                .where((t) => _accountKeyOf(t) == effectiveAccountKey)
+                .where(
+                  (t) =>
+                      TransactionsFilters.accountKeyOf(t) ==
+                      effectiveAccountKey,
+                )
                 .toList();
           }
 
-          final hasActiveFilters = _typeFilter != _TypeFilter.all ||
-              _effectiveDateRange != _DateRangeFilter.all ||
-              !_isCurrentMonth(_selectedMonth) ||
+          final hasActiveFilters = _typeFilter != TransactionTypeFilter.all ||
+              _effectiveDateRange != TransactionDateRangeFilter.all ||
+              !TransactionsFilters.isCurrentMonth(_selectedMonth) ||
               effectiveCategoryKey != null ||
               effectiveAccountKey != null;
 
@@ -527,32 +399,35 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                FilterChipRow<_TypeFilter>(
+                FilterChipRow<TransactionTypeFilter>(
                   options: const [
-                    (value: _TypeFilter.all, label: 'Todos'),
-                    (value: _TypeFilter.income, label: 'Ingresos'),
-                    (value: _TypeFilter.expense, label: 'Gastos'),
+                    (value: TransactionTypeFilter.all, label: 'Todos'),
+                    (value: TransactionTypeFilter.income, label: 'Ingresos'),
+                    (value: TransactionTypeFilter.expense, label: 'Gastos'),
                   ],
                   selectedValue: _typeFilter,
                   onChanged: (value) {
                     if (value != _typeFilter) _pushType(value);
                   },
                 ),
-                if (_isCurrentMonth(_selectedMonth)) ...[
+                if (TransactionsFilters.isCurrentMonth(_selectedMonth)) ...[
                   const SizedBox(height: 12),
                   const TransactionsFilterSectionLabel('Período'),
                   const SizedBox(height: 6),
-                  FilterChipRow<_DateRangeFilter>(
+                  FilterChipRow<TransactionDateRangeFilter>(
                     options: const [
-                      (value: _DateRangeFilter.all, label: 'Todo'),
-                      (value: _DateRangeFilter.today, label: 'Hoy'),
-                      (value: _DateRangeFilter.thisWeek, label: 'Esta semana'),
+                      (value: TransactionDateRangeFilter.all, label: 'Todo'),
+                      (value: TransactionDateRangeFilter.today, label: 'Hoy'),
                       (
-                        value: _DateRangeFilter.last7Days,
+                        value: TransactionDateRangeFilter.thisWeek,
+                        label: 'Esta semana'
+                      ),
+                      (
+                        value: TransactionDateRangeFilter.last7Days,
                         label: 'Últimos 7 días'
                       ),
                       (
-                        value: _DateRangeFilter.last15Days,
+                        value: TransactionDateRangeFilter.last15Days,
                         label: 'Últimos 15 días'
                       ),
                     ],
