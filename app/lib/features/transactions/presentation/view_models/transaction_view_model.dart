@@ -3,18 +3,9 @@ import '../../../../core/utils/app_clock.dart';
 import '../../../accounts/data/repositories/monthly_balance_repository.dart';
 import '../../data/models/transaction_entry.dart';
 import '../../data/repositories/transaction_repository.dart';
+import 'transaction_totals.dart';
 
-class CategoryTotal {
-  final TransactionCategory category;
-  final double amount;
-  final double percent;
-
-  const CategoryTotal({
-    required this.category,
-    required this.amount,
-    required this.percent,
-  });
-}
+export 'transaction_totals.dart' show CategoryTotal;
 
 class TransactionViewModel extends ChangeNotifier {
   final TransactionRepository _repository;
@@ -61,9 +52,11 @@ class TransactionViewModel extends ChangeNotifier {
 
   List<TransactionEntry> get recentMovements => _transactions.take(4).toList();
 
-  double get totalExpenses => _sumByType(_transactions, 'expense');
+  double get totalExpenses =>
+      TransactionTotals.sumByType(_transactions, 'expense');
 
-  double get totalIncome => _sumByType(_transactions, 'income');
+  double get totalIncome =>
+      TransactionTotals.sumByType(_transactions, 'income');
 
   /// Income minus expenses for the current month. Can be negative.
   double get netResult => totalIncome - totalExpenses;
@@ -74,23 +67,18 @@ class TransactionViewModel extends ChangeNotifier {
 
   /// Previous calendar month totals, for "vs. previous month" comparisons.
   double get previousMonthIncome =>
-      _sumByType(_previousMonthTransactions, 'income');
+      TransactionTotals.sumByType(_previousMonthTransactions, 'income');
 
   double get previousMonthExpenses =>
-      _sumByType(_previousMonthTransactions, 'expense');
+      TransactionTotals.sumByType(_previousMonthTransactions, 'expense');
 
   /// Percent change vs. the previous month; null when there is no base to
   /// compare against.
   double? get incomeChangePercent =>
-      _percentChange(previousMonthIncome, totalIncome);
+      TransactionTotals.percentChange(previousMonthIncome, totalIncome);
 
   double? get expenseChangePercent =>
-      _percentChange(previousMonthExpenses, totalExpenses);
-
-  double? _percentChange(double previous, double current) {
-    if (previous == 0) return null;
-    return ((current - previous) / previous.abs()) * 100;
-  }
+      TransactionTotals.percentChange(previousMonthExpenses, totalExpenses);
 
   /// Entries of one category since [since], for the category trend. Does
   /// not touch this view model's state; errors reach the caller.
@@ -99,38 +87,6 @@ class TransactionViewModel extends ChangeNotifier {
     required DateTime since,
   }) {
     return _repository.getForCategory(categoryId: categoryId, since: since);
-  }
-
-  static double _sumByType(List<TransactionEntry> entries, String type) {
-    return entries
-        .where((t) => t.type == type && !t.isTransfer)
-        .fold<double>(0, (sum, t) => sum + t.amount);
-  }
-
-  /// Expenses grouped by category (largest first) with their share of the
-  /// total. Transfers are excluded.
-  static List<CategoryTotal> _breakdownOf(List<TransactionEntry> entries) {
-    final expenses = entries.where((t) => t.type == 'expense' && !t.isTransfer);
-    final Map<String, double> totals = {};
-    final Map<String, TransactionCategory> categories = {};
-
-    for (final t in expenses) {
-      final key = t.category.id ?? t.category.name;
-      totals[key] = (totals[key] ?? 0) + t.amount;
-      categories[key] = t.category;
-    }
-
-    final total = _sumByType(entries, 'expense');
-    final list = totals.entries.map((e) {
-      return CategoryTotal(
-        category: categories[e.key]!,
-        amount: e.value,
-        percent: total > 0 ? (e.value / total) * 100 : 0,
-      );
-    }).toList();
-
-    list.sort((a, b) => b.amount.compareTo(a.amount));
-    return list;
   }
 
   // Statistics month: same calculations as above, for the selected month.
@@ -166,30 +122,33 @@ class TransactionViewModel extends ChangeNotifier {
           ? _previousMonthTransactions
           : _statisticsPreviousTransactions;
 
-  double get statisticsIncome => _sumByType(_statisticsEntries, 'income');
+  double get statisticsIncome =>
+      TransactionTotals.sumByType(_statisticsEntries, 'income');
 
-  double get statisticsExpenses => _sumByType(_statisticsEntries, 'expense');
+  double get statisticsExpenses =>
+      TransactionTotals.sumByType(_statisticsEntries, 'expense');
 
   double get statisticsNetResult => statisticsIncome - statisticsExpenses;
 
-  double? get statisticsIncomeChangePercent => _percentChange(
-        _sumByType(_statisticsPreviousEntries, 'income'),
+  double? get statisticsIncomeChangePercent => TransactionTotals.percentChange(
+        TransactionTotals.sumByType(_statisticsPreviousEntries, 'income'),
         statisticsIncome,
       );
 
-  double? get statisticsExpenseChangePercent => _percentChange(
-        _sumByType(_statisticsPreviousEntries, 'expense'),
+  double? get statisticsExpenseChangePercent => TransactionTotals.percentChange(
+        TransactionTotals.sumByType(_statisticsPreviousEntries, 'expense'),
         statisticsExpenses,
       );
 
   double? get statisticsNetResultChangePercent {
-    final previousNet = _sumByType(_statisticsPreviousEntries, 'income') -
-        _sumByType(_statisticsPreviousEntries, 'expense');
-    return _percentChange(previousNet, statisticsNetResult);
+    final previousNet =
+        TransactionTotals.sumByType(_statisticsPreviousEntries, 'income') -
+            TransactionTotals.sumByType(_statisticsPreviousEntries, 'expense');
+    return TransactionTotals.percentChange(previousNet, statisticsNetResult);
   }
 
   List<CategoryTotal> get statisticsCategoryBreakdown =>
-      _breakdownOf(_statisticsEntries);
+      TransactionTotals.breakdownOf(_statisticsEntries);
 
   /// Entries of the statistics month, newest first, transfers included.
   /// Returns a copy, so callers can keep it as a snapshot.
