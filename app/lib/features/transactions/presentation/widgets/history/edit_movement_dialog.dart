@@ -4,6 +4,7 @@ import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utils/app_clock.dart';
 import '../../../../../core/utils/currency_format.dart';
 import '../../../../../core/utils/date_format.dart';
+import '../../../../../core/widgets/input_text_field.dart';
 import '../../../../categories/data/models/category.dart';
 import '../../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../data/models/transaction_entry.dart';
@@ -96,24 +97,6 @@ class _EditMovementDialogState extends State<EditMovementDialog> {
     );
   }
 
-  static const _fieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-    hintStyle: TextStyle(color: AppColors.authTextFooter),
-  );
-
   static const _labelStyle = TextStyle(color: AppColors.authTextSecondary);
 
   @override
@@ -166,7 +149,7 @@ class _EditMovementDialogState extends State<EditMovementDialog> {
                   initialValue: _selectedCategory,
                   dropdownColor: AppColors.authBackgroundBottom,
                   style: const TextStyle(color: AppColors.authTextPrimary),
-                  decoration: _fieldDecoration,
+                  decoration: InputTextField.formDecoration,
                   hint: const Text(
                     'Sin categoría',
                     style: TextStyle(color: AppColors.authTextSecondary),
@@ -191,12 +174,10 @@ class _EditMovementDialogState extends State<EditMovementDialog> {
                 ),
               const SizedBox(height: 20),
             ],
-            const Text('Descripción', style: _labelStyle),
-            const SizedBox(height: 8),
-            TextField(
+            InputTextField(
               controller: _descriptionController,
-              style: const TextStyle(color: AppColors.authTextPrimary),
-              decoration: _fieldDecoration.copyWith(hintText: 'Opcional'),
+              label: 'Descripción',
+              hintText: 'Opcional',
             ),
             const SizedBox(height: 20),
             const Text('Fecha', style: _labelStyle),
@@ -205,7 +186,7 @@ class _EditMovementDialogState extends State<EditMovementDialog> {
               onTap: _pickDate,
               borderRadius: BorderRadius.circular(14),
               child: InputDecorator(
-                decoration: _fieldDecoration,
+                decoration: InputTextField.formDecoration,
                 child: Text(
                   formatDate(_selectedDate),
                   style: const TextStyle(color: AppColors.authTextPrimary),

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utils/app_clock.dart';
 import '../../../../../core/utils/date_format.dart';
+import '../../../../../core/widgets/input_text_field.dart';
 import '../../../data/models/account.dart';
 import '../../view_models/account_view_model.dart';
 import 'movement_dialog_style.dart';
@@ -211,13 +212,11 @@ class _AddTransferDialogState extends State<AddTransferDialog> {
                       value == null ? 'Seleccioná una cuenta' : null,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Monto',
-                  style: kMovementDialogLabelStyle,
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
+                InputTextField(
                   controller: _amountController,
+                  label: 'Monto',
+                  hintText: '0,00',
+                  compact: true,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -226,9 +225,6 @@ class _AddTransferDialogState extends State<AddTransferDialog> {
                       RegExp(r'^\d*[.,]?\d{0,2}'),
                     ),
                   ],
-                  style: const TextStyle(color: AppColors.authTextPrimary),
-                  decoration:
-                      kMovementDialogFieldDecoration.copyWith(hintText: '0,00'),
                   validator: (value) {
                     final text = (value ?? '').trim().replaceAll(',', '.');
                     if (text.isEmpty) return 'Ingresa un monto';
@@ -240,17 +236,11 @@ class _AddTransferDialogState extends State<AddTransferDialog> {
                   },
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Descripción (opcional)',
-                  style: kMovementDialogLabelStyle,
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
+                InputTextField(
                   controller: _descriptionController,
-                  style: const TextStyle(color: AppColors.authTextPrimary),
-                  decoration: kMovementDialogFieldDecoration.copyWith(
-                    hintText: 'Ej: Traspaso entre cuentas propias',
-                  ),
+                  label: 'Descripción (opcional)',
+                  hintText: 'Ej: Traspaso entre cuentas propias',
+                  compact: true,
                 ),
                 const SizedBox(height: 16),
                 const Text(

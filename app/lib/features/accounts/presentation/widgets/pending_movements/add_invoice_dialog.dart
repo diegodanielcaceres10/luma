@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utils/app_clock.dart';
 import '../../../../../core/utils/date_format.dart';
+import '../../../../../core/widgets/input_text_field.dart';
 import '../../../../categories/data/models/category.dart';
 import '../../../../invoices/data/models/invoice.dart';
 import 'movement_dialog_style.dart';
@@ -129,13 +130,11 @@ class _AddInvoiceDialogState extends State<AddInvoiceDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Monto a pagar',
-                style: kMovementDialogLabelStyle,
-              ),
-              const SizedBox(height: 6),
-              TextFormField(
+              InputTextField(
                 controller: _amountController,
+                label: 'Monto a pagar',
+                hintText: '0,00',
+                compact: true,
                 autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -145,9 +144,6 @@ class _AddInvoiceDialogState extends State<AddInvoiceDialog> {
                     RegExp(r'^\d*[.,]?\d{0,2}'),
                   ),
                 ],
-                style: const TextStyle(color: AppColors.authTextPrimary),
-                decoration:
-                    kMovementDialogFieldDecoration.copyWith(hintText: '0,00'),
                 validator: (value) {
                   final text = (value ?? '').trim().replaceAll(',', '.');
                   if (text.isEmpty) return 'Ingresa un monto';

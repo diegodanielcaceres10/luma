@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utils/date_format.dart';
+import '../../../../../core/widgets/input_text_field.dart';
 import '../../../../categories/data/models/category.dart';
 import '../../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../data/models/scanned_movement.dart';
@@ -178,12 +179,10 @@ class _EditScannedDialogState extends State<EditScannedDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              const Text('Descripción', style: kMovementDialogLabelStyle),
-              const SizedBox(height: 6),
-              TextFormField(
+              InputTextField(
                 controller: _descriptionController,
-                style: const TextStyle(color: AppColors.authTextPrimary),
-                decoration: kMovementDialogFieldDecoration,
+                label: 'Descripción',
+                compact: true,
               ),
               const SizedBox(height: 16),
               const Text('Fecha', style: kMovementDialogLabelStyle),

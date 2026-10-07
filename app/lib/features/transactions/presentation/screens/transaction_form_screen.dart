@@ -8,6 +8,7 @@ import '../../../../core/utils/date_format.dart';
 import '../../../../core/utils/image_crop_picker.dart';
 import '../../../../core/widgets/ai_image_source_sheet.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/widgets/input_text_field.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
@@ -72,24 +73,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       _isIncome ? AppColors.authIncome : AppColors.authExpense;
 
   static const _labelStyle = TextStyle(color: AppColors.authTextSecondary);
-
-  static const _fieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-    hintStyle: TextStyle(color: AppColors.authTextFooter),
-  );
 
   @override
   void initState() {
@@ -477,15 +460,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     backEnabled: !isBusy,
                   ),
                   const SizedBox(height: 16),
-                  const Text('Monto', style: _labelStyle),
-                  const SizedBox(height: 8),
-                  TextFormField(
+                  InputTextField(
                     controller: _amountController,
+                    label: 'Monto',
+                    hintText: '0.00',
                     enabled: !isBusy,
-                    style: const TextStyle(color: AppColors.authTextPrimary),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    decoration: _fieldDecoration.copyWith(hintText: '0.00'),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Ingresa un monto';
@@ -521,7 +502,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       initialValue: _selectedCategory,
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
-                      decoration: _fieldDecoration,
+                      decoration: InputTextField.formDecoration,
                       // DropdownButtonFormField paints its placeholder through this parameter,
                       // not through decoration.hintStyle.
                       hint: const Text(
@@ -568,7 +549,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       initialValue: _selectedAccount,
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
-                      decoration: _fieldDecoration,
+                      decoration: InputTextField.formDecoration,
                       hint: const Text(
                         'Seleccioná una cuenta',
                         style: TextStyle(color: AppColors.authTextSecondary),
@@ -592,14 +573,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           value == null ? 'Seleccioná una cuenta' : null,
                     ),
                   const SizedBox(height: 20),
-                  const Text('Descripción (opcional)', style: _labelStyle),
-                  const SizedBox(height: 8),
-                  TextFormField(
+                  InputTextField(
                     controller: _descriptionController,
+                    label: 'Descripción (opcional)',
+                    hintText: 'Ej: Mercadona',
                     enabled: !isBusy,
-                    style: const TextStyle(color: AppColors.authTextPrimary),
-                    decoration:
-                        _fieldDecoration.copyWith(hintText: 'Ej: Mercadona'),
                   ),
                   const SizedBox(height: 20),
                   const Text('Fecha', style: _labelStyle),
@@ -608,7 +586,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     onTap: isBusy ? null : _pickDate,
                     borderRadius: BorderRadius.circular(14),
                     child: InputDecorator(
-                      decoration: _fieldDecoration,
+                      decoration: InputTextField.formDecoration,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [

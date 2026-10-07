@@ -5,6 +5,7 @@ import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/widgets/input_text_field.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
@@ -49,24 +50,6 @@ class _TransactionFormTransferScreenState
   String? _otherAccountId;
   bool _isIncoming = false;
   DateTime _selectedDate = nowLocal();
-
-  static const _fieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-    hintStyle: TextStyle(color: AppColors.authTextFooter),
-  );
 
   @override
   void dispose() {
@@ -215,7 +198,7 @@ class _TransactionFormTransferScreenState
                             style:
                                 TextStyle(color: AppColors.authTextSecondary),
                           ),
-                          decoration: _fieldDecoration,
+                          decoration: InputTextField.formDecoration,
                           items: accountOptions
                               .map(
                                 (Account a) => _accountItem(a),
@@ -275,7 +258,7 @@ class _TransactionFormTransferScreenState
                             style:
                                 TextStyle(color: AppColors.authTextSecondary),
                           ),
-                          decoration: _fieldDecoration,
+                          decoration: InputTextField.formDecoration,
                           items: otherOptions
                               .map(
                                 (Account a) => DropdownMenuItem<String?>(
@@ -295,19 +278,13 @@ class _TransactionFormTransferScreenState
                                   }),
                         ),
                         const SizedBox(height: 20),
-                        const Text('Monto',
-                            style:
-                                TextStyle(color: AppColors.authTextSecondary)),
-                        const SizedBox(height: 8),
-                        TextFormField(
+                        InputTextField(
                           controller: _amountController,
+                          label: 'Monto',
+                          hintText: '0.00',
                           enabled: !isSubmitting,
-                          style:
-                              const TextStyle(color: AppColors.authTextPrimary),
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
-                          decoration:
-                              _fieldDecoration.copyWith(hintText: '0.00'),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Ingresá un monto';
@@ -329,7 +306,7 @@ class _TransactionFormTransferScreenState
                           onTap: isSubmitting ? null : _pickDate,
                           borderRadius: BorderRadius.circular(14),
                           child: InputDecorator(
-                            decoration: _fieldDecoration.copyWith(
+                            decoration: InputTextField.formDecoration.copyWith(
                               suffixIcon: const Icon(
                                 Icons.calendar_today_rounded,
                                 size: 18,
