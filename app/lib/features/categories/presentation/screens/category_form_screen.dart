@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/widgets/input_text_field.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/category.dart';
 import '../view_models/category_view_model.dart';
@@ -46,23 +47,6 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
   late bool _typeSelected;
 
   bool get _isEditing => widget.category != null;
-
-  static const _fieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-  );
 
   @override
   void initState() {
@@ -311,17 +295,11 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                   backEnabled: !isSubmitting,
                 ),
                 const SizedBox(height: 20),
-                const Text('Nombre',
-                    style: TextStyle(color: AppColors.authTextSecondary)),
-                const SizedBox(height: 8),
-                TextFormField(
+                InputTextField(
                   controller: _nameController,
+                  label: 'Nombre',
+                  hintText: 'Ej: Suscripciones',
                   enabled: !isSubmitting,
-                  style: const TextStyle(color: AppColors.authTextPrimary),
-                  decoration: _fieldDecoration.copyWith(
-                    hintText: 'Ej: Suscripciones',
-                    hintStyle: const TextStyle(color: AppColors.authTextFooter),
-                  ),
                   validator: (value) => value == null || value.trim().isEmpty
                       ? 'Ingresa un nombre'
                       : null,
@@ -373,17 +351,12 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                   ),
                   if (_hasBudget) ...[
                     const SizedBox(height: 8),
-                    TextFormField(
+                    InputTextField(
                       controller: _budgetController,
+                      hintText: '0.00',
                       enabled: !isSubmitting,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: AppColors.authTextPrimary),
-                      decoration: _fieldDecoration.copyWith(
-                        hintText: '0.00',
-                        hintStyle:
-                            const TextStyle(color: AppColors.authTextFooter),
-                      ),
                       validator: (value) {
                         if (!_hasBudget) return null;
                         final parsed = double.tryParse((value ?? '').trim());
