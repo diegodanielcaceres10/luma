@@ -148,10 +148,12 @@ class _EditScannedDialogState extends State<EditScannedDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Monto', style: kMovementDialogLabelStyle),
-              const SizedBox(height: 6),
-              TextFormField(
+              InputTextField(
                 controller: _amountController,
+                label: 'Monto',
+                hintText: '0,00',
+                helperText: 'Negativo es gasto, positivo es ingreso',
+                compact: true,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                   signed: true,
@@ -161,15 +163,6 @@ class _EditScannedDialogState extends State<EditScannedDialog> {
                     RegExp(r'^-?\d*[.,]?\d{0,2}'),
                   ),
                 ],
-                style: const TextStyle(color: AppColors.authTextPrimary),
-                decoration: kMovementDialogFieldDecoration.copyWith(
-                  hintText: '0,00',
-                  helperText: 'Negativo es gasto, positivo es ingreso',
-                  helperStyle: const TextStyle(
-                    color: AppColors.authTextSecondary,
-                    fontSize: 12,
-                  ),
-                ),
                 validator: (value) {
                   final text = (value ?? '').trim();
                   if (text.isEmpty) return 'Ingresa un monto';

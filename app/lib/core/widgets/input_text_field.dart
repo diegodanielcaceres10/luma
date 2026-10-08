@@ -13,6 +13,7 @@ class InputTextField extends StatelessWidget {
   final TextEditingController controller;
   final String? label;
   final String? hintText;
+  final String? helperText;
   final bool compact;
   final bool? enabled;
   final bool autofocus;
@@ -26,6 +27,7 @@ class InputTextField extends StatelessWidget {
     required this.controller,
     this.label,
     this.hintText,
+    this.helperText,
     this.compact = false,
     this.enabled,
     this.autofocus = false,
@@ -77,6 +79,11 @@ class InputTextField extends StatelessWidget {
 
   static const _formLabelStyle = TextStyle(color: AppColors.authTextSecondary);
 
+  static const _helperStyle = TextStyle(
+    fontSize: 12,
+    color: AppColors.authTextSecondary,
+  );
+
   static const _compactLabelStyle = TextStyle(
     fontSize: 13,
     fontWeight: FontWeight.w600,
@@ -94,6 +101,8 @@ class InputTextField extends StatelessWidget {
       style: const TextStyle(color: AppColors.authTextPrimary),
       decoration: (compact ? compactDecoration : formDecoration).copyWith(
         hintText: hintText,
+        helperText: helperText,
+        helperStyle: helperText == null ? null : _helperStyle,
       ),
       validator: validator,
       onChanged: onChanged,

@@ -4,6 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
+import '../../../../core/widgets/input_text_field.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/widgets/opening_balance_gate.dart';
 import '../../../categories/data/models/category.dart';
@@ -111,24 +112,6 @@ class _PayInvoiceDialogState extends State<PayInvoiceDialog> {
     }
   }
 
-  static const _fieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-    hintStyle: TextStyle(color: AppColors.authTextFooter),
-  );
-
   @override
   Widget build(BuildContext context) {
     final accounts = widget.accounts;
@@ -171,7 +154,7 @@ class _PayInvoiceDialogState extends State<PayInvoiceDialog> {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(color: AppColors.authTextPrimary),
-              decoration: _fieldDecoration.copyWith(
+              decoration: InputTextField.formDecoration.copyWith(
                 prefixText: '${currencySymbol(widget.currency)} ',
                 prefixStyle: const TextStyle(color: AppColors.authTextPrimary),
                 errorText: _amountError,
@@ -200,7 +183,7 @@ class _PayInvoiceDialogState extends State<PayInvoiceDialog> {
                 initialValue: _selectedAccount,
                 dropdownColor: AppColors.authBackgroundBottom,
                 style: const TextStyle(color: AppColors.authTextPrimary),
-                decoration: _fieldDecoration,
+                decoration: InputTextField.formDecoration,
                 hint: const Text(
                   'Seleccioná una cuenta',
                   style: TextStyle(color: AppColors.authTextSecondary),
@@ -228,7 +211,7 @@ class _PayInvoiceDialogState extends State<PayInvoiceDialog> {
               onTap: _pickDate,
               borderRadius: BorderRadius.circular(14),
               child: InputDecorator(
-                decoration: _fieldDecoration.copyWith(
+                decoration: InputTextField.formDecoration.copyWith(
                   suffixIcon: const Icon(
                     Icons.calendar_today_rounded,
                     size: 18,
