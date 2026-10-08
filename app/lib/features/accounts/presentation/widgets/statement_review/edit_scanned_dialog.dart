@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utils/date_format.dart';
 import '../../../../../core/widgets/input_text_field.dart';
+import '../../../../../core/widgets/primary_button.dart';
 import '../../../../categories/data/models/category.dart';
 import '../../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../data/models/scanned_movement.dart';
@@ -245,13 +246,9 @@ class _EditScannedDialogState extends State<EditScannedDialog> {
             style: TextStyle(color: AppColors.authTextSecondary),
           ),
         ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.authAccent,
-            foregroundColor: AppColors.authBackgroundBottom,
-          ),
+        PrimaryButton(
+          label: 'Agregar',
           onPressed: _save,
-          child: const Text('Agregar'),
         ),
       ],
     );

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
+import 'primary_button.dart';
 
 /// What the user decided after seeing the cropped image.
 enum CropPreviewAction { send, recrop, cancel }
@@ -111,14 +112,10 @@ class _CropPreviewDialog extends StatelessWidget {
                       Navigator.of(context).pop(CropPreviewAction.recrop),
                   child: const Text('Recortar de nuevo'),
                 ),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.authAccent,
-                    foregroundColor: AppColors.authBackgroundBottom,
-                  ),
+                PrimaryButton(
+                  label: 'Enviar',
                   onPressed: () =>
                       Navigator.of(context).pop(CropPreviewAction.send),
-                  child: const Text('Enviar'),
                 ),
               ],
             ),

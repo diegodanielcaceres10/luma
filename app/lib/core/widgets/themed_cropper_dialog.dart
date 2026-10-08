@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 
 import '../../app/theme/app_colors.dart';
+import 'primary_button.dart';
 
 /// Largest side of the web cropper, in logical pixels.
 const double kMaxWebCropperSide = 500;
@@ -192,13 +193,9 @@ class _ThemedCropperDialogState extends State<ThemedCropperDialog> {
           ),
         ),
         const SizedBox(width: 8),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.authAccent,
-            foregroundColor: AppColors.authBackgroundBottom,
-          ),
+        PrimaryButton(
+          label: 'Recortar',
           onPressed: _doCrop,
-          child: const Text('Recortar'),
         ),
       ],
     );

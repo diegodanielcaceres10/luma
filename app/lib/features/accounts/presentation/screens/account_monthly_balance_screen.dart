@@ -4,6 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
@@ -199,16 +200,10 @@ class _AccountMonthlyBalanceScreenState
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.authAccent,
-              foregroundColor: AppColors.authBackgroundBottom,
-            ),
+          PrimaryButton(
+            label: 'Entendido',
+            labelStyle: const TextStyle(fontWeight: FontWeight.w700),
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(
-              'Entendido',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
           ),
         ],
       ),

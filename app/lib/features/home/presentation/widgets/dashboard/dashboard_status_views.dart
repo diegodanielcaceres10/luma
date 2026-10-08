@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
+import '../../../../../core/widgets/primary_button.dart';
 
 /// Centered spinner while the dashboard's initial data arrives.
 class DashboardLoading extends StatelessWidget {
@@ -52,14 +53,10 @@ class DashboardLoadErrorView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.authAccent,
-                foregroundColor: AppColors.authBackgroundBottom,
-              ),
+            PrimaryButton(
+              label: 'Reintentar',
+              icon: Icons.refresh_rounded,
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Reintentar'),
             ),
           ],
         ),

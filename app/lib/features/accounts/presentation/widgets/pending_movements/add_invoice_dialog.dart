@@ -5,6 +5,7 @@ import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utils/app_clock.dart';
 import '../../../../../core/utils/date_format.dart';
 import '../../../../../core/widgets/input_text_field.dart';
+import '../../../../../core/widgets/primary_button.dart';
 import '../../../../categories/data/models/category.dart';
 import '../../../../invoices/data/models/invoice.dart';
 import 'movement_dialog_style.dart';
@@ -193,13 +194,9 @@ class _AddInvoiceDialogState extends State<AddInvoiceDialog> {
             style: TextStyle(color: AppColors.authTextSecondary),
           ),
         ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.authAccent,
-            foregroundColor: AppColors.authBackgroundBottom,
-          ),
+        PrimaryButton(
+          label: 'Agregar',
           onPressed: _save,
-          child: const Text('Agregar'),
         ),
       ],
     );

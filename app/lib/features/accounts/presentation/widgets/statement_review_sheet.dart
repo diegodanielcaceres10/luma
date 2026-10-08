@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/scanned_movement.dart';
 import 'pending_movements_section.dart';
@@ -220,13 +221,9 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.authAccent,
-                    foregroundColor: AppColors.authBackgroundBottom,
-                  ),
+                PrimaryButton(
+                  label: 'Agregar',
                   onPressed: selectedCount == 0 ? null : _confirm,
-                  child: const Text('Agregar'),
                 ),
               ],
             ),
