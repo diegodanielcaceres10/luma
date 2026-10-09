@@ -4,6 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/widgets/luma_logo.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/text_action_button.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../view_models/app_lock_view_model.dart';
 
@@ -102,15 +103,10 @@ class LockScreen extends StatelessWidget {
                               ),
                             ),
                           const SizedBox(height: 12),
-                          TextButton(
+                          TextActionButton(
+                            label: 'Cerrar sesión',
+                            fontWeight: FontWeight.w600,
                             onPressed: authViewModel.signOut,
-                            child: const Text(
-                              'Cerrar sesión',
-                              style: TextStyle(
-                                color: AppColors.authTextSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
                           ),
                         ],
                       ),

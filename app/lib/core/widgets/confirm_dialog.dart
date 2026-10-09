@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
+import 'text_action_button.dart';
 
 /// Asks the user to confirm before continuing, e.g. before saving a record.
 ///
@@ -28,22 +29,15 @@ Future<bool> showConfirmDialog(BuildContext context) async {
         style: TextStyle(color: AppColors.authTextSecondary),
       ),
       actions: [
-        TextButton(
+        TextActionButton(
+          label: 'No',
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text(
-            'No',
-            style: TextStyle(color: AppColors.authTextSecondary),
-          ),
         ),
-        TextButton(
+        TextActionButton(
+          label: 'Sí',
+          color: AppColors.authAccent,
+          fontWeight: FontWeight.w700,
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text(
-            'Sí',
-            style: TextStyle(
-              color: AppColors.authAccent,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
         ),
       ],
     ),

@@ -7,6 +7,7 @@ import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
 import '../../../../core/widgets/month_filter_button.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/text_action_button.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/transaction_entry.dart';
@@ -241,22 +242,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           style: const TextStyle(color: AppColors.authTextSecondary),
         ),
         actions: [
-          TextButton(
+          TextActionButton(
+            label: 'Volver',
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Volver',
-              style: TextStyle(color: AppColors.authTextSecondary),
-            ),
           ),
-          TextButton(
+          TextActionButton(
+            label: 'Eliminar',
+            color: AppColors.authExpense,
+            fontWeight: FontWeight.w700,
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(
-                color: AppColors.authExpense,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
         ],
       ),

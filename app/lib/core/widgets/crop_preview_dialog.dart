@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import 'primary_button.dart';
 import 'secondary_button.dart';
+import 'text_action_button.dart';
 
 /// What the user decided after seeing the cropped image.
 enum CropPreviewAction { send, recrop, cancel }
@@ -96,13 +97,10 @@ class _CropPreviewDialog extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                TextButton(
+                TextActionButton(
+                  label: 'Cancelar',
                   onPressed: () =>
                       Navigator.of(context).pop(CropPreviewAction.cancel),
-                  child: const Text(
-                    'Cancelar',
-                    style: TextStyle(color: AppColors.authTextSecondary),
-                  ),
                 ),
                 SecondaryButton(
                   label: 'Recortar de nuevo',

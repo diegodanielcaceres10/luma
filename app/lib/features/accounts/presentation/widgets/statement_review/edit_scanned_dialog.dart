@@ -5,6 +5,7 @@ import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utils/date_format.dart';
 import '../../../../../core/widgets/input_text_field.dart';
 import '../../../../../core/widgets/primary_button.dart';
+import '../../../../../core/widgets/text_action_button.dart';
 import '../../../../categories/data/models/category.dart';
 import '../../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../data/models/scanned_movement.dart';
@@ -239,12 +240,9 @@ class _EditScannedDialogState extends State<EditScannedDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        TextActionButton(
+          label: 'Cancelar',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
-            'Cancelar',
-            style: TextStyle(color: AppColors.authTextSecondary),
-          ),
         ),
         PrimaryButton(
           label: 'Agregar',

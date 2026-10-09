@@ -7,6 +7,7 @@ import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/secondary_button.dart';
+import '../../../../core/widgets/text_action_button.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -515,16 +516,11 @@ class _AccountMonthlyBalanceScreenState
         children: [
           SizedBox(width: double.infinity, child: nextButton),
           const SizedBox(height: 8),
-          TextButton(
+          TextActionButton(
+            label: 'Mi saldo está al día, sin movimientos',
+            fontWeight: FontWeight.w600,
             onPressed:
                 _isSaving || _difference != 0 ? null : _saveWithCurrentBalance,
-            child: const Text(
-              'Mi saldo está al día, sin movimientos',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.authTextSecondary,
-              ),
-            ),
           ),
         ],
       );

@@ -11,6 +11,7 @@ import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/input_text_field.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/text_action_button.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
@@ -247,22 +248,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           ],
         ),
         actions: [
-          TextButton(
+          TextActionButton(
+            label: 'Cancelar',
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: AppColors.authTextSecondary),
-            ),
           ),
-          TextButton(
+          TextActionButton(
+            label: 'Confirmar',
+            color: _accentColor,
+            fontWeight: FontWeight.w700,
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              'Confirmar',
-              style: TextStyle(
-                color: _accentColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
         ],
       ),
@@ -360,22 +354,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           style: TextStyle(color: AppColors.authTextSecondary),
         ),
         actions: [
-          TextButton(
+          TextActionButton(
+            label: 'Seguir editando',
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Seguir editando',
-              style: TextStyle(color: AppColors.authTextSecondary),
-            ),
           ),
-          TextButton(
+          TextActionButton(
+            label: 'Volver',
+            color: _accentColor,
+            fontWeight: FontWeight.w700,
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              'Volver',
-              style: TextStyle(
-                color: _accentColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
         ],
       ),

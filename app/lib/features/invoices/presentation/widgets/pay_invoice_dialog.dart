@@ -6,6 +6,7 @@ import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/input_text_field.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/text_action_button.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/widgets/opening_balance_gate.dart';
 import '../../../categories/data/models/category.dart';
@@ -229,12 +230,9 @@ class _PayInvoiceDialogState extends State<PayInvoiceDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        TextActionButton(
+          label: 'Volver',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
-            'Volver',
-            style: TextStyle(color: AppColors.authTextSecondary),
-          ),
         ),
         PrimaryButton(
           label: 'Confirmar pago',

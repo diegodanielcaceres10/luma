@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
 import '../../../../../app/theme/app_text_styles.dart';
+import '../../../../../core/widgets/text_action_button.dart';
 
 class TransactionsFilterSectionLabel extends StatelessWidget {
   final String label;
@@ -41,15 +42,11 @@ class TransactionsEmptyFilteredState extends StatelessWidget {
           if (onClear != null) ...[
             const SizedBox(height: 12),
             Center(
-              child: TextButton(
+              child: TextActionButton(
+                label: 'Quitar filtros',
+                color: AppColors.authAccent,
+                fontWeight: FontWeight.w600,
                 onPressed: onClear,
-                child: const Text(
-                  'Quitar filtros',
-                  style: TextStyle(
-                    color: AppColors.authAccent,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ),
             ),
           ],
