@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/secondary_button.dart';
 import 'pending_movement_persistence.dart';
 
 class NothingToJustifyCard extends StatelessWidget {
@@ -44,18 +45,12 @@ class NothingToJustifyCard extends StatelessWidget {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(
+            child: SecondaryButton(
+              label: 'Volver',
+              labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              borderRadius: 30,
               onPressed: onBack,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.authTextPrimary,
-                side: const BorderSide(color: AppColors.authCardBorder),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: const Text('Volver',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
         ],

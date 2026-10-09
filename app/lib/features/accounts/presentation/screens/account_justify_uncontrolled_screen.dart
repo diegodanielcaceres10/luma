@@ -7,6 +7,7 @@ import '../../../../core/utils/month_range.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/secondary_button.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -253,18 +254,12 @@ class _AccountJustifyUncontrolledScreenState
     final isLastStep = _currentStep == 1;
     final canAdvance = _movementsController.isNotEmpty;
 
-    final backButton = OutlinedButton(
+    final backButton = SecondaryButton(
+      label: 'Atrás',
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      borderRadius: 30,
       onPressed: _isSaving ? null : () => setState(() => _currentStep -= 1),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.authTextPrimary,
-        side: const BorderSide(color: AppColors.authCardBorder),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
-      child:
-          const Text('Atrás', style: TextStyle(fontWeight: FontWeight.w700)),
     );
 
     final nextButton = PrimaryButton(

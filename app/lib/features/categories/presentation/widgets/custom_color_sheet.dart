@@ -8,6 +8,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart'
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/secondary_button.dart';
 
 /// Bottom sheet to pick a custom color. Returns '#RRGGBB' on confirm, or
 /// `null` if dismissed.
@@ -206,14 +207,11 @@ class _CustomColorSheetState extends State<CustomColorSheet> {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.authTextSecondary,
-                      side: const BorderSide(color: AppColors.authCardBorder),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
+                  child: SecondaryButton(
+                    label: 'Cancelar',
+                    foregroundColor: AppColors.authTextSecondary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancelar'),
                   ),
                 ),
                 const SizedBox(width: 12),
