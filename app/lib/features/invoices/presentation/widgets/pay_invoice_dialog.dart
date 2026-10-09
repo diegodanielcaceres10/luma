@@ -5,6 +5,7 @@ import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/input_text_field.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/widgets/opening_balance_gate.dart';
 import '../../../categories/data/models/category.dart';
@@ -235,17 +236,10 @@ class _PayInvoiceDialogState extends State<PayInvoiceDialog> {
             style: TextStyle(color: AppColors.authTextSecondary),
           ),
         ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.authAccent,
-            foregroundColor: AppColors.authBackgroundBottom,
-            disabledBackgroundColor:
-                AppColors.authAccent.withValues(alpha: 0.6),
-            disabledForegroundColor:
-                AppColors.authBackgroundBottom.withValues(alpha: 0.6),
-          ),
+        PrimaryButton(
+          label: 'Confirmar pago',
+          disabledAlpha: 0.6,
           onPressed: accounts.isEmpty ? null : _confirm,
-          child: const Text('Confirmar pago'),
         ),
       ],
     );

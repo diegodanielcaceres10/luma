@@ -4,6 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/input_text_field.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/category.dart';
 import '../view_models/category_view_model.dart';
@@ -371,28 +372,12 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
                 const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.authAccent,
-                      foregroundColor: AppColors.authBackgroundBottom,
-                      disabledBackgroundColor:
-                          AppColors.authAccent.withValues(alpha: 0.6),
-                      disabledForegroundColor:
-                          AppColors.authBackgroundBottom.withValues(alpha: 0.6),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
+                  child: PrimaryButton(
+                    label: _isEditing ? 'Guardar cambios' : 'Crear categoría',
+                    disabledAlpha: 0.6,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    isLoading: isSubmitting,
                     onPressed: isSubmitting ? null : _submit,
-                    child: isSubmitting
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.authBackgroundBottom,
-                            ),
-                          )
-                        : Text(
-                            _isEditing ? 'Guardar cambios' : 'Crear categoría'),
                   ),
                 ),
               ],

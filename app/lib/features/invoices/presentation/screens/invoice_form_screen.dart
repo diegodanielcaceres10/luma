@@ -5,6 +5,7 @@ import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/input_text_field.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../services/data/models/service.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -317,30 +318,13 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.authAccent,
-                        foregroundColor: AppColors.authBackgroundBottom,
-                        disabledBackgroundColor:
-                            AppColors.authAccent.withValues(alpha: 0.6),
-                        disabledForegroundColor: AppColors.authBackgroundBottom
-                            .withValues(alpha: 0.6),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                    child: PrimaryButton(
+                      label: _isEditing ? 'Guardar cambios' : 'Crear factura',
+                      disabledAlpha: 0.6,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      isLoading: isSubmitting,
                       onPressed:
                           (isSubmitting || services.isEmpty) ? null : _submit,
-                      child: isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.authBackgroundBottom,
-                              ),
-                            )
-                          : Text(_isEditing
-                              ? 'Guardar cambios'
-                              : 'Crear factura'),
                     ),
                   ),
                 ],

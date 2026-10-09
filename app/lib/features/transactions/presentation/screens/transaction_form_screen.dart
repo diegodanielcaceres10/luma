@@ -9,6 +9,7 @@ import '../../../../core/utils/image_crop_picker.dart';
 import '../../../../core/widgets/ai_image_source_sheet.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../core/widgets/input_text_field.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
@@ -604,32 +605,17 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _accentColor,
-                        foregroundColor: AppColors.authBackgroundBottom,
-                        disabledBackgroundColor:
-                            _accentColor.withValues(alpha: 0.6),
-                        disabledForegroundColor: AppColors.authBackgroundBottom
-                            .withValues(alpha: 0.6),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                    child: PrimaryButton(
+                      label: _isIncome ? 'Guardar ingreso' : 'Guardar gasto',
+                      backgroundColor: _accentColor,
+                      disabledAlpha: 0.6,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      isLoading: isSubmitting,
                       onPressed: isBusy ||
                               widget.categoryViewModel.isLoading ||
                               accounts.isEmpty
                           ? null
                           : _submit,
-                      child: isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.authBackgroundBottom,
-                              ),
-                            )
-                          : Text(
-                              _isIncome ? 'Guardar ingreso' : 'Guardar gasto'),
                     ),
                   ),
                 ],
