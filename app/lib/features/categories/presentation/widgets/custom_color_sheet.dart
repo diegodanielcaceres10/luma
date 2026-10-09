@@ -7,6 +7,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart'
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
+import '../../../../core/widgets/primary_button.dart';
 
 /// Bottom sheet to pick a custom color. Returns '#RRGGBB' on confirm, or
 /// `null` if dismissed.
@@ -217,14 +218,10 @@ class _CustomColorSheetState extends State<CustomColorSheet> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.authAccent,
-                      foregroundColor: AppColors.authBackgroundBottom,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
+                  child: PrimaryButton(
+                    label: 'Usar color',
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     onPressed: () => Navigator.pop(context, colorToHex(color)),
-                    child: const Text('Usar color'),
                   ),
                 ),
               ],

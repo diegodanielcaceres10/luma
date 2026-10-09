@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/monthly_balance_view_model.dart';
@@ -157,17 +158,11 @@ class _BlockedView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.authAccent,
-              foregroundColor: AppColors.authBackgroundBottom,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
+          PrimaryButton(
+            label: actionLabel,
+            labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+            padding: const EdgeInsets.symmetric(vertical: 14),
             onPressed: onAction,
-            child: Text(
-              actionLabel,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
           ),
         ],
       ),

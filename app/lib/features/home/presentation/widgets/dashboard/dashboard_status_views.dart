@@ -116,15 +116,11 @@ class DashboardNoAccountsCard extends StatelessWidget {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.authAccent,
-                foregroundColor: AppColors.authBackgroundBottom,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
+            child: PrimaryButton(
+              label: 'Crear cuenta',
+              icon: Icons.add_rounded,
+              padding: const EdgeInsets.symmetric(vertical: 14),
               onPressed: onGoToAccounts,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Crear cuenta'),
             ),
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/widgets/luma_logo.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../view_models/app_lock_view_model.dart';
 
@@ -87,35 +88,17 @@ class LockScreen extends StatelessWidget {
                             SizedBox(
                               width: double.infinity,
                               height: 56,
-                              child: FilledButton(
+                              child: PrimaryButton(
+                                label: 'Desbloquear',
+                                labelStyle: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                borderRadius: 14,
+                                isLoading: viewModel.isAuthenticating,
                                 onPressed: viewModel.isAuthenticating
                                     ? null
                                     : viewModel.authenticate,
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: AppColors.authAccent,
-                                  foregroundColor:
-                                      AppColors.authBackgroundBottom,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                child: viewModel.isAuthenticating
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color:
-                                              AppColors.authBackgroundBottom,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Desbloquear',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
                               ),
                             ),
                           const SizedBox(height: 12),
