@@ -6,6 +6,7 @@ import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/month_range.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
@@ -298,39 +299,18 @@ class _AccountUpdateBalanceScreenState
       child: const Text('Atrás', style: TextStyle(fontWeight: FontWeight.w700)),
     );
 
-    final nextButton = FilledButton(
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.authAccent,
-        foregroundColor: AppColors.authBackgroundBottom,
-        disabledBackgroundColor: AppColors.authAccent.withValues(alpha: 0.4),
-        disabledForegroundColor:
-            AppColors.authBackgroundBottom.withValues(alpha: 0.6),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
+    final nextButton = PrimaryButton(
+      label: !isLastStep ? 'Siguiente' : 'Guardar y actualizar saldo',
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+      disabledAlpha: 0.4,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      borderRadius: 30,
+      isLoading: isLastStep && _isSaving,
       onPressed: !isLastStep
           ? (_isSaving || (isFirstStep && _difference == null)
               ? null
               : () => setState(() => _currentStep += 1))
           : (_difference == null || _isSaving ? null : _saveAndUpdateBalance),
-      child: !isLastStep
-          ? const Text('Siguiente',
-              style: TextStyle(fontWeight: FontWeight.w700))
-          : _isSaving
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.authBackgroundBottom,
-                  ),
-                )
-              : const Text(
-                  'Guardar y actualizar saldo',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
     );
 
     if (isFirstStep) {

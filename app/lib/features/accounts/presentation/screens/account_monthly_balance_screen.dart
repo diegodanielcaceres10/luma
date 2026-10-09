@@ -499,32 +499,14 @@ class _AccountMonthlyBalanceScreenState
       onNext = _goToNextStep;
     }
 
-    final nextButton = FilledButton(
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.authAccent,
-        foregroundColor: AppColors.authBackgroundBottom,
-        disabledBackgroundColor: AppColors.authAccent.withValues(alpha: 0.4),
-        disabledForegroundColor:
-            AppColors.authBackgroundBottom.withValues(alpha: 0.6),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
+    final nextButton = PrimaryButton(
+      label: isLastStep ? 'Guardar y comenzar' : 'Siguiente',
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+      disabledAlpha: 0.4,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      borderRadius: 30,
+      isLoading: isLastStep && _isSaving,
       onPressed: onNext,
-      child: isLastStep && _isSaving
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.authBackgroundBottom,
-              ),
-            )
-          : Text(
-              isLastStep ? 'Guardar y comenzar' : 'Siguiente',
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
     );
 
     if (isFirstStep) {
