@@ -60,7 +60,7 @@ class StatisticsSummaryCardsRow extends StatelessWidget {
           child: _SummaryCard(
             icon: Icons.account_balance_wallet_outlined,
             iconBackground: AppColors.authAccentDark,
-            label: 'Balance del mes',
+            label: 'Balance',
             amount: netResult,
             changePercent: netChangePercent,
             isFavorable:
@@ -121,14 +121,18 @@ class _SummaryCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
-              formatCurrency(amount, currency),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.authTextPrimary,
+            // Shrinks the amount to the card width instead of cutting it.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                formatCurrency(amount, currency),
+                maxLines: 1,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.authTextPrimary,
+                ),
               ),
             ),
             if (changePercent != null && isFavorable != null) ...[
