@@ -105,13 +105,14 @@ class TransactionsFilters {
   }
 
   /// Whether [t] falls in [range]; pass the effective range (relative ranges
-  /// only apply to the current month).
+  /// only apply to the current month). [now] defaults to the current time.
   static bool matchesDateRange(
     TransactionDateRangeFilter range,
-    TransactionEntry t,
-  ) {
-    final now = nowLocal();
-    final today = DateTime(now.year, now.month, now.day);
+    TransactionEntry t, {
+    DateTime? now,
+  }) {
+    final current = now ?? nowLocal();
+    final today = DateTime(current.year, current.month, current.day);
     final txDate = DateTime(t.date.year, t.date.month, t.date.day);
     switch (range) {
       case TransactionDateRangeFilter.all:
