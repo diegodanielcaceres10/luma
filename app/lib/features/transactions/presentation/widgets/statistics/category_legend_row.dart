@@ -31,25 +31,34 @@ class StatisticsCategoryLegendRow extends StatelessWidget {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
+          // The amount sits under the name so a long amount never squeezes
+          // the name on narrow screens.
           Expanded(
-            child: Text(
-              category.category.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            formatCurrency(category.amount, currency),
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.authTextPrimary,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  category.category.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.authTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  formatCurrency(category.amount, currency),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.authTextSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 6),
