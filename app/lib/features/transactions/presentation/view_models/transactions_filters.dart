@@ -121,16 +121,21 @@ class TransactionsFilters {
         return txDate == today;
       case TransactionDateRangeFilter.thisWeek:
         // Weeks start on Monday.
-        final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
+        final startOfWeek = _daysBefore(today, today.weekday - 1);
         return !txDate.isBefore(startOfWeek) && !txDate.isAfter(today);
       case TransactionDateRangeFilter.last7Days:
-        final start = today.subtract(const Duration(days: 6));
+        final start = _daysBefore(today, 6);
         return !txDate.isBefore(start) && !txDate.isAfter(today);
       case TransactionDateRangeFilter.last15Days:
-        final start = today.subtract(const Duration(days: 14));
+        final start = _daysBefore(today, 14);
         return !txDate.isBefore(start) && !txDate.isAfter(today);
     }
   }
+
+  /// The calendar day [days] before [date] at midnight. Done by date, not by
+  /// subtracting a Duration, which is off by an hour across a DST change.
+  static DateTime _daysBefore(DateTime date, int days) =>
+      DateTime(date.year, date.month, date.day - days);
 
   /// Whether [t] belongs to the calendar month of [month].
   static bool matchesMonth(DateTime month, TransactionEntry t) =>
