@@ -13,6 +13,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    # A zone with daylight saving, so the date-range tests that need it run.
+    env:
+      TZ: Europe/Madrid
+
     defaults:
       run:
         working-directory: app
