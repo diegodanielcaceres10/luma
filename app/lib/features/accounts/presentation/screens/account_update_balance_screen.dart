@@ -297,7 +297,7 @@ class _AccountUpdateBalanceScreenState
     );
 
     final nextButton = PrimaryButton(
-      label: !isLastStep ? 'Siguiente' : 'Guardar y actualizar saldo',
+      label: !isLastStep ? 'Siguiente' : 'Guardar',
       labelStyle: const TextStyle(fontWeight: FontWeight.w700),
       disabledAlpha: 0.4,
       padding: const EdgeInsets.symmetric(vertical: 16),
