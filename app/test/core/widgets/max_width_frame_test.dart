@@ -52,26 +52,43 @@ void main() {
     expect(rect.left, 0);
   });
 
-  testWidgets('paints the side background behind the frame', (tester) async {
+  testWidgets('paints the side decoration behind the frame', (tester) async {
     await setViewport(tester, const Size(1200, 800));
-    const sideColor = Color(0xFF123456);
+    const gradient = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF123456), Color(0xFF654321)],
+    );
+    const decoration = BoxDecoration(gradient: gradient);
 
     await tester.pumpWidget(
       _host(
         const MaxWidthFrame(
           maxWidth: 480,
-          sideColor: sideColor,
+          sideDecoration: decoration,
           child: SizedBox.expand(),
         ),
       ),
     );
 
-    final box = tester.widget<ColoredBox>(
+    final box = tester.widget<DecoratedBox>(
       find.descendant(
         of: find.byType(MaxWidthFrame),
-        matching: find.byType(ColoredBox),
+        matching: find.byType(DecoratedBox),
       ),
     );
-    expect(box.color, sideColor);
+    expect(box.decoration, decoration);
+  });
+
+  testWidgets('uses a 600 px default maximum width', (tester) async {
+    await setViewport(tester, const Size(1920, 1000));
+
+    await tester.pumpWidget(
+      _host(
+        const MaxWidthFrame(child: SizedBox.expand(key: Key('content'))),
+      ),
+    );
+
+    expect(tester.getSize(find.byKey(const Key('content'))).width, 600);
   });
 }

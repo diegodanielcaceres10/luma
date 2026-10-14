@@ -15,6 +15,18 @@ const _navItems = [
   (Icons.person_outline_rounded, 'Perfil', '/profile'),
 ];
 
+/// Green gradient behind the shell; also fills the sides on wide screens.
+const _shellBackground = BoxDecoration(
+  gradient: LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      AppColors.authBackgroundTop,
+      AppColors.authBackgroundBottom,
+    ],
+  ),
+);
+
 /// Bottom nav index that corresponds to a route. Movements, Statistics and
 /// Profile are highlighted by prefix; any other route (the Dashboard,
 /// Accounts, Categories, Services, Invoices, forms, etc.) counts as "Home".
@@ -76,23 +88,14 @@ class AppShellScreen extends StatelessWidget {
     // Capped on wide screens (web/PWA); the Scaffold sits inside so the
     // drawer, FAB and snackbars stay within the column.
     return MaxWidthFrame(
-      sideColor: AppColors.authBackgroundBottom,
+      sideDecoration: _shellBackground,
       child: Scaffold(
         drawer: _AppDrawer(
           location: uri.path,
           onNavigate: navigateTo,
         ),
         body: DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.authBackgroundTop,
-                AppColors.authBackgroundBottom,
-              ],
-            ),
-          ),
+          decoration: _shellBackground,
           child: SafeArea(
             bottom: false,
             child: Column(
