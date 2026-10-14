@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/widgets/max_width_frame.dart';
 import 'app_colors.dart';
 
 abstract final class AppTheme {
@@ -28,6 +29,10 @@ abstract final class AppTheme {
         foregroundColor: AppColors.text,
         elevation: 0,
         centerTitle: false,
+      ),
+      // Sheets open on the root navigator, outside the shell's width cap.
+      bottomSheetTheme: const BottomSheetThemeData(
+        constraints: BoxConstraints(maxWidth: kAppMaxContentWidth),
       ),
       cardTheme: const CardThemeData(
         color: AppColors.surface,

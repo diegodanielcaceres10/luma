@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
+import '../../../../core/widgets/max_width_frame.dart';
 import '../widgets/luma_header.dart';
 
 /// Shortcuts shared between the bottom nav and the drawer: (icon, label,
@@ -72,35 +73,40 @@ class AppShellScreen extends StatelessWidget {
       context.push(target);
     }
 
-    return Scaffold(
-      drawer: _AppDrawer(
-        location: uri.path,
-        onNavigate: navigateTo,
-      ),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.authBackgroundTop,
-              AppColors.authBackgroundBottom,
-            ],
+    // Capped on wide screens (web/PWA); the Scaffold sits inside so the
+    // drawer, FAB and snackbars stay within the column.
+    return MaxWidthFrame(
+      sideColor: AppColors.authBackgroundBottom,
+      child: Scaffold(
+        drawer: _AppDrawer(
+          location: uri.path,
+          onNavigate: navigateTo,
+        ),
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.authBackgroundTop,
+                AppColors.authBackgroundBottom,
+              ],
+            ),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                LumaHeader(trailing: _headerAction(navIndex)),
+                Expanded(child: child),
+              ],
+            ),
           ),
         ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              LumaHeader(trailing: _headerAction(navIndex)),
-              Expanded(child: child),
-            ],
-          ),
+        bottomNavigationBar: _BottomNav(
+          currentIndex: navIndex,
+          onTap: (i) => navigateTo(_navItems[i].$3),
         ),
-      ),
-      bottomNavigationBar: _BottomNav(
-        currentIndex: navIndex,
-        onTap: (i) => navigateTo(_navItems[i].$3),
       ),
     );
   }
