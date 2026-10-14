@@ -80,7 +80,7 @@ void main() {
     expect(box.decoration, decoration);
   });
 
-  testWidgets('uses a 600 px default maximum width', (tester) async {
+  testWidgets('uses a 720 px default maximum width', (tester) async {
     await setViewport(tester, const Size(1920, 1000));
 
     await tester.pumpWidget(
@@ -89,6 +89,6 @@ void main() {
       ),
     );
 
-    expect(tester.getSize(find.byKey(const Key('content'))).width, 600);
+    expect(tester.getSize(find.byKey(const Key('content'))).width, 720);
   });
 }

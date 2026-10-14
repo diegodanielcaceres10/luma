@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Widest the app content grows on large screens (web, PWA, tablets).
-const double kAppMaxContentWidth = 600;
+const double kAppMaxContentWidth = 720;
 
 /// Centers [child] and caps its width at [maxWidth]; on narrower viewports it
 /// is a no-op. The space left on the sides is painted with [sideDecoration].
