@@ -4,13 +4,12 @@ import 'package:luma/features/accounts/data/models/monthly_opening_balance.dart'
 import 'package:luma/features/accounts/presentation/view_models/closed_month_justification.dart';
 import 'package:luma/features/transactions/data/models/transaction_entry.dart';
 
-Account account(String id, {DateTime? createdAt}) => Account(
+Account account(String id) => Account(
       id: id,
       name: id,
       balance: 0,
       isActive: true,
       balanceUpdatedAt: DateTime(2026, 10, 1),
-      createdAt: createdAt,
     );
 
 TransactionEntry entry(String accountId) => TransactionEntry(
@@ -27,8 +26,6 @@ void main() {
     final august = DateTime(2026, 8);
     final now = DateTime(2026, 10, 14);
 
-    final june = DateTime(2026, 6, 12);
-
     List<Account> eligible({
       Map<String, Set<int>> openingMonths = const {},
       List<TransactionEntry> entries = const [],
@@ -37,14 +34,14 @@ void main() {
     }) {
       return ClosedMonthJustification.eligibleAccounts(
         month: month ?? august,
-        activeAccounts: accounts ?? [account('a', createdAt: june)],
+        activeAccounts: accounts ?? [account('a')],
         openingMonthsByAccount: openingMonths,
         monthEntries: entries,
         now: now,
       );
     }
 
-    test('offers an account that existed then and has nothing in the month',
+    test('offers an account that has nothing in the month',
         () {
       final result = eligible(openingMonths: {
         'a': {monthIndex(2026, 6), monthIndex(2026, 10)},
@@ -55,20 +52,6 @@ void main() {
 
     test('offers an account that never had an opening balance', () {
       expect(eligible().map((a) => a.id), ['a']);
-    });
-
-    test('offers an account created during that same month', () {
-      final result = eligible(
-        accounts: [account('a', createdAt: DateTime(2026, 8, 31))],
-      );
-
-      expect(result.map((a) => a.id), ['a']);
-    });
-
-    test('offers an account whose creation date is unknown', () {
-      final result = eligible(accounts: [account('a')]);
-
-      expect(result.map((a) => a.id), ['a']);
     });
 
     test('skips an account that already has an opening balance that month',
@@ -89,21 +72,13 @@ void main() {
     test('keeps an account when only another account has movements', () {
       final result = eligible(
         accounts: [
-          account('a', createdAt: june),
-          account('b', createdAt: june),
+          account('a'),
+          account('b'),
         ],
         entries: [entry('a')],
       );
 
       expect(result.map((a) => a.id), ['b']);
-    });
-
-    test('skips an account created after the month', () {
-      final result = eligible(
-        accounts: [account('a', createdAt: DateTime(2026, 9, 1))],
-      );
-
-      expect(result, isEmpty);
     });
 
     test('offers nothing for the current or a future month', () {
@@ -114,8 +89,8 @@ void main() {
     test('keeps the order of the accounts', () {
       final result = eligible(
         accounts: [
-          account('b', createdAt: june),
-          account('a', createdAt: june),
+          account('b'),
+          account('a'),
         ],
       );
 

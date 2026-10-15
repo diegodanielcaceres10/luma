@@ -14,9 +14,8 @@ abstract final class ClosedMonthJustification {
   }
 
   /// Accounts, in the order given, that can be justified for [month]: they
-  /// already existed then (created that month or earlier; an unknown creation
-  /// date counts as existing), have no opening balance for it and no
-  /// movements in it. Nothing is offered for the current or a future month.
+  /// have no opening balance for it and no movements in it. Nothing is
+  /// offered for the current or a future month.
   static List<Account> eligibleAccounts({
     required DateTime month,
     required Iterable<Account> activeAccounts,
@@ -35,11 +34,7 @@ abstract final class ClosedMonthJustification {
       if (openingMonthsByAccount[account.id]?.contains(target) ?? false) {
         return false;
       }
-      if (accountsWithMovements.contains(account.id)) return false;
-
-      final createdAt = account.createdAt;
-      return createdAt == null ||
-          monthIndex(createdAt.year, createdAt.month) <= target;
+      return !accountsWithMovements.contains(account.id);
     }).toList();
   }
 
