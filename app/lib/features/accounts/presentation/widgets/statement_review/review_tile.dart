@@ -60,8 +60,9 @@ class StatementReviewTile extends StatelessWidget {
     // A line outside the period can't be added, so the alert would be moot.
     final showTransferAlert = item.isTransfer && item.inRange;
 
+    // A line outside the period can't be added, so there is nothing to fix.
     return InkWell(
-      onTap: onEdit,
+      onTap: item.inRange ? onEdit : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(

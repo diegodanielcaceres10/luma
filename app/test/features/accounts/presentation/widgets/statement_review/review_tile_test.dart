@@ -19,6 +19,7 @@ void main() {
     StatementReviewItem item, {
     ValueChanged<bool?>? onToggle,
     ValueChanged<bool?>? onToggleTransfer,
+    VoidCallback? onEdit,
   }) {
     return MaterialApp(
       home: Scaffold(
@@ -27,7 +28,7 @@ void main() {
           currency: 'USD',
           onToggle: onToggle ?? (_) {},
           onToggleTransfer: onToggleTransfer ?? (_) {},
-          onEdit: () {},
+          onEdit: onEdit ?? () {},
         ),
       ),
     );
@@ -91,5 +92,25 @@ void main() {
     await tester.pumpWidget(host(outside));
 
     expect(find.text('Registrar como transferencia'), findsNothing);
+  });
+
+  testWidgets('tapping a line in the period asks to edit it', (tester) async {
+    var edits = 0;
+
+    await tester.pumpWidget(host(item(), onEdit: () => edits++));
+    await tester.tap(find.text('Mercadona'));
+
+    expect(edits, 1);
+  });
+
+  testWidgets('tapping an out-of-period line does not ask to edit it',
+      (tester) async {
+    var edits = 0;
+    final outside = item()..inRange = false;
+
+    await tester.pumpWidget(host(outside, onEdit: () => edits++));
+    await tester.tap(find.text('Mercadona'));
+
+    expect(edits, 0);
   });
 }

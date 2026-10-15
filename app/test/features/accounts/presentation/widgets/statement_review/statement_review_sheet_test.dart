@@ -162,4 +162,16 @@ void main() {
     await confirm(tester);
     expect(result!.single, isA<CategoryPendingMovement>());
   });
+
+  testWidgets('an out-of-period line cannot be opened for correction',
+      (tester) async {
+    await open(tester, [
+      scanned('Fuera', date: DateTime(2026, 9, 3)),
+    ]);
+
+    await tester.tap(find.text('Fuera'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Corregir descripción'), findsNothing);
+  });
 }
