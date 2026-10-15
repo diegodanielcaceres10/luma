@@ -138,17 +138,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // No active accounts — guide the user to create one.
   Widget _buildNoAccounts() {
-    return ListView(
-      key: const ValueKey('dashboard-no-accounts'),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      children: [
-        DashboardGreetingRow(
-          initials: widget.authViewModel.initials,
-          firstName: widget.authViewModel.displayName.split(' ').first,
-        ),
-        const SizedBox(height: 40),
-        DashboardNoAccountsCard(onGoToAccounts: widget.onGoToAccounts),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 768;
+        return ListView(
+          key: const ValueKey('dashboard-no-accounts'),
+          padding: EdgeInsets.fromLTRB(
+            isDesktop ? 28 : 20,
+            12,
+            isDesktop ? 28 : 20,
+            32,
+          ),
+          children: [
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1200),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DashboardGreetingRow(
+                      initials: widget.authViewModel.initials,
+                      firstName:
+                          widget.authViewModel.displayName.split(' ').first,
+                    ),
+                    const SizedBox(height: 40),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: DashboardNoAccountsCard(
+                          onGoToAccounts: widget.onGoToAccounts,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -207,11 +236,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       transitionBuilder: (_, __, ___, child) => child,
       pageBuilder: (dialogContext, animation, _) =>
           DashboardQuickActionsOverlay(
-            animation: animation,
-            fabRect: fabRect,
-            options: options,
-            onClose: () => Navigator.of(dialogContext).pop(),
-          ),
+        animation: animation,
+        fabRect: fabRect,
+        options: options,
+        onClose: () => Navigator.of(dialogContext).pop(),
+      ),
     );
   }
 
@@ -233,17 +262,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       key: const ValueKey('dashboard-content'),
       children: [
         Positioned.fill(
-          child: ListView(
-            // Extra bottom padding so the floating button doesn't cover the last
-            // movement.
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
-            children: [
-              DashboardGreetingRow(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isTwoColumn = constraints.maxWidth >= 768;
+
+              final greetingWidget = DashboardGreetingRow(
                 initials: widget.authViewModel.initials,
                 firstName: widget.authViewModel.displayName.split(' ').first,
-              ),
-              const SizedBox(height: 20),
-              DashboardBalanceCard(
+              );
+
+              final balanceCardWidget = DashboardBalanceCard(
                 isLoading: accountViewModel.isLoading,
                 total: accountViewModel.totalBalance,
                 currency: accountViewModel.primaryCurrency,
@@ -259,19 +287,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 pendingInvoicesCount: pendingInvoicesCount,
                 isLoadingPendingInvoices: widget.invoiceViewModel.isLoading ||
                     widget.serviceViewModel.isLoading,
-              ),
-              const SizedBox(height: 28),
-              DashboardSectionHeader(
+              );
+
+              final movementsHeaderWidget = DashboardSectionHeader(
                 title: 'Últimos movimientos',
                 onSeeAll: widget.onSeeAllMovements,
-              ),
-              const SizedBox(height: 8),
-              DashboardRecentMovements(
+              );
+
+              final movementsListWidget = DashboardRecentMovements(
                 isLoading: transactionViewModel.isLoading,
                 movements: transactionViewModel.recentMovements,
                 currency: accountViewModel.primaryCurrency,
-              ),
-            ],
+              );
+
+              if (isTwoColumn) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(28, 16, 28, 96),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1200),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          greetingWidget,
+                          const SizedBox(height: 24),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 6,
+                                child: balanceCardWidget,
+                              ),
+                              const SizedBox(width: 28),
+                              Expanded(
+                                flex: 6,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    movementsHeaderWidget,
+                                    const SizedBox(height: 12),
+                                    movementsListWidget,
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              // Single-column layout: mobile & narrow viewports (< 768 px)
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
+                children: [
+                  greetingWidget,
+                  const SizedBox(height: 20),
+                  balanceCardWidget,
+                  const SizedBox(height: 28),
+                  movementsHeaderWidget,
+                  const SizedBox(height: 8),
+                  movementsListWidget,
+                ],
+              );
+            },
           ),
         ),
         Positioned(

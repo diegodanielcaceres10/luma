@@ -18,6 +18,12 @@ abstract final class AppColors {
   static const authBackgroundTop = Color(0xFF12291D);
   static const authBackgroundBottom = Color(0xFF020604);
 
+  /// Navigation surfaces (sidebar, drawer, bottom nav): harmonious dark forest
+  /// green tones that blend smoothly with the background gradient instead of
+  /// harsh pitch-black.
+  static const navBackgroundTop = Color(0xFF163424);
+  static const navBackgroundBottom = Color(0xFF0B1B13);
+
   static const authAccent = Color(0xFF4CBB7A);
   static const authAccentDark = Color(0xFF1F7A4C);
 
