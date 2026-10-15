@@ -96,6 +96,26 @@ class MonthlyBalanceViewModel extends ChangeNotifier {
     }
   }
 
+  /// Opening balance of each account that has a record in [month]/[year], by
+  /// account id, or null (and sets [errorMessage]) if it can't be read. It
+  /// doesn't touch the current-month state used by [isAccountPending].
+  Future<Map<String, double>?> openingBalancesOfMonth({
+    required int month,
+    required int year,
+  }) async {
+    _errorMessage = null;
+    try {
+      return await _repository.getOpeningBalancesByAccount(
+        month: month,
+        year: year,
+      );
+    } catch (_) {
+      _errorMessage = 'No se pudo leer el saldo inicial del mes.';
+      notifyListeners();
+      return null;
+    }
+  }
+
   /// Saves the opening balance of [month]/[year] (the current month by
   /// default). With [uncontrolledExpensesTotal] the row also gets that
   /// uncontrolled total; without it the stored one is kept.

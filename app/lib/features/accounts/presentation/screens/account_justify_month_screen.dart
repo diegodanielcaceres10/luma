@@ -25,7 +25,9 @@ import '../widgets/pending_movements_section.dart';
 /// Wizard to justify a closed month for an account that was never loaded in
 /// it (no opening balance and no movements). Reached from Statistics.
 ///
-/// 1. Account and the opening and closing balance of the month.
+/// 1. Account and the opening balance of the month. Its closing balance is
+///    not typed: it is the opening balance of the following month, and
+///    without it the month can't be justified.
 /// 2. Movements of that month that explain the difference.
 /// 3. Summary and save.
 ///
@@ -67,7 +69,6 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
   static const _lastStep = 2;
 
   final _openingController = TextEditingController();
-  final _closingController = TextEditingController();
   final _movementsController = PendingMovementsController();
 
   /// Accounts that can be justified, decided once when the data is first
@@ -75,6 +76,15 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
   /// otherwise make it vanish from the list mid-flow. `null` until known.
   List<Account>? _eligible;
   String? _selectedAccountId;
+
+  /// Closing balance of the month: the opening balance of the next month for
+  /// the selected account. Never typed; null unless the status is available.
+  ClosingBalanceStatus _closingStatus = ClosingBalanceStatus.noAccount;
+  double? _closingBalance;
+
+  /// Identifies the latest closing balance request, so a slow answer for a
+  /// previously selected account is ignored.
+  int _closingRequest = 0;
 
   int _currentStep = 0;
   bool _isSaving = false;
@@ -84,18 +94,20 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
   double _savedMovementsTotal = 0;
 
   late final DateTime _month = DateTime(widget.month.year, widget.month.month);
+  late final DateTime _nextMonth = DateTime(_month.year, _month.month + 1);
   late final bool _isPast = ClosedMonthJustification.isPastMonth(_month);
 
   TransactionViewModel get _transactions => widget.transactionViewModel;
   MonthlyBalanceViewModel get _balances => widget.monthlyBalanceViewModel;
 
   String get _monthInSentence => formatMonthLabel(_month).toLowerCase();
+  String get _nextMonthInSentence =>
+      formatMonthLabel(_nextMonth).toLowerCase();
 
   @override
   void initState() {
     super.initState();
     _openingController.addListener(_onInputChanged);
-    _closingController.addListener(_onInputChanged);
     _movementsController.addListener(_onInputChanged);
 
     if (!_isPast) return;
@@ -115,8 +127,6 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
     _balances.removeListener(_onDataChanged);
     _openingController.removeListener(_onInputChanged);
     _openingController.dispose();
-    _closingController.removeListener(_onInputChanged);
-    _closingController.dispose();
     _movementsController.removeListener(_onInputChanged);
     _movementsController.dispose();
     super.dispose();
@@ -154,6 +164,48 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
       _eligible = eligible;
       if (eligible.length == 1) _selectedAccountId = eligible.first.id;
     });
+    if (_selectedAccountId != null) _loadClosingBalance();
+  }
+
+  void _selectAccount(String id) {
+    setState(() => _selectedAccountId = id);
+    _loadClosingBalance();
+  }
+
+  /// Reads the opening balance of the next month for the selected account,
+  /// which is this month's closing balance.
+  Future<void> _loadClosingBalance() async {
+    final account = _account;
+    final request = ++_closingRequest;
+
+    if (account == null) {
+      setState(() {
+        _closingBalance = null;
+        _closingStatus = ClosingBalanceStatus.noAccount;
+      });
+      return;
+    }
+
+    setState(() {
+      _closingBalance = null;
+      _closingStatus = ClosingBalanceStatus.loading;
+    });
+
+    final balances = await _balances.openingBalancesOfMonth(
+      month: _nextMonth.month,
+      year: _nextMonth.year,
+    );
+    if (!mounted || request != _closingRequest) return;
+
+    final amount = balances?[account.id];
+    setState(() {
+      _closingBalance = amount;
+      _closingStatus = balances == null
+          ? ClosingBalanceStatus.failed
+          : amount == null
+              ? ClosingBalanceStatus.missing
+              : ClosingBalanceStatus.available;
+    });
   }
 
   Account? get _account {
@@ -166,7 +218,6 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
   }
 
   double? get _openingBalance => parseBalanceAmount(_openingController.text);
-  double? get _closingBalance => parseBalanceAmount(_closingController.text);
 
   double? get _difference {
     final opening = _openingBalance;
@@ -192,6 +243,8 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
     );
   }
 
+  /// Without the next month's opening balance (the closing one) the month
+  /// can't be justified, so the flow doesn't go past the first step.
   bool get _canLeaveFirstStep =>
       _account != null && _openingBalance != null && _closingBalance != null;
 
@@ -309,13 +362,14 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
         return ClosedMonthBalancesStep(
           accounts: accounts,
           selectedAccountId: _selectedAccountId,
-          onSelectAccount: _isSaving
-              ? null
-              : (id) => setState(() => _selectedAccountId = id),
+          onSelectAccount: _isSaving ? null : _selectAccount,
           openingController: _openingController,
-          closingController: _closingController,
+          closingBalance: _closingBalance,
+          closingStatus: _closingStatus,
+          onRetryClosing: _isSaving ? null : _loadClosingBalance,
           currency: currency,
           monthLabel: _monthInSentence,
+          nextMonthLabel: _nextMonthInSentence,
           difference: _difference,
         );
       case 1:

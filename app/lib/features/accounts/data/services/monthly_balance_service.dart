@@ -21,6 +21,25 @@ class MonthlyBalanceService {
     return (rows as List).map((row) => row['account_id'] as String).toSet();
   }
 
+  /// Opening balance of every account that has a row for the month, by
+  /// account id.
+  Future<Map<String, double>> fetchOpeningBalancesByAccount({
+    required int month,
+    required int year,
+  }) async {
+    final rows = await _client
+        .from('monthly_account_balances')
+        .select('account_id, opening_balance')
+        .eq('month', month)
+        .eq('year', year);
+
+    return {
+      for (final row in rows as List)
+        row['account_id'] as String:
+            (row['opening_balance'] as num).toDouble(),
+    };
+  }
+
   /// Signed sum of `uncontrolled_expenses_total` across all accounts for the
   /// month (see `AccountViewModel.applyUncontrolledAdjustment`).
   Future<double> fetchUncontrolledExpensesTotal({

@@ -50,7 +50,7 @@ class TransactionViewModel extends ChangeNotifier {
   /// [loadAllTransactions] first.
   List<TransactionEntry> get allTransactions => _allTransactions;
 
-  List<TransactionEntry> get recentMovements => _transactions.take(4).toList();
+  List<TransactionEntry> get recentMovements => _transactions.take(10).toList();
 
   double get totalExpenses =>
       TransactionTotals.sumByType(_transactions, 'expense');

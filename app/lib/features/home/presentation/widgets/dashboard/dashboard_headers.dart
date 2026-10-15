@@ -59,14 +59,19 @@ class DashboardSectionHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.authTextPrimary,
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.authTextPrimary,
+            ),
           ),
         ),
+        const SizedBox(width: 8),
         TextButton(
           onPressed: onSeeAll,
           style: TextButton.styleFrom(

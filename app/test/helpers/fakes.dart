@@ -144,6 +144,9 @@ class FakeMonthlyBalanceRepository implements MonthlyBalanceRepository {
   /// Month indexes (`year * 12 + month`) with an opening balance, per account.
   Map<String, Set<int>> openingMonths = {};
 
+  /// Opening balance per account returned for any requested month.
+  Map<String, double> openingBalances = {};
+
   final requestedMonths = <({int month, int year})>[];
   final saved = <({String accountId, int month, int year, double amount})>[];
 
@@ -166,6 +169,16 @@ class FakeMonthlyBalanceRepository implements MonthlyBalanceRepository {
     requestedMonths.add((month: month, year: year));
     _throwIfSet(loadError);
     return {...existingIds};
+  }
+
+  @override
+  Future<Map<String, double>> getOpeningBalancesByAccount({
+    required int month,
+    required int year,
+  }) async {
+    requestedMonths.add((month: month, year: year));
+    _throwIfSet(loadError);
+    return {...openingBalances};
   }
 
   @override

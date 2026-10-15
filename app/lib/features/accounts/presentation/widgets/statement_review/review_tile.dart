@@ -163,21 +163,27 @@ class _TransferAlert extends StatelessWidget {
                 color: AppColors.authTextPrimary,
               ),
             ),
-            CheckboxListTile(
-              value: item.asTransfer,
-              onChanged: onChanged,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              activeColor: AppColors.authAccent,
-              checkColor: AppColors.authBackgroundBottom,
-              side: const BorderSide(color: AppColors.authTextSecondary),
-              title: const Text(
-                'Registrar como transferencia',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.authTextPrimary,
+            // The tile paints its ink on the nearest Material, which would sit
+            // behind this container's background; a transparent one above the
+            // decoration keeps the ink visible.
+            Material(
+              type: MaterialType.transparency,
+              child: CheckboxListTile(
+                value: item.asTransfer,
+                onChanged: onChanged,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                activeColor: AppColors.authAccent,
+                checkColor: AppColors.authBackgroundBottom,
+                side: const BorderSide(color: AppColors.authTextSecondary),
+                title: const Text(
+                  'Registrar como transferencia',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.authTextPrimary,
+                  ),
                 ),
               ),
             ),

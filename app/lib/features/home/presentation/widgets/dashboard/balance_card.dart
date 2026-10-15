@@ -67,9 +67,13 @@ class DashboardBalanceCard extends StatelessWidget {
                 Icon(Icons.calendar_today_rounded,
                     color: Colors.white70, size: 16),
                 SizedBox(width: 8),
-                Text(
-                  'Balance general del mes',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                Expanded(
+                  child: Text(
+                    'Balance general del mes',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
                 ),
               ],
             ),
@@ -113,15 +117,19 @@ class DashboardBalanceCard extends StatelessWidget {
                         size: 16,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        '${netResult >= 0 ? '+' : ''}'
-                        '${formatCurrency(netResult, currency)} este mes',
-                        style: TextStyle(
-                          color: netResult >= 0
-                              ? AppColors.authAccent
-                              : AppColors.authExpense,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                      Expanded(
+                        child: Text(
+                          '${netResult >= 0 ? '+' : ''}'
+                          '${formatCurrency(netResult, currency)} este mes',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: netResult >= 0
+                                ? AppColors.authAccent
+                                : AppColors.authExpense,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
