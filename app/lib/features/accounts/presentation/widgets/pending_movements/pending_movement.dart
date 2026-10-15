@@ -40,21 +40,27 @@ class CategoryPendingMovement extends PendingMovement {
 }
 
 class TransferPendingMovement extends PendingMovement {
-  final String otherAccountId;
-  final String otherAccountName;
+  /// Null when the other account is unknown, e.g. a line read from a
+  /// statement. Only this account's side is persisted either way.
+  final String? otherAccountId;
+  final String? otherAccountName;
 
   const TransferPendingMovement({
     required super.amount,
     required super.date,
-    required this.otherAccountId,
-    required this.otherAccountName,
+    this.otherAccountId,
+    this.otherAccountName,
     super.description,
   });
 
   @override
-  String get displayLabel => amount >= 0
-      ? 'Transferencia desde $otherAccountName'
-      : 'Transferencia a $otherAccountName';
+  String get displayLabel {
+    final name = otherAccountName;
+    if (name == null) return 'Transferencia';
+    return amount >= 0
+        ? 'Transferencia desde $name'
+        : 'Transferencia a $name';
+  }
 }
 
 class InvoicePendingMovement extends PendingMovement {

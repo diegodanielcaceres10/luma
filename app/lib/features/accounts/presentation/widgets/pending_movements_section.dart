@@ -305,7 +305,6 @@ class PendingMovementsSection extends StatelessWidget {
       context,
       movements: scanned,
       currency: currency,
-      categoryViewModel: categoryViewModel,
       dateRange: dateRange,
       known: known,
     );

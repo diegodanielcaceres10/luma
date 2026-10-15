@@ -246,4 +246,23 @@ void main() {
       }
     });
   });
+
+  group('mentionsTransfer', () {
+    test('detects the word regardless of case, accents and position', () {
+      for (final text in [
+        'Transferencia',
+        'TRANSFERENCIA recibida',
+        'Pago por transferencia a Juan',
+        'transferéncia',
+      ]) {
+        expect(mentionsTransfer(text), isTrue, reason: 'text: "$text"');
+      }
+    });
+
+    test('ignores descriptions that do not mention it', () {
+      for (final text in [null, '', '  ', 'Mercadona Torre', 'Transferir']) {
+        expect(mentionsTransfer(text), isFalse, reason: 'text: "$text"');
+      }
+    });
+  });
 }

@@ -5,7 +5,6 @@ import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/text_action_button.dart';
-import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/scanned_movement.dart';
 import 'pending_movements_section.dart';
 import 'statement_review/edit_scanned_dialog.dart';
@@ -14,14 +13,15 @@ import 'statement_review/review_tile.dart';
 /// Lets the user review [movements] read from a statement and returns the
 /// ones they confirm as [PendingMovement]s (null if they dismiss the sheet).
 ///
-/// Lines outside [dateRange] start unselected and can be fixed by editing
-/// their date; lines that match something in [known] are flagged as possible
-/// duplicates and also start unselected.
+/// Only the description of a line can be corrected. Lines outside [dateRange]
+/// start unselected and can't be added; lines that match something in
+/// [known] are flagged as possible duplicates and also start unselected.
+/// Lines whose description mentions a transfer are added as transfers unless
+/// the user unticks them.
 Future<List<PendingMovement>?> showStatementReviewSheet(
   BuildContext context, {
   required List<ScannedMovement> movements,
   required String currency,
-  required CategoryViewModel categoryViewModel,
   required DateTimeRange? dateRange,
   required Iterable<KnownMovement> known,
 }) {
@@ -36,7 +36,6 @@ Future<List<PendingMovement>?> showStatementReviewSheet(
     builder: (context) => _StatementReviewSheet(
       movements: movements,
       currency: currency,
-      categoryViewModel: categoryViewModel,
       dateRange: dateRange,
       known: known.toList(),
     ),
@@ -46,14 +45,12 @@ Future<List<PendingMovement>?> showStatementReviewSheet(
 class _StatementReviewSheet extends StatefulWidget {
   final List<ScannedMovement> movements;
   final String currency;
-  final CategoryViewModel categoryViewModel;
   final DateTimeRange? dateRange;
   final List<KnownMovement> known;
 
   const _StatementReviewSheet({
     required this.movements,
     required this.currency,
-    required this.categoryViewModel,
     required this.dateRange,
     required this.known,
   });
@@ -75,6 +72,7 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
     _items = widget.movements.map(StatementReviewItem.new).toList();
     for (final item in _items) {
       _refreshFlags(item);
+      _refreshTransfer(item);
       item.selected = item.inRange && !item.duplicate;
     }
   }
@@ -92,6 +90,15 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
     item.duplicate = isPossibleDuplicate(item.movement, widget.known);
   }
 
+  /// Flags the line as a transfer when its description says so; the box
+  /// starts ticked only the first time the flag turns on.
+  void _refreshTransfer(StatementReviewItem item) {
+    final wasTransfer = item.isTransfer;
+    item.isTransfer = mentionsTransfer(item.movement.description);
+    if (item.isTransfer && !wasTransfer) item.asTransfer = true;
+    if (!item.isTransfer) item.asTransfer = false;
+  }
+
   Iterable<StatementReviewItem> get _selected => _items.where((i) => i.selected);
 
   double get _selectedTotal {
@@ -103,38 +110,42 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
   }
 
   Future<void> _edit(StatementReviewItem item) async {
-    final edited = await showDialog<EditScannedResult>(
+    final description = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => EditScannedDialog(
-        movement: item.movement,
-        category: item.category,
-        categoryViewModel: widget.categoryViewModel,
-        range: _range,
-      ),
+      builder: (dialogContext) =>
+          EditScannedDialog(description: item.movement.description),
     );
-    if (edited == null || !mounted) return;
+    if (description == null || !mounted) return;
 
     setState(() {
-      item.movement = edited.movement;
-      item.category = edited.category;
-      _refreshFlags(item);
-      if (!item.inRange) item.selected = false;
+      item.movement = ScannedMovement(
+        type: item.movement.type,
+        amount: item.movement.amount,
+        date: item.movement.date,
+        description: description.isEmpty ? null : description,
+      );
+      _refreshTransfer(item);
     });
   }
 
   void _confirm() {
     final range = _range;
-    final result = _selected
-        .map(
-          (i) => CategoryPendingMovement(
-            amount: i.movement.signedAmount,
-            type: i.movement.type,
-            category: i.category,
-            description: i.movement.description,
-            date: i.movement.date ?? range.end,
-          ),
-        )
-        .toList();
+    final result = _selected.map<PendingMovement>((i) {
+      final date = i.movement.date ?? range.end;
+      if (i.asTransfer) {
+        return TransferPendingMovement(
+          amount: i.movement.signedAmount,
+          description: i.movement.description,
+          date: date,
+        );
+      }
+      return CategoryPendingMovement(
+        amount: i.movement.signedAmount,
+        type: i.movement.type,
+        description: i.movement.description,
+        date: date,
+      );
+    }).toList();
     Navigator.of(context).pop(result);
   }
 
@@ -197,6 +208,8 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
                     currency: widget.currency,
                     onToggle: (value) =>
                         setState(() => item.selected = value ?? false),
+                    onToggleTransfer: (value) =>
+                        setState(() => item.asTransfer = value ?? false),
                     onEdit: () => _edit(item),
                   );
                 },
