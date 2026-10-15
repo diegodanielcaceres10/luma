@@ -243,43 +243,19 @@ class PendingMovementsSection extends StatelessWidget {
     );
     if (source == null || !context.mounted) return;
 
-    final image = await pickAndCropImage(context, source, maxWidth: 2000);
-    if (image == null || !context.mounted) return;
+    // The scan runs inside the crop preview, which stays open (and offers a
+    // retry) until the service answers.
+    final scanned = await pickAndCropImage<List<ScannedMovement>>(
+      context,
+      source,
+      maxWidth: 2000,
+      process: (image) =>
+          (scanService ?? StatementScanService(Supabase.instance.client))
+              .scan(imageBytes: image.bytes, mimeType: image.mimeType),
+    );
+    if (scanned == null || !context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context, rootNavigator: true);
-
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const PopScope(
-        canPop: false,
-        child: Center(
-          child: CircularProgressIndicator(color: AppColors.authAccent),
-        ),
-      ),
-    );
-
-    final List<ScannedMovement> scanned;
-    try {
-      scanned =
-          await (scanService ?? StatementScanService(Supabase.instance.client))
-              .scan(imageBytes: image.bytes, mimeType: image.mimeType);
-    } catch (_) {
-      navigator.pop();
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Servicio no disponible. Intente más tarde o consulte a su '
-            'administrador.',
-          ),
-        ),
-      );
-      return;
-    }
-    navigator.pop();
-
-    if (!context.mounted) return;
     if (scanned.isEmpty) {
       messenger.showSnackBar(
         const SnackBar(

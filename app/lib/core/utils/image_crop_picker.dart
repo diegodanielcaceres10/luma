@@ -19,23 +19,30 @@ typedef ImagePickFn = Future<XFile?> Function(ImageSource source);
 typedef ImageCropFn = Future<Uint8List?> Function(String sourcePath);
 
 /// Shows the cropped [bytes] and returns what the user decided to do with
-/// them.
-typedef ImagePreviewFn = Future<CropPreviewAction> Function(Uint8List bytes);
+/// them. [send] runs the request for the image being shown; the preview keeps
+/// itself open until it succeeds, so the user can retry if it fails.
+typedef ImagePreviewFn<T> = Future<CropReview<T>> Function(
+  Uint8List bytes,
+  Future<T> Function() send,
+);
 
-/// Picks an image and lets the user crop it. Returns null if the user cancels
-/// any step.
+/// Picks an image, lets the user crop it and sends it with [process]. Returns
+/// what [process] returned, or null if the user cancels any step.
 ///
-/// When [preview] is given, the cropped image is shown before it is returned.
-/// The user can send it, crop the original photo again (without picking it
-/// anew) or cancel. Without [preview] the cropped image is returned as is.
+/// When [preview] is given, the cropped image is shown before it is sent. The
+/// user can send it, crop the original photo again (without picking it anew)
+/// or cancel, and a [process] failure is handled there, where it can be
+/// retried with the same image. Without [preview] the cropped image goes
+/// straight to [process], and its errors are thrown to the caller.
 ///
 /// The picker, the cropper and the preview are injected so the flow can be
 /// tested without the platform plugins.
-Future<PickedImage?> pickCroppedImage({
+Future<T?> pickCroppedImage<T>({
   required ImageSource source,
   required ImagePickFn pick,
   required ImageCropFn crop,
-  ImagePreviewFn? preview,
+  required Future<T> Function(PickedImage image) process,
+  ImagePreviewFn<T>? preview,
 }) async {
   final picked = await pick(source);
   if (picked == null) return null;
@@ -45,14 +52,19 @@ Future<PickedImage?> pickCroppedImage({
     final bytes = await crop(picked.path);
     if (bytes == null) return null;
 
-    final action =
-        preview == null ? CropPreviewAction.send : await preview(bytes);
+    final image = (bytes: bytes, mimeType: detectImageMimeType(bytes));
+    if (preview == null) return process(image);
 
-    if (action == CropPreviewAction.send) {
-      return (bytes: bytes, mimeType: detectImageMimeType(bytes));
+    final review = await preview(bytes, () => process(image));
+    switch (review.action) {
+      case CropPreviewAction.send:
+        return review.value;
+      case CropPreviewAction.cancel:
+        return null;
+      case CropPreviewAction.recrop:
+        // Crop the same photo again.
+        break;
     }
-    if (action == CropPreviewAction.cancel) return null;
-    // recrop: crop the same photo again.
   }
 }
 
@@ -82,26 +94,34 @@ String detectImageMimeType(Uint8List bytes) {
   return 'image/jpeg';
 }
 
-/// Picks a photo from the gallery or the camera, opens the crop screen and
-/// shows a preview of the result before returning it. Returns null if the
-/// user cancels.
+/// Picks a photo from the gallery or the camera, opens the crop screen, shows
+/// a preview of the result and sends it with [process]. Returns what
+/// [process] returned, or null if the user cancels.
+///
+/// The preview stays open while [process] runs, and if it throws it offers to
+/// retry with the same image (or crop again, or cancel), so a failed request
+/// doesn't cost the user the picked photo.
 ///
 /// The photo is picked untouched and compressed once, when it is cropped, so
 /// it is not re-encoded twice. The preview shows those same bytes: exactly
 /// what will be sent.
-Future<PickedImage?> pickAndCropImage(
+Future<T?> pickAndCropImage<T>(
   BuildContext context,
   ImageSource source, {
+  required Future<T> Function(PickedImage image) process,
   int imageQuality = 85,
   int? maxWidth,
 }) {
-  return pickCroppedImage(
+  return pickCroppedImage<T>(
     source: source,
     pick: (source) => ImagePicker().pickImage(source: source),
-    preview: (bytes) async {
+    process: process,
+    preview: (bytes, send) async {
       // The cropper is async; the screen may be gone by now.
-      if (!context.mounted) return CropPreviewAction.cancel;
-      return showCropPreviewDialog(context, bytes);
+      if (!context.mounted) {
+        return (action: CropPreviewAction.cancel, value: null);
+      }
+      return showCropPreviewDialog<T>(context, bytes, onSend: send);
     },
     crop: (sourcePath) async {
       // The picker is async; the screen may be gone by now.

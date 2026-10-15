@@ -68,7 +68,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   // FEAT: prefill the form from a receipt photo; the user reviews it before
   // saving.
   final _receiptScanService = ReceiptScanService(Supabase.instance.client);
-  bool _isScanning = false;
 
   bool get _isIncome => widget.type == 'income';
   Color get _accentColor =>
@@ -167,37 +166,22 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
     if (source == null || !mounted) return;
 
-    final image = await pickAndCropImage(context, source);
-    if (image == null || !mounted) return;
-
-    setState(() => _isScanning = true);
-    try {
-      final result = await _receiptScanService.scan(
+    // The scan runs inside the crop preview, which stays open (and offers a
+    // retry) until the service answers.
+    final result = await pickAndCropImage<ReceiptScanResult>(
+      context,
+      source,
+      process: (image) => _receiptScanService.scan(
         imageBytes: image.bytes,
         mimeType: image.mimeType,
-      );
-      if (!mounted) return;
+      ),
+    );
+    if (result == null || !mounted) return;
 
-      // Stop the scan spinner while the result dialog is open.
-      setState(() => _isScanning = false);
-
-      // The user confirms the detected data before it touches the form.
-      final confirmed = await _showScanResultDialog(result);
-      if (confirmed == true && mounted) {
-        _applyScanResult(result);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Servicio no disponible. Intente más tarde o consulte a su '
-            'administrador.',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isScanning = false);
+    // The user confirms the detected data before it touches the form.
+    final confirmed = await _showScanResultDialog(result);
+    if (confirmed == true && mounted) {
+      _applyScanResult(result);
     }
   }
 
@@ -374,8 +358,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Saving and scanning both lock the screen.
-    final isBusy = widget.transactionViewModel.isSubmitting || _isScanning;
+    // Saving locks the screen; scanning is locked by its own dialog.
+    final isBusy = widget.transactionViewModel.isSubmitting;
 
     return _mode == _EntryMode.selecting
         ? _buildModeSelector(isBusy)
@@ -402,7 +386,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             subtitle: 'Tomá una foto del ticket y extraemos la información '
                 'automáticamente.',
             highlighted: true,
-            loading: _isScanning,
             onTap: isBusy ? null : _scanReceipt,
           ),
           const SizedBox(height: 12),
