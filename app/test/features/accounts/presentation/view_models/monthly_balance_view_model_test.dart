@@ -253,6 +253,55 @@ void main() {
     });
   });
 
+  group('openingBalancesOfMonth', () {
+    test('returns the opening balance of each account in the month',
+        () async {
+      repository.openingBalances = {'a': 120.5, 'b': -30};
+
+      final balances = await viewModel.openingBalancesOfMonth(
+        month: 9,
+        year: 2026,
+      );
+
+      expect(balances, {'a': 120.5, 'b': -30.0});
+      expect(repository.requestedMonths, [(month: 9, year: 2026)]);
+      expect(viewModel.errorMessage, isNull);
+    });
+
+    test('returns an empty map when no account has a record', () async {
+      final balances = await viewModel.openingBalancesOfMonth(
+        month: 9,
+        year: 2026,
+      );
+
+      expect(balances, isEmpty);
+    });
+
+    test('returns null and reports an error when it cannot be read',
+        () async {
+      repository.loadError = Exception('boom');
+
+      final balances = await viewModel.openingBalancesOfMonth(
+        month: 9,
+        year: 2026,
+      );
+
+      expect(balances, isNull);
+      expect(
+        viewModel.errorMessage,
+        'No se pudo leer el saldo inicial del mes.',
+      );
+    });
+
+    test('does not change which accounts are pending this month', () async {
+      repository.openingBalances = {'a': 120.5};
+
+      await viewModel.openingBalancesOfMonth(month: 9, year: 2026);
+
+      expect(viewModel.isAccountPending('a'), isTrue);
+    });
+  });
+
   group('ensureOpeningBalance', () {
     Future<bool> ensure() => viewModel.ensureOpeningBalance(
           userId: 'user-1',
