@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luma/core/utils/currency_format.dart';
+import 'package:luma/core/widgets/filter_chip_row.dart';
 import 'package:luma/features/accounts/data/models/account.dart';
 import 'package:luma/features/accounts/presentation/widgets/closed_month_balances_step.dart';
 
@@ -55,7 +56,7 @@ void main() {
     await tester.pumpWidget(host(accounts: [account('a', 'Cuenta 1')]));
 
     expect(find.text('Cuenta 1'), findsOneWidget);
-    expect(find.byType(ChoiceChip), findsNothing);
+    expect(find.byType(FilterChipRow<String?>), findsNothing);
   });
 
   testWidgets('lets the user pick among several accounts', (tester) async {
@@ -68,12 +69,11 @@ void main() {
       ),
     );
 
-    expect(find.byType(ChoiceChip), findsNWidgets(2));
-    expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Cuenta 1'))
-          .selected,
-      isTrue,
+    final row = tester.widget<FilterChipRow<String?>>(
+      find.byType(FilterChipRow<String?>),
     );
+    expect(row.options.map((o) => o.label), ['Cuenta 1', 'Cuenta Extra']);
+    expect(row.selectedValue, 'a');
 
     await tester.tap(find.text('Cuenta Extra'));
 
@@ -88,11 +88,25 @@ void main() {
       ),
     );
 
-    final chip = tester.widget<ChoiceChip>(
-      find.widgetWithText(ChoiceChip, 'Cuenta Extra'),
+    final lock = tester.widget<IgnorePointer>(
+      find.byKey(const ValueKey('accountPickerLock')),
+    );
+    expect(lock.ignoring, isTrue);
+  });
+
+  testWidgets('keeps the picker active while selection is enabled',
+      (tester) async {
+    await tester.pumpWidget(
+      host(
+        accounts: [account('a', 'Cuenta 1'), account('b', 'Cuenta Extra')],
+        onSelectAccount: (_) {},
+      ),
     );
 
-    expect(chip.onSelected, isNull);
+    final lock = tester.widget<IgnorePointer>(
+      find.byKey(const ValueKey('accountPickerLock')),
+    );
+    expect(lock.ignoring, isFalse);
   });
 
   testWidgets('labels both balances with the month', (tester) async {

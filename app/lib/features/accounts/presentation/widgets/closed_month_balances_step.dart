@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
+import '../../../../core/widgets/filter_chip_row.dart';
 import '../../data/models/account.dart';
 import 'balance_comparison_card.dart';
 
@@ -115,27 +116,19 @@ class _AccountPicker extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final account in accounts)
-              ChoiceChip(
-                label: Text(account.name),
-                selected: account.id == selectedAccountId,
-                showCheckmark: false,
-                backgroundColor: AppColors.authCardFill,
-                selectedColor: AppColors.authAccent.withValues(alpha: 0.25),
-                side: const BorderSide(color: AppColors.authCardBorder),
-                labelStyle: const TextStyle(
-                  color: AppColors.authTextPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-                onSelected: onSelect == null
-                    ? null
-                    : (_) => onSelect(account.id),
-              ),
-          ],
+        IgnorePointer(
+          key: const ValueKey('accountPickerLock'),
+          ignoring: onSelect == null,
+          child: FilterChipRow<String?>(
+            options: [
+              for (final account in accounts)
+                (value: account.id, label: account.name),
+            ],
+            selectedValue: selectedAccountId,
+            onChanged: (id) {
+              if (id != null) onSelect?.call(id);
+            },
+          ),
         ),
       ],
     );
