@@ -112,6 +112,147 @@ void main() {
     });
   });
 
+  group('saveOpeningBalance for another month', () {
+    DateTime previousMonth() =>
+        DateTime(viewModel.currentYear, viewModel.currentMonth - 1);
+
+    Future<bool> savePast({double? uncontrolled}) {
+      final past = previousMonth();
+      return viewModel.saveOpeningBalance(
+        userId: 'user-1',
+        accountId: 'a',
+        openingBalance: 250,
+        month: past.month,
+        year: past.year,
+        uncontrolledExpensesTotal: uncontrolled,
+      );
+    }
+
+    test('saves the given month with its uncontrolled total', () async {
+      final past = previousMonth();
+
+      final saved = await savePast(uncontrolled: -40);
+
+      expect(saved, isTrue);
+      expect(repository.saved, [
+        (accountId: 'a', month: past.month, year: past.year, amount: 250.0),
+      ]);
+      expect(repository.uncontrolledTotals, [-40.0]);
+    });
+
+    test('keeps the account pending for the current month', () async {
+      await savePast();
+
+      expect(viewModel.isAccountPending('a'), isTrue);
+    });
+
+    test('marks the account as done when the month is the current one',
+        () async {
+      await viewModel.saveOpeningBalance(
+        userId: 'user-1',
+        accountId: 'a',
+        openingBalance: 250,
+        month: viewModel.currentMonth,
+        year: viewModel.currentYear,
+      );
+
+      expect(viewModel.isAccountPending('a'), isFalse);
+    });
+
+    test('remembers the saved month for the account', () async {
+      final past = previousMonth();
+
+      await savePast();
+
+      expect(
+        viewModel.openingMonthsByAccount['a'],
+        contains(past.year * 12 + past.month),
+      );
+    });
+
+    test('reports an error and remembers nothing when it fails', () async {
+      repository.saveError = Exception('boom');
+
+      final saved = await savePast();
+
+      expect(saved, isFalse);
+      expect(viewModel.errorMessage, 'No se pudo guardar el saldo inicial.');
+      expect(viewModel.openingMonthsByAccount['a'], isNull);
+    });
+  });
+
+  group('loadOpeningMonths', () {
+    test('loads the months with an opening balance of each account',
+        () async {
+      repository.openingMonths = {
+        'a': {2026 * 12 + 6, 2026 * 12 + 10},
+      };
+
+      await viewModel.loadOpeningMonths();
+
+      expect(viewModel.openingMonthsLoaded, isTrue);
+      expect(viewModel.openingMonthsByAccount['a'],
+          {2026 * 12 + 6, 2026 * 12 + 10});
+    });
+
+    test('stays unloaded without throwing when the repository fails',
+        () async {
+      repository.loadError = Exception('network down');
+
+      await viewModel.loadOpeningMonths();
+
+      expect(viewModel.openingMonthsLoaded, isFalse);
+      expect(viewModel.openingMonthsByAccount, isEmpty);
+    });
+
+    test('notifies listeners once loaded', () async {
+      var notifications = 0;
+      viewModel.addListener(() => notifications++);
+
+      await viewModel.loadOpeningMonths();
+
+      expect(notifications, greaterThan(0));
+    });
+  });
+
+  group('accountIdsWithOpeningBalance', () {
+    test('returns the accounts with a record in the given month', () async {
+      repository.existingIds = {'a'};
+
+      final ids = await viewModel.accountIdsWithOpeningBalance(
+        month: 8,
+        year: 2026,
+      );
+
+      expect(ids, {'a'});
+      expect(repository.requestedMonths, [(month: 8, year: 2026)]);
+    });
+
+    test('does not change which accounts are pending this month', () async {
+      repository.existingIds = {'a'};
+
+      await viewModel.accountIdsWithOpeningBalance(month: 8, year: 2026);
+
+      expect(viewModel.isAccountPending('a'), isTrue);
+    });
+
+    test('returns null and reports an error when it cannot be checked',
+        () async {
+      repository.loadError = Exception('boom');
+
+      final ids = await viewModel.accountIdsWithOpeningBalance(
+        month: 8,
+        year: 2026,
+      );
+
+      expect(ids, isNull);
+      expect(
+        viewModel.errorMessage,
+        'No se pudo comprobar el saldo inicial del mes.',
+      );
+    });
+  });
+
   group('ensureOpeningBalance', () {
     Future<bool> ensure() => viewModel.ensureOpeningBalance(
           userId: 'user-1',

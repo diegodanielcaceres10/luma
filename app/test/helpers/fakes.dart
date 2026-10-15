@@ -141,8 +141,22 @@ class FakeMonthlyBalanceRepository implements MonthlyBalanceRepository {
   Object? loadError;
   Object? saveError;
 
+  /// Month indexes (`year * 12 + month`) with an opening balance, per account.
+  Map<String, Set<int>> openingMonths = {};
+
   final requestedMonths = <({int month, int year})>[];
   final saved = <({String accountId, int month, int year, double amount})>[];
+
+  /// `uncontrolledExpensesTotal` passed on each save, in call order.
+  final uncontrolledTotals = <double?>[];
+
+  @override
+  Future<Map<String, Set<int>>> getOpeningMonthsByAccount() async {
+    _throwIfSet(loadError);
+    return {
+      for (final entry in openingMonths.entries) entry.key: {...entry.value},
+    };
+  }
 
   @override
   Future<Set<String>> getExistingAccountIds({
@@ -169,6 +183,7 @@ class FakeMonthlyBalanceRepository implements MonthlyBalanceRepository {
     required int month,
     required int year,
     required double openingBalance,
+    double? uncontrolledExpensesTotal,
   }) async {
     _throwIfSet(saveError);
     saved.add((
@@ -177,6 +192,7 @@ class FakeMonthlyBalanceRepository implements MonthlyBalanceRepository {
       year: year,
       amount: openingBalance,
     ));
+    uncontrolledTotals.add(uncontrolledExpensesTotal);
   }
 
   @override

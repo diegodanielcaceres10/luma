@@ -19,12 +19,17 @@ class MonthlyBalanceRepository {
     return _service.fetchUncontrolledExpensesTotal(month: month, year: year);
   }
 
+  Future<Map<String, Set<int>>> getOpeningMonthsByAccount() {
+    return _service.fetchOpeningMonthsByAccount();
+  }
+
   Future<void> saveOpeningBalance({
     required String userId,
     required String accountId,
     required int month,
     required int year,
     required double openingBalance,
+    double? uncontrolledExpensesTotal,
   }) {
     return _service.saveOpeningBalance(
       userId: userId,
@@ -32,6 +37,7 @@ class MonthlyBalanceRepository {
       month: month,
       year: year,
       openingBalance: openingBalance,
+      uncontrolledExpensesTotal: uncontrolledExpensesTotal,
     );
   }
 }

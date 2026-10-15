@@ -1,11 +1,13 @@
 import 'package:go_router/go_router.dart';
 
 import '../../core/navigation/app_back.dart';
+import '../../features/accounts/presentation/screens/account_justify_month_screen.dart';
 import '../../features/home/presentation/screens/routed_screen_scaffold.dart';
 import '../../features/transactions/presentation/screens/transaction_form_screen.dart';
 import '../../features/transactions/presentation/screens/transaction_form_transfer_screen.dart';
 import '../../features/transactions/presentation/screens/transactions_screen.dart';
 import '../../features/transactions/presentation/screens/transactions_statistics_screen.dart';
+import '../../features/transactions/presentation/view_models/transactions_filters.dart';
 import '../app_dependencies.dart';
 
 /// Routes of the transactions feature: new movement and transfer forms, the
@@ -16,6 +18,8 @@ List<RouteBase> transactionsRoutes(AppDependencies deps) {
   final transactionViewModel = deps.transactionViewModel;
   final categoryViewModel = deps.categoryViewModel;
   final monthlyBalanceViewModel = deps.monthlyBalanceViewModel;
+  final serviceViewModel = deps.serviceViewModel;
+  final invoiceViewModel = deps.invoiceViewModel;
 
   return [
     GoRoute(
@@ -73,7 +77,31 @@ List<RouteBase> transactionsRoutes(AppDependencies deps) {
       builder: (context, state) => TransactionsStatisticsScreen(
         transactionViewModel: transactionViewModel,
         categoryViewModel: categoryViewModel,
+        accountViewModel: accountViewModel,
+        monthlyBalanceViewModel: monthlyBalanceViewModel,
         currency: accountViewModel.primaryCurrency,
+        onJustifyMonth: (month) => context.push(
+          '/statistics/justify-month'
+          '?month=${TransactionsFilters.monthQueryValue(month) ?? ''}',
+        ),
+      ),
+    ),
+    GoRoute(
+      path: '/statistics/justify-month',
+      builder: (context, state) => RoutedScreenScaffold(
+        body: AccountJustifyMonthScreen(
+          month: TransactionsFilters.monthFromQuery(
+            state.uri.queryParameters['month'],
+          ),
+          userId: authViewModel.userId ?? '',
+          accountViewModel: accountViewModel,
+          categoryViewModel: categoryViewModel,
+          serviceViewModel: serviceViewModel,
+          invoiceViewModel: invoiceViewModel,
+          transactionViewModel: transactionViewModel,
+          monthlyBalanceViewModel: monthlyBalanceViewModel,
+          onDone: () => context.goBack(),
+        ),
       ),
     ),
   ];

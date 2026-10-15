@@ -4,6 +4,9 @@ import 'package:printing/printing.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/month_filter_button.dart';
+import '../../../accounts/presentation/view_models/account_view_model.dart';
+import '../../../accounts/presentation/view_models/closed_month_justification.dart';
+import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../export/transactions_statistics_screen_pdf_builder.dart';
 import '../view_models/transaction_view_model.dart';
@@ -11,6 +14,7 @@ import '../view_models/transactions_statistics_report.dart';
 import '../widgets/statistics/budget_categories_card.dart';
 import '../widgets/statistics/category_donut_chart.dart';
 import '../widgets/statistics/category_legend_row.dart';
+import '../widgets/statistics/justify_month_card.dart';
 import '../widgets/statistics/statistics_header.dart';
 import '../widgets/statistics/summary_cards.dart';
 import '../widgets/statistics/uncontrolled_card.dart';
@@ -19,13 +23,22 @@ class TransactionsStatisticsScreen extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
 
   final CategoryViewModel categoryViewModel;
+  final AccountViewModel accountViewModel;
+  final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final String currency;
+
+  /// Opens the flow that justifies [month] for the accounts left without
+  /// loading in it.
+  final ValueChanged<DateTime> onJustifyMonth;
 
   const TransactionsStatisticsScreen({
     super.key,
     required this.transactionViewModel,
     required this.categoryViewModel,
+    required this.accountViewModel,
+    required this.monthlyBalanceViewModel,
     required this.currency,
+    required this.onJustifyMonth,
   });
 
   @override
@@ -37,6 +50,45 @@ class _TransactionsStatisticsScreenState
     extends State<TransactionsStatisticsScreen> {
   bool _isExportingPdf = false;
   bool _isExportingFullPdf = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Always reloaded: it tells which accounts were left without loading.
+    widget.monthlyBalanceViewModel.loadOpeningMonths();
+  }
+
+  /// Offers to justify a past month for the accounts that have neither an
+  /// opening balance nor movements in it. Null while that isn't known yet or
+  /// when there is nothing to offer.
+  Widget? _justifyMonthCard({
+    required DateTime month,
+    required bool isCurrentMonth,
+    required String monthInSentence,
+  }) {
+    final vm = widget.transactionViewModel;
+    final balances = widget.monthlyBalanceViewModel;
+    if (isCurrentMonth ||
+        vm.isStatisticsLoading ||
+        vm.statisticsErrorMessage != null ||
+        !balances.openingMonthsLoaded) {
+      return null;
+    }
+
+    final accounts = ClosedMonthJustification.eligibleAccounts(
+      month: month,
+      activeAccounts: widget.accountViewModel.activeAccounts,
+      openingMonthsByAccount: balances.openingMonthsByAccount,
+      monthEntries: vm.statisticsEntries,
+    );
+    if (accounts.isEmpty) return null;
+
+    return StatisticsJustifyMonthCard(
+      monthLabel: monthInSentence,
+      accountNames: [for (final account in accounts) account.name],
+      onPressed: () => widget.onJustifyMonth(month),
+    );
+  }
 
   /// Generates the month's PDF and downloads it (web) or opens the share
   /// sheet (mobile). Only offered for closed months. With
@@ -106,9 +158,12 @@ class _TransactionsStatisticsScreenState
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge(
-        [widget.transactionViewModel, widget.categoryViewModel],
-      ),
+      listenable: Listenable.merge([
+        widget.transactionViewModel,
+        widget.categoryViewModel,
+        widget.accountViewModel,
+        widget.monthlyBalanceViewModel,
+      ]),
       builder: (context, _) {
         final vm = widget.transactionViewModel;
         final month = vm.statisticsMonth;
@@ -142,6 +197,12 @@ class _TransactionsStatisticsScreenState
                 items: budgetProgress,
                 currency: widget.currency,
               );
+
+        final justifyCard = _justifyMonthCard(
+          month: month,
+          isCurrentMonth: isCurrentMonth,
+          monthInSentence: monthInSentence,
+        );
 
         final uncontrolledCard = !vm.statisticsHasUncontrolledTotal
             ? null
@@ -226,6 +287,10 @@ class _TransactionsStatisticsScreenState
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
               header,
+              if (justifyCard != null) ...[
+                const SizedBox(height: 16),
+                justifyCard,
+              ],
               const SizedBox(height: 20),
               StatisticsSummaryCardsRow(
                 income: report.income,
@@ -273,6 +338,10 @@ class _TransactionsStatisticsScreenState
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
             header,
+            if (justifyCard != null) ...[
+              const SizedBox(height: 16),
+              justifyCard,
+            ],
             const SizedBox(height: 20),
             StatisticsSummaryCardsRow(
               income: report.income,

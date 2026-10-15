@@ -1,3 +1,7 @@
+/// Position of [month]/[year] on a continuous month scale, so months can be
+/// compared (and stored in a set) as plain integers.
+int monthIndex(int year, int month) => year * 12 + month;
+
 /// Opening balance of one account for one month, as stored in
 /// `monthly_account_balances`.
 class MonthlyOpeningBalance {

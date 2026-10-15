@@ -9,16 +9,22 @@ class Account {
   /// Last time [balance] changed (maintained by a database trigger).
   final DateTime balanceUpdatedAt;
 
+  /// When the account was created. Null when the source row doesn't say.
+  final DateTime? createdAt;
+
   const Account({
     required this.id,
     required this.name,
     required this.balance,
     required this.isActive,
     required this.balanceUpdatedAt,
+    this.createdAt,
   });
 
   factory Account.fromMap(Map<String, dynamic> map) {
+    final createdAt = map['created_at'] as String?;
     return Account(
+      createdAt: createdAt == null ? null : asLocal(DateTime.parse(createdAt)),
       id: map['id'] as String,
       name: map['name'] as String,
       balance: (map['balance'] as num).toDouble(),
