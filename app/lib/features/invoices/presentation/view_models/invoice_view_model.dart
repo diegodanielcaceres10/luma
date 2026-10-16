@@ -45,6 +45,36 @@ class InvoiceViewModel extends ChangeNotifier {
   bool isCancelling(String invoiceId) => _cancellingIds.contains(invoiceId);
   bool isPaying(String invoiceId) => _payingIds.contains(invoiceId);
 
+  /// The paid invoice whose payment is [transactionId], if any. A movement
+  /// with a match is a service payment.
+  Invoice? invoiceForTransaction(String transactionId) {
+    for (final invoice in _invoices) {
+      if (invoice.paid && invoice.transactionId == transactionId) {
+        return invoice;
+      }
+    }
+    return null;
+  }
+
+  /// Pending invoices ordered by how close their month is to [date], then by
+  /// due date, so the most likely match for a movement comes first.
+  List<Invoice> pendingInvoicesNear(DateTime date) {
+    final target = date.year * 12 + date.month;
+    final pending = _invoices.where((invoice) => invoice.isPending).toList();
+    pending.sort((a, b) {
+      final distanceA = (a.year * 12 + a.month - target).abs();
+      final distanceB = (b.year * 12 + b.month - target).abs();
+      if (distanceA != distanceB) return distanceA.compareTo(distanceB);
+      final dueA = a.dueDate;
+      final dueB = b.dueDate;
+      if (dueA == null || dueB == null) {
+        return dueA == null && dueB == null ? 0 : (dueA == null ? 1 : -1);
+      }
+      return dueA.compareTo(dueB);
+    });
+    return pending;
+  }
+
   /// Amount still to pay this month for recurring services (Dashboard
   /// BalanceCard). Skips [activeServices] whose invoice for this month is
   /// paid or cancelled; for the rest it adds the pending invoice amount, or
@@ -272,6 +302,70 @@ class InvoiceViewModel extends ChangeNotifier {
       return true;
     } catch (_) {
       _errorMessage = 'No se pudo registrar el pago.';
+      notifyListeners();
+      return false;
+    } finally {
+      _payingIds.remove(invoice.id);
+      notifyListeners();
+    }
+  }
+
+  /// Turns an existing expense into the payment of a pending invoice: the
+  /// movement takes the service's [categoryId] and the invoice is marked as
+  /// paid pointing to it. The movement amount is not changed, even if it
+  /// differs from the invoice amount (same as [payInvoice]).
+  ///
+  /// Two writes without a transaction: if the second fails, the movement
+  /// keeps its new category and the invoice stays pending.
+  Future<bool> linkExistingTransaction({
+    required Invoice invoice,
+    required String transactionId,
+    String? categoryId,
+    String? description,
+  }) async {
+    _payingIds.add(invoice.id);
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = await _transactionViewModel.updateTransaction(
+        transactionId: transactionId,
+        categoryId: categoryId,
+        description: description,
+      );
+      if (!updated) {
+        _errorMessage = _transactionViewModel.errorMessage ??
+            'No se pudo vincular el pago.';
+        notifyListeners();
+        return false;
+      }
+
+      await _repository.markPaid(id: invoice.id, transactionId: transactionId);
+      await loadInvoices();
+      return true;
+    } catch (_) {
+      _errorMessage = 'No se pudo vincular el pago.';
+      notifyListeners();
+      return false;
+    } finally {
+      _payingIds.remove(invoice.id);
+      notifyListeners();
+    }
+  }
+
+  /// Reverts a payment: the invoice goes back to pending and the movement
+  /// stays as a regular expense (it is not deleted nor changed).
+  Future<bool> unlinkTransaction(Invoice invoice) async {
+    _payingIds.add(invoice.id);
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.markUnpaid(id: invoice.id);
+      await loadInvoices();
+      return true;
+    } catch (_) {
+      _errorMessage = 'No se pudo desvincular el pago.';
       notifyListeners();
       return false;
     } finally {

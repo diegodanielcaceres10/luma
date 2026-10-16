@@ -456,25 +456,49 @@ class TransactionViewModel extends ChangeNotifier {
     }
   }
 
-  /// Edits category, description and date only. Account and amount stay fixed
-  /// because they affect `accounts.balance`. Returns true on success.
+  /// Edits category and description only. Account, amount and date stay
+  /// fixed. Returns true on success.
   Future<bool> updateTransaction({
     required String transactionId,
     String? categoryId,
     String? description,
-    required DateTime date,
-  }) async {
+  }) {
+    return _runUpdate(
+      () => _repository.update(
+        transactionId: transactionId,
+        categoryId: categoryId,
+        description: description,
+      ),
+      'No se pudo guardar los cambios.',
+    );
+  }
+
+  /// Turns an existing movement into one side of a transfer (see
+  /// [createTransfer]). Returns true on success.
+  Future<bool> convertToTransfer({
+    required String transactionId,
+    String? description,
+  }) {
+    return _runUpdate(
+      () => _repository.convertToTransfer(
+        transactionId: transactionId,
+        description: description,
+      ),
+      'No se pudo convertir en transferencia.',
+    );
+  }
+
+  /// Runs an in-place edit and reloads the affected lists.
+  Future<bool> _runUpdate(
+    Future<void> Function() action,
+    String failureMessage,
+  ) async {
     _isSubmitting = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _repository.update(
-        transactionId: transactionId,
-        categoryId: categoryId,
-        description: description,
-        date: date,
-      );
+      await action();
       await loadCurrentMonth();
       await _refreshStatisticsMonth();
       if (_hasLoadedAll) {
@@ -482,7 +506,7 @@ class TransactionViewModel extends ChangeNotifier {
       }
       return true;
     } catch (error) {
-      _errorMessage = 'No se pudo guardar los cambios.';
+      _errorMessage = failureMessage;
       notifyListeners();
       return false;
     } finally {

@@ -10,6 +10,8 @@ import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/text_action_button.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../invoices/presentation/view_models/invoice_view_model.dart';
+import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../data/models/transaction_entry.dart';
 import '../view_models/transaction_view_model.dart';
 import '../view_models/transactions_filters.dart';
@@ -23,6 +25,8 @@ class TransactionsScreen extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
   final AccountViewModel accountViewModel;
   final CategoryViewModel categoryViewModel;
+  final InvoiceViewModel invoiceViewModel;
+  final ServiceViewModel serviceViewModel;
   final String currency;
 
   /// Initial filters, read once from the URL query params (`type`, `range`,
@@ -43,6 +47,8 @@ class TransactionsScreen extends StatefulWidget {
     required this.transactionViewModel,
     required this.accountViewModel,
     required this.categoryViewModel,
+    required this.invoiceViewModel,
+    required this.serviceViewModel,
     required this.currency,
     this.initialType,
     this.initialRange,
@@ -178,13 +184,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   // Id of the transaction being updated.
   String? _updatingId;
 
-  /// Opens the edit dialog and saves the changes if confirmed.
+  /// Opens the edit dialog and applies the chosen action if confirmed.
   Future<void> _openEditDialog(TransactionEntry movement) async {
     final result = await showDialog<EditMovementResult>(
       context: context,
       builder: (_) => EditMovementDialog(
         movement: movement,
         categoryViewModel: widget.categoryViewModel,
+        invoiceViewModel: widget.invoiceViewModel,
+        serviceViewModel: widget.serviceViewModel,
         currency: widget.currency,
       ),
     );
@@ -193,27 +201,58 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
     setState(() => _updatingId = movement.id);
 
-    final success = await widget.transactionViewModel.updateTransaction(
-      transactionId: movement.id,
-      categoryId: result.categoryId,
-      description: result.description,
-      date: result.date,
-    );
+    final success = await _applyEdit(movement, result);
 
     if (!mounted) return;
 
     if (!success) {
+      // Each view model keeps its own last error, so read the one that ran.
+      final touchesInvoice = result.invoice != null;
+      final message = touchesInvoice
+          ? widget.invoiceViewModel.errorMessage
+          : widget.transactionViewModel.errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            widget.transactionViewModel.errorMessage ??
-                'No se pudo guardar los cambios.',
-          ),
+          content: Text(message ?? 'No se pudo guardar los cambios.'),
         ),
       );
     }
 
-    if (mounted) setState(() => _updatingId = null);
+    setState(() => _updatingId = null);
+  }
+
+  /// Runs the write that matches the dialog result. Returns true on success.
+  Future<bool> _applyEdit(
+    TransactionEntry movement,
+    EditMovementResult result,
+  ) {
+    final transactions = widget.transactionViewModel;
+    final invoice = result.invoice;
+
+    switch (result.action) {
+      case EditMovementAction.editDetails:
+        return transactions.updateTransaction(
+          transactionId: movement.id,
+          categoryId: result.categoryId,
+          description: result.description,
+        );
+      case EditMovementAction.convertToTransfer:
+        return transactions.convertToTransfer(
+          transactionId: movement.id,
+          description: result.description,
+        );
+      case EditMovementAction.convertToServicePayment:
+        if (invoice == null) return Future.value(false);
+        return widget.invoiceViewModel.linkExistingTransaction(
+          invoice: invoice,
+          transactionId: movement.id,
+          categoryId: result.categoryId,
+          description: result.description,
+        );
+      case EditMovementAction.unlinkServicePayment:
+        if (invoice == null) return Future.value(false);
+        return widget.invoiceViewModel.unlinkTransaction(invoice);
+    }
   }
 
   /// Asks for confirmation, then deletes the transaction.

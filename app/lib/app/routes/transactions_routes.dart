@@ -63,6 +63,8 @@ List<RouteBase> transactionsRoutes(AppDependencies deps) {
           transactionViewModel: transactionViewModel,
           accountViewModel: accountViewModel,
           categoryViewModel: categoryViewModel,
+          invoiceViewModel: invoiceViewModel,
+          serviceViewModel: serviceViewModel,
           currency: accountViewModel.primaryCurrency,
           initialType: state.uri.queryParameters['type'],
           initialRange: state.uri.queryParameters['range'],

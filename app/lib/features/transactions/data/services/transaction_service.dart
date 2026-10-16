@@ -127,18 +127,29 @@ class TransactionService {
     return id as String;
   }
 
-  /// Updates category, description and date only. Account and amount are not
-  /// editable because they affect `accounts.balance`.
+  /// Updates category and description only. Account, amount and date are not
+  /// editable: the first two affect `accounts.balance`.
   Future<void> updateTransaction({
     required String transactionId,
     String? categoryId,
     String? description,
-    required DateTime date,
   }) async {
     await _client.from('transactions').update({
       'category_id': categoryId,
       'description': description,
-      'date': formatDbDate(date),
+    }).eq('id', transactionId);
+  }
+
+  /// Flags an existing movement as a transfer. Transfers carry no category.
+  /// Amount and account stay untouched, so `accounts.balance` is unaffected.
+  Future<void> convertToTransfer({
+    required String transactionId,
+    String? description,
+  }) async {
+    await _client.from('transactions').update({
+      'is_transfer': true,
+      'category_id': null,
+      'description': description,
     }).eq('id', transactionId);
   }
 
