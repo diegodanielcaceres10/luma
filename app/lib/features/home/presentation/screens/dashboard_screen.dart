@@ -129,7 +129,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
 
         return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 350),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
           child: child,
         );
       },
@@ -145,9 +147,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           key: const ValueKey('dashboard-no-accounts'),
           padding: EdgeInsets.fromLTRB(
             isDesktop ? 28 : 20,
-            12,
+            16,
             isDesktop ? 28 : 20,
-            32,
+            36,
           ),
           children: [
             Align(
@@ -302,7 +304,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               if (isTwoColumn) {
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(28, 16, 28, 96),
+                  padding: const EdgeInsets.fromLTRB(28, 20, 28, 96),
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: ConstrainedBox(
@@ -311,7 +313,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           greetingWidget,
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 28),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -343,14 +345,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               // Single-column layout: mobile & narrow viewports (< 768 px)
               return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 96),
                 children: [
                   greetingWidget,
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 22),
                   balanceCardWidget,
                   const SizedBox(height: 28),
                   movementsHeaderWidget,
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   movementsListWidget,
                 ],
               );

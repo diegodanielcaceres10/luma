@@ -44,17 +44,31 @@ class DashboardAddFab extends StatelessWidget {
     return Semantics(
       button: true,
       label: 'Acciones rápidas',
-      child: Material(
-        color: AppColors.authAccent,
-        shape: const CircleBorder(),
-        elevation: 6,
-        shadowColor: Colors.black54,
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onPressed,
-          child: SizedBox(
-            width: size,
-            height: size,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: AppColors.authAccent.withValues(alpha: 0.38),
+              blurRadius: 18,
+              spreadRadius: 1,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Material(
+          color: AppColors.authAccent,
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onPressed,
             child: Center(
               child: Transform.rotate(
                 angle: rotation,
@@ -180,47 +194,73 @@ class _QuickActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.authBackgroundTop,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    option.title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.authTextPrimary,
+        ],
+      ),
+      child: Material(
+        color: AppColors.navBackgroundTop,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          hoverColor: AppColors.authCardFill,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.authCardBorder.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      option.title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                        color: AppColors.authTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      option.subtitle,
+                      style: AppTextStyles.authSubtitle.copyWith(fontSize: 12),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 14),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: option.iconColor.withValues(alpha: 0.16),
+                    border: Border.all(
+                      color: option.iconColor.withValues(alpha: 0.4),
+                      width: 1.5,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    option.subtitle,
-                    style: AppTextStyles.authSubtitle.copyWith(fontSize: 12),
+                  child: Center(
+                    child: Icon(option.icon, color: option.iconColor, size: 20),
                   ),
-                ],
-              ),
-              const SizedBox(width: 14),
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: option.iconColor.withValues(alpha: 0.85),
-                child: Icon(option.icon, color: Colors.white, size: 18),
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

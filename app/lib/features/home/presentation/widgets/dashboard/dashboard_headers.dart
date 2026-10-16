@@ -14,15 +14,40 @@ class DashboardGreetingRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 26,
-          backgroundColor: AppColors.authAccentDark.withValues(alpha: 0.35),
-          child: Text(
-            initials,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.authTextPrimary,
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.authAccentDark.withValues(alpha: 0.65),
+                AppColors.authAccentDark.withValues(alpha: 0.25),
+              ],
+            ),
+            border: Border.all(
+              color: AppColors.authAccent.withValues(alpha: 0.45),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.authAccent.withValues(alpha: 0.15),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              initials,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+                color: AppColors.authTextPrimary,
+              ),
             ),
           ),
         ),
@@ -33,12 +58,21 @@ class DashboardGreetingRow extends StatelessWidget {
             children: [
               Text(
                 'Hola, $firstName 👋',
-                style: AppTextStyles.authTitle.copyWith(fontSize: 20),
+                style: AppTextStyles.authTitle.copyWith(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               const Text(
                 'Aquí tienes un resumen de tus finanzas.',
-                style: AppTextStyles.authSubtitle,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.authTextSecondary,
+                  height: 1.3,
+                ),
               ),
             ],
           ),
@@ -65,27 +99,47 @@ class DashboardSectionHeader extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
               color: AppColors.authTextPrimary,
             ),
           ),
         ),
         const SizedBox(width: 8),
-        TextButton(
-          onPressed: onSeeAll,
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.authTextSecondary,
-            padding: EdgeInsets.zero,
-            minimumSize: const Size(0, 0),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Ver todas', style: TextStyle(fontSize: 13)),
-              Icon(Icons.chevron_right_rounded, size: 16),
-            ],
+        Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            onTap: onSeeAll,
+            borderRadius: BorderRadius.circular(10),
+            hoverColor: AppColors.authCardFill,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Ver todas',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: onSeeAll != null
+                          ? AppColors.authAccent
+                          : AppColors.authTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: onSeeAll != null
+                        ? AppColors.authAccent
+                        : AppColors.authTextSecondary,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
