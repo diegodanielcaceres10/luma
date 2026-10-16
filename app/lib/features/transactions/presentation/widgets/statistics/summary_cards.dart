@@ -94,21 +94,38 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
         color: AppColors.authCardFill,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 14,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: iconBackground,
-              child: Icon(icon, size: 16, color: Colors.white),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconBackground.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(
+                  color: iconBackground.withValues(alpha: 0.30),
+                  width: 1,
+                ),
+              ),
+              child: Center(
+                child: Icon(icon, size: 18, color: iconBackground),
+              ),
             ),
             const SizedBox(height: 10),
             Text(
@@ -117,6 +134,7 @@ class _SummaryCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 12,
+                fontWeight: FontWeight.w500,
                 color: AppColors.authTextSecondary,
               ),
             ),
@@ -129,8 +147,9 @@ class _SummaryCard extends StatelessWidget {
                 formatCurrency(amount, currency),
                 maxLines: 1,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 16.5,
                   fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
                   color: AppColors.authTextPrimary,
                 ),
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/month_filter_button.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
@@ -239,11 +240,29 @@ class _TransactionsStatisticsScreenState
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              header,
-              const Padding(
-                padding: EdgeInsets.only(top: 60),
-                child: Center(
-                  child: CircularProgressIndicator(color: AppColors.authAccent),
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 960),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      header,
+                      const Padding(
+                        padding: EdgeInsets.only(top: 60),
+                        child: Center(
+                          child: SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: AppColors.authAccent,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -255,27 +274,73 @@ class _TransactionsStatisticsScreenState
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              header,
-              Padding(
-                padding: const EdgeInsets.only(top: 60),
-                child: Column(
-                  children: [
-                    Text(
-                      errorMessage,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.authTextSecondary,
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 960),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      header,
+                      Padding(
+                        padding: const EdgeInsets.only(top: 32),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 36,
+                            horizontal: 20,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.authCardFill,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.authCardBorder),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.12),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: AppColors.authExpense
+                                      .withValues(alpha: 0.12),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: AppColors.authExpense,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                errorMessage,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: AppColors.authTextSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.authAccent,
+                                ),
+                                onPressed: () => vm.loadStatisticsMonth(month),
+                                child: const Text('Reintentar'),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.authAccent,
-                      ),
-                      onPressed: () => vm.loadStatisticsMonth(month),
-                      child: const Text('Reintentar'),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -286,47 +351,94 @@ class _TransactionsStatisticsScreenState
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              header,
-              if (justifyCard != null) ...[
-                const SizedBox(height: 16),
-                justifyCard,
-              ],
-              const SizedBox(height: 20),
-              StatisticsSummaryCardsRow(
-                income: report.income,
-                expenses: report.expenses,
-                netResult: report.netResult,
-                incomeChangePercent: incomeChangePercent,
-                expenseChangePercent: expenseChangePercent,
-                netChangePercent: netChangePercent,
-                currency: widget.currency,
-              ),
-              if (uncontrolledCard != null) ...[
-                const SizedBox(height: 10),
-                uncontrolledCard,
-              ],
-              if (budgetCard != null) ...[
-                const SizedBox(height: 24),
-                const Text(
-                  'Presupuesto',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.authTextSecondary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                budgetCard,
-              ],
-              Padding(
-                padding: const EdgeInsets.only(top: 40),
-                child: Center(
-                  child: Text(
-                    isCurrentMonth
-                        ? 'Todavía no hay gastos este mes.'
-                        : 'No hay gastos registrados en $monthInSentence.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.authTextSecondary),
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 960),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      header,
+                      if (justifyCard != null) ...[
+                        const SizedBox(height: 16),
+                        justifyCard,
+                      ],
+                      const SizedBox(height: 20),
+                      StatisticsSummaryCardsRow(
+                        income: report.income,
+                        expenses: report.expenses,
+                        netResult: report.netResult,
+                        incomeChangePercent: incomeChangePercent,
+                        expenseChangePercent: expenseChangePercent,
+                        netChangePercent: netChangePercent,
+                        currency: widget.currency,
+                      ),
+                      if (uncontrolledCard != null) ...[
+                        const SizedBox(height: 10),
+                        uncontrolledCard,
+                      ],
+                      if (budgetCard != null) ...[
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Presupuesto',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.authTextSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        budgetCard,
+                      ],
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 36,
+                            horizontal: 20,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.authCardFill,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.authCardBorder),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.12),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.receipt_long_outlined,
+                                  color: AppColors.authTextSecondary,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                isCurrentMonth
+                                    ? 'Todavía no hay gastos este mes.'
+                                    : 'No hay gastos registrados en $monthInSentence.',
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.authSubtitle,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -337,161 +449,190 @@ class _TransactionsStatisticsScreenState
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
-            header,
-            if (justifyCard != null) ...[
-              const SizedBox(height: 16),
-              justifyCard,
-            ],
-            const SizedBox(height: 20),
-            StatisticsSummaryCardsRow(
-              income: report.income,
-              expenses: report.expenses,
-              netResult: report.netResult,
-              incomeChangePercent: incomeChangePercent,
-              expenseChangePercent: expenseChangePercent,
-              netChangePercent: netChangePercent,
-              currency: widget.currency,
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 960),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    header,
+                    if (justifyCard != null) ...[
+                      const SizedBox(height: 16),
+                      justifyCard,
+                    ],
+                    const SizedBox(height: 20),
+                    StatisticsSummaryCardsRow(
+                      income: report.income,
+                      expenses: report.expenses,
+                      netResult: report.netResult,
+                      incomeChangePercent: incomeChangePercent,
+                      expenseChangePercent: expenseChangePercent,
+                      netChangePercent: netChangePercent,
+                      currency: widget.currency,
+                    ),
+                    if (uncontrolledCard != null) ...[
+                      const SizedBox(height: 10),
+                      uncontrolledCard,
+                    ],
+                    if (budgetCard != null) ...[
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Presupuesto',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.authTextSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      budgetCard,
+                    ],
+                    const SizedBox(height: 28),
+                    if (expenseTypeBreakdown.isNotEmpty) ...[
+                      const Text(
+                        'Categorizado, sin categoría y no declarado',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.authTextSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        formatCurrency(expenseTypeTotal, widget.currency),
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                          color: AppColors.authTextPrimary,
+                        ),
+                      ),
+                      Text(
+                        isCurrentMonth
+                            ? 'gastados este mes'
+                            : 'gastados en $monthInSentence',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.authTextFooter,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.authCardFill,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.authCardBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.16),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              StatisticsCategoryDonutChart(
+                                breakdown: expenseTypeBreakdown,
+                                total: expenseTypeTotal,
+                                currency: widget.currency,
+                                label: 'Gasto real',
+                              ),
+                              const SizedBox(width: 18),
+                              Expanded(
+                                child: Column(
+                                  children: expenseTypeBreakdown
+                                      .map((c) => StatisticsCategoryLegendRow(
+                                            category: c,
+                                            currency: widget.currency,
+                                          ))
+                                      .toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                    ],
+                    if (categorizedBreakdown.isNotEmpty) ...[
+                      const Text(
+                        'Gastos por categoría',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.authTextSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        formatCurrency(categorizedTotal, widget.currency),
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                          color: AppColors.authTextPrimary,
+                        ),
+                      ),
+                      Text(
+                        isCurrentMonth
+                            ? 'gastados este mes'
+                            : 'gastados en $monthInSentence',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.authTextFooter,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.authCardFill,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.authCardBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.16),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              StatisticsCategoryDonutChart(
+                                breakdown: categorizedBreakdown,
+                                total: categorizedTotal,
+                                currency: widget.currency,
+                              ),
+                              const SizedBox(width: 18),
+                              Expanded(
+                                child: Column(
+                                  children: categorizedBreakdown
+                                      .map((c) => StatisticsCategoryLegendRow(
+                                            category: c,
+                                            currency: widget.currency,
+                                          ))
+                                      .toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
-            if (uncontrolledCard != null) ...[
-              const SizedBox(height: 10),
-              uncontrolledCard,
-            ],
-            if (budgetCard != null) ...[
-              const SizedBox(height: 24),
-              const Text(
-                'Presupuesto',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextSecondary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              budgetCard,
-            ],
-            const SizedBox(height: 24),
-            if (expenseTypeBreakdown.isNotEmpty) ...[
-              const Text(
-                'Categorizado, sin categoría y no declarado',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextSecondary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                formatCurrency(expenseTypeTotal, widget.currency),
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                ),
-              ),
-              Text(
-                isCurrentMonth
-                    ? 'gastados este mes'
-                    : 'gastados en $monthInSentence',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.authTextFooter,
-                ),
-              ),
-              const SizedBox(height: 20),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.authCardFill,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.authCardBorder),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      StatisticsCategoryDonutChart(
-                        breakdown: expenseTypeBreakdown,
-                        total: expenseTypeTotal,
-                        currency: widget.currency,
-                        label: 'Gasto real',
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: Column(
-                          children: expenseTypeBreakdown
-                              .map((c) => StatisticsCategoryLegendRow(
-                                    category: c,
-                                    currency: widget.currency,
-                                  ))
-                              .toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-            if (categorizedBreakdown.isNotEmpty) ...[
-              const Text(
-                'Gastos por categoría',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextSecondary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                formatCurrency(categorizedTotal, widget.currency),
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
-                ),
-              ),
-              Text(
-                isCurrentMonth
-                    ? 'gastados este mes'
-                    : 'gastados en $monthInSentence',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.authTextFooter,
-                ),
-              ),
-              const SizedBox(height: 20),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.authCardFill,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.authCardBorder),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      StatisticsCategoryDonutChart(
-                        breakdown: categorizedBreakdown,
-                        total: categorizedTotal,
-                        currency: widget.currency,
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: Column(
-                          children: categorizedBreakdown
-                              .map((c) => StatisticsCategoryLegendRow(
-                                    category: c,
-                                    currency: widget.currency,
-                                  ))
-                              .toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ],
         );
       },
