@@ -473,18 +473,21 @@ class TransactionViewModel extends ChangeNotifier {
     );
   }
 
-  /// Turns an existing movement into one side of a transfer (see
-  /// [createTransfer]). Returns true on success.
-  Future<bool> convertToTransfer({
+  /// Flags an existing movement as one side of a transfer (see
+  /// [createTransfer]) or, with [isTransfer] false, turns it back into a
+  /// regular movement without category. Returns true on success.
+  Future<bool> setTransfer({
     required String transactionId,
-    String? description,
+    required bool isTransfer,
   }) {
     return _runUpdate(
-      () => _repository.convertToTransfer(
+      () => _repository.setTransfer(
         transactionId: transactionId,
-        description: description,
+        isTransfer: isTransfer,
       ),
-      'No se pudo convertir en transferencia.',
+      isTransfer
+          ? 'No se pudo marcar como transferencia.'
+          : 'No se pudo quitar la marca de transferencia.',
     );
   }
 

@@ -9,7 +9,9 @@ import '../../../../core/widgets/month_filter_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../../core/widgets/text_action_button.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
+import '../../../accounts/presentation/widgets/pending_movements/select_pending_invoice_sheet.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../invoices/data/models/invoice.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../data/models/transaction_entry.dart';
@@ -17,6 +19,7 @@ import '../view_models/transaction_view_model.dart';
 import '../view_models/transactions_filters.dart';
 import '../widgets/history/edit_movement_dialog.dart';
 import '../widgets/history/history_filter_widgets.dart';
+import '../widgets/history/movement_actions_sheet.dart';
 import '../widgets/history/movement_row.dart';
 
 /// Filterable transaction history.
@@ -184,75 +187,213 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   // Id of the transaction being updated.
   String? _updatingId;
 
-  /// Opens the edit dialog and applies the chosen action if confirmed.
-  Future<void> _openEditDialog(TransactionEntry movement) async {
-    final result = await showDialog<EditMovementResult>(
-      context: context,
-      builder: (_) => EditMovementDialog(
-        movement: movement,
-        categoryViewModel: widget.categoryViewModel,
-        invoiceViewModel: widget.invoiceViewModel,
-        serviceViewModel: widget.serviceViewModel,
-        currency: widget.currency,
-      ),
+  /// Opens the actions menu of [movement] and runs the chosen action.
+  Future<void> _openActions(TransactionEntry movement) async {
+    final linkedInvoice =
+        widget.invoiceViewModel.invoiceForTransaction(movement.id);
+
+    final action = await showMovementActionsSheet(
+      context,
+      movement: movement,
+      isServicePayment: linkedInvoice != null,
     );
+    if (action == null || !mounted) return;
 
-    if (result == null || !mounted) return;
+    switch (action) {
+      case MovementAction.edit:
+        await _editMovement(movement, isServicePayment: linkedInvoice != null);
+      case MovementAction.markTransfer:
+        await _setTransfer(movement, isTransfer: true);
+      case MovementAction.unmarkTransfer:
+        await _setTransfer(movement, isTransfer: false);
+      case MovementAction.linkInvoice:
+        await _linkInvoice(movement);
+      case MovementAction.unlinkInvoice:
+        if (linkedInvoice != null) {
+          await _unlinkInvoice(movement, linkedInvoice);
+        }
+      case MovementAction.delete:
+        await _confirmDelete(movement);
+    }
+  }
 
+  /// Runs [action] marking the row as updating and reports a failure with
+  /// the message from [errorMessage]. Each view model keeps its own last
+  /// error, so the caller says which one to read.
+  Future<void> _runUpdate(
+    TransactionEntry movement,
+    Future<bool> Function() action, {
+    required String? Function() errorMessage,
+    String? successMessage,
+  }) async {
     setState(() => _updatingId = movement.id);
 
-    final success = await _applyEdit(movement, result);
+    final success = await action();
 
     if (!mounted) return;
 
-    if (!success) {
-      // Each view model keeps its own last error, so read the one that ran.
-      final touchesInvoice = result.invoice != null;
-      final message = touchesInvoice
-          ? widget.invoiceViewModel.errorMessage
-          : widget.transactionViewModel.errorMessage;
+    final message = success
+        ? successMessage
+        : errorMessage() ?? 'No se pudo guardar los cambios.';
+    if (message != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message ?? 'No se pudo guardar los cambios.'),
-        ),
+        SnackBar(content: Text(message)),
       );
     }
 
     setState(() => _updatingId = null);
   }
 
-  /// Runs the write that matches the dialog result. Returns true on success.
-  Future<bool> _applyEdit(
-    TransactionEntry movement,
-    EditMovementResult result,
-  ) {
-    final transactions = widget.transactionViewModel;
-    final invoice = result.invoice;
+  /// Edit dialog: category (regular movements only) and description.
+  Future<void> _editMovement(
+    TransactionEntry movement, {
+    required bool isServicePayment,
+  }) async {
+    final result = await showDialog<EditMovementResult>(
+      context: context,
+      builder: (_) => EditMovementDialog(
+        movement: movement,
+        categoryViewModel: widget.categoryViewModel,
+        isServicePayment: isServicePayment,
+        currency: widget.currency,
+      ),
+    );
+    if (result == null || !mounted) return;
 
-    switch (result.action) {
-      case EditMovementAction.editDetails:
-        return transactions.updateTransaction(
-          transactionId: movement.id,
-          categoryId: result.categoryId,
-          description: result.description,
-        );
-      case EditMovementAction.convertToTransfer:
-        return transactions.convertToTransfer(
-          transactionId: movement.id,
-          description: result.description,
-        );
-      case EditMovementAction.convertToServicePayment:
-        if (invoice == null) return Future.value(false);
-        return widget.invoiceViewModel.linkExistingTransaction(
-          invoice: invoice,
-          transactionId: movement.id,
-          categoryId: result.categoryId,
-          description: result.description,
-        );
-      case EditMovementAction.unlinkServicePayment:
-        if (invoice == null) return Future.value(false);
-        return widget.invoiceViewModel.unlinkTransaction(invoice);
+    await _runUpdate(
+      movement,
+      () => widget.transactionViewModel.updateTransaction(
+        transactionId: movement.id,
+        categoryId: result.categoryId,
+        description: result.description,
+      ),
+      errorMessage: () => widget.transactionViewModel.errorMessage,
+    );
+  }
+
+  Future<void> _setTransfer(
+    TransactionEntry movement, {
+    required bool isTransfer,
+  }) {
+    return _runUpdate(
+      movement,
+      () => widget.transactionViewModel.setTransfer(
+        transactionId: movement.id,
+        isTransfer: isTransfer,
+      ),
+      errorMessage: () => widget.transactionViewModel.errorMessage,
+    );
+  }
+
+  /// Picks a pending invoice and links the movement to it as its payment.
+  /// The movement keeps its amount and takes the service's category.
+  Future<void> _linkInvoice(TransactionEntry movement) async {
+    final invoice = await showModalBottomSheet<Invoice>(
+      context: context,
+      backgroundColor: AppColors.authBackgroundBottom,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => SelectPendingInvoiceSheet(
+        invoices: widget.invoiceViewModel.pendingInvoicesNear(movement.date),
+        serviceViewModel: widget.serviceViewModel,
+        currency: widget.currency,
+      ),
+    );
+    if (invoice == null || !mounted) return;
+
+    if (invoice.amount != movement.amount) {
+      final confirmed = await _askConfirmation(
+        title: '¿Vincular a la factura?',
+        message: 'El monto del movimiento '
+            '(${formatCurrency(movement.amount, widget.currency)}) difiere '
+            'del de la factura '
+            '(${formatCurrency(invoice.amount, widget.currency)}). El '
+            'movimiento conserva su monto.',
+        confirmLabel: 'Vincular',
+      );
+      if (!confirmed || !mounted) return;
     }
+
+    final service = widget.serviceViewModel.serviceById(invoice.serviceId);
+    final serviceName = service?.name ?? 'la factura';
+    await _runUpdate(
+      movement,
+      () => widget.invoiceViewModel.linkExistingTransaction(
+        invoice: invoice,
+        transactionId: movement.id,
+        // A service without category keeps the movement's own.
+        categoryId: service?.categoryId ?? movement.category.id,
+        description: movement.description,
+      ),
+      errorMessage: () => widget.invoiceViewModel.errorMessage,
+      successMessage: 'Movimiento vinculado a $serviceName.',
+    );
+  }
+
+  /// Reverts a service payment: the invoice goes back to pending and the
+  /// movement stays as a regular expense.
+  Future<void> _unlinkInvoice(
+    TransactionEntry movement,
+    Invoice invoice,
+  ) async {
+    final service = widget.serviceViewModel.serviceById(invoice.serviceId);
+    final confirmed = await _askConfirmation(
+      title: '¿Desvincular del servicio?',
+      message: 'La factura de ${service?.name ?? 'servicio'} vuelve a quedar '
+          'pendiente y el movimiento se mantiene como un gasto común.',
+      confirmLabel: 'Desvincular',
+    );
+    if (!confirmed || !mounted) return;
+
+    await _runUpdate(
+      movement,
+      () => widget.invoiceViewModel.unlinkTransaction(invoice),
+      errorMessage: () => widget.invoiceViewModel.errorMessage,
+      successMessage: 'Movimiento desvinculado del servicio.',
+    );
+  }
+
+  Future<bool> _askConfirmation({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.authBackgroundTop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: AppColors.authTextPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(color: AppColors.authTextSecondary),
+        ),
+        actions: [
+          TextActionButton(
+            label: 'Volver',
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+          ),
+          TextActionButton(
+            label: confirmLabel,
+            color: AppColors.authAccent,
+            fontWeight: FontWeight.w700,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
   }
 
   /// Asks for confirmation, then deletes the transaction.
@@ -533,8 +674,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   i != visible.length - 1 || remaining > 0,
                               isDeleting: _deletingId == movement.id,
                               isUpdating: _updatingId == movement.id,
-                              onEdit: () => _openEditDialog(movement),
-                              onDelete: () => _confirmDelete(movement),
+                              onActions: () => _openActions(movement),
                             );
                           }),
                           if (remaining > 0)

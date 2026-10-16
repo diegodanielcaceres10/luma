@@ -14,9 +14,8 @@ class TransactionMovementRow extends StatelessWidget {
 
   final bool isUpdating;
 
-  final VoidCallback? onEdit;
-
-  final VoidCallback? onDelete;
+  /// Opens the movement actions menu (edit, transfer, invoice, delete).
+  final VoidCallback? onActions;
 
   const TransactionMovementRow({
     super.key,
@@ -25,14 +24,13 @@ class TransactionMovementRow extends StatelessWidget {
     required this.showDivider,
     this.isDeleting = false,
     this.isUpdating = false,
-    this.onEdit,
-    this.onDelete,
+    this.onActions,
   });
 
   @override
   Widget build(BuildContext context) {
     final sign = movement.isIncome ? '+' : '-';
-    // Disable both actions while either one is running.
+    // Disable the menu while an action is running.
     final isBusy = isDeleting || isUpdating;
 
     return Column(
@@ -79,22 +77,13 @@ class TransactionMovementRow extends StatelessWidget {
                           : AppColors.authExpense,
                 ),
               ),
-              if (onEdit != null) ...[
+              if (onActions != null) ...[
                 const SizedBox(width: 4),
                 _RowActionButton(
-                  icon: Icons.edit_outlined,
-                  tooltip: 'Editar movimiento',
-                  isLoading: isUpdating,
-                  onPressed: isBusy ? null : onEdit,
-                ),
-              ],
-              if (onDelete != null) ...[
-                const SizedBox(width: 4),
-                _RowActionButton(
-                  icon: Icons.delete_outline,
-                  tooltip: 'Eliminar movimiento',
-                  isLoading: isDeleting,
-                  onPressed: isBusy ? null : onDelete,
+                  icon: Icons.more_vert,
+                  tooltip: 'Opciones del movimiento',
+                  isLoading: isBusy,
+                  onPressed: isBusy ? null : onActions,
                 ),
               ],
             ],

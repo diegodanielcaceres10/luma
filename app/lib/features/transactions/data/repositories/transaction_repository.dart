@@ -91,13 +91,13 @@ class TransactionRepository {
     );
   }
 
-  Future<void> convertToTransfer({
+  Future<void> setTransfer({
     required String transactionId,
-    String? description,
+    required bool isTransfer,
   }) {
-    return _service.convertToTransfer(
+    return _service.setTransfer(
       transactionId: transactionId,
-      description: description,
+      isTransfer: isTransfer,
     );
   }
 }

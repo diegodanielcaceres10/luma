@@ -140,16 +140,17 @@ class TransactionService {
     }).eq('id', transactionId);
   }
 
-  /// Flags an existing movement as a transfer. Transfers carry no category.
-  /// Amount and account stay untouched, so `accounts.balance` is unaffected.
-  Future<void> convertToTransfer({
+  /// Flags or unflags an existing movement as a transfer. Transfers carry no
+  /// category, so flagging clears it; unflagging leaves it empty for the user
+  /// to categorize again. Amount and account stay untouched, so
+  /// `accounts.balance` is unaffected.
+  Future<void> setTransfer({
     required String transactionId,
-    String? description,
+    required bool isTransfer,
   }) async {
     await _client.from('transactions').update({
-      'is_transfer': true,
-      'category_id': null,
-      'description': description,
+      'is_transfer': isTransfer,
+      if (isTransfer) 'category_id': null,
     }).eq('id', transactionId);
   }
 
