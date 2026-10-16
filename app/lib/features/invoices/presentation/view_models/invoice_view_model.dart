@@ -56,6 +56,15 @@ class InvoiceViewModel extends ChangeNotifier {
     return null;
   }
 
+  /// Ids of the movements that are the payment of a paid invoice, to flag
+  /// them in lists without a lookup per row. Same rule as
+  /// [invoiceForTransaction].
+  Set<String> get servicePaymentTransactionIds => {
+        for (final invoice in _invoices)
+          if (invoice.paid && invoice.transactionId != null)
+            invoice.transactionId!,
+      };
+
   /// Pending invoices ordered by how close their month is to [date], then by
   /// due date, so the most likely match for a movement comes first.
   List<Invoice> pendingInvoicesNear(DateTime date) {

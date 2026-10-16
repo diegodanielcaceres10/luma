@@ -482,9 +482,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return SafeArea(
       top: false,
       child: ListenableBuilder(
-        listenable: widget.transactionViewModel,
+        // Invoices too: linking or unlinking a payment changes a row's icon
+        // without reloading the movements.
+        listenable: Listenable.merge([
+          widget.transactionViewModel,
+          widget.invoiceViewModel,
+        ]),
         builder: (context, _) {
           final vm = widget.transactionViewModel;
+          final servicePaymentIds =
+              widget.invoiceViewModel.servicePaymentTransactionIds;
 
           if (vm.isLoadingAll && vm.allTransactions.isEmpty) {
             return const Center(
@@ -674,6 +681,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   i != visible.length - 1 || remaining > 0,
                               isDeleting: _deletingId == movement.id,
                               isUpdating: _updatingId == movement.id,
+                              isServicePayment:
+                                  servicePaymentIds.contains(movement.id),
                               onActions: () => _openActions(movement),
                             );
                           }),

@@ -14,6 +14,11 @@ class TransactionMovementRow extends StatelessWidget {
 
   final bool isUpdating;
 
+  /// Whether the movement is the payment of a paid invoice. Shown with an
+  /// icon, like transfers; the amount keeps the expense color because it
+  /// still counts in the totals.
+  final bool isServicePayment;
+
   /// Opens the movement actions menu (edit, transfer, invoice, delete).
   final VoidCallback? onActions;
 
@@ -24,14 +29,37 @@ class TransactionMovementRow extends StatelessWidget {
     required this.showDivider,
     this.isDeleting = false,
     this.isUpdating = false,
+    this.isServicePayment = false,
     this.onActions,
   });
+
+  /// Icon that tells the movement kind apart, or null for regular ones.
+  Icon? _kindIcon() {
+    if (movement.isTransfer) {
+      return const Icon(
+        Icons.swap_horiz_rounded,
+        size: 16,
+        color: AppColors.authTransfer,
+        semanticLabel: 'Transferencia',
+      );
+    }
+    if (isServicePayment) {
+      return const Icon(
+        Icons.request_page_outlined,
+        size: 16,
+        color: AppColors.authInvoice,
+        semanticLabel: 'Pago de servicio',
+      );
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
     final sign = movement.isIncome ? '+' : '-';
     // Disable the menu while an action is running.
     final isBusy = isDeleting || isUpdating;
+    final kindIcon = _kindIcon();
 
     return Column(
       children: [
@@ -43,15 +71,27 @@ class TransactionMovementRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      movement.description?.isNotEmpty == true
-                          ? movement.description!
-                          : movement.category.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.authTextPrimary,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (kindIcon != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, right: 6),
+                            child: kindIcon,
+                          ),
+                        Expanded(
+                          child: Text(
+                            movement.description?.isNotEmpty == true
+                                ? movement.description!
+                                : movement.category.name,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.authTextPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
