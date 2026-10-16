@@ -33,94 +33,107 @@ class TransactionMovementRow extends StatelessWidget {
     this.onActions,
   });
 
-  /// Icon that tells the movement kind apart, or null for regular ones.
-  Icon? _kindIcon() {
-    if (movement.isTransfer) {
-      return const Icon(
-        Icons.swap_horiz_rounded,
-        size: 16,
-        color: AppColors.authTransfer,
-        semanticLabel: 'Transferencia',
-      );
-    }
-    if (isServicePayment) {
-      return const Icon(
-        Icons.request_page_outlined,
-        size: 16,
-        color: AppColors.authInvoice,
-        semanticLabel: 'Pago de servicio',
-      );
-    }
-    return null;
-  }
 
   @override
   Widget build(BuildContext context) {
     final sign = movement.isIncome ? '+' : '-';
     // Disable the menu while an action is running.
     final isBusy = isDeleting || isUpdating;
-    final kindIcon = _kindIcon();
+
+    final color = movement.isTransfer
+        ? AppColors.authTransfer
+        : movement.isIncome
+            ? AppColors.authIncome
+            : AppColors.authExpense;
+
+    final IconData iconData;
+    final String? semanticLabel;
+    if (movement.isTransfer) {
+      iconData = Icons.swap_horiz_rounded;
+      semanticLabel = 'Transferencia';
+    } else if (isServicePayment) {
+      iconData = Icons.request_page_outlined;
+      semanticLabel = 'Pago de servicio';
+    } else if (movement.isIncome) {
+      iconData = Icons.arrow_downward_rounded;
+      semanticLabel = null;
+    } else {
+      iconData = Icons.arrow_upward_rounded;
+      semanticLabel = null;
+    }
+
+    final podColor = isServicePayment ? AppColors.authInvoice : color;
 
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: podColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: podColor.withValues(alpha: 0.25),
+                    width: 1,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    iconData,
+                    color: podColor,
+                    size: 20,
+                    semanticLabel: semanticLabel,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (kindIcon != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2, right: 6),
-                            child: kindIcon,
-                          ),
-                        Expanded(
-                          child: Text(
-                            movement.description?.isNotEmpty == true
-                                ? movement.description!
-                                : movement.category.name,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.authTextPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      movement.description?.isNotEmpty == true
+                          ? movement.description!
+                          : movement.category.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.authTextPrimary,
+                        letterSpacing: -0.2,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${movement.category.name} · ${formatDate(movement.date)}',
                       style: const TextStyle(
                         fontSize: 12,
+                        fontWeight: FontWeight.w400,
                         color: AppColors.authTextSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '$sign${formatCurrency(movement.amount, currency)}',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 14.5,
                   fontWeight: FontWeight.w600,
                   // Transfers are neither income nor expense: use a neutral color.
-                  color: movement.isTransfer
-                      ? AppColors.authTransfer
-                      : movement.isIncome
-                          ? AppColors.authIncome
-                          : AppColors.authExpense,
+                  color: color,
                 ),
               ),
               if (onActions != null) ...[
                 const SizedBox(width: 4),
                 _RowActionButton(
-                  icon: Icons.more_vert,
+                  icon: Icons.more_vert_rounded,
                   tooltip: 'Opciones del movimiento',
                   isLoading: isBusy,
                   onPressed: isBusy ? null : onActions,
@@ -157,17 +170,19 @@ class _RowActionButton extends StatelessWidget {
       child: isLoading
           ? const Center(
               child: SizedBox(
-                width: 18,
-                height: 18,
+                width: 16,
+                height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: AppColors.authTextSecondary,
+                  color: AppColors.authAccent,
                 ),
               ),
             )
           : IconButton(
               padding: EdgeInsets.zero,
-              icon: Icon(icon, size: 20, color: AppColors.authTextSecondary),
+              iconSize: 20,
+              splashRadius: 18,
+              icon: Icon(icon, color: AppColors.authTextSecondary),
               tooltip: tooltip,
               onPressed: onPressed,
             ),

@@ -12,11 +12,11 @@ class TransactionsFilterSectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      label,
+      label.toUpperCase(),
       style: const TextStyle(
-        fontSize: 11,
+        fontSize: 10.5,
         fontWeight: FontWeight.w700,
-        letterSpacing: 0.4,
+        letterSpacing: 0.8,
         color: AppColors.authTextFooter,
       ),
     );
@@ -30,24 +30,50 @@ class TransactionsEmptyFilteredState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 48),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.search_off_rounded,
+              color: AppColors.authTextSecondary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(height: 14),
           const Text(
             'No hay movimientos con estos filtros.',
             textAlign: TextAlign.center,
             style: AppTextStyles.authSubtitle,
           ),
           if (onClear != null) ...[
-            const SizedBox(height: 12),
-            Center(
-              child: TextActionButton(
-                label: 'Quitar filtros',
-                color: AppColors.authAccent,
-                fontWeight: FontWeight.w600,
-                onPressed: onClear,
-              ),
+            const SizedBox(height: 14),
+            TextActionButton(
+              label: 'Quitar filtros',
+              color: AppColors.authAccent,
+              fontWeight: FontWeight.w600,
+              onPressed: onClear,
             ),
           ],
         ],

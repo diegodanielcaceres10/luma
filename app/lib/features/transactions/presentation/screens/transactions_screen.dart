@@ -495,7 +495,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
           if (vm.isLoadingAll && vm.allTransactions.isEmpty) {
             return const Center(
-              child: CircularProgressIndicator(color: AppColors.authAccent),
+              child: SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.authAccent,
+                ),
+              ),
             );
           }
 
@@ -505,12 +512,69 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               color: AppColors.authAccent,
               backgroundColor: AppColors.authBackgroundTop,
               child: ListView(
-                children: const [
-                  SizedBox(height: 120),
-                  Center(
-                    child: Text(
-                      'Todavía no hay movimientos.',
-                      style: AppTextStyles.authSubtitle,
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: [
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 960),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ScreenHeader(
+                            title: 'Movimientos',
+                            subtitle: 'Revisa y filtra tus ingresos y gastos.',
+                            action: MonthFilterButton(
+                              selectedMonth: _selectedMonth,
+                              onChanged: _pushMonth,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 40,
+                              horizontal: 20,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.authCardFill,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.authCardBorder),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.receipt_long_outlined,
+                                    color: AppColors.authTextSecondary,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                const Text(
+                                  'Todavía no hay movimientos.',
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.authSubtitle,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -571,141 +635,249 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: [
-                ScreenHeader(
-                  title: 'Movimientos',
-                  subtitle: 'Revisa y filtra tus ingresos y gastos.',
-                  action: MonthFilterButton(
-                    selectedMonth: _selectedMonth,
-                    onChanged: _pushMonth,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                FilterChipRow<TransactionTypeFilter>(
-                  options: const [
-                    (value: TransactionTypeFilter.all, label: 'Todos'),
-                    (value: TransactionTypeFilter.income, label: 'Ingresos'),
-                    (value: TransactionTypeFilter.expense, label: 'Gastos'),
-                  ],
-                  selectedValue: _typeFilter,
-                  onChanged: (value) {
-                    if (value != _typeFilter) _pushType(value);
-                  },
-                ),
-                if (TransactionsFilters.isCurrentMonth(_selectedMonth)) ...[
-                  const SizedBox(height: 12),
-                  const TransactionsFilterSectionLabel('Período'),
-                  const SizedBox(height: 6),
-                  FilterChipRow<TransactionDateRangeFilter>(
-                    options: const [
-                      (value: TransactionDateRangeFilter.all, label: 'Todo'),
-                      (value: TransactionDateRangeFilter.today, label: 'Hoy'),
-                      (
-                        value: TransactionDateRangeFilter.thisWeek,
-                        label: 'Esta semana'
-                      ),
-                      (
-                        value: TransactionDateRangeFilter.last7Days,
-                        label: 'Últimos 7 días'
-                      ),
-                      (
-                        value: TransactionDateRangeFilter.last15Days,
-                        label: 'Últimos 15 días'
-                      ),
-                    ],
-                    selectedValue: _dateRange,
-                    onChanged: (value) {
-                      if (value != _dateRange) _pushRange(value);
-                    },
-                  ),
-                ],
-                if (accounts.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  const TransactionsFilterSectionLabel('Cuenta'),
-                  const SizedBox(height: 6),
-                  FilterChipRow<String?>(
-                    options: <({String? value, String label})>[
-                      (value: null, label: 'Todas'),
-                      ...accounts.map(
-                        (a) => (value: _accountModelKey(a), label: a.name),
-                      ),
-                    ],
-                    selectedValue: effectiveAccountKey,
-                    onChanged: (key) {
-                      if (key != _accountKey) _pushAccount(key);
-                    },
-                  ),
-                ],
-                if (categories.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  const TransactionsFilterSectionLabel('Categoría'),
-                  const SizedBox(height: 6),
-                  FilterChipRow<String?>(
-                    options: <({String? value, String label})>[
-                      (value: null, label: 'Todas'),
-                      ...categories.map(
-                        (c) => (value: _categoryModelKey(c), label: c.name),
-                      ),
-                    ],
-                    selectedValue: effectiveCategoryKey,
-                    onChanged: (key) {
-                      if (key != _categoryKey) _pushCategory(key);
-                    },
-                  ),
-                ],
-                const SizedBox(height: 16),
-                if (filtered.isEmpty)
-                  TransactionsEmptyFilteredState(
-                    onClear: hasActiveFilters ? _pushClearFilters : null,
-                  )
-                else
-                  Builder(builder: (context) {
-                    final total = filtered.length;
-                    final visibleCount = _visibleCount.clamp(0, total);
-                    final visible = filtered.take(visibleCount).toList();
-                    final remaining = total - visibleCount;
-
-                    return DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: AppColors.authCardFill,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.authCardBorder),
-                      ),
-                      child: Column(
-                        children: [
-                          ...List.generate(visible.length, (i) {
-                            final movement = visible[i];
-                            return TransactionMovementRow(
-                              movement: movement,
-                              currency: widget.currency,
-                              showDivider:
-                                  i != visible.length - 1 || remaining > 0,
-                              isDeleting: _deletingId == movement.id,
-                              isUpdating: _updatingId == movement.id,
-                              isServicePayment:
-                                  servicePaymentIds.contains(movement.id),
-                              onActions: () => _openActions(movement),
-                            );
-                          }),
-                          if (remaining > 0)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: TextButton(
-                                onPressed: () => setState(() {
-                                  _visibleCount = visibleCount + _pageSize;
-                                }),
-                                child: Text(
-                                  'Ver más (${remaining > _pageSize ? _pageSize : remaining})',
-                                  style: const TextStyle(
-                                    color: AppColors.authAccent,
-                                    fontWeight: FontWeight.w600,
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 960),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ScreenHeader(
+                          title: 'Movimientos',
+                          subtitle: 'Revisa y filtra tus ingresos y gastos.',
+                          action: MonthFilterButton(
+                            selectedMonth: _selectedMonth,
+                            onChanged: _pushMonth,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.authCardFill,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.authCardBorder),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.10),
+                                blurRadius: 14,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FilterChipRow<TransactionTypeFilter>(
+                                options: const [
+                                  (
+                                    value: TransactionTypeFilter.all,
+                                    label: 'Todos'
+                                  ),
+                                  (
+                                    value: TransactionTypeFilter.income,
+                                    label: 'Ingresos'
+                                  ),
+                                  (
+                                    value: TransactionTypeFilter.expense,
+                                    label: 'Gastos'
+                                  ),
+                                ],
+                                selectedValue: _typeFilter,
+                                onChanged: (value) {
+                                  if (value != _typeFilter) _pushType(value);
+                                },
+                              ),
+                              if (TransactionsFilters.isCurrentMonth(
+                                  _selectedMonth)) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 12),
+                                  child: Divider(
+                                    height: 1,
+                                    color: AppColors.authCardBorder
+                                        .withValues(alpha: 0.5),
                                   ),
                                 ),
+                                const TransactionsFilterSectionLabel('Período'),
+                                const SizedBox(height: 8),
+                                FilterChipRow<TransactionDateRangeFilter>(
+                                  options: const [
+                                    (
+                                      value: TransactionDateRangeFilter.all,
+                                      label: 'Todo'
+                                    ),
+                                    (
+                                      value: TransactionDateRangeFilter.today,
+                                      label: 'Hoy'
+                                    ),
+                                    (
+                                      value: TransactionDateRangeFilter.thisWeek,
+                                      label: 'Esta semana'
+                                    ),
+                                    (
+                                      value:
+                                          TransactionDateRangeFilter.last7Days,
+                                      label: 'Últimos 7 días'
+                                    ),
+                                    (
+                                      value:
+                                          TransactionDateRangeFilter.last15Days,
+                                      label: 'Últimos 15 días'
+                                    ),
+                                  ],
+                                  selectedValue: _dateRange,
+                                  onChanged: (value) {
+                                    if (value != _dateRange) _pushRange(value);
+                                  },
+                                ),
+                              ],
+                              if (accounts.isNotEmpty) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 12),
+                                  child: Divider(
+                                    height: 1,
+                                    color: AppColors.authCardBorder
+                                        .withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                const TransactionsFilterSectionLabel('Cuenta'),
+                                const SizedBox(height: 8),
+                                FilterChipRow<String?>(
+                                  options: <({String? value, String label})>[
+                                    (value: null, label: 'Todas'),
+                                    ...accounts.map(
+                                      (a) => (
+                                        value: _accountModelKey(a),
+                                        label: a.name
+                                      ),
+                                    ),
+                                  ],
+                                  selectedValue: effectiveAccountKey,
+                                  onChanged: (key) {
+                                    if (key != _accountKey) _pushAccount(key);
+                                  },
+                                ),
+                              ],
+                              if (categories.isNotEmpty) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 12),
+                                  child: Divider(
+                                    height: 1,
+                                    color: AppColors.authCardBorder
+                                        .withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                const TransactionsFilterSectionLabel(
+                                    'Categoría'),
+                                const SizedBox(height: 8),
+                                FilterChipRow<String?>(
+                                  options: <({String? value, String label})>[
+                                    (value: null, label: 'Todas'),
+                                    ...categories.map(
+                                      (c) => (
+                                        value: _categoryModelKey(c),
+                                        label: c.name
+                                      ),
+                                    ),
+                                  ],
+                                  selectedValue: effectiveCategoryKey,
+                                  onChanged: (key) {
+                                    if (key != _categoryKey) _pushCategory(key);
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        if (filtered.isEmpty)
+                          TransactionsEmptyFilteredState(
+                            onClear:
+                                hasActiveFilters ? _pushClearFilters : null,
+                          )
+                        else
+                          Builder(builder: (context) {
+                            final total = filtered.length;
+                            final visibleCount = _visibleCount.clamp(0, total);
+                            final visible =
+                                filtered.take(visibleCount).toList();
+                            final remaining = total - visibleCount;
+
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.authCardFill,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: AppColors.authCardBorder),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.18),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                            ),
-                        ],
-                      ),
-                    );
-                  }),
+                              clipBehavior: Clip.antiAlias,
+                              child: Column(
+                                children: [
+                                  ...List.generate(visible.length, (i) {
+                                    final movement = visible[i];
+                                    return TransactionMovementRow(
+                                      movement: movement,
+                                      currency: widget.currency,
+                                      showDivider:
+                                          i != visible.length - 1 ||
+                                              remaining > 0,
+                                      isDeleting: _deletingId == movement.id,
+                                      isUpdating: _updatingId == movement.id,
+                                      isServicePayment:
+                                          servicePaymentIds.contains(
+                                              movement.id),
+                                      onActions: () => _openActions(movement),
+                                    );
+                                  }),
+                                  if (remaining > 0)
+                                    InkWell(
+                                      onTap: () => setState(() {
+                                        _visibleCount =
+                                            visibleCount + _pageSize;
+                                      }),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 14),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              'Ver más (${remaining > _pageSize ? _pageSize : remaining})',
+                                              style: const TextStyle(
+                                                color: AppColors.authAccent,
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            const Icon(
+                                              Icons.expand_more_rounded,
+                                              size: 18,
+                                              color: AppColors.authAccent,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           );
