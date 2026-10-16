@@ -3,7 +3,16 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/luma_logo.dart';
+import '../../../../core/widgets/max_width_frame.dart';
 import '../widgets/luma_header.dart';
+
+/// Breakpoints for responsive layout.
+const double kTabletBreakpoint = 600;
+const double kDesktopBreakpoint = 1024;
+const double kWideDesktopBreakpoint = 1440;
+
+/// Maximum width for the main content area on desktop viewports.
+const double kAppMaxDesktopContentWidth = 1200;
 
 /// Shortcuts shared between the bottom nav and the drawer: (icon, label,
 /// route). These are the 4 fixed bottom nav entries — see router.dart.
@@ -13,6 +22,18 @@ const _navItems = [
   (Icons.bar_chart_rounded, 'Estadísticas', '/statistics'),
   (Icons.person_outline_rounded, 'Perfil', '/profile'),
 ];
+
+/// Green gradient behind the shell; also fills the sides on wide screens.
+const _shellBackground = BoxDecoration(
+  gradient: LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      AppColors.authBackgroundTop,
+      AppColors.authBackgroundBottom,
+    ],
+  ),
+);
 
 /// Bottom nav index that corresponds to a route. Movements, Statistics and
 /// Profile are highlighted by prefix; any other route (the Dashboard,
@@ -25,9 +46,85 @@ int _navIndexFor(String path) {
   return 0;
 }
 
-/// Shared scaffold (drawer, header, bottom nav) of a common `ShellRoute`:
-/// there is ONE Navigator and ONE stack for the whole app. Bottom nav and
-/// drawer navigate with `context.push`, so every screen that is opened gets
+bool _isRouteActive(String location, String base) =>
+    location == base || location.startsWith('$base/');
+
+class _NavDestination {
+  final IconData icon;
+  final String label;
+  final String route;
+  final bool Function(String location, int navIndex) isSelected;
+
+  const _NavDestination({
+    required this.icon,
+    required this.label,
+    required this.route,
+    required this.isSelected,
+  });
+}
+
+final _allNavItems = [
+  _NavDestination(
+    icon: Icons.home_rounded,
+    label: 'Inicio',
+    route: '/',
+    isSelected: (loc, navIndex) =>
+        navIndex == 0 &&
+        !_isRouteActive(loc, '/accounts') &&
+        !_isRouteActive(loc, '/accounts-overview') &&
+        !_isRouteActive(loc, '/categories') &&
+        !_isRouteActive(loc, '/services') &&
+        !_isRouteActive(loc, '/invoices'),
+  ),
+  _NavDestination(
+    icon: Icons.account_balance_wallet_outlined,
+    label: 'Cuentas',
+    route: '/accounts',
+    isSelected: (loc, _) =>
+        _isRouteActive(loc, '/accounts') ||
+        _isRouteActive(loc, '/accounts-overview'),
+  ),
+  _NavDestination(
+    icon: Icons.sell_outlined,
+    label: 'Categorías',
+    route: '/categories',
+    isSelected: (loc, _) => _isRouteActive(loc, '/categories'),
+  ),
+  _NavDestination(
+    icon: Icons.receipt_long_outlined,
+    label: 'Servicios',
+    route: '/services',
+    isSelected: (loc, _) => _isRouteActive(loc, '/services'),
+  ),
+  _NavDestination(
+    icon: Icons.request_page_outlined,
+    label: 'Facturas',
+    route: '/invoices',
+    isSelected: (loc, _) => _isRouteActive(loc, '/invoices'),
+  ),
+  _NavDestination(
+    icon: Icons.trending_up_rounded,
+    label: 'Movimientos',
+    route: '/movements',
+    isSelected: (_, navIndex) => navIndex == 1,
+  ),
+  _NavDestination(
+    icon: Icons.bar_chart_rounded,
+    label: 'Estadísticas',
+    route: '/statistics',
+    isSelected: (_, navIndex) => navIndex == 2,
+  ),
+  _NavDestination(
+    icon: Icons.person_outline_rounded,
+    label: 'Perfil',
+    route: '/profile',
+    isSelected: (_, navIndex) => navIndex == 3,
+  ),
+];
+
+/// Shared scaffold (drawer, header, bottom nav or sidebar) of a common `ShellRoute`:
+/// there is ONE Navigator and ONE stack for the whole app. Bottom nav,
+/// drawer and sidebar navigate with `context.push`, so every screen that is opened gets
 /// stacked and "back" (browser or device button) always returns to the
 /// previous screen, in the same order they were visited — with no manual
 /// "back" handling.
@@ -59,6 +156,25 @@ class AppShellScreen extends StatelessWidget {
     }
   }
 
+  Widget _buildContentHeader({
+    required bool isMobile,
+    required Widget? trailing,
+  }) {
+    if (isMobile) {
+      return LumaHeader(trailing: trailing);
+    }
+    if (trailing == null) {
+      return const SizedBox(height: 8);
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: trailing,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final uri = GoRouterState.of(context).uri;
@@ -72,35 +188,262 @@ class AppShellScreen extends StatelessWidget {
       context.push(target);
     }
 
-    return Scaffold(
-      drawer: _AppDrawer(
-        location: uri.path,
-        onNavigate: navigateTo,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < kTabletBreakpoint;
+        final isTablet =
+            width >= kTabletBreakpoint && width < kDesktopBreakpoint;
+        final isWideDesktop = width >= kWideDesktopBreakpoint;
+
+        if (isMobile) {
+          // Mobile view (< 600 px): exactly the original layout with drawer,
+          // header and bottom navigation bar capped at MaxWidthFrame.
+          return MaxWidthFrame(
+            sideDecoration: _shellBackground,
+            child: Scaffold(
+              drawer: _AppDrawer(
+                location: uri.path,
+                navIndex: navIndex,
+                onNavigate: navigateTo,
+              ),
+              body: DecoratedBox(
+                decoration: _shellBackground,
+                child: SafeArea(
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      LumaHeader(trailing: _headerAction(navIndex)),
+                      Expanded(child: child),
+                    ],
+                  ),
+                ),
+              ),
+              bottomNavigationBar: _BottomNav(
+                currentIndex: navIndex,
+                onTap: (i) => navigateTo(_navItems[i].$3),
+              ),
+            ),
+          );
+        }
+
+        // Tablet & Desktop Web view (>= 600 px): persistent sidebar on the left,
+        // main content area on the right.
+        return Scaffold(
+          body: DecoratedBox(
+            decoration: _shellBackground,
+            child: SafeArea(
+              bottom: false,
+              child: Row(
+                children: [
+                  _AppSidebar(
+                    location: uri.path,
+                    navIndex: navIndex,
+                    isCompact: isTablet,
+                    isWideDesktop: isWideDesktop,
+                    onNavigate: navigateTo,
+                  ),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: kAppMaxDesktopContentWidth,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildContentHeader(
+                              isMobile: false,
+                              trailing: _headerAction(navIndex),
+                            ),
+                            Expanded(child: child),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AppSidebar extends StatelessWidget {
+  final String location;
+  final int navIndex;
+  final bool isCompact;
+  final bool isWideDesktop;
+  final ValueChanged<String> onNavigate;
+
+  const _AppSidebar({
+    required this.location,
+    required this.navIndex,
+    required this.isCompact,
+    required this.isWideDesktop,
+    required this.onNavigate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sidebarWidth = isCompact ? 72.0 : (isWideDesktop ? 260.0 : 240.0);
+
+    return Container(
+      width: sidebarWidth,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.navBackgroundTop,
+            AppColors.navBackgroundBottom,
+          ],
+        ),
+        border: Border(
+          right: BorderSide(color: AppColors.authCardBorder),
+        ),
       ),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.authBackgroundTop,
-              AppColors.authBackgroundBottom,
-            ],
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: isCompact
+                  ? const EdgeInsets.symmetric(vertical: 20)
+                  : const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: isCompact
+                  ? const Center(child: LumaLogo(size: 28))
+                  : const Row(
+                      children: [
+                        LumaLogo(size: 28),
+                        SizedBox(width: 10),
+                        Text(
+                          'Luma',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.authTextPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+            const Divider(height: 1, color: AppColors.authCardBorder),
+            const SizedBox(height: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: _allNavItems.map((item) {
+                    final isSelected = item.isSelected(location, navIndex);
+                    return isCompact
+                        ? _compactTile(
+                            icon: item.icon,
+                            label: item.label,
+                            isSelected: isSelected,
+                            onTap: () => onNavigate(item.route),
+                          )
+                        : _expandedTile(
+                            icon: item.icon,
+                            label: item.label,
+                            isSelected: isSelected,
+                            onTap: () => onNavigate(item.route),
+                          );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _expandedTile({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final color =
+        isSelected ? AppColors.authAccent : AppColors.authTextSecondary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: Material(
+        color: isSelected ? AppColors.authCardFill : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: AppColors.authCardFill,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 22),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  Container(
+                    width: 3,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: AppColors.authAccent,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              LumaHeader(trailing: _headerAction(navIndex)),
-              Expanded(child: child),
-            ],
+      ),
+    );
+  }
+
+  Widget _compactTile({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final color =
+        isSelected ? AppColors.authAccent : AppColors.authTextSecondary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      child: Tooltip(
+        message: label,
+        waitDuration: const Duration(milliseconds: 300),
+        child: Material(
+          color: isSelected ? AppColors.authCardFill : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            hoverColor: AppColors.authCardFill,
+            child: SizedBox(
+              height: 44,
+              child: Center(
+                child: Icon(icon, color: color, size: 22),
+              ),
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: _BottomNav(
-        currentIndex: navIndex,
-        onTap: (i) => navigateTo(_navItems[i].$3),
       ),
     );
   }
@@ -116,7 +459,7 @@ class _BottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
-        color: AppColors.authBackgroundBottom,
+        color: AppColors.navBackgroundBottom,
         border: Border(top: BorderSide(color: AppColors.authCardBorder)),
       ),
       child: SafeArea(
@@ -131,33 +474,37 @@ class _BottomNav extends StatelessWidget {
               final color =
                   isSelected ? AppColors.authAccent : AppColors.authTextFooter;
 
-              return InkWell(
-                onTap: () => onTap(i),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(item.$1, color: color, size: 22),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.$2,
-                        style: TextStyle(fontSize: 11, color: color),
-                      ),
-                      const SizedBox(height: 3),
-                      SizedBox(
-                        width: 16,
-                        height: 2,
-                        child: isSelected
-                            ? const DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: AppColors.authAccent,
-                                ),
-                              )
-                            : null,
-                      ),
-                    ],
+              return Expanded(
+                child: InkWell(
+                  onTap: () => onTap(i),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(item.$1, color: color, size: 22),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.$2,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11, color: color),
+                        ),
+                        const SizedBox(height: 3),
+                        SizedBox(
+                          width: 16,
+                          height: 2,
+                          child: isSelected
+                              ? const DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.authAccent,
+                                  ),
+                                )
+                              : null,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -172,19 +519,16 @@ class _BottomNav extends StatelessWidget {
 class _AppDrawer extends StatelessWidget {
   /// Current route (without query params).
   final String location;
+  final int navIndex;
 
   /// Navigates (with `push`) to the requested route — see [AppShellScreen].
   final ValueChanged<String> onNavigate;
 
   const _AppDrawer({
     required this.location,
+    required this.navIndex,
     required this.onNavigate,
   });
-
-  /// `true` if the current location is that base or one of its sub-routes
-  /// (e.g. '/accounts/new' or '/accounts/abc/edit' count as "Accounts").
-  bool _isActive(String base) =>
-      location == base || location.startsWith('$base/');
 
   Widget _tile(
     BuildContext context, {
@@ -218,100 +562,58 @@ class _AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final navIndex = _navIndexFor(location);
-    final isAccounts =
-        _isActive('/accounts') || _isActive('/accounts-overview');
-    final isCategories = _isActive('/categories');
-    final isServices = _isActive('/services');
-    final isInvoices = _isActive('/invoices');
-    // "Home" is only highlighted when none of the other four routes is
-    // active — otherwise "Home" stayed marked while navigating through
-    // Accounts, Categories, etc.
-    // Initial balance, new transaction and transfer do keep counting as
-    // "Home".
-    final isHome = navIndex == 0 &&
-        !isAccounts &&
-        !isCategories &&
-        !isServices &&
-        !isInvoices;
-
     return Drawer(
-      backgroundColor: AppColors.authBackgroundBottom,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 20),
-              child: Row(
-                children: [
-                  LumaLogo(size: 28),
-                  SizedBox(width: 8),
-                  Text(
-                    'Luma',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.authTextPrimary,
+      backgroundColor: Colors.transparent,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.navBackgroundTop,
+              AppColors.navBackgroundBottom,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Row(
+                  children: [
+                    LumaLogo(size: 28),
+                    SizedBox(width: 8),
+                    Text(
+                      'Luma',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.authTextPrimary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const Divider(height: 1, color: AppColors.authCardBorder),
-            const SizedBox(height: 8),
-            // Home
-            _tile(
-              context,
-              icon: _navItems[0].$1,
-              label: _navItems[0].$2,
-              isSelected: isHome,
-              onTap: () => onNavigate(_navItems[0].$3),
-            ),
-            // Accounts, Categories, Services and Invoices: drawer-only destinations.
-            // They are opened with `push` (via `onNavigate`) so they stack in the
-            // single history and "back" returns to the screen they were opened from.
-            _tile(
-              context,
-              icon: Icons.account_balance_wallet_outlined,
-              label: 'Cuentas',
-              isSelected: isAccounts,
-              onTap: () => onNavigate('/accounts'),
-            ),
-            _tile(
-              context,
-              icon: Icons.sell_outlined,
-              label: 'Categorías',
-              isSelected: isCategories,
-              onTap: () => onNavigate('/categories'),
-            ),
-            _tile(
-              context,
-              icon: Icons.receipt_long_outlined,
-              label: 'Servicios',
-              isSelected: isServices,
-              onTap: () => onNavigate('/services'),
-            ),
-            _tile(
-              context,
-              icon: Icons.request_page_outlined,
-              label: 'Facturas',
-              isSelected: isInvoices,
-              onTap: () => onNavigate('/invoices'),
-            ),
-            // Movements, Statistics, Profile
-            ...List.generate(_navItems.length - 1, (i) {
-              final index = i + 1;
-              final item = _navItems[index];
-              return _tile(
-                context,
-                icon: item.$1,
-                label: item.$2,
-                isSelected: navIndex == index,
-                onTap: () => onNavigate(item.$3),
-              );
-            }),
-          ],
+              const Divider(height: 1, color: AppColors.authCardBorder),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: _allNavItems.map((item) {
+                    return _tile(
+                      context,
+                      icon: item.icon,
+                      label: item.label,
+                      isSelected: item.isSelected(location, navIndex),
+                      onTap: () => onNavigate(item.route),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

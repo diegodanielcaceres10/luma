@@ -5,6 +5,7 @@ import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/text_action_button.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../categories/data/models/category.dart';
@@ -77,22 +78,15 @@ class InvoiceViewScreen extends StatelessWidget {
           style: TextStyle(color: AppColors.authTextSecondary),
         ),
         actions: [
-          TextButton(
+          TextActionButton(
+            label: 'Volver',
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Volver',
-              style: TextStyle(color: AppColors.authTextSecondary),
-            ),
           ),
-          TextButton(
+          TextActionButton(
+            label: 'Cancelar factura',
+            color: AppColors.authExpense,
+            fontWeight: FontWeight.w700,
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text(
-              'Cancelar factura',
-              style: TextStyle(
-                color: AppColors.authExpense,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
         ],
       ),

@@ -4,6 +4,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/widgets/input_text_field.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../services/data/models/service.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -45,24 +47,6 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
   DateTime? _dueDate;
 
   bool get _isEditing => widget.invoice != null;
-
-  static const _fieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-    hintStyle: TextStyle(color: AppColors.authTextFooter),
-  );
 
   @override
   void initState() {
@@ -213,7 +197,7 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                         'Seleccioná un servicio',
                         style: TextStyle(color: AppColors.authTextSecondary),
                       ),
-                      decoration: _fieldDecoration,
+                      decoration: InputTextField.formDecoration,
                       items: services
                           .map(
                             (Service s) => DropdownMenuItem<String?>(
@@ -251,7 +235,7 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                     initialValue: _selectedMonth,
                     dropdownColor: AppColors.authBackgroundBottom,
                     style: const TextStyle(color: AppColors.authTextPrimary),
-                    decoration: _fieldDecoration,
+                    decoration: InputTextField.formDecoration,
                     hint: const Text(
                       'Seleccioná un mes',
                       style: TextStyle(color: AppColors.authTextSecondary),
@@ -271,15 +255,12 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                         value == null ? 'Seleccioná un mes' : null,
                   ),
                   const SizedBox(height: 20),
-                  const Text('Año',
-                      style: TextStyle(color: AppColors.authTextSecondary)),
-                  const SizedBox(height: 8),
-                  TextFormField(
+                  InputTextField(
                     controller: _yearController,
+                    label: 'Año',
+                    hintText: '2026',
                     enabled: !isSubmitting,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: AppColors.authTextPrimary),
-                    decoration: _fieldDecoration.copyWith(hintText: '2026'),
                     validator: (value) {
                       final parsed = int.tryParse((value ?? '').trim());
                       return parsed == null || parsed < 2000
@@ -288,16 +269,13 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  const Text('Monto',
-                      style: TextStyle(color: AppColors.authTextSecondary)),
-                  const SizedBox(height: 8),
-                  TextFormField(
+                  InputTextField(
                     controller: _amountController,
+                    label: 'Monto',
+                    hintText: '0.00',
                     enabled: !isSubmitting,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(color: AppColors.authTextPrimary),
-                    decoration: _fieldDecoration.copyWith(hintText: '0.00'),
                     validator: (value) {
                       final parsed = double.tryParse((value ?? '').trim());
                       return parsed == null || parsed <= 0
@@ -313,7 +291,7 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                     onTap: isSubmitting ? null : _pickDueDate,
                     borderRadius: BorderRadius.circular(14),
                     child: InputDecorator(
-                      decoration: _fieldDecoration.copyWith(
+                      decoration: InputTextField.formDecoration.copyWith(
                         hintText: 'Sin vencimiento',
                         suffixIcon: _dueDate == null
                             ? const Icon(Icons.calendar_today_rounded,
@@ -340,30 +318,13 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.authAccent,
-                        foregroundColor: AppColors.authBackgroundBottom,
-                        disabledBackgroundColor:
-                            AppColors.authAccent.withValues(alpha: 0.6),
-                        disabledForegroundColor: AppColors.authBackgroundBottom
-                            .withValues(alpha: 0.6),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                    child: PrimaryButton(
+                      label: _isEditing ? 'Guardar cambios' : 'Crear factura',
+                      disabledAlpha: 0.6,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      isLoading: isSubmitting,
                       onPressed:
                           (isSubmitting || services.isEmpty) ? null : _submit,
-                      child: isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.authBackgroundBottom,
-                              ),
-                            )
-                          : Text(_isEditing
-                              ? 'Guardar cambios'
-                              : 'Crear factura'),
                     ),
                   ),
                 ],

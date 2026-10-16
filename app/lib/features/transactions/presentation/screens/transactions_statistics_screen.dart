@@ -1,30 +1,44 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/month_filter_button.dart';
-import '../../../../core/widgets/screen_header.dart';
-import '../../../categories/data/models/category.dart';
+import '../../../accounts/presentation/view_models/account_view_model.dart';
+import '../../../accounts/presentation/view_models/closed_month_justification.dart';
+import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../export/transactions_statistics_screen_pdf_builder.dart';
 import '../view_models/transaction_view_model.dart';
 import '../view_models/transactions_statistics_report.dart';
+import '../widgets/statistics/budget_categories_card.dart';
+import '../widgets/statistics/category_donut_chart.dart';
+import '../widgets/statistics/category_legend_row.dart';
+import '../widgets/statistics/justify_month_card.dart';
+import '../widgets/statistics/statistics_header.dart';
+import '../widgets/statistics/summary_cards.dart';
+import '../widgets/statistics/uncontrolled_card.dart';
 
 class TransactionsStatisticsScreen extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
 
   final CategoryViewModel categoryViewModel;
+  final AccountViewModel accountViewModel;
+  final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final String currency;
+
+  /// Opens the flow that justifies [month] for the accounts left without
+  /// loading in it.
+  final ValueChanged<DateTime> onJustifyMonth;
 
   const TransactionsStatisticsScreen({
     super.key,
     required this.transactionViewModel,
     required this.categoryViewModel,
+    required this.accountViewModel,
+    required this.monthlyBalanceViewModel,
     required this.currency,
+    required this.onJustifyMonth,
   });
 
   @override
@@ -35,11 +49,52 @@ class TransactionsStatisticsScreen extends StatefulWidget {
 class _TransactionsStatisticsScreenState
     extends State<TransactionsStatisticsScreen> {
   bool _isExportingPdf = false;
+  bool _isExportingFullPdf = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Always reloaded: it tells which accounts were left without loading.
+    widget.monthlyBalanceViewModel.loadOpeningMonths();
+  }
+
+  /// Offers to justify a past month for the accounts that have neither an
+  /// opening balance nor movements in it. Null while that isn't known yet or
+  /// when there is nothing to offer.
+  Widget? _justifyMonthCard({
+    required DateTime month,
+    required bool isCurrentMonth,
+    required String monthInSentence,
+  }) {
+    final vm = widget.transactionViewModel;
+    final balances = widget.monthlyBalanceViewModel;
+    if (isCurrentMonth ||
+        vm.isStatisticsLoading ||
+        vm.statisticsErrorMessage != null ||
+        !balances.openingMonthsLoaded) {
+      return null;
+    }
+
+    final accounts = ClosedMonthJustification.eligibleAccounts(
+      month: month,
+      activeAccounts: widget.accountViewModel.activeAccounts,
+      openingMonthsByAccount: balances.openingMonthsByAccount,
+      monthEntries: vm.statisticsEntries,
+    );
+    if (accounts.isEmpty) return null;
+
+    return StatisticsJustifyMonthCard(
+      monthLabel: monthInSentence,
+      accountNames: [for (final account in accounts) account.name],
+      onPressed: () => widget.onJustifyMonth(month),
+    );
+  }
 
   /// Generates the month's PDF and downloads it (web) or opens the share
-  /// sheet (mobile). Only offered for closed months.
-  Future<void> _exportPdf() async {
-    if (_isExportingPdf) return;
+  /// sheet (mobile). Only offered for closed months. With
+  /// [includeMovements] the PDF also lists the month's movements.
+  Future<void> _exportPdf({bool includeMovements = false}) async {
+    if (_isExportingPdf || _isExportingFullPdf) return;
 
     // Snapshot before the first await so the PDF matches the month where the
     // user tapped, even if they switch months while it generates.
@@ -58,9 +113,13 @@ class _TransactionsStatisticsScreenState
       incomeChangePercent: vm.statisticsIncomeChangePercent,
       expenseChangePercent: vm.statisticsExpenseChangePercent,
       netChangePercent: vm.statisticsNetResultChangePercent,
+      movements: includeMovements ? vm.statisticsEntries : null,
     );
 
-    setState(() => _isExportingPdf = true);
+    setState(() {
+      _isExportingPdf = !includeMovements;
+      _isExportingFullPdf = includeMovements;
+    });
     try {
       final bytes = await TransactionsStatisticsScreenPdfBuilder.build(data);
       await Printing.sharePdf(bytes: bytes, filename: data.fileName);
@@ -71,11 +130,16 @@ class _TransactionsStatisticsScreenState
         );
       }
     } finally {
-      if (mounted) setState(() => _isExportingPdf = false);
+      if (mounted) {
+        setState(() {
+          _isExportingPdf = false;
+          _isExportingFullPdf = false;
+        });
+      }
     }
   }
 
-  List<_BudgetProgress> get _budgetProgress {
+  List<StatisticsBudgetProgress> get _budgetProgress {
     final spentByCategoryId = <String, double>{
       for (final total
           in widget.transactionViewModel.statisticsCategoryBreakdown)
@@ -83,7 +147,7 @@ class _TransactionsStatisticsScreenState
     };
 
     return widget.categoryViewModel.budgetedCategories
-        .map((category) => _BudgetProgress(
+        .map((category) => StatisticsBudgetProgress(
               category: category,
               budgeted: category.budgetAmount ?? 0,
               spent: spentByCategoryId[category.id] ?? 0,
@@ -94,9 +158,12 @@ class _TransactionsStatisticsScreenState
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge(
-        [widget.transactionViewModel, widget.categoryViewModel],
-      ),
+      listenable: Listenable.merge([
+        widget.transactionViewModel,
+        widget.categoryViewModel,
+        widget.accountViewModel,
+        widget.monthlyBalanceViewModel,
+      ]),
       builder: (context, _) {
         final vm = widget.transactionViewModel;
         final month = vm.statisticsMonth;
@@ -109,26 +176,37 @@ class _TransactionsStatisticsScreenState
             vm.statisticsErrorMessage == null &&
             (vm.statisticsIncome > 0 || vm.statisticsExpenses > 0);
 
-        final header = _StatisticsHeader(
+        final header = StatisticsHeader(
           selectedMonth: month,
           onMonthChanged: vm.loadStatisticsMonth,
-          onExportPdf: canExportPdf ? _exportPdf : null,
+          onExportPdf: canExportPdf ? () => _exportPdf() : null,
+          onExportFullPdf: canExportPdf
+              ? () => _exportPdf(includeMovements: true)
+              : null,
           isExportingPdf: _isExportingPdf,
+          isExportingFullPdf: _isExportingFullPdf,
         );
 
         // Budgets track the current month only.
-        final budgetProgress =
-            isCurrentMonth ? _budgetProgress : const <_BudgetProgress>[];
+        final budgetProgress = isCurrentMonth
+            ? _budgetProgress
+            : const <StatisticsBudgetProgress>[];
         final budgetCard = budgetProgress.isEmpty
             ? null
-            : _BudgetCategoriesCard(
+            : StatisticsBudgetCategoriesCard(
                 items: budgetProgress,
                 currency: widget.currency,
               );
 
+        final justifyCard = _justifyMonthCard(
+          month: month,
+          isCurrentMonth: isCurrentMonth,
+          monthInSentence: monthInSentence,
+        );
+
         final uncontrolledCard = !vm.statisticsHasUncontrolledTotal
             ? null
-            : _UncontrolledCard(
+            : StatisticsUncontrolledCard(
                 total: vm.statisticsUncontrolledTotal,
                 currency: widget.currency,
               );
@@ -209,8 +287,12 @@ class _TransactionsStatisticsScreenState
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
               header,
+              if (justifyCard != null) ...[
+                const SizedBox(height: 16),
+                justifyCard,
+              ],
               const SizedBox(height: 20),
-              _SummaryCardsRow(
+              StatisticsSummaryCardsRow(
                 income: report.income,
                 expenses: report.expenses,
                 netResult: report.netResult,
@@ -256,8 +338,12 @@ class _TransactionsStatisticsScreenState
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
             header,
+            if (justifyCard != null) ...[
+              const SizedBox(height: 16),
+              justifyCard,
+            ],
             const SizedBox(height: 20),
-            _SummaryCardsRow(
+            StatisticsSummaryCardsRow(
               income: report.income,
               expenses: report.expenses,
               netResult: report.netResult,
@@ -323,7 +409,7 @@ class _TransactionsStatisticsScreenState
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _CategoryDonutChart(
+                      StatisticsCategoryDonutChart(
                         breakdown: expenseTypeBreakdown,
                         total: expenseTypeTotal,
                         currency: widget.currency,
@@ -333,7 +419,7 @@ class _TransactionsStatisticsScreenState
                       Expanded(
                         child: Column(
                           children: expenseTypeBreakdown
-                              .map((c) => _CategoryLegendRow(
+                              .map((c) => StatisticsCategoryLegendRow(
                                     category: c,
                                     currency: widget.currency,
                                   ))
@@ -385,7 +471,7 @@ class _TransactionsStatisticsScreenState
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _CategoryDonutChart(
+                      StatisticsCategoryDonutChart(
                         breakdown: categorizedBreakdown,
                         total: categorizedTotal,
                         currency: widget.currency,
@@ -394,7 +480,7 @@ class _TransactionsStatisticsScreenState
                       Expanded(
                         child: Column(
                           children: categorizedBreakdown
-                              .map((c) => _CategoryLegendRow(
+                              .map((c) => StatisticsCategoryLegendRow(
                                     category: c,
                                     currency: widget.currency,
                                   ))
@@ -409,637 +495,6 @@ class _TransactionsStatisticsScreenState
           ],
         );
       },
-    );
-  }
-}
-
-class _StatisticsHeader extends StatelessWidget {
-  final DateTime selectedMonth;
-
-  final ValueChanged<DateTime> onMonthChanged;
-
-  /// Null hides the "Exportar PDF" button.
-  final VoidCallback? onExportPdf;
-  final bool isExportingPdf;
-
-  const _StatisticsHeader({
-    required this.selectedMonth,
-    required this.onMonthChanged,
-    this.onExportPdf,
-    this.isExportingPdf = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ScreenHeader(
-          title: 'Estadísticas',
-          subtitle:
-              'Analiza tus ingresos, gastos y mantén el control de tus finanzas.',
-          action: MonthFilterButton(
-            selectedMonth: selectedMonth,
-            onChanged: onMonthChanged,
-          ),
-        ),
-        if (onExportPdf != null) ...[
-          const SizedBox(height: 14),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.authAccent,
-              side: const BorderSide(color: AppColors.authCardBorder),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
-            onPressed: isExportingPdf ? null : onExportPdf,
-            icon: isExportingPdf
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.authAccent,
-                    ),
-                  )
-                : const Icon(Icons.picture_as_pdf_outlined, size: 18),
-            label: Text(isExportingPdf ? 'Generando…' : 'Exportar PDF'),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _SummaryCardsRow extends StatelessWidget {
-  final double income;
-  final double expenses;
-  final double netResult;
-  final double? incomeChangePercent;
-  final double? expenseChangePercent;
-  final double? netChangePercent;
-  final String currency;
-
-  const _SummaryCardsRow({
-    required this.income,
-    required this.expenses,
-    required this.netResult,
-    required this.incomeChangePercent,
-    required this.expenseChangePercent,
-    required this.netChangePercent,
-    required this.currency,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.arrow_downward_rounded,
-            iconBackground: AppColors.authIncome,
-            label: 'Ingresos',
-            amount: income,
-            changePercent: incomeChangePercent,
-            isFavorable:
-                incomeChangePercent == null ? null : incomeChangePercent! >= 0,
-            currency: currency,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.arrow_upward_rounded,
-            iconBackground: AppColors.authExpense,
-            label: 'Gastos',
-            amount: expenses,
-            changePercent: expenseChangePercent,
-            // For expenses, spending less than last month is the improvement.
-            isFavorable: expenseChangePercent == null
-                ? null
-                : expenseChangePercent! <= 0,
-            currency: currency,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.account_balance_wallet_outlined,
-            iconBackground: AppColors.authAccentDark,
-            label: 'Balance del mes',
-            amount: netResult,
-            changePercent: netChangePercent,
-            isFavorable:
-                netChangePercent == null ? null : netChangePercent! >= 0,
-            currency: currency,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconBackground;
-  final String label;
-  final double amount;
-  final double? changePercent;
-  final bool? isFavorable;
-  final String currency;
-
-  const _SummaryCard({
-    required this.icon,
-    required this.iconBackground,
-    required this.label,
-    required this.amount,
-    required this.changePercent,
-    required this.isFavorable,
-    required this.currency,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.authCardFill,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.authCardBorder),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: iconBackground,
-              child: Icon(icon, size: 16, color: Colors.white),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.authTextSecondary,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              formatCurrency(amount, currency),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-            if (changePercent != null && isFavorable != null) ...[
-              const SizedBox(height: 6),
-              _ChangeIndicator(
-                changePercent: changePercent!,
-                isFavorable: isFavorable!,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Shows the change vs. the previous month with an arrow and a color that
-/// depends on [isFavorable]; for expenses, decreasing is favorable.
-class _ChangeIndicator extends StatelessWidget {
-  final double changePercent;
-  final bool isFavorable;
-
-  const _ChangeIndicator({
-    required this.changePercent,
-    required this.isFavorable,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isFavorable ? AppColors.authAccent : AppColors.authExpense;
-    final icon = changePercent >= 0
-        ? Icons.trending_up_rounded
-        : Icons.trending_down_rounded;
-    final sign = changePercent > 0 ? '+' : '';
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 13, color: color),
-        const SizedBox(width: 2),
-        Flexible(
-          child: Text(
-            '$sign${changePercent.toStringAsFixed(0)}% vs. mes anterior',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BudgetProgress {
-  final Category category;
-  final double budgeted;
-  final double spent;
-
-  const _BudgetProgress({
-    required this.category,
-    required this.budgeted,
-    required this.spent,
-  });
-
-  double get percent => budgeted > 0 ? (spent / budgeted) * 100 : 0.0;
-  double get progress =>
-      budgeted > 0 ? (spent / budgeted).clamp(0.0, 1.0) : 0.0;
-  bool get isOverBudget => percent > 100;
-}
-
-/// One progress bar per budgeted expense category. Current month only.
-class _BudgetCategoriesCard extends StatelessWidget {
-  final List<_BudgetProgress> items;
-  final String currency;
-
-  const _BudgetCategoriesCard({
-    required this.items,
-    required this.currency,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.authCardFill,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.authCardBorder),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Presupuesto por categoría',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-            const SizedBox(height: 14),
-            for (var i = 0; i < items.length; i++) ...[
-              _BudgetCategoryRow(item: items[i], currency: currency),
-              if (i < items.length - 1) const SizedBox(height: 18),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Signed sum of uncontrolled adjustments for the month (negative is an
-/// expense). Only shown when non-zero.
-class _UncontrolledCard extends StatelessWidget {
-  final double total;
-  final String currency;
-
-  const _UncontrolledCard({
-    required this.total,
-    required this.currency,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isExpense = total < 0;
-    final tone = isExpense ? AppColors.authExpense : AppColors.authIncome;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.authCardFill,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.authCardBorder),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: tone.withValues(alpha: 0.18),
-              child: Icon(
-                Icons.priority_high_rounded,
-                size: 18,
-                color: tone,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Sin declarar',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.authTextPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    isExpense
-                        ? 'Gasto no controlado este mes'
-                        : 'Ingreso no controlado este mes',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.authTextFooter,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              formatCurrency(total.abs(), currency),
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: tone,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BudgetCategoryRow extends StatelessWidget {
-  final _BudgetProgress item;
-  final String currency;
-
-  const _BudgetCategoryRow({required this.item, required this.currency});
-
-  @override
-  Widget build(BuildContext context) {
-    final category = item.category;
-    final categoryColor =
-        colorFromHex(category.color, fallback: AppColors.authAccent);
-    final barColor = item.isOverBudget ? AppColors.authExpense : categoryColor;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                category.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.authTextPrimary,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${formatCurrency(item.budgeted, currency)} / mes',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.authTextSecondary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: item.progress,
-                  minHeight: 6,
-                  backgroundColor: AppColors.authCardBorder,
-                  color: barColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              formatCurrency(item.spent, currency),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              '${item.percent.toStringAsFixed(0)}%',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: barColor,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _CategoryDonutChart extends StatelessWidget {
-  final List<CategoryTotal> breakdown;
-  final double total;
-  final String currency;
-
-  final String label;
-
-  const _CategoryDonutChart({
-    required this.breakdown,
-    required this.total,
-    required this.currency,
-    this.label = 'Total gastos',
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const size = 128.0;
-
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CustomPaint(
-            size: const Size(size, size),
-            painter: _DonutChartPainter(breakdown: breakdown),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(28),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.authTextSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    formatCurrency(total, currency),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.authTextPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Draws the donut segments from [CategoryTotal.percent] without a charting
-/// library.
-class _DonutChartPainter extends CustomPainter {
-  final List<CategoryTotal> breakdown;
-  final double strokeWidth;
-
-  _DonutChartPainter({required this.breakdown}) : strokeWidth = 15;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.shortestSide - strokeWidth) / 2;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    // Track behind the segments in case rounding leaves a gap.
-    final backgroundPaint = Paint()
-      ..color = AppColors.authBackgroundTop
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    canvas.drawArc(rect, 0, 2 * pi, false, backgroundPaint);
-
-    double startAngle = -pi / 2;
-    for (final item in breakdown) {
-      if (item.percent <= 0) continue;
-
-      final sweepAngle = (item.percent / 100) * 2 * pi;
-      final paint = Paint()
-        // Uncategorized has no color in the DB, so its segment is transparent.
-        ..color = colorFromHex(
-          item.category.color,
-          fallback: Colors.transparent,
-        )
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.butt;
-
-      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
-      startAngle += sweepAngle;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DonutChartPainter oldDelegate) {
-    return oldDelegate.breakdown != breakdown;
-  }
-}
-
-class _CategoryLegendRow extends StatelessWidget {
-  final CategoryTotal category;
-  final String currency;
-
-  const _CategoryLegendRow({required this.category, required this.currency});
-
-  @override
-  Widget build(BuildContext context) {
-    // Uncategorized has no color: keep the dot transparent.
-    final color =
-        colorFromHex(category.category.color, fallback: Colors.transparent);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              category.category.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            formatCurrency(category.amount, currency),
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.authTextPrimary,
-            ),
-          ),
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 28,
-            child: Text(
-              '${category.percent.toStringAsFixed(0)}%',
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.authTextSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

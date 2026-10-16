@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/utils/app_clock.dart';
 import '../../data/models/account.dart';
+import '../../data/models/monthly_opening_balance.dart';
 import '../../data/repositories/monthly_balance_repository.dart';
 
 class MonthlyBalanceViewModel extends ChangeNotifier {
@@ -14,6 +15,8 @@ class MonthlyBalanceViewModel extends ChangeNotifier {
   String? _errorMessage;
   Set<String> _accountIdsWithBalance = {};
   bool _checked = false;
+  Map<String, Set<int>> _openingMonths = {};
+  bool _openingMonthsLoaded = false;
 
   bool get isLoading => _isLoading;
   bool get isSubmitting => _isSubmitting;
@@ -22,6 +25,13 @@ class MonthlyBalanceViewModel extends ChangeNotifier {
   /// True after the first check; before that it is unknown whether any
   /// balance is missing.
   bool get checked => _checked;
+
+  /// Months that have an opening balance row, per account, as [monthIndex]
+  /// values. Empty until [loadOpeningMonths] succeeds.
+  Map<String, Set<int>> get openingMonthsByAccount =>
+      Map.unmodifiable(_openingMonths);
+
+  bool get openingMonthsLoaded => _openingMonthsLoaded;
 
   int get currentMonth => nowLocal().month;
   int get currentYear => nowLocal().year;
@@ -57,11 +67,69 @@ class MonthlyBalanceViewModel extends ChangeNotifier {
     }
   }
 
+  /// Loads which months have an opening balance, for every account.
+  Future<void> loadOpeningMonths() async {
+    try {
+      _openingMonths = await _repository.getOpeningMonthsByAccount();
+      _openingMonthsLoaded = true;
+    } catch (_) {
+      // Optional data: whoever needs it just offers nothing until it loads.
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Ids of the accounts that have an opening balance record in
+  /// [month]/[year], or null (and sets [errorMessage]) if it can't be read.
+  /// It doesn't touch the current-month state used by [isAccountPending].
+  Future<Set<String>?> accountIdsWithOpeningBalance({
+    required int month,
+    required int year,
+  }) async {
+    _errorMessage = null;
+    try {
+      return await _repository.getExistingAccountIds(month: month, year: year);
+    } catch (_) {
+      _errorMessage = 'No se pudo comprobar el saldo inicial del mes.';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Opening balance of each account that has a record in [month]/[year], by
+  /// account id, or null (and sets [errorMessage]) if it can't be read. It
+  /// doesn't touch the current-month state used by [isAccountPending].
+  Future<Map<String, double>?> openingBalancesOfMonth({
+    required int month,
+    required int year,
+  }) async {
+    _errorMessage = null;
+    try {
+      return await _repository.getOpeningBalancesByAccount(
+        month: month,
+        year: year,
+      );
+    } catch (_) {
+      _errorMessage = 'No se pudo leer el saldo inicial del mes.';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Saves the opening balance of [month]/[year] (the current month by
+  /// default). With [uncontrolledExpensesTotal] the row also gets that
+  /// uncontrolled total; without it the stored one is kept.
   Future<bool> saveOpeningBalance({
     required String userId,
     required String accountId,
     required double openingBalance,
+    int? month,
+    int? year,
+    double? uncontrolledExpensesTotal,
   }) async {
+    final targetMonth = month ?? currentMonth;
+    final targetYear = year ?? currentYear;
+
     _isSubmitting = true;
     _errorMessage = null;
     notifyListeners();
@@ -70,11 +138,22 @@ class MonthlyBalanceViewModel extends ChangeNotifier {
       await _repository.saveOpeningBalance(
         userId: userId,
         accountId: accountId,
-        month: currentMonth,
-        year: currentYear,
+        month: targetMonth,
+        year: targetYear,
         openingBalance: openingBalance,
+        uncontrolledExpensesTotal: uncontrolledExpensesTotal,
       );
-      _accountIdsWithBalance = {..._accountIdsWithBalance, accountId};
+      // Only the current month feeds the pending state.
+      if (targetMonth == currentMonth && targetYear == currentYear) {
+        _accountIdsWithBalance = {..._accountIdsWithBalance, accountId};
+      }
+      _openingMonths = {
+        ..._openingMonths,
+        accountId: {
+          ...?_openingMonths[accountId],
+          monthIndex(targetYear, targetMonth),
+        },
+      };
       return true;
     } catch (error) {
       _errorMessage = 'No se pudo guardar el saldo inicial.';
@@ -110,6 +189,10 @@ class MonthlyBalanceViewModel extends ChangeNotifier {
           year: year,
           openingBalance: openingBalance,
         );
+        _openingMonths = {
+          ..._openingMonths,
+          accountId: {...?_openingMonths[accountId], monthIndex(year, month)},
+        };
       }
       return true;
     } catch (error) {

@@ -83,13 +83,21 @@ class TransactionRepository {
     required String transactionId,
     String? categoryId,
     String? description,
-    required DateTime date,
   }) {
     return _service.updateTransaction(
       transactionId: transactionId,
       categoryId: categoryId,
       description: description,
-      date: date,
+    );
+  }
+
+  Future<void> setTransfer({
+    required String transactionId,
+    required bool isTransfer,
+  }) {
+    return _service.setTransfer(
+      transactionId: transactionId,
+      isTransfer: isTransfer,
     );
   }
 }

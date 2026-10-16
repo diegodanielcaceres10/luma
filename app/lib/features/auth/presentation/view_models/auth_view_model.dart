@@ -107,11 +107,6 @@ class AuthViewModel extends ChangeNotifier {
     await _repository.signOut();
   }
 
-  void clearError() {
-    _errorMessage = null;
-    notifyListeners();
-  }
-
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

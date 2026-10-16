@@ -8,7 +8,10 @@ import '../../../../core/utils/date_format.dart';
 import '../../../../core/utils/image_crop_picker.dart';
 import '../../../../core/widgets/ai_image_source_sheet.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/widgets/input_text_field.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/text_action_button.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
@@ -18,6 +21,7 @@ import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/receipt_scan_result.dart';
 import '../../data/services/receipt_scan_service.dart';
 import '../view_models/transaction_view_model.dart';
+import '../widgets/entry_mode_card.dart';
 
 enum _EntryMode { selecting, form }
 
@@ -64,31 +68,12 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   // FEAT: prefill the form from a receipt photo; the user reviews it before
   // saving.
   final _receiptScanService = ReceiptScanService(Supabase.instance.client);
-  bool _isScanning = false;
 
   bool get _isIncome => widget.type == 'income';
   Color get _accentColor =>
       _isIncome ? AppColors.authIncome : AppColors.authExpense;
 
   static const _labelStyle = TextStyle(color: AppColors.authTextSecondary);
-
-  static const _fieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-    hintStyle: TextStyle(color: AppColors.authTextFooter),
-  );
 
   @override
   void initState() {
@@ -181,37 +166,22 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     );
     if (source == null || !mounted) return;
 
-    final image = await pickAndCropImage(context, source);
-    if (image == null || !mounted) return;
-
-    setState(() => _isScanning = true);
-    try {
-      final result = await _receiptScanService.scan(
+    // The scan runs inside the crop preview, which stays open (and offers a
+    // retry) until the service answers.
+    final result = await pickAndCropImage<ReceiptScanResult>(
+      context,
+      source,
+      process: (image) => _receiptScanService.scan(
         imageBytes: image.bytes,
         mimeType: image.mimeType,
-      );
-      if (!mounted) return;
+      ),
+    );
+    if (result == null || !mounted) return;
 
-      // Stop the scan spinner while the result dialog is open.
-      setState(() => _isScanning = false);
-
-      // The user confirms the detected data before it touches the form.
-      final confirmed = await _showScanResultDialog(result);
-      if (confirmed == true && mounted) {
-        _applyScanResult(result);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Servicio no disponible. Intente más tarde o consulte a su '
-            'administrador.',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isScanning = false);
+    // The user confirms the detected data before it touches the form.
+    final confirmed = await _showScanResultDialog(result);
+    if (confirmed == true && mounted) {
+      _applyScanResult(result);
     }
   }
 
@@ -262,22 +232,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           ],
         ),
         actions: [
-          TextButton(
+          TextActionButton(
+            label: 'Cancelar',
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: AppColors.authTextSecondary),
-            ),
           ),
-          TextButton(
+          TextActionButton(
+            label: 'Confirmar',
+            color: _accentColor,
+            fontWeight: FontWeight.w700,
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              'Confirmar',
-              style: TextStyle(
-                color: _accentColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
         ],
       ),
@@ -375,22 +338,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           style: TextStyle(color: AppColors.authTextSecondary),
         ),
         actions: [
-          TextButton(
+          TextActionButton(
+            label: 'Seguir editando',
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Seguir editando',
-              style: TextStyle(color: AppColors.authTextSecondary),
-            ),
           ),
-          TextButton(
+          TextActionButton(
+            label: 'Volver',
+            color: _accentColor,
+            fontWeight: FontWeight.w700,
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              'Volver',
-              style: TextStyle(
-                color: _accentColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
         ],
       ),
@@ -402,8 +358,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Saving and scanning both lock the screen.
-    final isBusy = widget.transactionViewModel.isSubmitting || _isScanning;
+    // Saving locks the screen; scanning is locked by its own dialog.
+    final isBusy = widget.transactionViewModel.isSubmitting;
 
     return _mode == _EntryMode.selecting
         ? _buildModeSelector(isBusy)
@@ -424,17 +380,16 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             backEnabled: !isBusy,
           ),
           const SizedBox(height: 16),
-          _EntryModeCard(
+          EntryModeCard(
             icon: Icons.document_scanner_rounded,
             title: 'Escanear ticket',
             subtitle: 'Tomá una foto del ticket y extraemos la información '
                 'automáticamente.',
             highlighted: true,
-            loading: _isScanning,
             onTap: isBusy ? null : _scanReceipt,
           ),
           const SizedBox(height: 12),
-          _EntryModeCard(
+          EntryModeCard(
             icon: Icons.article_outlined,
             title: 'Completar manualmente',
             subtitle: 'Ingresá los datos del movimiento uno por uno.',
@@ -476,15 +431,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     backEnabled: !isBusy,
                   ),
                   const SizedBox(height: 16),
-                  const Text('Monto', style: _labelStyle),
-                  const SizedBox(height: 8),
-                  TextFormField(
+                  InputTextField(
                     controller: _amountController,
+                    label: 'Monto',
+                    hintText: '0.00',
                     enabled: !isBusy,
-                    style: const TextStyle(color: AppColors.authTextPrimary),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    decoration: _fieldDecoration.copyWith(hintText: '0.00'),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Ingresa un monto';
@@ -520,7 +473,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       initialValue: _selectedCategory,
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
-                      decoration: _fieldDecoration,
+                      decoration: InputTextField.formDecoration,
                       // DropdownButtonFormField paints its placeholder through this parameter,
                       // not through decoration.hintStyle.
                       hint: const Text(
@@ -567,7 +520,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                       initialValue: _selectedAccount,
                       dropdownColor: AppColors.authBackgroundBottom,
                       style: const TextStyle(color: AppColors.authTextPrimary),
-                      decoration: _fieldDecoration,
+                      decoration: InputTextField.formDecoration,
                       hint: const Text(
                         'Seleccioná una cuenta',
                         style: TextStyle(color: AppColors.authTextSecondary),
@@ -591,14 +544,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           value == null ? 'Seleccioná una cuenta' : null,
                     ),
                   const SizedBox(height: 20),
-                  const Text('Descripción (opcional)', style: _labelStyle),
-                  const SizedBox(height: 8),
-                  TextFormField(
+                  InputTextField(
                     controller: _descriptionController,
+                    label: 'Descripción (opcional)',
+                    hintText: 'Ej: Mercadona',
                     enabled: !isBusy,
-                    style: const TextStyle(color: AppColors.authTextPrimary),
-                    decoration:
-                        _fieldDecoration.copyWith(hintText: 'Ej: Mercadona'),
                   ),
                   const SizedBox(height: 20),
                   const Text('Fecha', style: _labelStyle),
@@ -607,7 +557,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                     onTap: isBusy ? null : _pickDate,
                     borderRadius: BorderRadius.circular(14),
                     child: InputDecorator(
-                      decoration: _fieldDecoration,
+                      decoration: InputTextField.formDecoration,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -625,134 +575,23 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _accentColor,
-                        foregroundColor: AppColors.authBackgroundBottom,
-                        disabledBackgroundColor:
-                            _accentColor.withValues(alpha: 0.6),
-                        disabledForegroundColor: AppColors.authBackgroundBottom
-                            .withValues(alpha: 0.6),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                    child: PrimaryButton(
+                      label: _isIncome ? 'Guardar ingreso' : 'Guardar gasto',
+                      backgroundColor: _accentColor,
+                      disabledAlpha: 0.6,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      isLoading: isSubmitting,
                       onPressed: isBusy ||
                               widget.categoryViewModel.isLoading ||
                               accounts.isEmpty
                           ? null
                           : _submit,
-                      child: isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.authBackgroundBottom,
-                              ),
-                            )
-                          : Text(
-                              _isIncome ? 'Guardar ingreso' : 'Guardar gasto'),
                     ),
                   ),
                 ],
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EntryModeCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool highlighted;
-  final bool loading;
-  final VoidCallback? onTap;
-
-  const _EntryModeCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.highlighted = false,
-    this.loading = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fill = highlighted
-        ? Color.alphaBlend(
-            AppColors.authAccent.withValues(alpha: 0.12),
-            AppColors.authCardFill,
-          )
-        : AppColors.authCardFill;
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-      side: BorderSide(
-        color: highlighted ? AppColors.authAccent : AppColors.authCardBorder,
-        width: highlighted ? 1.5 : 1,
-      ),
-    );
-
-    return Material(
-      color: fill,
-      shape: shape,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: shape,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.authAccent.withValues(alpha: 0.28),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(icon, size: 32, color: AppColors.authTextPrimary),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.authTextPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.authTextSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              loading
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.authAccent,
-                      ),
-                    )
-                  : const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.authAccent),
-            ],
-          ),
         ),
       ),
     );

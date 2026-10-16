@@ -3,21 +3,24 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
-import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
 import '../../../../core/widgets/month_filter_button.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/text_action_button.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
-import '../../../categories/data/models/category.dart';
+import '../../../accounts/presentation/widgets/pending_movements/select_pending_invoice_sheet.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
+import '../../../invoices/data/models/invoice.dart';
+import '../../../invoices/presentation/view_models/invoice_view_model.dart';
+import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../data/models/transaction_entry.dart';
 import '../view_models/transaction_view_model.dart';
-
-enum _TypeFilter { all, income, expense }
-
-enum _DateRangeFilter { today, thisWeek, last7Days, last15Days, all }
+import '../view_models/transactions_filters.dart';
+import '../widgets/history/edit_movement_dialog.dart';
+import '../widgets/history/history_filter_widgets.dart';
+import '../widgets/history/movement_actions_sheet.dart';
+import '../widgets/history/movement_row.dart';
 
 /// Filterable transaction history.
 class TransactionsScreen extends StatefulWidget {
@@ -25,6 +28,8 @@ class TransactionsScreen extends StatefulWidget {
   final TransactionViewModel transactionViewModel;
   final AccountViewModel accountViewModel;
   final CategoryViewModel categoryViewModel;
+  final InvoiceViewModel invoiceViewModel;
+  final ServiceViewModel serviceViewModel;
   final String currency;
 
   /// Initial filters, read once from the URL query params (`type`, `range`,
@@ -45,6 +50,8 @@ class TransactionsScreen extends StatefulWidget {
     required this.transactionViewModel,
     required this.accountViewModel,
     required this.categoryViewModel,
+    required this.invoiceViewModel,
+    required this.serviceViewModel,
     required this.currency,
     this.initialType,
     this.initialRange,
@@ -58,8 +65,8 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  late _TypeFilter _typeFilter;
-  late _DateRangeFilter _dateRange;
+  late TransactionTypeFilter _typeFilter;
+  late TransactionDateRangeFilter _dateRange;
 
   // null means "all". Holds category.id/account.id, or the name if there is
   // no id.
@@ -72,11 +79,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void initState() {
     super.initState();
-    _typeFilter = _typeFromQuery(widget.initialType);
-    _dateRange = _rangeFromQuery(widget.initialRange);
+    _typeFilter = TransactionsFilters.typeFromQuery(widget.initialType);
+    _dateRange = TransactionsFilters.rangeFromQuery(widget.initialRange);
     _categoryKey = widget.initialCategory;
     _accountKey = widget.initialAccount;
-    _selectedMonth = _monthFromQuery(widget.initialMonth);
+    _selectedMonth = TransactionsFilters.monthFromQuery(widget.initialMonth);
     // Load after the first frame: loadAllTransactions notifies listeners
     // synchronously, which would happen during build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -85,109 +92,30 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     });
   }
 
-  static _TypeFilter _typeFromQuery(String? value) {
-    switch (value) {
-      case 'income':
-        return _TypeFilter.income;
-      case 'expense':
-        return _TypeFilter.expense;
-      default:
-        return _TypeFilter.all;
-    }
-  }
-
-  static String? _typeQueryValue(_TypeFilter filter) {
-    switch (filter) {
-      case _TypeFilter.all:
-        return null;
-      case _TypeFilter.income:
-        return 'income';
-      case _TypeFilter.expense:
-        return 'expense';
-    }
-  }
-
-  static _DateRangeFilter _rangeFromQuery(String? value) {
-    switch (value) {
-      case 'today':
-        return _DateRangeFilter.today;
-      case 'week':
-        return _DateRangeFilter.thisWeek;
-      case 'last7':
-        return _DateRangeFilter.last7Days;
-      case 'last15':
-        return _DateRangeFilter.last15Days;
-      default:
-        return _DateRangeFilter.all;
-    }
-  }
-
-  static String? _rangeQueryValue(_DateRangeFilter filter) {
-    switch (filter) {
-      case _DateRangeFilter.all:
-        return null;
-      case _DateRangeFilter.today:
-        return 'today';
-      case _DateRangeFilter.thisWeek:
-        return 'week';
-      case _DateRangeFilter.last7Days:
-        return 'last7';
-      case _DateRangeFilter.last15Days:
-        return 'last15';
-    }
-  }
-
-  static DateTime _currentMonth() {
-    final now = nowLocal();
-    return DateTime(now.year, now.month);
-  }
-
-  static bool _isCurrentMonth(DateTime month) {
-    final current = _currentMonth();
-    return month.year == current.year && month.month == current.month;
-  }
-
   /// Relative date ranges only apply to the current month; in other months
   /// the "Período" filter is hidden and ignored.
-  _DateRangeFilter get _effectiveDateRange =>
-      _isCurrentMonth(_selectedMonth) ? _dateRange : _DateRangeFilter.all;
-
-  /// Parses 'YYYY-MM'; falls back to the current month if missing or
-  /// invalid.
-  static DateTime _monthFromQuery(String? value) {
-    if (value == null) return _currentMonth();
-    final match = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(value);
-    if (match == null) return _currentMonth();
-    final year = int.parse(match.group(1)!);
-    final month = int.parse(match.group(2)!);
-    if (month < 1 || month > 12) return _currentMonth();
-    return DateTime(year, month);
-  }
-
-  /// The current month is the default, so it is omitted from the URL.
-  static String? _monthQueryValue(DateTime month) {
-    if (_isCurrentMonth(month)) return null;
-    final mm = month.month.toString().padLeft(2, '0');
-    return '${month.year}-$mm';
-  }
+  TransactionDateRangeFilter get _effectiveDateRange =>
+      TransactionsFilters.isCurrentMonth(_selectedMonth)
+          ? _dateRange
+          : TransactionDateRangeFilter.all;
 
   /// Pushes a URL with the combined filters; see
   /// [TransactionsScreen.initialType].
   void _pushFilters({
-    required _TypeFilter type,
-    required _DateRangeFilter range,
+    required TransactionTypeFilter type,
+    required TransactionDateRangeFilter range,
     required String? categoryKey,
     required String? accountKey,
     required DateTime month,
   }) {
     final params = <String, String>{};
-    final typeValue = _typeQueryValue(type);
+    final typeValue = TransactionsFilters.typeQueryValue(type);
     if (typeValue != null) params['type'] = typeValue;
-    final rangeValue = _rangeQueryValue(range);
+    final rangeValue = TransactionsFilters.rangeQueryValue(range);
     if (rangeValue != null) params['range'] = rangeValue;
     if (categoryKey != null) params['category'] = categoryKey;
     if (accountKey != null) params['account'] = accountKey;
-    final monthValue = _monthQueryValue(month);
+    final monthValue = TransactionsFilters.monthQueryValue(month);
     if (monthValue != null) params['month'] = monthValue;
 
     final uri = Uri(
@@ -197,7 +125,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     context.push(uri.toString());
   }
 
-  void _pushType(_TypeFilter value) => _pushFilters(
+  void _pushType(TransactionTypeFilter value) => _pushFilters(
         type: value,
         range: _dateRange,
         categoryKey: _categoryKey,
@@ -205,7 +133,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         month: _selectedMonth,
       );
 
-  void _pushRange(_DateRangeFilter value) => _pushFilters(
+  void _pushRange(TransactionDateRangeFilter value) => _pushFilters(
         type: _typeFilter,
         range: value,
         categoryKey: _categoryKey,
@@ -232,18 +160,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   // The date range does not apply outside the current month; reset it.
   void _pushMonth(DateTime value) => _pushFilters(
         type: _typeFilter,
-        range: _isCurrentMonth(value) ? _dateRange : _DateRangeFilter.all,
+        range: TransactionsFilters.isCurrentMonth(value)
+            ? _dateRange
+            : TransactionDateRangeFilter.all,
         categoryKey: _categoryKey,
         accountKey: _accountKey,
         month: value,
       );
 
   void _pushClearFilters() => _pushFilters(
-        type: _TypeFilter.all,
-        range: _DateRangeFilter.all,
+        type: TransactionTypeFilter.all,
+        range: TransactionDateRangeFilter.all,
         categoryKey: null,
         accountKey: null,
-        month: _currentMonth(),
+        month: TransactionsFilters.currentMonth(),
       );
 
   /// Visible rows; starts at [_pageSize] and grows with "Ver más".
@@ -257,42 +187,213 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   // Id of the transaction being updated.
   String? _updatingId;
 
-  /// Opens the edit dialog and saves the changes if confirmed.
-  Future<void> _openEditDialog(TransactionEntry movement) async {
-    final result = await showDialog<_EditMovementResult>(
-      context: context,
-      builder: (_) => _EditMovementDialog(
-        movement: movement,
-        categoryViewModel: widget.categoryViewModel,
-        currency: widget.currency,
-      ),
+  /// Opens the actions menu of [movement] and runs the chosen action.
+  Future<void> _openActions(TransactionEntry movement) async {
+    final linkedInvoice =
+        widget.invoiceViewModel.invoiceForTransaction(movement.id);
+
+    final action = await showMovementActionsSheet(
+      context,
+      movement: movement,
+      isServicePayment: linkedInvoice != null,
     );
+    if (action == null || !mounted) return;
 
-    if (result == null || !mounted) return;
+    switch (action) {
+      case MovementAction.edit:
+        await _editMovement(movement, isServicePayment: linkedInvoice != null);
+      case MovementAction.markTransfer:
+        await _setTransfer(movement, isTransfer: true);
+      case MovementAction.unmarkTransfer:
+        await _setTransfer(movement, isTransfer: false);
+      case MovementAction.linkInvoice:
+        await _linkInvoice(movement);
+      case MovementAction.unlinkInvoice:
+        if (linkedInvoice != null) {
+          await _unlinkInvoice(movement, linkedInvoice);
+        }
+      case MovementAction.delete:
+        await _confirmDelete(movement);
+    }
+  }
 
+  /// Runs [action] marking the row as updating and reports a failure with
+  /// the message from [errorMessage]. Each view model keeps its own last
+  /// error, so the caller says which one to read.
+  Future<void> _runUpdate(
+    TransactionEntry movement,
+    Future<bool> Function() action, {
+    required String? Function() errorMessage,
+    String? successMessage,
+  }) async {
     setState(() => _updatingId = movement.id);
 
-    final success = await widget.transactionViewModel.updateTransaction(
-      transactionId: movement.id,
-      categoryId: result.categoryId,
-      description: result.description,
-      date: result.date,
-    );
+    final success = await action();
 
     if (!mounted) return;
 
-    if (!success) {
+    final message = success
+        ? successMessage
+        : errorMessage() ?? 'No se pudo guardar los cambios.';
+    if (message != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.transactionViewModel.errorMessage ??
-                'No se pudo guardar los cambios.',
-          ),
-        ),
+        SnackBar(content: Text(message)),
       );
     }
 
-    if (mounted) setState(() => _updatingId = null);
+    setState(() => _updatingId = null);
+  }
+
+  /// Edit dialog: category (regular movements only) and description.
+  Future<void> _editMovement(
+    TransactionEntry movement, {
+    required bool isServicePayment,
+  }) async {
+    final result = await showDialog<EditMovementResult>(
+      context: context,
+      builder: (_) => EditMovementDialog(
+        movement: movement,
+        categoryViewModel: widget.categoryViewModel,
+        isServicePayment: isServicePayment,
+        currency: widget.currency,
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    await _runUpdate(
+      movement,
+      () => widget.transactionViewModel.updateTransaction(
+        transactionId: movement.id,
+        categoryId: result.categoryId,
+        description: result.description,
+      ),
+      errorMessage: () => widget.transactionViewModel.errorMessage,
+    );
+  }
+
+  Future<void> _setTransfer(
+    TransactionEntry movement, {
+    required bool isTransfer,
+  }) {
+    return _runUpdate(
+      movement,
+      () => widget.transactionViewModel.setTransfer(
+        transactionId: movement.id,
+        isTransfer: isTransfer,
+      ),
+      errorMessage: () => widget.transactionViewModel.errorMessage,
+    );
+  }
+
+  /// Picks a pending invoice and links the movement to it as its payment.
+  /// The movement keeps its amount and takes the service's category.
+  Future<void> _linkInvoice(TransactionEntry movement) async {
+    final invoice = await showModalBottomSheet<Invoice>(
+      context: context,
+      backgroundColor: AppColors.authBackgroundBottom,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => SelectPendingInvoiceSheet(
+        invoices: widget.invoiceViewModel.pendingInvoicesNear(movement.date),
+        serviceViewModel: widget.serviceViewModel,
+        currency: widget.currency,
+      ),
+    );
+    if (invoice == null || !mounted) return;
+
+    if (invoice.amount != movement.amount) {
+      final confirmed = await _askConfirmation(
+        title: '¿Vincular a la factura?',
+        message: 'El monto del movimiento '
+            '(${formatCurrency(movement.amount, widget.currency)}) difiere '
+            'del de la factura '
+            '(${formatCurrency(invoice.amount, widget.currency)}). El '
+            'movimiento conserva su monto.',
+        confirmLabel: 'Vincular',
+      );
+      if (!confirmed || !mounted) return;
+    }
+
+    final service = widget.serviceViewModel.serviceById(invoice.serviceId);
+    final serviceName = service?.name ?? 'la factura';
+    await _runUpdate(
+      movement,
+      () => widget.invoiceViewModel.linkExistingTransaction(
+        invoice: invoice,
+        transactionId: movement.id,
+        // A service without category keeps the movement's own.
+        categoryId: service?.categoryId ?? movement.category.id,
+        description: movement.description,
+      ),
+      errorMessage: () => widget.invoiceViewModel.errorMessage,
+      successMessage: 'Movimiento vinculado a $serviceName.',
+    );
+  }
+
+  /// Reverts a service payment: the invoice goes back to pending and the
+  /// movement stays as a regular expense.
+  Future<void> _unlinkInvoice(
+    TransactionEntry movement,
+    Invoice invoice,
+  ) async {
+    final service = widget.serviceViewModel.serviceById(invoice.serviceId);
+    final confirmed = await _askConfirmation(
+      title: '¿Desvincular del servicio?',
+      message: 'La factura de ${service?.name ?? 'servicio'} vuelve a quedar '
+          'pendiente y el movimiento se mantiene como un gasto común.',
+      confirmLabel: 'Desvincular',
+    );
+    if (!confirmed || !mounted) return;
+
+    await _runUpdate(
+      movement,
+      () => widget.invoiceViewModel.unlinkTransaction(invoice),
+      errorMessage: () => widget.invoiceViewModel.errorMessage,
+      successMessage: 'Movimiento desvinculado del servicio.',
+    );
+  }
+
+  Future<bool> _askConfirmation({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.authBackgroundTop,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: AppColors.authTextPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(color: AppColors.authTextSecondary),
+        ),
+        actions: [
+          TextActionButton(
+            label: 'Volver',
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+          ),
+          TextActionButton(
+            label: confirmLabel,
+            color: AppColors.authAccent,
+            fontWeight: FontWeight.w700,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
   }
 
   /// Asks for confirmation, then deletes the transaction.
@@ -321,22 +422,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           style: const TextStyle(color: AppColors.authTextSecondary),
         ),
         actions: [
-          TextButton(
+          TextActionButton(
+            label: 'Volver',
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
-              'Volver',
-              style: TextStyle(color: AppColors.authTextSecondary),
-            ),
           ),
-          TextButton(
+          TextActionButton(
+            label: 'Eliminar',
+            color: AppColors.authExpense,
+            fontWeight: FontWeight.w700,
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(
-                color: AppColors.authExpense,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
         ],
       ),
@@ -374,79 +468,30 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     if (mounted) setState(() => _deletingId = null);
   }
 
-  bool _matchesType(TransactionEntry t) {
-    switch (_typeFilter) {
-      case _TypeFilter.all:
-        return true;
-      case _TypeFilter.income:
-        return t.isIncome;
-      case _TypeFilter.expense:
-        return !t.isIncome;
-    }
-  }
+  bool _matchesType(TransactionEntry t) =>
+      TransactionsFilters.matchesType(_typeFilter, t);
 
-  bool _matchesDateRange(TransactionEntry t) {
-    final now = nowLocal();
-    final today = DateTime(now.year, now.month, now.day);
-    final txDate = DateTime(t.date.year, t.date.month, t.date.day);
-    switch (_effectiveDateRange) {
-      case _DateRangeFilter.all:
-        return true;
-      case _DateRangeFilter.today:
-        return txDate == today;
-      case _DateRangeFilter.thisWeek:
-        // Weeks start on Monday.
-        final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
-        return !txDate.isBefore(startOfWeek) && !txDate.isAfter(today);
-      case _DateRangeFilter.last7Days:
-        final start = today.subtract(const Duration(days: 6));
-        return !txDate.isBefore(start) && !txDate.isAfter(today);
-      case _DateRangeFilter.last15Days:
-        final start = today.subtract(const Duration(days: 14));
-        return !txDate.isBefore(start) && !txDate.isAfter(today);
-    }
-  }
+  bool _matchesDateRange(TransactionEntry t) =>
+      TransactionsFilters.matchesDateRange(_effectiveDateRange, t);
 
   bool _matchesMonth(TransactionEntry t) =>
-      t.date.year == _selectedMonth.year &&
-      t.date.month == _selectedMonth.month;
-
-  String _categoryKeyOf(TransactionEntry t) => t.category.id ?? t.category.name;
-
-  String _accountKeyOf(TransactionEntry t) => t.account.id ?? t.account.name;
-
-  /// Categories with at least one transaction under the current type/date
-  /// filters.
-  List<TransactionCategory> _visibleCategories(
-      List<TransactionEntry> typeFiltered) {
-    final Map<String, TransactionCategory> byKey = {};
-    for (final t in typeFiltered) {
-      byKey[_categoryKeyOf(t)] = t.category;
-    }
-    final list = byKey.values.toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
-    return list;
-  }
-
-  List<TransactionAccount> _visibleAccounts(
-      List<TransactionEntry> typeFiltered) {
-    final Map<String, TransactionAccount> byKey = {};
-    for (final t in typeFiltered) {
-      byKey[_accountKeyOf(t)] = t.account;
-    }
-    final list = byKey.values.toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
-    return list;
-  }
+      TransactionsFilters.matchesMonth(_selectedMonth, t);
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
       child: ListenableBuilder(
-        listenable: widget.transactionViewModel,
+        // Invoices too: linking or unlinking a payment changes a row's icon
+        // without reloading the movements.
+        listenable: Listenable.merge([
+          widget.transactionViewModel,
+          widget.invoiceViewModel,
+        ]),
         builder: (context, _) {
           final vm = widget.transactionViewModel;
+          final servicePaymentIds =
+              widget.invoiceViewModel.servicePaymentTransactionIds;
 
           if (vm.isLoadingAll && vm.allTransactions.isEmpty) {
             return const Center(
@@ -478,8 +523,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               .where(_matchesMonth)
               .toList();
           final typeFiltered = dateFiltered.where(_matchesType).toList();
-          final categories = _visibleCategories(typeFiltered);
-          final accounts = _visibleAccounts(typeFiltered);
+          final categories =
+              TransactionsFilters.visibleCategories(typeFiltered);
+          final accounts = TransactionsFilters.visibleAccounts(typeFiltered);
 
           // Ignore a selected category/account hidden by the current filters,
           // without changing state.
@@ -495,18 +541,26 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           var filtered = typeFiltered;
           if (effectiveCategoryKey != null) {
             filtered = filtered
-                .where((t) => _categoryKeyOf(t) == effectiveCategoryKey)
+                .where(
+                  (t) =>
+                      TransactionsFilters.categoryKeyOf(t) ==
+                      effectiveCategoryKey,
+                )
                 .toList();
           }
           if (effectiveAccountKey != null) {
             filtered = filtered
-                .where((t) => _accountKeyOf(t) == effectiveAccountKey)
+                .where(
+                  (t) =>
+                      TransactionsFilters.accountKeyOf(t) ==
+                      effectiveAccountKey,
+                )
                 .toList();
           }
 
-          final hasActiveFilters = _typeFilter != _TypeFilter.all ||
-              _effectiveDateRange != _DateRangeFilter.all ||
-              !_isCurrentMonth(_selectedMonth) ||
+          final hasActiveFilters = _typeFilter != TransactionTypeFilter.all ||
+              _effectiveDateRange != TransactionDateRangeFilter.all ||
+              !TransactionsFilters.isCurrentMonth(_selectedMonth) ||
               effectiveCategoryKey != null ||
               effectiveAccountKey != null;
 
@@ -526,32 +580,35 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                FilterChipRow<_TypeFilter>(
+                FilterChipRow<TransactionTypeFilter>(
                   options: const [
-                    (value: _TypeFilter.all, label: 'Todos'),
-                    (value: _TypeFilter.income, label: 'Ingresos'),
-                    (value: _TypeFilter.expense, label: 'Gastos'),
+                    (value: TransactionTypeFilter.all, label: 'Todos'),
+                    (value: TransactionTypeFilter.income, label: 'Ingresos'),
+                    (value: TransactionTypeFilter.expense, label: 'Gastos'),
                   ],
                   selectedValue: _typeFilter,
                   onChanged: (value) {
                     if (value != _typeFilter) _pushType(value);
                   },
                 ),
-                if (_isCurrentMonth(_selectedMonth)) ...[
+                if (TransactionsFilters.isCurrentMonth(_selectedMonth)) ...[
                   const SizedBox(height: 12),
-                  const _FilterSectionLabel('Período'),
+                  const TransactionsFilterSectionLabel('Período'),
                   const SizedBox(height: 6),
-                  FilterChipRow<_DateRangeFilter>(
+                  FilterChipRow<TransactionDateRangeFilter>(
                     options: const [
-                      (value: _DateRangeFilter.all, label: 'Todo'),
-                      (value: _DateRangeFilter.today, label: 'Hoy'),
-                      (value: _DateRangeFilter.thisWeek, label: 'Esta semana'),
+                      (value: TransactionDateRangeFilter.all, label: 'Todo'),
+                      (value: TransactionDateRangeFilter.today, label: 'Hoy'),
                       (
-                        value: _DateRangeFilter.last7Days,
+                        value: TransactionDateRangeFilter.thisWeek,
+                        label: 'Esta semana'
+                      ),
+                      (
+                        value: TransactionDateRangeFilter.last7Days,
                         label: 'Últimos 7 días'
                       ),
                       (
-                        value: _DateRangeFilter.last15Days,
+                        value: TransactionDateRangeFilter.last15Days,
                         label: 'Últimos 15 días'
                       ),
                     ],
@@ -563,7 +620,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ],
                 if (accounts.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  const _FilterSectionLabel('Cuenta'),
+                  const TransactionsFilterSectionLabel('Cuenta'),
                   const SizedBox(height: 6),
                   FilterChipRow<String?>(
                     options: <({String? value, String label})>[
@@ -580,7 +637,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ],
                 if (categories.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  const _FilterSectionLabel('Categoría'),
+                  const TransactionsFilterSectionLabel('Categoría'),
                   const SizedBox(height: 6),
                   FilterChipRow<String?>(
                     options: <({String? value, String label})>[
@@ -597,7 +654,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ],
                 const SizedBox(height: 16),
                 if (filtered.isEmpty)
-                  _EmptyFilteredState(
+                  TransactionsEmptyFilteredState(
                     onClear: hasActiveFilters ? _pushClearFilters : null,
                   )
                 else
@@ -617,15 +674,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         children: [
                           ...List.generate(visible.length, (i) {
                             final movement = visible[i];
-                            return _MovementRow(
+                            return TransactionMovementRow(
                               movement: movement,
                               currency: widget.currency,
                               showDivider:
                                   i != visible.length - 1 || remaining > 0,
                               isDeleting: _deletingId == movement.id,
                               isUpdating: _updatingId == movement.id,
-                              onEdit: () => _openEditDialog(movement),
-                              onDelete: () => _confirmDelete(movement),
+                              isServicePayment:
+                                  servicePaymentIds.contains(movement.id),
+                              onActions: () => _openActions(movement),
                             );
                           }),
                           if (remaining > 0)
@@ -659,429 +717,4 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   String _categoryModelKey(TransactionCategory c) => c.id ?? c.name;
 
   String _accountModelKey(TransactionAccount a) => a.id ?? a.name;
-}
-
-class _FilterSectionLabel extends StatelessWidget {
-  final String label;
-
-  const _FilterSectionLabel(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.4,
-        color: AppColors.authTextFooter,
-      ),
-    );
-  }
-}
-
-class _EmptyFilteredState extends StatelessWidget {
-  final VoidCallback? onClear;
-
-  const _EmptyFilteredState({required this.onClear});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 48),
-      child: Column(
-        children: [
-          const Text(
-            'No hay movimientos con estos filtros.',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.authSubtitle,
-          ),
-          if (onClear != null) ...[
-            const SizedBox(height: 12),
-            Center(
-              child: TextButton(
-                onPressed: onClear,
-                child: const Text(
-                  'Quitar filtros',
-                  style: TextStyle(
-                    color: AppColors.authAccent,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _MovementRow extends StatelessWidget {
-  final TransactionEntry movement;
-  final String currency;
-  final bool showDivider;
-
-  final bool isDeleting;
-
-  final bool isUpdating;
-
-  final VoidCallback? onEdit;
-
-  final VoidCallback? onDelete;
-
-  const _MovementRow({
-    required this.movement,
-    required this.currency,
-    required this.showDivider,
-    this.isDeleting = false,
-    this.isUpdating = false,
-    this.onEdit,
-    this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final sign = movement.isIncome ? '+' : '-';
-    // Disable both actions while either one is running.
-    final isBusy = isDeleting || isUpdating;
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      movement.description?.isNotEmpty == true
-                          ? movement.description!
-                          : movement.category.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.authTextPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${movement.category.name} · ${formatDate(movement.date)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.authTextSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '$sign${formatCurrency(movement.amount, currency)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  // Transfers are neither income nor expense: use a neutral color.
-                  color: movement.isTransfer
-                      ? AppColors.authTransfer
-                      : movement.isIncome
-                          ? AppColors.authIncome
-                          : AppColors.authExpense,
-                ),
-              ),
-              if (onEdit != null) ...[
-                const SizedBox(width: 4),
-                _RowActionButton(
-                  icon: Icons.edit_outlined,
-                  tooltip: 'Editar movimiento',
-                  isLoading: isUpdating,
-                  onPressed: isBusy ? null : onEdit,
-                ),
-              ],
-              if (onDelete != null) ...[
-                const SizedBox(width: 4),
-                _RowActionButton(
-                  icon: Icons.delete_outline,
-                  tooltip: 'Eliminar movimiento',
-                  isLoading: isDeleting,
-                  onPressed: isBusy ? null : onDelete,
-                ),
-              ],
-            ],
-          ),
-        ),
-        if (showDivider)
-          const Divider(height: 1, color: AppColors.authCardBorder),
-      ],
-    );
-  }
-}
-
-class _RowActionButton extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final bool isLoading;
-  final VoidCallback? onPressed;
-
-  const _RowActionButton({
-    required this.icon,
-    required this.tooltip,
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 36,
-      height: 36,
-      child: isLoading
-          ? const Center(
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.authTextSecondary,
-                ),
-              ),
-            )
-          : IconButton(
-              padding: EdgeInsets.zero,
-              icon: Icon(icon, size: 20, color: AppColors.authTextSecondary),
-              tooltip: tooltip,
-              onPressed: onPressed,
-            ),
-    );
-  }
-}
-
-class _EditMovementResult {
-  final String? categoryId;
-  final String? description;
-  final DateTime date;
-
-  const _EditMovementResult({
-    required this.categoryId,
-    required this.description,
-    required this.date,
-  });
-}
-
-/// Edit dialog: only category, description and date are editable. Account
-/// and amount are read-only because they affect `accounts.balance`.
-/// Transfers have no category selector.
-class _EditMovementDialog extends StatefulWidget {
-  final TransactionEntry movement;
-  final CategoryViewModel categoryViewModel;
-  final String currency;
-
-  const _EditMovementDialog({
-    required this.movement,
-    required this.categoryViewModel,
-    required this.currency,
-  });
-
-  @override
-  State<_EditMovementDialog> createState() => _EditMovementDialogState();
-}
-
-class _EditMovementDialogState extends State<_EditMovementDialog> {
-  late final TextEditingController _descriptionController;
-  late DateTime _selectedDate;
-  Category? _selectedCategory;
-
-  @override
-  void initState() {
-    super.initState();
-    _descriptionController = TextEditingController(
-      text: widget.movement.description ?? '',
-    );
-    _selectedDate = widget.movement.date;
-    _selectedCategory =
-        widget.categoryViewModel.categoryById(widget.movement.category.id);
-  }
-
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: nowLocal(),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.authAccent,
-            onPrimary: AppColors.authBackgroundBottom,
-            surface: AppColors.authBackgroundBottom,
-            onSurface: AppColors.authTextPrimary,
-          ),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
-  }
-
-  void _confirm() {
-    Navigator.of(context).pop(
-      _EditMovementResult(
-        categoryId: _selectedCategory?.id,
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
-        date: _selectedDate,
-      ),
-    );
-  }
-
-  static const _fieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-    hintStyle: TextStyle(color: AppColors.authTextFooter),
-  );
-
-  static const _labelStyle = TextStyle(color: AppColors.authTextSecondary);
-
-  @override
-  Widget build(BuildContext context) {
-    final movement = widget.movement;
-    final categories = movement.isTransfer
-        ? const <Category>[]
-        : widget.categoryViewModel.byType(movement.type);
-    final sign = movement.isIncome ? '+' : '-';
-
-    return AlertDialog(
-      backgroundColor: AppColors.authBackgroundTop,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.authCardBorder),
-      ),
-      title: const Text(
-        'Editar movimiento',
-        style: TextStyle(
-          color: AppColors.authTextPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${movement.account.name} · '
-              '$sign${formatCurrency(movement.amount, widget.currency)}',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            if (!movement.isTransfer) ...[
-              const Text('Categoría', style: _labelStyle),
-              const SizedBox(height: 8),
-              if (categories.isEmpty)
-                const Text(
-                  'No hay categorías de este tipo. Se guardará sin '
-                  'categoría.',
-                  style: TextStyle(color: AppColors.authTextSecondary),
-                )
-              else
-                DropdownButtonFormField<Category>(
-                  initialValue: _selectedCategory,
-                  dropdownColor: AppColors.authBackgroundBottom,
-                  style: const TextStyle(color: AppColors.authTextPrimary),
-                  decoration: _fieldDecoration,
-                  hint: const Text(
-                    'Sin categoría',
-                    style: TextStyle(color: AppColors.authTextSecondary),
-                  ),
-                  items: [
-                    const DropdownMenuItem<Category>(
-                      value: null,
-                      child: Text(
-                        'Sin categoría',
-                        style: TextStyle(color: AppColors.authTextSecondary),
-                      ),
-                    ),
-                    ...categories.map(
-                      (c) => DropdownMenuItem<Category>(
-                        value: c,
-                        child: Text(c.name),
-                      ),
-                    ),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => _selectedCategory = value),
-                ),
-              const SizedBox(height: 20),
-            ],
-            const Text('Descripción', style: _labelStyle),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _descriptionController,
-              style: const TextStyle(color: AppColors.authTextPrimary),
-              decoration: _fieldDecoration.copyWith(hintText: 'Opcional'),
-            ),
-            const SizedBox(height: 20),
-            const Text('Fecha', style: _labelStyle),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: _pickDate,
-              borderRadius: BorderRadius.circular(14),
-              child: InputDecorator(
-                decoration: _fieldDecoration,
-                child: Text(
-                  formatDate(_selectedDate),
-                  style: const TextStyle(color: AppColors.authTextPrimary),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
-            'Cancelar',
-            style: TextStyle(color: AppColors.authTextSecondary),
-          ),
-        ),
-        TextButton(
-          onPressed: _confirm,
-          child: const Text(
-            'Guardar',
-            style: TextStyle(
-              color: AppColors.authAccent,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }

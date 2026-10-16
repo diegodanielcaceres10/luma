@@ -38,9 +38,6 @@ class CategoryViewModel extends ChangeNotifier {
   List<Category> get budgetedCategories =>
       _categories.where((c) => c.type == 'expense' && c.hasBudget).toList();
 
-  Set<String> get budgetedCategoryIds =>
-      budgetedCategories.map((c) => c.id).toSet();
-
   Future<void> loadCategories() async {
     _isLoading = true;
     _errorMessage = null;
@@ -95,15 +92,6 @@ class CategoryViewModel extends ChangeNotifier {
           color: color,
           hasBudget: hasBudget,
           budgetAmount: budgetAmount,
-        ));
-  }
-
-  /// Removes a category's budget without deleting the category.
-  Future<bool> clearCategoryBudget(String categoryId) async {
-    return _submit(() => _repository.updateBudget(
-          id: categoryId,
-          hasBudget: false,
-          budgetAmount: null,
         ));
   }
 

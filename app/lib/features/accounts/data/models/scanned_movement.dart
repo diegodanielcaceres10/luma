@@ -109,3 +109,16 @@ double? parseSignedAmount(String text) {
   if (value == null || !value.isFinite) return null;
   return value;
 }
+
+/// True when [description] mentions a transfer ("Transferencia a Juan"),
+/// ignoring case and accents.
+bool mentionsTransfer(String? description) {
+  if (description == null) return false;
+  const accents = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u'};
+  final normalized = description
+      .toLowerCase()
+      .split('')
+      .map((c) => accents[c] ?? c)
+      .join();
+  return normalized.contains('transferencia');
+}

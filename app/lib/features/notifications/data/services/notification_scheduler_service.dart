@@ -13,7 +13,9 @@ import '../../../services/data/models/service.dart';
 import '../../../services/data/repositories/service_repository.dart';
 import '../../../services/data/services/service_service.dart';
 import '../../domain/missing_invoice_rule.dart';
+import '../../domain/notification_log_entry.dart';
 import '../../domain/stale_accounts_rule.dart';
+import '../repositories/notification_log_repository.dart';
 import 'local_notifications_service.dart';
 
 /// Nombre único de la tarea periódica ante Workmanager/WorkManager
@@ -88,20 +90,50 @@ void callbackDispatcher() {
     if (task == _dailyInvoiceCheckTaskName) {
       // Cualquier error (sin sesión guardada, sin conexión, Supabase caído,
       // etc.) no debería hacer que WorkManager reintente en loop: total, la
-      // próxima corrida periódica vuelve a evaluar todo en 24hs.
+      // próxima corrida periódica vuelve a evaluar todo en 24hs. El error no
+      // se propaga, pero queda en el registro de notificaciones.
+      NotificationLogEntry entry;
       try {
-        await _runDailyChecks();
-      } catch (_) {
-        // Silenciado a propósito, ver comentario de arriba.
+        entry = await _runDailyChecks();
+      } catch (error) {
+        entry = NotificationLogEntry(
+          at: nowLocal(),
+          kind: NotificationLogKind.runFailed,
+          detail: _describeError(error),
+        );
       }
+      await NotificationLogRepository().recordRun(entry);
     }
     return Future.value(true);
   });
 }
 
-Future<void> _runDailyChecks() async {
+/// Error text for the log: short, since it is kept on the device.
+String _describeError(Object error) {
+  const maxLength = 300;
+  final text = error.toString();
+  return text.length <= maxLength ? text : '${text.substring(0, maxLength)}…';
+}
+
+/// Runs the daily checks and reports what happened for the notification log.
+/// A failure of one check is recorded and does not skip the others.
+Future<NotificationLogEntry> _runDailyChecks() async {
   if (AppEnv.supabaseUrl.isEmpty || AppEnv.supabasePublishableKey.isEmpty) {
-    return;
+    return NotificationLogEntry(
+      at: nowLocal(),
+      kind: NotificationLogKind.runSkippedNoConfig,
+    );
+  }
+
+  final notifications = LocalNotificationsService();
+  // Nothing would be shown without the permission, so don't bother reading
+  // data.
+  if (!await notifications.areNotificationsEnabled()) {
+    return NotificationLogEntry(
+      at: nowLocal(),
+      kind: NotificationLogKind.permissionDenied,
+      detail: 'Detectado durante la revisión diaria.',
+    );
   }
 
   // Cada corrida es un isolate nuevo: no hay sesión de Supabase en memoria
@@ -116,49 +148,75 @@ Future<void> _runDailyChecks() async {
   final client = Supabase.instance.client;
   // Sin sesión (nunca se logueó en este dispositivo, o cerró sesión) no
   // hay nada para chequear.
-  if (client.auth.currentSession == null) return;
+  if (client.auth.currentSession == null) {
+    return NotificationLogEntry(
+      at: nowLocal(),
+      kind: NotificationLogKind.runSkippedNoSession,
+    );
+  }
 
   final invoiceRepository = InvoiceRepository(InvoiceService(client));
   final serviceRepository = ServiceRepository(ServiceService(client));
   final services = await serviceRepository.getAll();
 
   final preferences = await PreferencesRepository().load();
-  final notifications = LocalNotificationsService();
 
-  // Independent checks: a failure in one must not skip the other.
-  try {
-    await _notifyInvoicesDueToday(
+  var shown = 0;
+  final errors = <String>[];
+
+  // Independent checks: a failure in one must not skip the others.
+  Future<void> runCheck(String name, Future<int> Function() check) async {
+    try {
+      shown += await check();
+    } catch (error) {
+      errors.add('$name: ${_describeError(error)}');
+    }
+  }
+
+  await runCheck(
+    'Vencimientos',
+    () => _notifyInvoicesDueToday(
       invoiceRepository: invoiceRepository,
       services: services,
       notifications: notifications,
       currencyCode: preferences.currencyCode,
-    );
-  } catch (_) {}
-
-  try {
-    await _notifyMissingInvoices(
+    ),
+  );
+  await runCheck(
+    'Facturas faltantes',
+    () => _notifyMissingInvoices(
       invoiceRepository: invoiceRepository,
       services: services,
       notifications: notifications,
-    );
-  } catch (_) {}
-
-  try {
-    await _notifyStaleAccounts(
+    ),
+  );
+  await runCheck(
+    'Cuentas sin actualizar',
+    () => _notifyStaleAccounts(
       accountRepository: AccountRepository(AccountService(client)),
       notifications: notifications,
-    );
-  } catch (_) {}
+    ),
+  );
+
+  return NotificationLogEntry(
+    at: nowLocal(),
+    kind: errors.isEmpty
+        ? NotificationLogKind.runOk
+        : NotificationLogKind.runFailed,
+    shown: shown,
+    detail: errors.isEmpty ? null : errors.join(' | '),
+  );
 }
 
-Future<void> _notifyInvoicesDueToday({
+/// Each check returns how many notifications it showed.
+Future<int> _notifyInvoicesDueToday({
   required InvoiceRepository invoiceRepository,
   required List<Service> services,
   required LocalNotificationsService notifications,
   required String currencyCode,
 }) async {
   final dueToday = await invoiceRepository.getDueToday();
-  if (dueToday.isEmpty) return;
+  if (dueToday.isEmpty) return 0;
 
   final servicesById = {for (final service in services) service.id: service};
 
@@ -173,9 +231,10 @@ Future<void> _notifyInvoicesDueToday({
       currencyCode: currencyCode,
     );
   }
+  return dueToday.length;
 }
 
-Future<void> _notifyMissingInvoices({
+Future<int> _notifyMissingInvoices({
   required InvoiceRepository invoiceRepository,
   required List<Service> services,
   required LocalNotificationsService notifications,
@@ -184,7 +243,7 @@ Future<void> _notifyMissingInvoices({
   final candidates = services
       .where((service) => service.isActive && service.dueDay != null)
       .toList();
-  if (candidates.isEmpty) return;
+  if (candidates.isEmpty) return 0;
 
   final invoices = await invoiceRepository.getAll();
   final missing = servicesMissingInvoiceToday(
@@ -202,9 +261,10 @@ Future<void> _notifyMissingInvoices({
       serviceName: service.name,
     );
   }
+  return missing.length;
 }
 
-Future<void> _notifyStaleAccounts({
+Future<int> _notifyStaleAccounts({
   required AccountRepository accountRepository,
   required LocalNotificationsService notifications,
 }) async {
@@ -222,4 +282,5 @@ Future<void> _notifyStaleAccounts({
       days: entry.days,
     );
   }
+  return stale.length;
 }

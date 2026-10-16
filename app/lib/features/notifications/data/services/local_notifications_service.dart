@@ -76,6 +76,14 @@ class LocalNotificationsService {
     return granted ?? true;
   }
 
+  /// Whether the system lets the app show notifications (permission granted
+  /// and not blocked in the settings). Where it can't be read, it is taken as
+  /// allowed.
+  Future<bool> areNotificationsEnabled() async {
+    await initialize();
+    return await _androidPlugin?.areNotificationsEnabled() ?? true;
+  }
+
   AndroidFlutterLocalNotificationsPlugin? get _androidPlugin =>
       _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();

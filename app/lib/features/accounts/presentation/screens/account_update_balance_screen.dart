@@ -6,7 +6,10 @@ import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/month_range.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/secondary_button.dart';
+import '../../../../core/widgets/text_action_button.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -14,6 +17,7 @@ import '../../../transactions/presentation/view_models/transaction_view_model.da
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 import '../widgets/balance_comparison_card.dart';
+import '../widgets/movements_summary_card.dart';
 import '../widgets/pending_movement_persistence.dart';
 import '../widgets/pending_movements_section.dart';
 
@@ -270,7 +274,7 @@ class _AccountUpdateBalanceScreenState
               ),
               const SizedBox(height: 20),
             ],
-            _MovementsSummaryCard(
+            MovementsSummaryCard(
               total: _pendingMovementsTotal,
               remainder: _unjustifiedRemainder,
               currency: currency,
@@ -284,52 +288,26 @@ class _AccountUpdateBalanceScreenState
     final isFirstStep = _currentStep == 0;
     final isLastStep = _currentStep == 2;
 
-    final backButton = OutlinedButton(
+    final backButton = SecondaryButton(
+      label: 'Atrás',
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      borderRadius: 30,
       onPressed: _isSaving ? null : () => setState(() => _currentStep -= 1),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.authTextPrimary,
-        side: const BorderSide(color: AppColors.authCardBorder),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
-      child: const Text('Atrás', style: TextStyle(fontWeight: FontWeight.w700)),
     );
 
-    final nextButton = FilledButton(
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.authAccent,
-        foregroundColor: AppColors.authBackgroundBottom,
-        disabledBackgroundColor: AppColors.authAccent.withValues(alpha: 0.4),
-        disabledForegroundColor:
-            AppColors.authBackgroundBottom.withValues(alpha: 0.6),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
+    final nextButton = PrimaryButton(
+      label: !isLastStep ? 'Siguiente' : 'Guardar',
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+      disabledAlpha: 0.4,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      borderRadius: 30,
+      isLoading: isLastStep && _isSaving,
       onPressed: !isLastStep
           ? (_isSaving || (isFirstStep && _difference == null)
               ? null
               : () => setState(() => _currentStep += 1))
           : (_difference == null || _isSaving ? null : _saveAndUpdateBalance),
-      child: !isLastStep
-          ? const Text('Siguiente',
-              style: TextStyle(fontWeight: FontWeight.w700))
-          : _isSaving
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.authBackgroundBottom,
-                  ),
-                )
-              : const Text(
-                  'Guardar y actualizar saldo',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
     );
 
     if (isFirstStep) {
@@ -339,15 +317,10 @@ class _AccountUpdateBalanceScreenState
           SizedBox(width: double.infinity, child: nextButton),
           if (diff != null && diff != 0) ...[
             const SizedBox(height: 8),
-            TextButton(
+            TextActionButton(
+              label: 'Guardar sin justificar movimientos',
+              fontWeight: FontWeight.w600,
               onPressed: _isSaving ? null : _saveAndUpdateBalance,
-              child: const Text(
-                'Guardar sin justificar movimientos',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.authTextSecondary,
-                ),
-              ),
             ),
           ],
         ],
@@ -417,165 +390,6 @@ class _AccountUpdateBalanceScreenState
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _MovementsSummaryCard extends StatelessWidget {
-  final double total;
-
-  final double? remainder;
-  final String currency;
-
-  const _MovementsSummaryCard({
-    required this.total,
-    required this.remainder,
-    required this.currency,
-  });
-
-  static const _epsilon = kRemainderEpsilon;
-
-  @override
-  Widget build(BuildContext context) {
-    final rem = remainder;
-
-    final Color tone;
-    final IconData icon;
-    final String title;
-    final String message;
-
-    if (rem == null) {
-      tone = AppColors.authTextSecondary;
-      icon = Icons.info_outline_rounded;
-      title = 'Falta el saldo nuevo';
-      message = 'Ingresa el nuevo saldo para calcular la diferencia.';
-    } else if (rem.abs() < _epsilon) {
-      tone = AppColors.authAccent;
-      icon = Icons.check_rounded;
-      title = 'Coincide con la diferencia';
-      message = 'El saldo se actualiza correctamente.';
-    } else if (rem > 0) {
-      tone = AppColors.authIncome;
-      icon = Icons.priority_high_rounded;
-      title = 'Diferencia sin justificar';
-      message = 'Se ajustará el balance por '
-          '${formatCurrency(rem, currency)} como ingreso no controlado, '
-          'sin registrar un movimiento.';
-    } else {
-      tone = AppColors.authExpense;
-      icon = Icons.priority_high_rounded;
-      title = 'Diferencia sin justificar';
-      message = 'Se ajustará el balance por '
-          '${formatCurrency(rem.abs(), currency)} como gasto no '
-          'controlado, sin registrar un movimiento.';
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.authCardFill,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.authCardBorder),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.authAccent.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.calculate_rounded,
-                    color: AppColors.authAccent,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Total de movimientos',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.authTextSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          formatCurrency(total, currency),
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.authTextPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 1,
-            height: 52,
-            margin: const EdgeInsets.symmetric(horizontal: 12),
-            color: AppColors.authCardBorder,
-          ),
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: tone.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: tone, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: tone,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        message,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          height: 1.3,
-                          color: AppColors.authTextSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

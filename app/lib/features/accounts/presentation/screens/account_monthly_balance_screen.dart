@@ -4,7 +4,10 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/secondary_button.dart';
+import '../../../../core/widgets/text_action_button.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -13,6 +16,7 @@ import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
 import '../view_models/monthly_balance_view_model.dart';
 import '../widgets/balance_comparison_card.dart';
+import '../widgets/opening_summary_card.dart';
 import '../widgets/pending_movement_persistence.dart';
 import '../widgets/pending_movements_section.dart';
 
@@ -198,16 +202,10 @@ class _AccountMonthlyBalanceScreenState
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.authAccent,
-              foregroundColor: AppColors.authBackgroundBottom,
-            ),
+          PrimaryButton(
+            label: 'Entendido',
+            labelStyle: const TextStyle(fontWeight: FontWeight.w700),
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(
-              'Entendido',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
           ),
         ],
       ),
@@ -473,7 +471,7 @@ class _AccountMonthlyBalanceScreenState
             if (openingBalance != null &&
                 difference != null &&
                 uncovered != null)
-              _OpeningSummaryCard(
+              OpeningSummaryCard(
                 previousBalance: account.balance,
                 openingBalance: openingBalance,
                 difference: difference,
@@ -503,32 +501,14 @@ class _AccountMonthlyBalanceScreenState
       onNext = _goToNextStep;
     }
 
-    final nextButton = FilledButton(
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.authAccent,
-        foregroundColor: AppColors.authBackgroundBottom,
-        disabledBackgroundColor: AppColors.authAccent.withValues(alpha: 0.4),
-        disabledForegroundColor:
-            AppColors.authBackgroundBottom.withValues(alpha: 0.6),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
+    final nextButton = PrimaryButton(
+      label: isLastStep ? 'Guardar y comenzar' : 'Siguiente',
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+      disabledAlpha: 0.4,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      borderRadius: 30,
+      isLoading: isLastStep && _isSaving,
       onPressed: onNext,
-      child: isLastStep && _isSaving
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.authBackgroundBottom,
-              ),
-            )
-          : Text(
-              isLastStep ? 'Guardar y comenzar' : 'Siguiente',
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
     );
 
     if (isFirstStep) {
@@ -536,34 +516,24 @@ class _AccountMonthlyBalanceScreenState
         children: [
           SizedBox(width: double.infinity, child: nextButton),
           const SizedBox(height: 8),
-          TextButton(
+          TextActionButton(
+            label: 'Mi saldo está al día, sin movimientos',
+            fontWeight: FontWeight.w600,
             onPressed:
                 _isSaving || _difference != 0 ? null : _saveWithCurrentBalance,
-            child: const Text(
-              'Mi saldo está al día, sin movimientos',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.authTextSecondary,
-              ),
-            ),
           ),
         ],
       );
     }
 
-    final backButton = OutlinedButton(
+    final backButton = SecondaryButton(
+      label: 'Atrás',
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      borderRadius: 30,
       onPressed: _isSaving || _adjustmentApplied
           ? null
           : () => setState(() => _currentStep -= 1),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.authTextPrimary,
-        side: const BorderSide(color: AppColors.authCardBorder),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
-      child: const Text('Atrás', style: TextStyle(fontWeight: FontWeight.w700)),
     );
 
     return Row(
@@ -647,167 +617,6 @@ class _AccountMonthlyBalanceScreenState
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _OpeningSummaryCard extends StatelessWidget {
-  final double previousBalance;
-  final double openingBalance;
-  final double difference;
-  final double movementsTotal;
-  final double remainder;
-  final String currency;
-  final String openingMonthLabel;
-  final String previousMonthLabel;
-
-  const _OpeningSummaryCard({
-    required this.previousBalance,
-    required this.openingBalance,
-    required this.difference,
-    required this.movementsTotal,
-    required this.remainder,
-    required this.currency,
-    required this.openingMonthLabel,
-    required this.previousMonthLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final Color tone;
-    final IconData icon;
-    final String title;
-    final String message;
-
-    if (remainder.abs() < kRemainderEpsilon) {
-      tone = AppColors.authAccent;
-      icon = Icons.check_rounded;
-      title = 'Coincide con la diferencia';
-      message = 'No hace falta ningún ajuste. Se registra el saldo inicial '
-          'de $openingMonthLabel.';
-    } else if (remainder > 0) {
-      tone = AppColors.authIncome;
-      icon = Icons.priority_high_rounded;
-      title = 'Diferencia sin justificar';
-      message = 'Se sumarán ${formatCurrency(remainder, currency)} como '
-          'ingreso no controlado de $previousMonthLabel, sin registrar un '
-          'movimiento.';
-    } else {
-      tone = AppColors.authExpense;
-      icon = Icons.priority_high_rounded;
-      title = 'Diferencia sin justificar';
-      message = 'Se sumarán ${formatCurrency(remainder.abs(), currency)} como '
-          'gasto no controlado de $previousMonthLabel, sin registrar un '
-          'movimiento.';
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.authCardFill,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.authCardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SummaryRow(
-            label: 'Saldo anterior',
-            value: formatCurrency(previousBalance, currency),
-          ),
-          _SummaryRow(
-            label: 'Saldo inicial de $openingMonthLabel',
-            value: formatCurrency(openingBalance, currency),
-          ),
-          _SummaryRow(
-            label: 'Diferencia',
-            value: formatCurrency(difference, currency),
-          ),
-          _SummaryRow(
-            label: 'Total de movimientos',
-            value: formatCurrency(movementsTotal, currency),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: tone.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: tone.withValues(alpha: 0.4)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(icon, color: tone, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: tone,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        message,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          height: 1.4,
-                          color: AppColors.authTextSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SummaryRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _SummaryRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Flexible(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.authTextSecondary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.authTextPrimary,
-            ),
-          ),
-        ],
       ),
     );
   }

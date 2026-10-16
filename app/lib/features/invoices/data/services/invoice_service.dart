@@ -106,4 +106,14 @@ class InvoiceService {
       'transaction_id': transactionId,
     }).eq('id', id);
   }
+
+  /// Reverts [markPaid]: the invoice goes back to pending and loses its link
+  /// to the transaction, which is not deleted.
+  Future<void> markUnpaid({required String id}) async {
+    await _client.from('invoices').update({
+      'paid': false,
+      'paid_at': null,
+      'transaction_id': null,
+    }).eq('id', id);
+  }
 }

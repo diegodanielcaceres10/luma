@@ -127,18 +127,30 @@ class TransactionService {
     return id as String;
   }
 
-  /// Updates category, description and date only. Account and amount are not
-  /// editable because they affect `accounts.balance`.
+  /// Updates category and description only. Account, amount and date are not
+  /// editable: the first two affect `accounts.balance`.
   Future<void> updateTransaction({
     required String transactionId,
     String? categoryId,
     String? description,
-    required DateTime date,
   }) async {
     await _client.from('transactions').update({
       'category_id': categoryId,
       'description': description,
-      'date': formatDbDate(date),
+    }).eq('id', transactionId);
+  }
+
+  /// Flags or unflags an existing movement as a transfer. Transfers carry no
+  /// category, so flagging clears it; unflagging leaves it empty for the user
+  /// to categorize again. Amount and account stay untouched, so
+  /// `accounts.balance` is unaffected.
+  Future<void> setTransfer({
+    required String transactionId,
+    required bool isTransfer,
+  }) async {
+    await _client.from('transactions').update({
+      'is_transfer': isTransfer,
+      if (isTransfer) 'category_id': null,
     }).eq('id', transactionId);
   }
 

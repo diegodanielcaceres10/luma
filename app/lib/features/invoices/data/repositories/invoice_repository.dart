@@ -57,4 +57,8 @@ class InvoiceRepository {
   Future<void> markPaid({required String id, required String transactionId}) {
     return _service.markPaid(id: id, transactionId: transactionId);
   }
+
+  Future<void> markUnpaid({required String id}) {
+    return _service.markUnpaid(id: id);
+  }
 }
