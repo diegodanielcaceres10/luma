@@ -5,6 +5,7 @@ import 'package:luma/features/accounts/data/repositories/monthly_balance_reposit
 import 'package:luma/features/auth/data/repositories/preferences_repository.dart';
 import 'package:luma/features/invoices/data/models/invoice.dart';
 import 'package:luma/features/invoices/data/repositories/invoice_repository.dart';
+import 'package:luma/features/notifications/data/repositories/notification_log_repository.dart';
 import 'package:luma/features/transactions/data/models/transaction_entry.dart';
 import 'package:luma/features/transactions/data/repositories/transaction_repository.dart';
 
@@ -270,6 +271,30 @@ class FakePreferencesRepository implements PreferencesRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} is not faked');
+}
+
+/// Keeps the notification log in memory; [failing] makes every call throw.
+class InMemoryNotificationLogStore implements NotificationLogStore {
+  final Map<String, String> values = {};
+  bool failing = false;
+
+  @override
+  Future<String?> read(String key) async {
+    if (failing) throw StateError('read failed');
+    return values[key];
+  }
+
+  @override
+  Future<void> write(String key, String value) async {
+    if (failing) throw StateError('write failed');
+    values[key] = value;
+  }
+
+  @override
+  Future<void> delete(String key) async {
+    if (failing) throw StateError('delete failed');
+    values.remove(key);
+  }
 }
 
 void _throwIfSet(Object? error) {
