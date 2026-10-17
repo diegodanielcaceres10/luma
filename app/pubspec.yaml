@@ -22,6 +22,8 @@ dependencies:
   google_sign_in: ^7.2.0
   image_picker: ^1.1.1
   image_cropper: ^12.2.1
+  extended_image: ^10.1.0
+  image: ^4.5.4
   package_info_plus: ^9.0.0
   shared_preferences: ^2.5.5
   local_auth: ^3.0.2
