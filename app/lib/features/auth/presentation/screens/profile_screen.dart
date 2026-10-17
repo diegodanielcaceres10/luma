@@ -21,43 +21,49 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      children: [
-        const ScreenHeader(
-          title: 'Perfil',
-          subtitle: 'Tus datos y preferencias de la app.',
-        ),
-        const SizedBox(height: 24),
-        _ProfileCard(
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
-            _ProfileRow(
-              icon: Icons.person_outline_rounded,
-              label: 'Nombre',
-              value: viewModel.displayName,
+            const ScreenHeader(
+              title: 'Perfil',
+              subtitle: 'Tus datos y preferencias de la app.',
             ),
-            _ProfileRow(
-              icon: Icons.mail_outline_rounded,
-              label: 'Correo electrónico',
-              value: viewModel.email ?? '—',
-              showDivider: false,
+            const SizedBox(height: 24),
+            _ProfileCard(
+              children: [
+                _ProfileRow(
+                  icon: Icons.person_outline_rounded,
+                  label: 'Nombre',
+                  value: viewModel.displayName,
+                ),
+                _ProfileRow(
+                  icon: Icons.mail_outline_rounded,
+                  label: 'Correo electrónico',
+                  value: viewModel.email ?? '—',
+                  showDivider: false,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _NavigationEntry(
+              icon: Icons.tune_rounded,
+              label: 'Preferencias',
+              onTap: onOpenPreferences,
+            ),
+            const SizedBox(height: 12),
+            _SignOutButton(onPressed: viewModel.signOut),
+            const SizedBox(height: 24),
+            const AppVersionFooter(
+              style: AppTextStyles.authFooter,
+              textAlign: TextAlign.center,
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        _NavigationEntry(
-          icon: Icons.tune_rounded,
-          label: 'Preferencias',
-          onTap: onOpenPreferences,
-        ),
-        const SizedBox(height: 12),
-        _SignOutButton(onPressed: viewModel.signOut),
-        const SizedBox(height: 24),
-        const AppVersionFooter(
-          style: AppTextStyles.authFooter,
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
     );
   }
 }
@@ -69,12 +75,20 @@ class _ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
         color: AppColors.authCardFill,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(children: children),
     );
   }
@@ -101,26 +115,43 @@ class _ProfileRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: AppColors.authIconBg,
-                child: Icon(icon, size: 18, color: AppColors.authTextPrimary),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: AppColors.authTextPrimary,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label,
-                        style:
-                            AppTextStyles.authSubtitle.copyWith(fontSize: 13)),
-                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.authTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
                     Text(
                       value,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 15.5,
                         fontWeight: FontWeight.w600,
                         color: AppColors.authTextPrimary,
+                        letterSpacing: -0.2,
                       ),
                     ),
                   ],
@@ -130,7 +161,13 @@ class _ProfileRow extends StatelessWidget {
           ),
         ),
         if (showDivider)
-          const Divider(height: 1, color: AppColors.authCardBorder),
+          const Divider(
+            height: 1,
+            thickness: 1,
+            color: AppColors.authCardBorder,
+            indent: 16,
+            endIndent: 16,
+          ),
       ],
     );
   }
@@ -149,37 +186,72 @@ class _NavigationEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.authCardFill,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
-          child: Row(
-            children: [
-              Icon(icon, color: AppColors.authTextPrimary, size: 20),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.authTextPrimary,
+        ],
+      ),
+      child: Material(
+        color: AppColors.authCardFill,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.authAccent.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.authAccent.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: AppColors.authAccent,
+                    size: 20,
                   ),
                 ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.authTextFooter,
-              ),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.authTextPrimary,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: AppColors.authTextSecondary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -194,31 +266,57 @@ class _SignOutButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.authCardFill,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        onTap: onPressed,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
-          child: const Row(
-            children: [
-              Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
-              SizedBox(width: 14),
-              Text(
-                'Cerrar sesión',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.error,
+        ],
+      ),
+      child: Material(
+        color: AppColors.authCardFill,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.logout_rounded,
+                    color: AppColors.error,
+                    size: 20,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 14),
+                const Text(
+                  'Cerrar sesión',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.error,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
