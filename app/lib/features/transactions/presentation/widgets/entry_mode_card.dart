@@ -36,62 +36,105 @@ class EntryModeCard extends StatelessWidget {
       ),
     );
 
-    return Material(
-      color: fill,
-      shape: shape,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: shape,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.authAccent.withValues(alpha: 0.28),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(icon, size: 32, color: AppColors.authTextPrimary),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.authTextPrimary,
-                      ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: highlighted ? 0.18 : 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: fill,
+        shape: shape,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: shape,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: highlighted
+                        ? AppColors.authAccent.withValues(alpha: 0.22)
+                        : Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: highlighted
+                          ? AppColors.authAccent.withValues(alpha: 0.35)
+                          : AppColors.authCardBorder.withValues(alpha: 0.4),
+                      width: 1,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.authTextSecondary,
-                      ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      icon,
+                      size: 30,
+                      color: highlighted
+                          ? AppColors.authAccent
+                          : AppColors.authTextPrimary,
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              loading
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.authAccent,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.authTextPrimary,
+                        ),
                       ),
-                    )
-                  : const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.authAccent),
-            ],
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.authTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                loading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.authAccent,
+                        ),
+                      )
+                    : Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: (highlighted
+                                  ? AppColors.authAccent
+                                  : Colors.white)
+                              .withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.chevron_right_rounded,
+                          size: 20,
+                          color: AppColors.authAccent,
+                        ),
+                      ),
+              ],
+            ),
           ),
         ),
       ),

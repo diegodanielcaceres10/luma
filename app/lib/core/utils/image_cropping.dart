@@ -43,7 +43,12 @@ class CropJob {
 /// rotation, flip and then the crop. Metadata (EXIF, which can include the
 /// location of a photo) is not kept in the result.
 Uint8List cropAndEncode(CropJob job) {
-  var image = img.decodeImage(job.bytes);
+  img.Image? image;
+  try {
+    image = img.decodeImage(job.bytes);
+  } catch (_) {
+    throw const FormatException('Unsupported image format');
+  }
   if (image == null) {
     throw const FormatException('Unsupported image format');
   }
