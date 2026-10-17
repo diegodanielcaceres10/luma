@@ -1,59 +1,58 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 
 import '../../app/theme/app_colors.dart';
+import 'max_width_frame.dart';
 import 'primary_button.dart';
 import 'text_action_button.dart';
 
-/// Largest side of the web cropper, in logical pixels.
-const double kMaxWebCropperSide = 500;
-const double _kMinWebCropperSide = 200;
-
-// Dialog inset plus content padding on both sides.
-const double _kHorizontalChrome = 96;
-// Title, zoom bar, buttons and paddings stacked around the cropper.
-const double _kVerticalChrome = 300;
-
-/// Side of the square web cropper that fits in [screen]. The plugin default is
-/// a fixed 500 px, which would overflow on a phone browser.
-double webCropperSideFor(Size screen) {
-  final side = math.min(
-    screen.width - _kHorizontalChrome,
-    screen.height - _kVerticalChrome,
-  );
-  return side.clamp(_kMinWebCropperSide, kMaxWebCropperSide).toDouble();
-}
-
-/// Crop dialog for web, styled like the rest of the app. Plugged into
-/// `WebUiSettings.customDialogBuilder`, which hands over the cropper and the
+/// Full-screen crop page for web, styled like the rest of the app. Plugged into
+/// `WebUiSettings.customRouteBuilder`, which hands over the cropper and the
 /// callbacks to drive it.
-class ThemedCropperDialog extends StatefulWidget {
+///
+/// The cropper fills whatever space is left, so on a phone it is as large as
+/// the screen allows (the old dialog capped it at a small square). The plugin
+/// sizes its view to 100% of its parent, so no fixed size is needed.
+class ThemedCropperPage extends StatefulWidget {
   final Widget cropper;
   final VoidCallback initCropper;
   final Future<String?> Function() crop;
   final void Function(RotationAngle) rotate;
   final void Function(num) scale;
 
-  /// Side of the cropper; must match the size given to `WebUiSettings`.
-  final double cropperSide;
-
-  const ThemedCropperDialog({
+  const ThemedCropperPage({
     super.key,
     required this.cropper,
     required this.initCropper,
     required this.crop,
     required this.rotate,
     required this.scale,
-    required this.cropperSide,
   });
 
+  /// Route for `WebUiSettings.customRouteBuilder`.
+  static PageRoute<String> route(
+    Widget cropper,
+    VoidCallback initCropper,
+    Future<String?> Function() crop,
+    void Function(RotationAngle) rotate,
+    void Function(num) scale,
+  ) {
+    return MaterialPageRoute<String>(
+      builder: (_) => ThemedCropperPage(
+        cropper: cropper,
+        initCropper: initCropper,
+        crop: crop,
+        rotate: rotate,
+        scale: scale,
+      ),
+    );
+  }
+
   @override
-  State<ThemedCropperDialog> createState() => _ThemedCropperDialogState();
+  State<ThemedCropperPage> createState() => _ThemedCropperPageState();
 }
 
-class _ThemedCropperDialogState extends State<ThemedCropperDialog> {
+class _ThemedCropperPageState extends State<ThemedCropperPage> {
   static const double _minScale = 1;
   static const double _maxScale = 3;
 
@@ -84,44 +83,37 @@ class _ThemedCropperDialogState extends State<ThemedCropperDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+    return Scaffold(
       backgroundColor: AppColors.authBackgroundTop,
-      surfaceTintColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(24),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.authCardBorder),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Recortar',
-              style: TextStyle(
-                color: AppColors.authTextPrimary,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: widget.cropperSide,
-                  height: widget.cropperSide,
-                  child: widget.cropper,
+      body: SafeArea(
+        child: MaxWidthFrame(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Recortar',
+                  style: TextStyle(
+                    color: AppColors.authTextPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox.expand(child: widget.cropper),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildZoomBar(context),
+                const SizedBox(height: 8),
+                _buildActions(),
+              ],
             ),
-            const SizedBox(height: 8),
-            _buildZoomBar(context),
-            const SizedBox(height: 8),
-            _buildActions(),
-          ],
+          ),
         ),
       ),
     );

@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../widgets/crop_preview_dialog.dart';
-import '../widgets/themed_cropper_dialog.dart';
+import '../widgets/themed_cropper_page.dart';
 
 /// An image already cropped by the user, ready to be sent for scanning.
 typedef PickedImage = ({Uint8List bytes, String mimeType});
@@ -127,7 +127,6 @@ Future<T?> pickAndCropImage<T>(
       // The picker is async; the screen may be gone by now.
       if (!context.mounted) return null;
 
-      final webSide = webCropperSideFor(MediaQuery.sizeOf(context));
       final cropped = await ImageCropper().cropImage(
         sourcePath: sourcePath,
         compressFormat: ImageCompressFormat.jpg,
@@ -145,8 +144,14 @@ Future<T?> pickAndCropImage<T>(
             navBarLight: false,
             dimmedLayerColor:
                 AppColors.authBackgroundTop.withValues(alpha: 0.7),
+            // Thicker frame so the edges and corners are easy to see and grab.
             cropFrameColor: AppColors.authAccent,
+            cropFrameStrokeWidth: 4,
+            showCropGrid: true,
             cropGridColor: AppColors.authTextPrimary.withValues(alpha: 0.5),
+            // Free-form crop only: the fixed ratios are not useful for
+            // receipts and statements, and the picker takes up space.
+            aspectRatioPresets: const [CropAspectRatioPreset.original],
             initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
           ),
@@ -157,16 +162,14 @@ Future<T?> pickAndCropImage<T>(
           ),
           WebUiSettings(
             context: context,
-            size: CropperSize(width: webSide.floor(), height: webSide.floor()),
-            customDialogBuilder: (cropper, initCropper, crop, rotate, scale) =>
-                ThemedCropperDialog(
-              cropper: cropper,
-              initCropper: initCropper,
-              crop: crop,
-              rotate: rotate,
-              scale: scale,
-              cropperSide: webSide.floorToDouble(),
-            ),
+            // Full-screen page instead of a small dialog: the cropper uses
+            // all the space available, which matters on a phone browser.
+            presentStyle: WebPresentStyle.page,
+            customRouteBuilder: ThemedCropperPage.route,
+            // Dragging the image moves it; the crop box is resized from its
+            // handles. With the default mode a touch outside the box starts a
+            // new box, which is easy to trigger by accident on a phone.
+            dragMode: WebDragMode.move,
           ),
         ],
       );
