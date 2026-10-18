@@ -106,7 +106,8 @@ void main() {
 
   group('UnhandledAppError', () {
     test('names the type and the message of the cause', () {
-      final error = UnhandledAppError(StateError('Bad state: no session'));
+      // StateError.toString() already adds the "Bad state: " prefix.
+      final error = UnhandledAppError(StateError('no session'));
 
       expect(
         error.toString(),
@@ -129,7 +130,7 @@ void main() {
     });
 
     test('is an Exception', () {
-      expect(UnhandledAppError('boom'), isA<Exception>());
+      expect(const UnhandledAppError('boom'), isA<Exception>());
     });
   });
 }
