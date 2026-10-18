@@ -29,6 +29,8 @@ dependencies:
   local_auth: ^3.0.2
   flutter_local_notifications: ^18.0.1
   workmanager: ^0.10.0
+  firebase_core: ^4.15.0
+  firebase_crashlytics: ^5.4.0
 
 dev_dependencies:
   flutter_test:
