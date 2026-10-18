@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app/app.dart';
 import 'app/theme/app_theme.dart';
 import 'core/config/app_env.dart';
+import 'core/diagnostics/crashlytics_error_reporter.dart';
 import 'features/home/data/models/version_check_result.dart';
 import 'features/home/data/services/app_update_service.dart';
 import 'features/home/presentation/screens/update_required_screen.dart';
@@ -16,6 +17,9 @@ Future<void> main() async {
   // Path URLs on web (no "#" in routes).
   usePathUrlStrategy();
   await initializeDateFormatting('es');
+
+  // Starts Crashlytics on Android and does nothing elsewhere; never throws.
+  await CrashlyticsErrorReporter.create();
 
   if (AppEnv.supabaseUrl.isEmpty || AppEnv.supabasePublishableKey.isEmpty) {
     throw StateError(
