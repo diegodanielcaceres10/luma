@@ -16,6 +16,19 @@ void main() {
       );
     });
 
+    test('accepts a fatal report without doing anything or throwing', () async {
+      const reporter = NoopErrorReporter();
+
+      await expectLater(
+        reporter.recordError(
+          Exception('boom'),
+          StackTrace.current,
+          fatal: true,
+        ),
+        completes,
+      );
+    });
+
     test('is usable as an ErrorReporter', () {
       const ErrorReporter reporter = NoopErrorReporter();
 

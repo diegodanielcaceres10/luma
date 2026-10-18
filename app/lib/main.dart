@@ -8,6 +8,7 @@ import 'app/app.dart';
 import 'app/theme/app_theme.dart';
 import 'core/config/app_env.dart';
 import 'core/diagnostics/crashlytics_error_reporter.dart';
+import 'core/diagnostics/global_error_handlers.dart';
 import 'features/home/data/models/version_check_result.dart';
 import 'features/home/data/services/app_update_service.dart';
 import 'features/home/presentation/screens/update_required_screen.dart';
@@ -19,7 +20,8 @@ Future<void> main() async {
   await initializeDateFormatting('es');
 
   // Starts Crashlytics on Android and does nothing elsewhere; never throws.
-  await CrashlyticsErrorReporter.create();
+  final errorReporter = await CrashlyticsErrorReporter.create();
+  installGlobalErrorHandlers(errorReporter);
 
   if (AppEnv.supabaseUrl.isEmpty || AppEnv.supabasePublishableKey.isEmpty) {
     throw StateError(

@@ -43,9 +43,15 @@ class CrashlyticsErrorReporter implements ErrorReporter {
     Object error,
     StackTrace stackTrace, {
     String? reason,
+    bool fatal = false,
   }) async {
     try {
-      await _crashlytics.recordError(error, stackTrace, reason: reason);
+      await _crashlytics.recordError(
+        error,
+        stackTrace,
+        reason: reason,
+        fatal: fatal,
+      );
     } catch (_) {}
   }
 }
