@@ -73,6 +73,18 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
+      # Firebase config for Crashlytics, kept out of the repo (see README).
+      # Fails early when the secret is missing instead of in the Gradle build.
+      - name: Create google-services.json from secret
+        run: |
+          echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
+          if [ ! -s android/app/google-services.json ]; then
+            echo "::error::Falta el secret GOOGLE_SERVICES_JSON_BASE64 (ver README)."
+            exit 1
+          fi
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+
       # Genera android/key.properties (gitignored) que lee android/app/build.gradle
       # para firmar el build de release con el keystore de producción.
       - name: Create key.properties

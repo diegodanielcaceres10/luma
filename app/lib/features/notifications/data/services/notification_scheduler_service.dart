@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../../../../core/config/app_env.dart';
+import '../../../../core/diagnostics/crashlytics_error_reporter.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../accounts/data/repositories/account_repository.dart';
 import '../../../accounts/data/services/account_service.dart';
@@ -17,6 +18,7 @@ import '../../domain/notification_log_entry.dart';
 import '../../domain/stale_accounts_rule.dart';
 import '../repositories/notification_log_repository.dart';
 import 'local_notifications_service.dart';
+import 'notification_check_failure.dart';
 
 /// Nombre único de la tarea periódica ante Workmanager/WorkManager
 /// (Android). Al registrar dos veces la misma tarea con
@@ -92,17 +94,23 @@ void callbackDispatcher() {
       // etc.) no debería hacer que WorkManager reintente en loop: total, la
       // próxima corrida periódica vuelve a evaluar todo en 24hs. El error no
       // se propaga, pero queda en el registro de notificaciones.
-      NotificationLogEntry entry;
+      _DailyRun run;
       try {
-        entry = await _runDailyChecks();
-      } catch (error) {
-        entry = NotificationLogEntry(
-          at: nowLocal(),
-          kind: NotificationLogKind.runFailed,
-          detail: _describeError(error),
+        run = await _runDailyChecks();
+      } catch (error, stackTrace) {
+        run = _DailyRun(
+          NotificationLogEntry(
+            at: nowLocal(),
+            kind: NotificationLogKind.runFailed,
+            detail: _describeError(error),
+          ),
+          [_CheckFailure('Revisión diaria', error, stackTrace)],
         );
       }
-      await NotificationLogRepository().recordRun(entry);
+      await NotificationLogRepository().recordRun(run.entry);
+      // After the log, so a problem while reporting cannot hide the failure
+      // from it.
+      await _reportFailures(run.failures);
     }
     return Future.value(true);
   });
@@ -115,13 +123,49 @@ String _describeError(Object error) {
   return text.length <= maxLength ? text : '${text.substring(0, maxLength)}…';
 }
 
+/// An error caught during a run, kept with the check it came from so it can
+/// be reported once the run is logged.
+class _CheckFailure {
+  final String check;
+  final Object error;
+  final StackTrace stackTrace;
+
+  const _CheckFailure(this.check, this.error, this.stackTrace);
+}
+
+/// What a daily run produced: the log entry and the errors behind it.
+class _DailyRun {
+  final NotificationLogEntry entry;
+  final List<_CheckFailure> failures;
+
+  const _DailyRun(this.entry, [this.failures = const []]);
+}
+
+/// Sends the failures of a run to Crashlytics.
+Future<void> _reportFailures(List<_CheckFailure> failures) async {
+  if (failures.isEmpty) return;
+
+  // Firebase starts only when there is something to report, so a healthy run
+  // never depends on it. The reporter never throws.
+  final reporter = await CrashlyticsErrorReporter.create();
+  for (final failure in failures) {
+    await reporter.recordError(
+      NotificationCheckFailure(check: failure.check, cause: failure.error),
+      failure.stackTrace,
+      reason: 'Daily notification check',
+    );
+  }
+}
+
 /// Runs the daily checks and reports what happened for the notification log.
 /// A failure of one check is recorded and does not skip the others.
-Future<NotificationLogEntry> _runDailyChecks() async {
+Future<_DailyRun> _runDailyChecks() async {
   if (AppEnv.supabaseUrl.isEmpty || AppEnv.supabasePublishableKey.isEmpty) {
-    return NotificationLogEntry(
-      at: nowLocal(),
-      kind: NotificationLogKind.runSkippedNoConfig,
+    return _DailyRun(
+      NotificationLogEntry(
+        at: nowLocal(),
+        kind: NotificationLogKind.runSkippedNoConfig,
+      ),
     );
   }
 
@@ -129,10 +173,12 @@ Future<NotificationLogEntry> _runDailyChecks() async {
   // Nothing would be shown without the permission, so don't bother reading
   // data.
   if (!await notifications.areNotificationsEnabled()) {
-    return NotificationLogEntry(
-      at: nowLocal(),
-      kind: NotificationLogKind.permissionDenied,
-      detail: 'Detectado durante la revisión diaria.',
+    return _DailyRun(
+      NotificationLogEntry(
+        at: nowLocal(),
+        kind: NotificationLogKind.permissionDenied,
+        detail: 'Detectado durante la revisión diaria.',
+      ),
     );
   }
 
@@ -149,9 +195,11 @@ Future<NotificationLogEntry> _runDailyChecks() async {
   // Sin sesión (nunca se logueó en este dispositivo, o cerró sesión) no
   // hay nada para chequear.
   if (client.auth.currentSession == null) {
-    return NotificationLogEntry(
-      at: nowLocal(),
-      kind: NotificationLogKind.runSkippedNoSession,
+    return _DailyRun(
+      NotificationLogEntry(
+        at: nowLocal(),
+        kind: NotificationLogKind.runSkippedNoSession,
+      ),
     );
   }
 
@@ -163,13 +211,15 @@ Future<NotificationLogEntry> _runDailyChecks() async {
 
   var shown = 0;
   final errors = <String>[];
+  final failures = <_CheckFailure>[];
 
   // Independent checks: a failure in one must not skip the others.
   Future<void> runCheck(String name, Future<int> Function() check) async {
     try {
       shown += await check();
-    } catch (error) {
+    } catch (error, stackTrace) {
       errors.add('$name: ${_describeError(error)}');
+      failures.add(_CheckFailure(name, error, stackTrace));
     }
   }
 
@@ -198,13 +248,16 @@ Future<NotificationLogEntry> _runDailyChecks() async {
     ),
   );
 
-  return NotificationLogEntry(
-    at: nowLocal(),
-    kind: errors.isEmpty
-        ? NotificationLogKind.runOk
-        : NotificationLogKind.runFailed,
-    shown: shown,
-    detail: errors.isEmpty ? null : errors.join(' | '),
+  return _DailyRun(
+    NotificationLogEntry(
+      at: nowLocal(),
+      kind: errors.isEmpty
+          ? NotificationLogKind.runOk
+          : NotificationLogKind.runFailed,
+      shown: shown,
+      detail: errors.isEmpty ? null : errors.join(' | '),
+    ),
+    failures,
   );
 }
 

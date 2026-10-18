@@ -32,6 +32,7 @@ class BiometricService {
       return await _auth.authenticate(
         localizedReason: 'Confirmá tu identidad para abrir Luma',
         biometricOnly: false,
+        persistAcrossBackgrounding: true,
       );
     } catch (_) {
       return false;

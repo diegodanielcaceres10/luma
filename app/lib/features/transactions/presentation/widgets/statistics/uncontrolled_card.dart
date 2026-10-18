@@ -20,24 +20,41 @@ class StatisticsUncontrolledCard extends StatelessWidget {
     final isExpense = total < 0;
     final tone = isExpense ? AppColors.authExpense : AppColors.authIncome;
 
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
         color: AppColors.authCardFill,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: tone.withValues(alpha: 0.18),
-              child: Icon(
-                Icons.priority_high_rounded,
-                size: 18,
-                color: tone,
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: tone.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: tone.withValues(alpha: 0.28),
+                  width: 1,
+                ),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.priority_high_rounded,
+                  size: 20,
+                  color: tone,
+                ),
               ),
             ),
             const SizedBox(width: 14),

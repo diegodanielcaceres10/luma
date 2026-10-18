@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/diagnostics/crashlytics_error_reporter.dart';
 import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../data/repositories/notification_log_repository.dart';
 import '../../data/services/local_notifications_service.dart';
@@ -31,6 +32,7 @@ class NotificationsViewModel {
           log: NotificationLogRepository(),
           notificationsAllowed:
               _localNotificationsService.areNotificationsEnabled,
+          reporter: CrashlyticsErrorReporter.create,
         );
     _preferencesViewModel.addListener(_onPreferencesChanged);
   }

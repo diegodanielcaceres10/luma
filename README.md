@@ -68,3 +68,15 @@ quedar compiladas, cualquiera puede extraerlas del build.
 Si compilás en CI (por ejemplo GitHub Actions), definí esas variables como
 secrets/variables y generá el `.env` antes del build, o pasá cada una con
 `--dart-define=NOMBRE=valor`.
+
+### Crashlytics (Android)
+
+Crashlytics necesita el `google-services.json` de la app Android registrada en
+Firebase (`io.luma.app`). No se commitea (está en `app/android/.gitignore`) y
+sin él el build de Android falla:
+
+- **Local:** descargalo desde la consola de Firebase (Configuración del
+  proyecto → tu app Android) y guardalo en `app/android/app/google-services.json`.
+- **CI:** guardalo codificado en base64 como secret `GOOGLE_SERVICES_JSON_BASE64`
+  (`base64 -w0 google-services.json` en Linux, `base64 -i google-services.json`
+  en macOS). El workflow de distribución lo restaura antes de compilar.

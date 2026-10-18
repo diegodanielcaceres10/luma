@@ -1,3 +1,4 @@
+import 'package:luma/core/diagnostics/error_reporter.dart';
 import 'package:luma/features/accounts/data/models/account.dart';
 import 'package:luma/features/accounts/data/models/monthly_opening_balance.dart';
 import 'package:luma/features/accounts/data/repositories/account_repository.dart';
@@ -294,6 +295,21 @@ class InMemoryNotificationLogStore implements NotificationLogStore {
   Future<void> delete(String key) async {
     if (failing) throw StateError('delete failed');
     values.remove(key);
+  }
+}
+
+/// Keeps the reports in memory so tests can check what would be sent.
+class FakeErrorReporter implements ErrorReporter {
+  final reports = <({Object error, String? reason, bool fatal})>[];
+
+  @override
+  Future<void> recordError(
+    Object error,
+    StackTrace stackTrace, {
+    String? reason,
+    bool fatal = false,
+  }) async {
+    reports.add((error: error, reason: reason, fatal: fatal));
   }
 }
 

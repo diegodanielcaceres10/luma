@@ -1,12 +1,13 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../app/theme/app_colors.dart';
 import '../widgets/crop_preview_dialog.dart';
-import '../widgets/themed_cropper_dialog.dart';
+import '../widgets/image_crop_screen.dart';
+import '../widgets/themed_cropper_page.dart';
 
 /// An image already cropped by the user, ready to be sent for scanning.
 typedef PickedImage = ({Uint8List bytes, String mimeType});
@@ -127,50 +128,53 @@ Future<T?> pickAndCropImage<T>(
       // The picker is async; the screen may be gone by now.
       if (!context.mounted) return null;
 
-      final webSide = webCropperSideFor(MediaQuery.sizeOf(context));
-      final cropped = await ImageCropper().cropImage(
-        sourcePath: sourcePath,
-        compressFormat: ImageCompressFormat.jpg,
-        compressQuality: imageQuality,
+      // Web keeps cropper.js. Android and iOS use our own editor, because the
+      // native croppers only let the user drag from the corners.
+      if (kIsWeb) {
+        return _cropOnWeb(
+          context,
+          sourcePath,
+          quality: imageQuality,
+          maxWidth: maxWidth,
+        );
+      }
+
+      final bytes = await XFile(sourcePath).readAsBytes();
+      if (!context.mounted) return null;
+      return showImageCropScreen(
+        context,
+        bytes: bytes,
+        quality: imageQuality,
         maxWidth: maxWidth,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Recortar',
-            toolbarColor: AppColors.authBackgroundTop,
-            toolbarWidgetColor: AppColors.authTextPrimary,
-            backgroundColor: AppColors.authBackgroundTop,
-            activeControlsWidgetColor: AppColors.authAccent,
-            // Dark app: light icons on the status and navigation bars.
-            statusBarLight: false,
-            navBarLight: false,
-            dimmedLayerColor:
-                AppColors.authBackgroundTop.withValues(alpha: 0.7),
-            cropFrameColor: AppColors.authAccent,
-            cropGridColor: AppColors.authTextPrimary.withValues(alpha: 0.5),
-            initAspectRatio: CropAspectRatioPreset.original,
-            lockAspectRatio: false,
-          ),
-          IOSUiSettings(
-            title: 'Recortar',
-            doneButtonTitle: 'Listo',
-            cancelButtonTitle: 'Cancelar',
-          ),
-          WebUiSettings(
-            context: context,
-            size: CropperSize(width: webSide.floor(), height: webSide.floor()),
-            customDialogBuilder: (cropper, initCropper, crop, rotate, scale) =>
-                ThemedCropperDialog(
-              cropper: cropper,
-              initCropper: initCropper,
-              crop: crop,
-              rotate: rotate,
-              scale: scale,
-              cropperSide: webSide.floorToDouble(),
-            ),
-          ),
-        ],
       );
-      return cropped?.readAsBytes();
     },
   );
+}
+
+Future<Uint8List?> _cropOnWeb(
+  BuildContext context,
+  String sourcePath, {
+  required int quality,
+  int? maxWidth,
+}) async {
+  final cropped = await ImageCropper().cropImage(
+    sourcePath: sourcePath,
+    compressFormat: ImageCompressFormat.jpg,
+    compressQuality: quality,
+    maxWidth: maxWidth,
+    uiSettings: [
+      WebUiSettings(
+        context: context,
+        // Full-screen page instead of a small dialog: the cropper uses all the
+        // space available, which matters on a phone browser.
+        presentStyle: WebPresentStyle.page,
+        customRouteBuilder: ThemedCropperPage.route,
+        // Dragging the image moves it; the crop box is resized from its
+        // handles. With the default mode a touch outside the box starts a new
+        // box, which is easy to trigger by accident on a phone.
+        dragMode: WebDragMode.move,
+      ),
+    ],
+  );
+  return cropped?.readAsBytes();
 }

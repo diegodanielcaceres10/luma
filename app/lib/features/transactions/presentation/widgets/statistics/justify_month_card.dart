@@ -20,24 +20,41 @@ class StatisticsJustifyMonthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
         color: AppColors.authCardFill,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: AppColors.authAccent.withValues(alpha: 0.18),
-              child: const Icon(
-                Icons.edit_calendar_rounded,
-                size: 18,
-                color: AppColors.authAccent,
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.authAccent.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.authAccent.withValues(alpha: 0.28),
+                  width: 1,
+                ),
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.edit_calendar_rounded,
+                  size: 20,
+                  color: AppColors.authAccent,
+                ),
               ),
             ),
             const SizedBox(width: 14),

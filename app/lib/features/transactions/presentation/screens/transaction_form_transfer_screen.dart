@@ -52,6 +52,12 @@ class _TransactionFormTransferScreenState
   bool _isIncoming = false;
   DateTime _selectedDate = nowLocal();
 
+  static const _labelStyle = TextStyle(
+    fontSize: 12.5,
+    fontWeight: FontWeight.w600,
+    color: AppColors.authTextSecondary,
+  );
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -168,176 +174,251 @@ class _TransactionFormTransferScreenState
                     minHeight: 3,
                   ),
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                    children: [
-                      ScreenHeader(
-                        title: 'Transferencia entre cuentas',
-                        size: ScreenHeaderSize.compact,
-                        onBack: widget.onDone,
-                        backEnabled: !isSubmitting,
-                      ),
-                      const SizedBox(height: 20),
-                      if (accounts.length < 2)
-                        const Text(
-                          'Necesitás al menos dos cuentas activas para '
-                          'transferir entre ellas.',
-                          style: TextStyle(color: AppColors.authExpense),
-                        )
-                      else ...[
-                        const Text('Cuenta donde impacta',
-                            style:
-                                TextStyle(color: AppColors.authTextSecondary)),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String?>(
-                          initialValue: _accountId,
-                          dropdownColor: AppColors.authBackgroundBottom,
-                          style:
-                              const TextStyle(color: AppColors.authTextPrimary),
-                          hint: const Text(
-                            'Seleccioná la cuenta',
-                            style:
-                                TextStyle(color: AppColors.authTextSecondary),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 620),
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                        children: [
+                          ScreenHeader(
+                            title: 'Transferencia entre cuentas',
+                            size: ScreenHeaderSize.compact,
+                            onBack: widget.onDone,
+                            backEnabled: !isSubmitting,
                           ),
-                          decoration: InputTextField.formDecoration,
-                          items: accountOptions
-                              .map(
-                                (Account a) => _accountItem(a),
-                              )
-                              .toList(),
-                          onChanged: isSubmitting
-                              ? null
-                              : (value) => setState(() {
-                                    _accountId = value;
-                                    if (value != null &&
-                                        value == _otherAccountId) {
-                                      _otherAccountId = null;
-                                    }
-                                  }),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text('Sentido',
-                            style:
-                                TextStyle(color: AppColors.authTextSecondary)),
-                        const SizedBox(height: 8),
-                        SegmentedButton<bool>(
-                          style: SegmentedButton.styleFrom(
-                            backgroundColor: AppColors.authCardFill,
-                            foregroundColor: AppColors.authTextSecondary,
-                            selectedBackgroundColor: AppColors.authAccent,
-                            selectedForegroundColor:
-                                AppColors.authBackgroundBottom,
-                            side:
-                                const BorderSide(color: AppColors.authCardBorder),
-                          ),
-                          segments: const [
-                            ButtonSegment(value: false, label: Text('Sale')),
-                            ButtonSegment(value: true, label: Text('Entra')),
-                          ],
-                          selected: {_isIncoming},
-                          onSelectionChanged: isSubmitting
-                              ? null
-                              : (selection) =>
-                                  setState(() => _isIncoming = selection.first),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                            _isIncoming
-                                ? 'Otra cuenta (de dónde sale)'
-                                : 'Otra cuenta (a dónde va)',
-                            style: const TextStyle(
-                                color: AppColors.authTextSecondary)),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String?>(
-                          initialValue: _otherAccountId,
-                          isExpanded: true,
-                          dropdownColor: AppColors.authBackgroundBottom,
-                          style:
-                              const TextStyle(color: AppColors.authTextPrimary),
-                          hint: const Text(
-                            'Seleccioná la otra cuenta',
-                            style:
-                                TextStyle(color: AppColors.authTextSecondary),
-                          ),
-                          decoration: InputTextField.formDecoration,
-                          items: otherOptions
-                              .map(
-                                (Account a) => DropdownMenuItem<String?>(
-                                  value: a.id,
-                                  child: Text(a.name,
-                                      overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 16),
+                          if (accounts.length < 2)
+                            Container(
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: AppColors.authExpense
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: AppColors.authExpense
+                                      .withValues(alpha: 0.35),
                                 ),
-                              )
-                              .toList(),
-                          onChanged: isSubmitting
-                              ? null
-                              : (value) => setState(() {
-                                    _otherAccountId = value;
-                                    if (value != null && value == _accountId) {
-                                      _accountId = null;
-                                    }
-                                  }),
-                        ),
-                        const SizedBox(height: 20),
-                        InputTextField(
-                          controller: _amountController,
-                          label: 'Monto',
-                          hintText: '0.00',
-                          enabled: !isSubmitting,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Ingresá un monto';
-                            }
-                            final parsed =
-                                double.tryParse(value.replaceAll(',', '.'));
-                            if (parsed == null || parsed <= 0) {
-                              return 'Monto inválido';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        const Text('Fecha',
-                            style:
-                                TextStyle(color: AppColors.authTextSecondary)),
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: isSubmitting ? null : _pickDate,
-                          borderRadius: BorderRadius.circular(14),
-                          child: InputDecorator(
-                            decoration: InputTextField.formDecoration.copyWith(
-                              suffixIcon: const Icon(
-                                Icons.calendar_today_rounded,
-                                size: 18,
-                                color: AppColors.authTextSecondary,
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline_rounded,
+                                    color: AppColors.authExpense,
+                                    size: 24,
+                                  ),
+                                  SizedBox(width: 14),
+                                  Expanded(
+                                    child: Text(
+                                      'Necesitás al menos dos cuentas activas para '
+                                      'transferir entre ellas.',
+                                      style: TextStyle(
+                                        color: AppColors.authTextPrimary,
+                                        fontSize: 14,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else ...[
+                            Container(
+                              padding: const EdgeInsets.all(22),
+                              decoration: BoxDecoration(
+                                color: AppColors.authCardFill,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                    color: AppColors.authCardBorder),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color:
+                                        Colors.black.withValues(alpha: 0.14),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.stretch,
+                                children: [
+                                  const Text('Cuenta donde impacta',
+                                      style: _labelStyle),
+                                  const SizedBox(height: 8),
+                                  DropdownButtonFormField<String?>(
+                                    initialValue: _accountId,
+                                    dropdownColor:
+                                        AppColors.authBackgroundBottom,
+                                    style: const TextStyle(
+                                        color: AppColors.authTextPrimary),
+                                    hint: const Text(
+                                      'Seleccioná la cuenta',
+                                      style: TextStyle(
+                                          color: AppColors.authTextSecondary),
+                                    ),
+                                    decoration: InputTextField.formDecoration,
+                                    items: accountOptions
+                                        .map(
+                                          (Account a) => _accountItem(a),
+                                        )
+                                        .toList(),
+                                    onChanged: isSubmitting
+                                        ? null
+                                        : (value) => setState(() {
+                                              _accountId = value;
+                                              if (value != null &&
+                                                  value == _otherAccountId) {
+                                                _otherAccountId = null;
+                                              }
+                                            }),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  const Text('Sentido', style: _labelStyle),
+                                  const SizedBox(height: 8),
+                                  SegmentedButton<bool>(
+                                    style: SegmentedButton.styleFrom(
+                                      backgroundColor: AppColors.authCardFill,
+                                      foregroundColor:
+                                          AppColors.authTextSecondary,
+                                      selectedBackgroundColor:
+                                          AppColors.authAccent,
+                                      selectedForegroundColor:
+                                          AppColors.authBackgroundBottom,
+                                      side: const BorderSide(
+                                          color: AppColors.authCardBorder),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                    segments: const [
+                                      ButtonSegment(
+                                          value: false, label: Text('Sale')),
+                                      ButtonSegment(
+                                          value: true, label: Text('Entra')),
+                                    ],
+                                    selected: {_isIncoming},
+                                    onSelectionChanged: isSubmitting
+                                        ? null
+                                        : (selection) => setState(() =>
+                                            _isIncoming = selection.first),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    _isIncoming
+                                        ? 'Otra cuenta (de dónde sale)'
+                                        : 'Otra cuenta (a dónde va)',
+                                    style: _labelStyle,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  DropdownButtonFormField<String?>(
+                                    initialValue: _otherAccountId,
+                                    isExpanded: true,
+                                    dropdownColor:
+                                        AppColors.authBackgroundBottom,
+                                    style: const TextStyle(
+                                        color: AppColors.authTextPrimary),
+                                    hint: const Text(
+                                      'Seleccioná la otra cuenta',
+                                      style: TextStyle(
+                                          color: AppColors.authTextSecondary),
+                                    ),
+                                    decoration: InputTextField.formDecoration,
+                                    items: otherOptions
+                                        .map(
+                                          (Account a) =>
+                                              DropdownMenuItem<String?>(
+                                            value: a.id,
+                                            child: Text(a.name,
+                                                overflow:
+                                                    TextOverflow.ellipsis),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: isSubmitting
+                                        ? null
+                                        : (value) => setState(() {
+                                              _otherAccountId = value;
+                                              if (value != null &&
+                                                  value == _accountId) {
+                                                _accountId = null;
+                                              }
+                                            }),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  InputTextField(
+                                    controller: _amountController,
+                                    label: 'Monto',
+                                    hintText: '0.00',
+                                    enabled: !isSubmitting,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Ingresá un monto';
+                                      }
+                                      final parsed = double.tryParse(
+                                          value.replaceAll(',', '.'));
+                                      if (parsed == null || parsed <= 0) {
+                                        return 'Monto inválido';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 20),
+                                  const Text('Fecha', style: _labelStyle),
+                                  const SizedBox(height: 8),
+                                  InkWell(
+                                    onTap: isSubmitting ? null : _pickDate,
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: InputDecorator(
+                                      decoration:
+                                          InputTextField.formDecoration,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            formatDate(_selectedDate),
+                                            style: const TextStyle(
+                                                color:
+                                                    AppColors.authTextPrimary),
+                                          ),
+                                          const Icon(
+                                            Icons.calendar_today_rounded,
+                                            size: 18,
+                                            color: AppColors.authTextSecondary,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            child: Text(
-                              formatDate(_selectedDate),
-                              style: const TextStyle(
-                                  color: AppColors.authTextPrimary),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: PrimaryButton(
+                                label: 'Transferir',
+                                disabledAlpha: 0.3,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                isLoading: isSubmitting,
+                                onPressed: isSubmitting ||
+                                        _accountId == null ||
+                                        _otherAccountId == null
+                                    ? null
+                                    : _submit,
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        SizedBox(
-                          width: double.infinity,
-                          child: PrimaryButton(
-                            label: 'Transferir',
-                            disabledAlpha: 0.3,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            isLoading: isSubmitting,
-                            onPressed: isSubmitting ||
-                                    _accountId == null ||
-                                    _otherAccountId == null
-                                ? null
-                                : _submit,
-                          ),
-                        ),
-                      ],
-                    ],
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],

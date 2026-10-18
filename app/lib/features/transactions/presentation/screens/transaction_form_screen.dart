@@ -73,7 +73,11 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Color get _accentColor =>
       _isIncome ? AppColors.authIncome : AppColors.authExpense;
 
-  static const _labelStyle = TextStyle(color: AppColors.authTextSecondary);
+  static const _labelStyle = TextStyle(
+    fontSize: 12.5,
+    fontWeight: FontWeight.w600,
+    color: AppColors.authTextSecondary,
+  );
 
   @override
   void initState() {
@@ -208,26 +212,45 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _scanResultRow(
-              'Monto',
-              result.amount != null
-                  ? formatCurrency(result.amount!, currency)
-                  : 'No detectado',
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.authCardBorder.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                children: [
+                  _scanResultRow(
+                    'Monto',
+                    result.amount != null
+                        ? formatCurrency(result.amount!, currency)
+                        : 'No detectado',
+                  ),
+                  _scanResultRow(
+                    'Descripción',
+                    result.description ?? 'No detectada',
+                  ),
+                  _scanResultRow(
+                    'Fecha',
+                    result.date != null
+                        ? formatDate(result.date!)
+                        : 'No detectada',
+                  ),
+                ],
+              ),
             ),
-            _scanResultRow(
-              'Descripción',
-              result.description ?? 'No detectada',
-            ),
-            _scanResultRow(
-              'Fecha',
-              result.date != null ? formatDate(result.date!) : 'No detectada',
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             const Text(
               'Podés confirmarlos para precompletar el formulario, o '
               'cancelar y volver a elegir cómo cargar el movimiento.',
-              style:
-                  TextStyle(color: AppColors.authTextSecondary, fontSize: 12),
+              style: TextStyle(
+                color: AppColors.authTextSecondary,
+                fontSize: 12.5,
+                height: 1.4,
+              ),
             ),
           ],
         ),
@@ -369,34 +392,41 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
   Widget _buildModeSelector(bool isBusy) {
     return SafeArea(
       top: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: [
-          ScreenHeader(
-            title: _title,
-            subtitle: 'Elige cómo quieres registrar tu '
-                '${_isIncome ? 'ingreso' : 'gasto'}.',
-            onBack: widget.onDone,
-            backEnabled: !isBusy,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: [
+              ScreenHeader(
+                title: _title,
+                subtitle: 'Elige cómo quieres registrar tu '
+                    '${_isIncome ? 'ingreso' : 'gasto'}.',
+                onBack: widget.onDone,
+                backEnabled: !isBusy,
+              ),
+              const SizedBox(height: 16),
+              EntryModeCard(
+                icon: Icons.document_scanner_rounded,
+                title: 'Escanear ticket',
+                subtitle: 'Tomá una foto del ticket y extraemos la información '
+                    'automáticamente.',
+                highlighted: true,
+                onTap: isBusy ? null : _scanReceipt,
+              ),
+              const SizedBox(height: 12),
+              EntryModeCard(
+                icon: Icons.article_outlined,
+                title: 'Completar manualmente',
+                subtitle: 'Ingresá los datos del movimiento uno por uno.',
+                onTap: isBusy
+                    ? null
+                    : () => setState(() => _mode = _EntryMode.form),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          EntryModeCard(
-            icon: Icons.document_scanner_rounded,
-            title: 'Escanear ticket',
-            subtitle: 'Tomá una foto del ticket y extraemos la información '
-                'automáticamente.',
-            highlighted: true,
-            onTap: isBusy ? null : _scanReceipt,
-          ),
-          const SizedBox(height: 12),
-          EntryModeCard(
-            icon: Icons.article_outlined,
-            title: 'Completar manualmente',
-            subtitle: 'Ingresá los datos del movimiento uno por uno.',
-            onTap:
-                isBusy ? null : () => setState(() => _mode = _EntryMode.form),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -413,182 +443,221 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
         child: Column(
           children: [
             if (isSubmitting)
-              const LinearProgressIndicator(
+              LinearProgressIndicator(
                 backgroundColor: AppColors.authCardBorder,
-                color: AppColors.authAccent,
+                color: _accentColor,
                 minHeight: 3,
               ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                children: [
-                  ScreenHeader(
-                    title: _title,
-                    subtitle: 'Completa los datos del '
-                        '${_isIncome ? 'ingreso' : 'gasto'}.',
-                    size: ScreenHeaderSize.compact,
-                    onBack: _handleFormBack,
-                    backEnabled: !isBusy,
-                  ),
-                  const SizedBox(height: 16),
-                  InputTextField(
-                    controller: _amountController,
-                    label: 'Monto',
-                    hintText: '0.00',
-                    enabled: !isBusy,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Ingresa un monto';
-                      }
-                      final parsed =
-                          double.tryParse(value.replaceAll(',', '.'));
-                      if (parsed == null || parsed <= 0) {
-                        return 'Monto inválido';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Categoría (opcional)', style: _labelStyle),
-                  const SizedBox(height: 8),
-                  if (widget.categoryViewModel.isLoading)
-                    const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.authAccent),
-                    )
-                  else if (categories.isEmpty)
-                    Text(
-                      _isIncome
-                          ? 'No hay categorías de ingreso todavía. '
-                              'Se guardará sin categoría.'
-                          : 'No hay categorías de gasto todavía. '
-                              'Se guardará sin categoría.',
-                      style:
-                          const TextStyle(color: AppColors.authTextSecondary),
-                    )
-                  else
-                    DropdownButtonFormField<Category>(
-                      initialValue: _selectedCategory,
-                      dropdownColor: AppColors.authBackgroundBottom,
-                      style: const TextStyle(color: AppColors.authTextPrimary),
-                      decoration: InputTextField.formDecoration,
-                      // DropdownButtonFormField paints its placeholder through this parameter,
-                      // not through decoration.hintStyle.
-                      hint: const Text(
-                        'Sin categoría',
-                        style: TextStyle(color: AppColors.authTextSecondary),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    children: [
+                      ScreenHeader(
+                        title: _title,
+                        subtitle: 'Completa los datos del '
+                            '${_isIncome ? 'ingreso' : 'gasto'}.',
+                        size: ScreenHeaderSize.compact,
+                        onBack: _handleFormBack,
+                        backEnabled: !isBusy,
                       ),
-                      // The null item lets the user go back to no category.
-                      items: [
-                        const DropdownMenuItem<Category>(
-                          value: null,
-                          child: Text(
-                            'Sin categoría',
-                            style:
-                                TextStyle(color: AppColors.authTextSecondary),
-                          ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          color: AppColors.authCardFill,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppColors.authCardBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.14),
+                              blurRadius: 18,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        ...categories.map(
-                          (c) => DropdownMenuItem<Category>(
-                            value: c,
-                            child: Text(c.name),
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            InputTextField(
+                              controller: _amountController,
+                              label: 'Monto',
+                              hintText: '0.00',
+                              enabled: !isBusy,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Ingresa un monto';
+                                }
+                                final parsed = double.tryParse(
+                                    value.replaceAll(',', '.'));
+                                if (parsed == null || parsed <= 0) {
+                                  return 'Monto inválido';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            const Text('Categoría (opcional)',
+                                style: _labelStyle),
+                            const SizedBox(height: 8),
+                            if (widget.categoryViewModel.isLoading)
+                              const Center(
+                                child: CircularProgressIndicator(
+                                    color: AppColors.authAccent),
+                              )
+                            else if (categories.isEmpty)
+                              Text(
+                                _isIncome
+                                    ? 'No hay categorías de ingreso todavía. '
+                                        'Se guardará sin categoría.'
+                                    : 'No hay categorías de gasto todavía. '
+                                        'Se guardará sin categoría.',
+                                style: const TextStyle(
+                                    color: AppColors.authTextSecondary),
+                              )
+                            else
+                              DropdownButtonFormField<Category>(
+                                initialValue: _selectedCategory,
+                                dropdownColor: AppColors.authBackgroundBottom,
+                                style: const TextStyle(
+                                    color: AppColors.authTextPrimary),
+                                decoration: InputTextField.formDecoration,
+                                // DropdownButtonFormField paints its placeholder through this parameter,
+                                // not through decoration.hintStyle.
+                                hint: const Text(
+                                  'Sin categoría',
+                                  style: TextStyle(
+                                      color: AppColors.authTextSecondary),
+                                ),
+                                // The null item lets the user go back to no category.
+                                items: [
+                                  const DropdownMenuItem<Category>(
+                                    value: null,
+                                    child: Text(
+                                      'Sin categoría',
+                                      style: TextStyle(
+                                          color: AppColors.authTextSecondary),
+                                    ),
+                                  ),
+                                  ...categories.map(
+                                    (c) => DropdownMenuItem<Category>(
+                                      value: c,
+                                      child: Text(c.name),
+                                    ),
+                                  ),
+                                ],
+                                onChanged: isBusy
+                                    ? null
+                                    : (value) => setState(
+                                        () => _selectedCategory = value),
+                              ),
+                            const SizedBox(height: 20),
+                            const Text('Cuenta', style: _labelStyle),
+                            const SizedBox(height: 8),
+                            if (widget.accountViewModel.isLoading)
+                              const Center(
+                                child: CircularProgressIndicator(
+                                    color: AppColors.authAccent),
+                              )
+                            else if (accounts.isEmpty)
+                              const Text(
+                                'No hay cuentas todavía.',
+                                style: TextStyle(color: AppColors.authExpense),
+                              )
+                            else
+                              DropdownButtonFormField<Account>(
+                                initialValue: _selectedAccount,
+                                dropdownColor: AppColors.authBackgroundBottom,
+                                style: const TextStyle(
+                                    color: AppColors.authTextPrimary),
+                                decoration: InputTextField.formDecoration,
+                                hint: const Text(
+                                  'Seleccioná una cuenta',
+                                  style: TextStyle(
+                                      color: AppColors.authTextSecondary),
+                                ),
+                                items: accounts.map((a) {
+                                  final isPending = widget
+                                      .monthlyBalanceViewModel
+                                      .isAccountPending(a.id);
+                                  return DropdownMenuItem(
+                                    value: a,
+                                    enabled: !isPending,
+                                    child: accountOptionLabel(
+                                      '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
+                                      isPending: isPending,
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: isBusy
+                                    ? null
+                                    : (value) => setState(
+                                        () => _selectedAccount = value),
+                                validator: (value) => value == null
+                                    ? 'Seleccioná una cuenta'
+                                    : null,
+                              ),
+                            const SizedBox(height: 20),
+                            InputTextField(
+                              controller: _descriptionController,
+                              label: 'Descripción (opcional)',
+                              hintText: 'Ej: Mercadona',
+                              enabled: !isBusy,
+                            ),
+                            const SizedBox(height: 20),
+                            const Text('Fecha', style: _labelStyle),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: isBusy ? null : _pickDate,
+                              borderRadius: BorderRadius.circular(14),
+                              child: InputDecorator(
+                                decoration: InputTextField.formDecoration,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      formatDate(_selectedDate),
+                                      style: const TextStyle(
+                                          color: AppColors.authTextPrimary),
+                                    ),
+                                    const Icon(Icons.calendar_today_rounded,
+                                        size: 18,
+                                        color: AppColors.authTextSecondary),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                      onChanged: isBusy
-                          ? null
-                          : (value) =>
-                              setState(() => _selectedCategory = value),
-                    ),
-                  const SizedBox(height: 20),
-                  const Text('Cuenta', style: _labelStyle),
-                  const SizedBox(height: 8),
-                  if (widget.accountViewModel.isLoading)
-                    const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.authAccent),
-                    )
-                  else if (accounts.isEmpty)
-                    const Text(
-                      'No hay cuentas todavía.',
-                      style: TextStyle(color: AppColors.authExpense),
-                    )
-                  else
-                    DropdownButtonFormField<Account>(
-                      initialValue: _selectedAccount,
-                      dropdownColor: AppColors.authBackgroundBottom,
-                      style: const TextStyle(color: AppColors.authTextPrimary),
-                      decoration: InputTextField.formDecoration,
-                      hint: const Text(
-                        'Seleccioná una cuenta',
-                        style: TextStyle(color: AppColors.authTextSecondary),
                       ),
-                      items: accounts.map((a) {
-                        final isPending = widget.monthlyBalanceViewModel
-                            .isAccountPending(a.id);
-                        return DropdownMenuItem(
-                          value: a,
-                          enabled: !isPending,
-                          child: accountOptionLabel(
-                            '${a.name} - ${formatCurrency(a.balance, widget.accountViewModel.primaryCurrency)}',
-                            isPending: isPending,
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: isBusy
-                          ? null
-                          : (value) => setState(() => _selectedAccount = value),
-                      validator: (value) =>
-                          value == null ? 'Seleccioná una cuenta' : null,
-                    ),
-                  const SizedBox(height: 20),
-                  InputTextField(
-                    controller: _descriptionController,
-                    label: 'Descripción (opcional)',
-                    hintText: 'Ej: Mercadona',
-                    enabled: !isBusy,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Fecha', style: _labelStyle),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: isBusy ? null : _pickDate,
-                    borderRadius: BorderRadius.circular(14),
-                    child: InputDecorator(
-                      decoration: InputTextField.formDecoration,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            formatDate(_selectedDate),
-                            style: const TextStyle(
-                                color: AppColors.authTextPrimary),
-                          ),
-                          const Icon(Icons.calendar_today_rounded,
-                              size: 18, color: AppColors.authTextSecondary),
-                        ],
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: PrimaryButton(
+                          label: _isIncome
+                              ? 'Guardar ingreso'
+                              : 'Guardar gasto',
+                          backgroundColor: _accentColor,
+                          disabledAlpha: 0.6,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          isLoading: isSubmitting,
+                          onPressed: isBusy ||
+                                  widget.categoryViewModel.isLoading ||
+                                  accounts.isEmpty
+                              ? null
+                              : _submit,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    child: PrimaryButton(
-                      label: _isIncome ? 'Guardar ingreso' : 'Guardar gasto',
-                      backgroundColor: _accentColor,
-                      disabledAlpha: 0.6,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      isLoading: isSubmitting,
-                      onPressed: isBusy ||
-                              widget.categoryViewModel.isLoading ||
-                              accounts.isEmpty
-                          ? null
-                          : _submit,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
