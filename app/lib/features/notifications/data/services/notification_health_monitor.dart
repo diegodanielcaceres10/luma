@@ -1,25 +1,36 @@
+import '../../../../core/diagnostics/error_reporter.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../domain/notification_health_rule.dart';
 import '../../domain/notification_log_entry.dart';
 import '../repositories/notification_log_repository.dart';
+import 'notification_health_issue.dart';
 
 /// Looks, from the app itself, for the problems the daily background task
 /// cannot report because it is the one that is not running: notifications
 /// blocked by the system, or no run for too long. What it finds goes to the
-/// notification log.
+/// notification log and to the error reporter.
 class NotificationHealthMonitor {
   final NotificationLogRepository _log;
   final Future<bool> Function() _notificationsAllowed;
+  final Future<ErrorReporter> Function() _reporter;
   final DateTime Function() _now;
 
+  /// [reporter] is resolved only when there is a problem to report, so a
+  /// healthy check never starts it. It defaults to a reporter that discards
+  /// everything.
   NotificationHealthMonitor({
     required NotificationLogRepository log,
     required Future<bool> Function() notificationsAllowed,
+    Future<ErrorReporter> Function()? reporter,
     DateTime Function()? now,
   })  : _log = log,
         _notificationsAllowed = notificationsAllowed,
+        _reporter = reporter ?? _noReporter,
         _now = now ?? nowLocal;
+
+  static Future<ErrorReporter> _noReporter() async =>
+      const NoopErrorReporter();
 
   /// The same problem is not logged again before this much time passes, so
   /// opening the app several times a day does not fill the log.
@@ -47,14 +58,26 @@ class NotificationHealthMonitor {
       );
       if (alreadyLogged) return;
 
+      final detail = issue == NotificationLogKind.workerStale
+          ? _staleDetail(lastRunAt)
+          : null;
       await _log.record(
-        NotificationLogEntry(
-          at: now,
-          kind: issue,
-          detail: issue == NotificationLogKind.workerStale
-              ? _staleDetail(lastRunAt)
-              : null,
-        ),
+        NotificationLogEntry(at: now, kind: issue, detail: detail),
+      );
+      await _report(issue, detail);
+    } catch (_) {}
+  }
+
+  /// Sends the problem to the error reporter. It runs after the log write
+  /// and only for a problem that was not already logged, so it is subject to
+  /// the same [repeatAfter] spacing.
+  Future<void> _report(NotificationLogKind issue, String? detail) async {
+    try {
+      final reporter = await _reporter();
+      await reporter.recordError(
+        NotificationHealthIssue(kind: issue, detail: detail),
+        StackTrace.current,
+        reason: 'Notification health check',
       );
     } catch (_) {}
   }
