@@ -407,22 +407,26 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 backEnabled: !isBusy,
               ),
               const SizedBox(height: 16),
-              EntryModeCard(
-                icon: Icons.document_scanner_rounded,
-                title: 'Escanear ticket',
-                subtitle: 'Tomá una foto del ticket y extraemos la información '
-                    'automáticamente.',
-                highlighted: true,
-                onTap: isBusy ? null : _scanReceipt,
-              ),
-              const SizedBox(height: 12),
-              EntryModeCard(
-                icon: Icons.article_outlined,
-                title: 'Completar manualmente',
-                subtitle: 'Ingresá los datos del movimiento uno por uno.',
-                onTap: isBusy
-                    ? null
-                    : () => setState(() => _mode = _EntryMode.form),
+              EntryModeOptions(
+                cards: [
+                  EntryModeCard(
+                    icon: Icons.document_scanner_rounded,
+                    title: 'Escanear ticket',
+                    subtitle:
+                        'Tomá una foto del ticket y extraemos la información '
+                        'automáticamente.',
+                    highlighted: true,
+                    onTap: isBusy ? null : _scanReceipt,
+                  ),
+                  EntryModeCard(
+                    icon: Icons.article_outlined,
+                    title: 'Completar manualmente',
+                    subtitle: 'Ingresá los datos del movimiento uno por uno.',
+                    onTap: isBusy
+                        ? null
+                        : () => setState(() => _mode = _EntryMode.form),
+                  ),
+                ],
               ),
             ],
           ),
