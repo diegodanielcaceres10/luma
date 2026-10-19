@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../ai/scan_failure.dart';
 import 'primary_button.dart';
 import 'secondary_button.dart';
 import 'text_action_button.dart';
@@ -14,9 +15,9 @@ enum CropPreviewAction { send, recrop, cancel }
 /// is only set when [action] is [CropPreviewAction.send].
 typedef CropReview<T> = ({CropPreviewAction action, T? value});
 
-/// Message shown inside the dialog when the send action fails.
-const cropSendErrorMessage =
-    'Servicio no disponible. Intente más tarde o consulte a su administrador.';
+/// Message shown inside the dialog when the send action fails without saying
+/// why. A [ScanFailure] brings its own message.
+const cropSendErrorMessage = scanUnavailableMessage;
 
 /// Shows [bytes], exactly what is about to be sent, and asks whether to send
 /// it, crop it again or give up.
@@ -53,23 +54,26 @@ class _CropPreviewDialog<T> extends StatefulWidget {
 
 class _CropPreviewDialogState<T> extends State<_CropPreviewDialog<T>> {
   bool _isSending = false;
-  bool _hasFailed = false;
+
+  /// Message of the last failed attempt; null if there was none.
+  String? _errorMessage;
 
   Future<void> _send() async {
     if (_isSending) return;
     setState(() {
       _isSending = true;
-      _hasFailed = false;
+      _errorMessage = null;
     });
 
     final T value;
     try {
       value = await widget.onSend();
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
         _isSending = false;
-        _hasFailed = true;
+        _errorMessage =
+            error is ScanFailure ? error.userMessage : cropSendErrorMessage;
       });
       return;
     }
@@ -169,7 +173,7 @@ class _CropPreviewDialogState<T> extends State<_CropPreviewDialog<T>> {
                         : () => _finish(CropPreviewAction.recrop),
                   ),
                   PrimaryButton(
-                    label: _hasFailed ? 'Reintentar' : 'Enviar',
+                    label: _errorMessage != null ? 'Reintentar' : 'Enviar',
                     isLoading: _isSending,
                     disabledAlpha: 0.6,
                     onPressed: _isSending ? null : _send,
@@ -214,14 +218,15 @@ class _CropPreviewDialogState<T> extends State<_CropPreviewDialog<T>> {
       );
     }
 
-    if (_hasFailed) {
+    final errorMessage = _errorMessage;
+    if (errorMessage != null) {
       return Padding(
         padding: const EdgeInsets.only(top: 16),
         child: Semantics(
           liveRegion: true,
-          child: const Text(
-            cropSendErrorMessage,
-            style: TextStyle(
+          child: Text(
+            errorMessage,
+            style: const TextStyle(
               color: AppColors.authExpense,
               fontSize: 13,
               fontWeight: FontWeight.w600,

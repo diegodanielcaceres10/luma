@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:luma/core/ai/scan_failure.dart';
 import 'package:luma/core/widgets/crop_preview_dialog.dart';
 
 void main() {
@@ -152,6 +153,45 @@ void main() {
 
     expect(review?.action, CropPreviewAction.recrop);
     expect(review?.value, isNull);
+  });
+
+  testWidgets('shows the message of a classified scan failure', (tester) async {
+    const failure = ScanFailure(
+      function: 'gemini-image-reader',
+      kind: ScanFailureKind.quota,
+    );
+    await open(tester, () async => throw failure);
+
+    await tester.tap(find.text('Enviar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(failure.userMessage), findsOneWidget);
+    expect(find.text(cropSendErrorMessage), findsNothing);
+    expect(find.text('Reintentar'), findsOneWidget);
+  });
+
+  testWidgets('a different failure replaces the message on retry',
+      (tester) async {
+    var attempts = 0;
+    const first = ScanFailure(
+      function: 'gemini-image-reader',
+      kind: ScanFailureKind.parse,
+    );
+    await open(tester, () async {
+      attempts++;
+      if (attempts == 1) throw first;
+      throw Exception('down');
+    });
+
+    await tester.tap(find.text('Enviar'));
+    await tester.pumpAndSettle();
+    expect(find.text(first.userMessage), findsOneWidget);
+
+    await tester.tap(find.text('Reintentar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(first.userMessage), findsNothing);
+    expect(find.text(cropSendErrorMessage), findsOneWidget);
   });
 
   testWidgets('cancelling closes the dialog without sending', (tester) async {
