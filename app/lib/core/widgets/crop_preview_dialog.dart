@@ -98,7 +98,10 @@ class _CropPreviewDialogState<T> extends State<_CropPreviewDialog<T>> {
       child: Dialog(
         backgroundColor: AppColors.authBackgroundTop,
         surfaceTintColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(24),
+        // The theme's insets keep the dialog centered on the content when a
+        // sidebar is showing.
+        insetPadding: Theme.of(context).dialogTheme.insetPadding ??
+            const EdgeInsets.all(24),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: AppColors.authCardBorder),
