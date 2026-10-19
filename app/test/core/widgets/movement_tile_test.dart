@@ -9,6 +9,8 @@ void main() {
     required MovementLeading leading,
     String? title = 'Supermercado',
     Widget? trailing,
+    String? warning,
+    EdgeInsetsGeometry? padding,
   }) {
     return tester.pumpWidget(
       MaterialApp(
@@ -20,6 +22,9 @@ void main() {
             amountText: '-21,05 €',
             amountColor: AppColors.authExpense,
             trailing: trailing,
+            warning: warning,
+            padding: padding ??
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
       ),
@@ -114,5 +119,40 @@ void main() {
     final amount = tester.getRect(find.text('-21,05 €'));
     final trailing = tester.getRect(find.byIcon(Icons.more_vert_rounded));
     expect(trailing.left, greaterThan(amount.right));
+  });
+
+  testWidgets('shows a warning under the subtitle', (tester) async {
+    await pumpTile(
+      tester,
+      leading: const MovementLeading.category(color: Colors.orange),
+      warning: 'Posible duplicado',
+    );
+
+    final subtitle = tester.getRect(find.text('Comida · 19/10/2026'));
+    final warning = tester.getRect(find.text('Posible duplicado'));
+    expect(warning.top, greaterThanOrEqualTo(subtitle.bottom));
+    final text = tester.widget<Text>(find.text('Posible duplicado'));
+    expect(text.style?.color, AppColors.authExpense);
+  });
+
+  testWidgets('shows no warning by default', (tester) async {
+    await pumpTile(
+      tester,
+      leading: const MovementLeading.category(color: Colors.orange),
+    );
+
+    expect(find.text('Posible duplicado'), findsNothing);
+  });
+
+  testWidgets('uses the given padding', (tester) async {
+    await pumpTile(
+      tester,
+      leading: const MovementLeading.category(color: Colors.orange),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+    );
+
+    final tile = tester.getRect(find.byType(MovementTile));
+    final leading = tester.getRect(find.byType(MovementLeading));
+    expect(leading.left, tile.left);
   });
 }

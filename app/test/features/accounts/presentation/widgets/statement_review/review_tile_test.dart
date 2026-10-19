@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:luma/app/theme/app_colors.dart';
+import 'package:luma/core/utils/date_format.dart';
 import 'package:luma/features/accounts/data/models/scanned_movement.dart';
 import 'package:luma/features/accounts/presentation/widgets/statement_review/review_tile.dart';
 
-StatementReviewItem item({String? description = 'Mercadona'}) {
+final _date = DateTime(2026, 8, 30);
+
+StatementReviewItem item({
+  String? description = 'Mercadona',
+  String type = 'expense',
+  DateTime? date,
+  bool withDate = true,
+}) {
   return StatementReviewItem(
     ScannedMovement(
-      type: 'expense',
+      type: type,
       amount: 21.05,
-      date: DateTime(2026, 8, 30),
+      date: withDate ? (date ?? _date) : null,
       description: description,
     ),
   );
@@ -18,7 +27,6 @@ void main() {
   Widget host(
     StatementReviewItem item, {
     ValueChanged<bool?>? onToggle,
-    ValueChanged<bool?>? onToggleTransfer,
     VoidCallback? onEdit,
   }) {
     return MaterialApp(
@@ -27,47 +35,74 @@ void main() {
           item: item,
           currency: 'USD',
           onToggle: onToggle ?? (_) {},
-          onToggleTransfer: onToggleTransfer ?? (_) {},
           onEdit: onEdit ?? () {},
         ),
       ),
     );
   }
 
-  testWidgets('shows no transfer alert for a regular line', (tester) async {
+  testWidgets('shows the description, the date and the amount',
+      (tester) async {
     await tester.pumpWidget(host(item()));
 
+    expect(find.text('Mercadona'), findsOneWidget);
+    expect(find.text(formatDate(_date)), findsOneWidget);
+    expect(find.textContaining('21'), findsOneWidget);
+  });
+
+  testWidgets('shows no category, which is chosen later', (tester) async {
+    await tester.pumpWidget(host(item()));
+
+    expect(find.textContaining('Sin categoría'), findsNothing);
+    expect(find.textContaining('·'), findsNothing);
+  });
+
+  testWidgets('shows no leading icon or dot besides the checkbox',
+      (tester) async {
+    await tester.pumpWidget(host(item()));
+
+    expect(find.byType(Checkbox), findsOneWidget);
+    expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
+  });
+
+  testWidgets('shows "Sin descripción" in italics when there is none',
+      (tester) async {
+    await tester.pumpWidget(host(item(description: null)));
+
+    final title = tester.widget<Text>(find.text('Sin descripción'));
+    expect(title.style?.fontStyle, FontStyle.italic);
+  });
+
+  testWidgets('shows "Sin fecha" when the line has no date', (tester) async {
+    await tester.pumpWidget(host(item(withDate: false)));
+
+    expect(find.text('Sin fecha'), findsOneWidget);
+  });
+
+  testWidgets('colors the amount by type and shows the sign for income',
+      (tester) async {
+    await tester.pumpWidget(host(item(type: 'income')));
+
+    final amount = tester.widget<Text>(find.textContaining('+'));
+    expect(amount.style?.color, AppColors.authIncome);
+  });
+
+  testWidgets('a line with a transfer description is a regular line',
+      (tester) async {
+    await tester.pumpWidget(host(item(description: 'Transferencia a Juan')));
+
     expect(find.text('Registrar como transferencia'), findsNothing);
+    expect(find.byType(CheckboxListTile), findsNothing);
+    expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
   });
 
-  testWidgets('shows the alert and a checked box for a transfer',
-      (tester) async {
-    final transfer = item(description: 'Transferencia a Juan')
-      ..isTransfer = true
-      ..asTransfer = true;
-
-    await tester.pumpWidget(host(transfer));
-
-    expect(find.textContaining('transferencia entre cuentas'), findsOneWidget);
-    final box = tester.widget<CheckboxListTile>(
-      find.widgetWithText(CheckboxListTile, 'Registrar como transferencia'),
-    );
-    expect(box.value, isTrue);
-  });
-
-  testWidgets('reports the change when the transfer box is toggled',
-      (tester) async {
+  testWidgets('reports the change when the line is toggled', (tester) async {
     bool? changed;
-    final transfer = item(description: 'Transferencia')
-      ..isTransfer = true
-      ..asTransfer = true;
 
-    await tester.pumpWidget(
-      host(transfer, onToggleTransfer: (value) => changed = value),
-    );
-    await tester.tap(find.text('Registrar como transferencia'));
+    await tester.pumpWidget(host(item(), onToggle: (value) => changed = value));
+    await tester.tap(find.byType(Checkbox));
 
-    expect(changed, isFalse);
+    expect(changed, isTrue);
   });
 
   testWidgets('an out-of-period line cannot be selected', (tester) async {
@@ -83,15 +118,24 @@ void main() {
     expect(box.onChanged, isNull);
   });
 
-  testWidgets('an out-of-period transfer shows no transfer alert',
+  testWidgets('flags a possible duplicate', (tester) async {
+    final duplicate = item()..duplicate = true;
+
+    await tester.pumpWidget(host(duplicate));
+
+    expect(find.text('Posible duplicado'), findsOneWidget);
+  });
+
+  testWidgets('the period warning wins over the duplicate one',
       (tester) async {
-    final outside = item(description: 'Transferencia')
-      ..isTransfer = true
-      ..inRange = false;
+    final both = item()
+      ..inRange = false
+      ..duplicate = true;
 
-    await tester.pumpWidget(host(outside));
+    await tester.pumpWidget(host(both));
 
-    expect(find.text('Registrar como transferencia'), findsNothing);
+    expect(find.text('Fuera del período'), findsOneWidget);
+    expect(find.text('Posible duplicado'), findsNothing);
   });
 
   testWidgets('tapping a line in the period asks to edit it', (tester) async {

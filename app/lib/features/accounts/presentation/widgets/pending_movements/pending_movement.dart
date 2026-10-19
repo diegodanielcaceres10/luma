@@ -40,8 +40,8 @@ class CategoryPendingMovement extends PendingMovement {
 }
 
 class TransferPendingMovement extends PendingMovement {
-  /// Null when the other account is unknown, e.g. a line read from a
-  /// statement. Only this account's side is persisted either way.
+  /// Null when the other account is unknown. Only this account's side is
+  /// persisted either way.
   final String? otherAccountId;
   final String? otherAccountName;
 

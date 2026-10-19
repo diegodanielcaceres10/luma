@@ -76,6 +76,11 @@ class MovementTile extends StatelessWidget {
   /// Row actions, such as a menu button.
   final Widget? trailing;
 
+  /// Problem with the movement, shown under the subtitle.
+  final String? warning;
+
+  final EdgeInsetsGeometry padding;
+
   const MovementTile({
     super.key,
     required this.leading,
@@ -84,6 +89,8 @@ class MovementTile extends StatelessWidget {
     required this.amountText,
     required this.amountColor,
     this.trailing,
+    this.warning,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
   });
 
   @override
@@ -91,8 +98,10 @@ class MovementTile extends StatelessWidget {
     final description = title?.trim();
     final hasDescription = description != null && description.isNotEmpty;
 
+    final warning = this.warning;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: padding,
       child: Row(
         children: [
           leading,
@@ -127,6 +136,15 @@ class MovementTile extends StatelessWidget {
                     color: AppColors.authTextSecondary,
                   ),
                 ),
+                if (warning != null)
+                  Text(
+                    warning,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.authExpense,
+                    ),
+                  ),
               ],
             ),
           ),

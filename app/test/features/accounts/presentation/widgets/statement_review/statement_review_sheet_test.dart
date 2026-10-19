@@ -110,51 +110,26 @@ void main() {
     expect(movement.date, DateTime(2026, 8, 10));
   });
 
-  testWidgets('a "Transferencia" line is flagged and added as a transfer',
+  testWidgets('a "Transferencia" line is added as a regular movement',
       (tester) async {
     await open(tester, [scanned('Transferencia a Juan', amount: 50)]);
 
-    expect(find.text('Registrar como transferencia'), findsOneWidget);
+    expect(find.text('Registrar como transferencia'), findsNothing);
 
     await confirm(tester);
 
     final movement = result!.single;
-    expect(movement, isA<TransferPendingMovement>());
+    expect(movement, isA<CategoryPendingMovement>());
     expect(movement.amount, -50);
   });
 
-  testWidgets('unchecking the alert adds the line as a regular movement',
-      (tester) async {
-    await open(tester, [scanned('Transferencia a Juan', amount: 50)]);
-
-    await tester.tap(find.text('Registrar como transferencia'));
-    await tester.pump();
-    await confirm(tester);
-
-    expect(result!.single, isA<CategoryPendingMovement>());
-  });
-
-  testWidgets('editing the description to mention a transfer flags the line',
+  testWidgets('editing a line to mention a transfer keeps it regular',
       (tester) async {
     await open(tester, [scanned('Mercadona')]);
-    expect(find.text('Registrar como transferencia'), findsNothing);
 
     await tester.tap(find.text('Mercadona'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Transferencia Maria');
-    await tester.tap(find.text('Listo'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Registrar como transferencia'), findsOneWidget);
-  });
-
-  testWidgets('editing the description to drop the word clears the flag',
-      (tester) async {
-    await open(tester, [scanned('Transferencia Maria')]);
-
-    await tester.tap(find.text('Transferencia Maria'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Alquiler');
     await tester.tap(find.text('Listo'));
     await tester.pumpAndSettle();
 
