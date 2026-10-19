@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -23,6 +25,15 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   String? _lastShownError;
+
+  static bool _isDesktop(BuildContext context) {
+    final platform = defaultTargetPlatform;
+    final isDesktopPlatform = !kIsWeb &&
+        (platform == TargetPlatform.windows ||
+            platform == TargetPlatform.macOS ||
+            platform == TargetPlatform.linux);
+    return isDesktopPlatform || MediaQuery.sizeOf(context).width >= 768;
+  }
 
   @override
   void initState() {
@@ -96,6 +107,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final viewModel = widget.viewModel;
+    final isDesktop = _isDesktop(context);
+    final bgAsset = isDesktop
+        ? 'assets/images/login_bg_desktop_dark.png'
+        : 'assets/images/login_bg_mobile_dark.png';
+
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
@@ -107,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 Positioned.fill(
                   child: Image.asset(
-                    'assets/images/login_bg.png',
+                    bgAsset,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -143,7 +159,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 420),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 28),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 28),
                               child: TweenAnimationBuilder<double>(
                                 duration: const Duration(milliseconds: 400),
                                 curve: Curves.easeOutCubic,

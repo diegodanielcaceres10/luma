@@ -41,7 +41,8 @@ flutter:
   assets:
     - assets/logo.png
     - assets/images/balance_card_bg.png
-    - assets/images/login_bg.png
+    - assets/images/login_bg_mobile_dark.png
+    - assets/images/login_bg_desktop_dark.png
     - assets/fonts/Roboto-Regular.ttf
     - assets/fonts/Roboto-Bold.ttf
 
