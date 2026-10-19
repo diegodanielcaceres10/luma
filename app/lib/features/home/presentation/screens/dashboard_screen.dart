@@ -300,6 +300,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 isLoading: transactionViewModel.isLoading,
                 movements: transactionViewModel.recentMovements,
                 currency: accountViewModel.primaryCurrency,
+                servicePaymentIds:
+                    widget.invoiceViewModel.servicePaymentTransactionIds,
               );
 
               if (isTwoColumn) {
