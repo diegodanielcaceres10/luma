@@ -43,72 +43,157 @@ class AccountsScreen extends StatelessWidget {
           final accounts = accountViewModel.accounts;
           final currency = accountViewModel.primaryCurrency;
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: [
-              ScreenHeader(
-                title: 'Cuentas',
-                subtitle: 'Gestiona tus cuentas, actualiza saldos y mantén '
-                    'todo en orden.',
-                size: ScreenHeaderSize.compact,
-                onBack: onBack,
-                action: HeaderAddButton(
-                  tooltip: 'Nueva cuenta',
-                  onPressed: onOpenForm,
-                ),
-              ),
-              const SizedBox(height: 12),
-              NotificationsHint(
-                preferencesViewModel: preferencesViewModel,
-                onOpenPreferences: onOpenPreferences,
-              ),
-              const SizedBox(height: 20),
-              _TotalCard(
-                isLoading: accountViewModel.isLoading,
-                total: accountViewModel.totalBalance,
-                currency: currency,
-              ),
-              const SizedBox(height: 20),
-              if (accountViewModel.isLoading && accounts.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.authAccent,
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: [
+                  ScreenHeader(
+                    title: 'Cuentas',
+                    subtitle: 'Gestiona tus cuentas, actualiza saldos y mantén '
+                        'todo en orden.',
+                    size: ScreenHeaderSize.compact,
+                    onBack: onBack,
+                    action: HeaderAddButton(
+                      tooltip: 'Nueva cuenta',
+                      onPressed: onOpenForm,
                     ),
                   ),
-                )
-              else if (accounts.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 24),
-                  child: Text(
-                    'Todavía no hay cuentas.\nTocá + para crear la primera.',
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.authSubtitle,
+                  const SizedBox(height: 12),
+                  NotificationsHint(
+                    preferencesViewModel: preferencesViewModel,
+                    onOpenPreferences: onOpenPreferences,
                   ),
-                )
-              else
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppColors.authCardFill,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.authCardBorder),
+                  const SizedBox(height: 20),
+                  _TotalCard(
+                    isLoading: accountViewModel.isLoading,
+                    total: accountViewModel.totalBalance,
+                    currency: currency,
                   ),
-                  child: Column(
-                    children: List.generate(accounts.length, (i) {
-                      final account = accounts[i];
-                      return _AccountRow(
-                        account: account,
-                        currency: currency,
-                        onView: () => onOpenView(account),
-                        showDivider: i != accounts.length - 1,
-                      );
-                    }),
-                  ),
-                ),
-            ],
+                  const SizedBox(height: 24),
+                  if (accountViewModel.isLoading && accounts.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 40),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.authAccent,
+                        ),
+                      ),
+                    )
+                  else if (accounts.isEmpty)
+                    _EmptyAccountsCard(onOpenForm: onOpenForm)
+                  else ...[
+                    _SectionLabel('Tus cuentas (${accounts.length})'),
+                    const SizedBox(height: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.authCardFill,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.authCardBorder),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 18,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: List.generate(accounts.length, (i) {
+                          final account = accounts[i];
+                          return _AccountRow(
+                            account: account,
+                            currency: currency,
+                            onView: () => onOpenView(account),
+                            showDivider: i != accounts.length - 1,
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+
+  const _SectionLabel(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 2),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
+          color: AppColors.authTextSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyAccountsCard extends StatelessWidget {
+  final VoidCallback onOpenForm;
+
+  const _EmptyAccountsCard({required this.onOpenForm});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.authAccent.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.authAccent.withValues(alpha: 0.25),
+              ),
+            ),
+            child: const Icon(
+              Icons.account_balance_outlined,
+              size: 28,
+              color: AppColors.authAccent,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Todavía no hay cuentas.\nTocá + para crear la primera.',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.authSubtitle,
+          ),
+        ],
       ),
     );
   }
@@ -132,25 +217,35 @@ class _TotalCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.authCardFill,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: AppColors.authAccent.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
+              color: AppColors.authAccent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.authAccent.withValues(alpha: 0.30),
+              ),
             ),
             child: const Icon(
               Icons.account_balance_wallet_rounded,
               color: AppColors.authAccent,
-              size: 22,
+              size: 24,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,6 +255,8 @@ class _TotalCard extends StatelessWidget {
                   style: TextStyle(
                     color: AppColors.authTextSecondary,
                     fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -176,8 +273,9 @@ class _TotalCard extends StatelessWidget {
                         formatCurrency(total, currency),
                         style: const TextStyle(
                           color: AppColors.authTextPrimary,
-                          fontSize: 26,
+                          fontSize: 28,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
                         ),
                       ),
               ],
@@ -209,19 +307,41 @@ class _AccountRow extends StatelessWidget {
     return Column(
       children: [
         Opacity(
-          opacity: isActive ? 1 : 0.5,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          opacity: isActive ? 1.0 : 0.55,
+          child: Material(
+            color: Colors.transparent,
             child: InkWell(
               onTap: onView,
-              borderRadius: BorderRadius.circular(12),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 6,
+                  horizontal: 16,
+                  vertical: 14,
                 ),
                 child: Row(
                   children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? AppColors.authAccent.withValues(alpha: 0.12)
+                            : Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(
+                          color: isActive
+                              ? AppColors.authAccent.withValues(alpha: 0.28)
+                              : AppColors.authCardBorder,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.account_balance_rounded,
+                        size: 20,
+                        color: isActive
+                            ? AppColors.authAccent
+                            : AppColors.authTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,18 +350,37 @@ class _AccountRow extends StatelessWidget {
                             account.name,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 15,
+                              fontSize: 15.5,
                               fontWeight: FontWeight.w600,
                               color: AppColors.authTextPrimary,
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            isActive ? 'Cuenta activa' : 'Cuenta inactiva',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.authTextSecondary,
-                            ),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Container(
+                                width: 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isActive
+                                      ? AppColors.authAccent
+                                      : AppColors.authTextSecondary
+                                          .withValues(alpha: 0.6),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                isActive ? 'Cuenta activa' : 'Cuenta inactiva',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: isActive
+                                      ? AppColors.authTextSecondary
+                                      : AppColors.authTextFooter,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -249,22 +388,28 @@ class _AccountRow extends StatelessWidget {
                             '${formatDateTime(account.balanceUpdatedAt)}',
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.authTextSecondary,
+                              fontSize: 11.5,
+                              color: AppColors.authTextFooter,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 10),
                     Text(
                       formatCurrency(account.balance, currency),
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 15.5,
                         fontWeight: FontWeight.w700,
                         color: AppColors.authTextPrimary,
                       ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: AppColors.authTextSecondary,
                     ),
                   ],
                 ),
@@ -273,7 +418,12 @@ class _AccountRow extends StatelessWidget {
           ),
         ),
         if (showDivider)
-          const Divider(height: 1, color: AppColors.authCardBorder),
+          const Divider(
+            height: 1,
+            indent: 72,
+            endIndent: 16,
+            color: AppColors.authCardBorder,
+          ),
       ],
     );
   }
