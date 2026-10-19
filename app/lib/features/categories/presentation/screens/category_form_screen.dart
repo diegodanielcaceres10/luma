@@ -118,7 +118,39 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
       widget.onDone();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.errorMessage ?? 'No se pudo guardar.')),
+        SnackBar(
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF1E2922),
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(
+              color: AppColors.authCardBorder,
+              width: 1,
+            ),
+          ),
+          content: Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: AppColors.error,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  vm.errorMessage ?? 'No se pudo guardar.',
+                  style: const TextStyle(
+                    color: AppColors.authTextPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
   }
@@ -145,7 +177,6 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
   Widget _buildColorDot({required String hex, required VoidCallback? onTap}) {
     final color = colorFromHex(hex);
     final isSelected = hex == _selectedColor;
-    // Custom colors can be very light, so pick the check color by brightness.
     final checkColor =
         ThemeData.estimateBrightnessForColor(color) == Brightness.light
             ? Colors.black87
@@ -153,15 +184,25 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       child: Container(
-        width: 40,
-        height: 40,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
-          border: isSelected
-              ? Border.all(color: AppColors.authTextPrimary, width: 2)
+          border: Border.all(
+            color: isSelected ? AppColors.authTextPrimary : Colors.transparent,
+            width: isSelected ? 2.5 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.5),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ]
               : null,
         ),
         child: isSelected
@@ -176,12 +217,13 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
       message: 'Color personalizado',
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         child: Container(
-          width: 40,
-          height: 40,
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
+            color: AppColors.authAccent.withValues(alpha: 0.08),
             border: Border.all(
               color: AppColors.authAccent.withValues(alpha: 0.6),
               width: 1.5,
@@ -200,81 +242,136 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
   Widget _buildTypeOption({
     required String type,
     required String label,
+    required String subtitle,
     required IconData icon,
     required Color color,
   }) {
-    return InkWell(
-      onTap: () => _selectType(type),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        decoration: BoxDecoration(
-          color: AppColors.authCardFill,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _selectType(type),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.authCardBorder),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: color.withValues(alpha: 0.18),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.authTextPrimary,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 18),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.32),
+                    ),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
-              ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.authTextPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.authTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.authTextSecondary,
+                ),
+              ],
             ),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.authTextSecondary),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildTypeChooser() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ScreenHeader(
-            title: 'Nueva categoría',
-            size: ScreenHeaderSize.compact,
-            onBack: widget.onDone,
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            '¿Es una categoría de gastos o de ingresos?',
-            style: TextStyle(color: AppColors.authTextSecondary),
-          ),
-          const SizedBox(height: 16),
-          _buildTypeOption(
-            type: 'expense',
-            label: 'Gasto',
-            icon: Icons.trending_down_rounded,
-            color: AppColors.authExpense,
-          ),
-          const SizedBox(height: 12),
-          _buildTypeOption(
-            type: 'income',
-            label: 'Ingreso',
-            icon: Icons.trending_up_rounded,
-            color: AppColors.authIncome,
-          ),
-        ],
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          children: [
+            ScreenHeader(
+              title: 'Nueva categoría',
+              subtitle: 'Selecciona el tipo de movimiento para comenzar.',
+              size: ScreenHeaderSize.compact,
+              onBack: widget.onDone,
+            ),
+            const SizedBox(height: 20),
+            const Padding(
+              padding: EdgeInsets.only(left: 4, bottom: 12),
+              child: Text(
+                '¿Es una categoría de gastos o de ingresos?',
+                style: TextStyle(
+                  color: AppColors.authTextSecondary,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            _buildTypeOption(
+              type: 'expense',
+              label: 'Gasto',
+              subtitle:
+                  'Para compras, servicios, suscripciones y salidas habituales.',
+              icon: Icons.trending_down_rounded,
+              color: AppColors.authExpense,
+            ),
+            const SizedBox(height: 14),
+            _buildTypeOption(
+              type: 'income',
+              label: 'Ingreso',
+              subtitle: 'Para sueldos, inversiones, transferencias o cobros.',
+              icon: Icons.trending_up_rounded,
+              color: AppColors.authIncome,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildForm(bool isSubmitting) {
+    final catColor = colorFromHex(
+      _selectedColor,
+      fallback: AppColors.authTextFooter,
+    );
+    final isExpense = _type == 'expense';
+    final typeColor = isExpense ? AppColors.authExpense : AppColors.authIncome;
+
     return Form(
       key: _formKey,
       child: Column(
@@ -286,101 +383,283 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
               minHeight: 3,
             ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-              children: [
-                ScreenHeader(
-                  title: _isEditing ? 'Editar categoría' : 'Nueva categoría',
-                  size: ScreenHeaderSize.compact,
-                  onBack: widget.onDone,
-                  backEnabled: !isSubmitting,
-                ),
-                const SizedBox(height: 20),
-                InputTextField(
-                  controller: _nameController,
-                  label: 'Nombre',
-                  hintText: 'Ej: Suscripciones',
-                  enabled: !isSubmitting,
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Ingresa un nombre'
-                      : null,
-                ),
-                const SizedBox(height: 20),
-                const Text('Color',
-                    style: TextStyle(color: AppColors.authTextSecondary)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                   children: [
-                    for (final hex in kCategoryColors)
-                      _buildColorDot(
-                        hex: hex,
-                        onTap: isSubmitting
-                            ? null
-                            : () => setState(() => _selectedColor = hex),
-                      ),
-                    // Custom color outside the quick palette: shown as selected
-                    // and reopens the picker when tapped.
-                    if (!kCategoryColors.contains(_selectedColor))
-                      _buildColorDot(
-                        hex: _selectedColor,
-                        onTap: isSubmitting ? null : _openCustomColorPicker,
-                      ),
-                    _buildAddColorButton(
-                      onTap: isSubmitting ? null : _openCustomColorPicker,
+                    ScreenHeader(
+                      title:
+                          _isEditing ? 'Editar categoría' : 'Nueva categoría',
+                      subtitle: _isEditing
+                          ? 'Modifica los detalles y preferencias de la categoría.'
+                          : 'Personaliza el nombre, color y presupuesto de la categoría.',
+                      size: ScreenHeaderSize.compact,
+                      onBack: widget.onDone,
+                      backEnabled: !isSubmitting,
                     ),
-                  ],
-                ),
-                if (_type == 'expense') ...[
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text('Presupuesto mensual',
-                            style:
-                                TextStyle(color: AppColors.authTextSecondary)),
+                    const SizedBox(height: 20),
+                    // Tarjeta 1: Datos de la categoría
+                    Container(
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        color: AppColors.authCardFill,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: AppColors.authCardBorder),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.16),
+                            blurRadius: 20,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                      Switch(
-                        value: _hasBudget,
-                        activeThumbColor: AppColors.authAccent,
-                        onChanged: isSubmitting
-                            ? null
-                            : (value) => setState(() => _hasBudget = value),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: catColor.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: catColor.withValues(alpha: 0.32),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Container(
+                                    width: 14,
+                                    height: 14,
+                                    decoration: BoxDecoration(
+                                      color: catColor,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color:
+                                              catColor.withValues(alpha: 0.45),
+                                          blurRadius: 6,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'Datos de la categoría',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.authTextPrimary,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: typeColor.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: typeColor.withValues(alpha: 0.28),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isExpense
+                                          ? Icons.trending_down_rounded
+                                          : Icons.trending_up_rounded,
+                                      size: 13,
+                                      color: typeColor,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      isExpense ? 'Gasto' : 'Ingreso',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: typeColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          InputTextField(
+                            controller: _nameController,
+                            label: 'Nombre',
+                            hintText: 'Ej: Suscripciones',
+                            enabled: !isSubmitting,
+                            validator: (value) =>
+                                value == null || value.trim().isEmpty
+                                    ? 'Ingresa un nombre'
+                                    : null,
+                          ),
+                          const SizedBox(height: 22),
+                          const Text(
+                            'Color identificador',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.authTextSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              for (final hex in kCategoryColors)
+                                _buildColorDot(
+                                  hex: hex,
+                                  onTap: isSubmitting
+                                      ? null
+                                      : () => setState(
+                                          () => _selectedColor = hex),
+                                ),
+                              if (!kCategoryColors.contains(_selectedColor))
+                                _buildColorDot(
+                                  hex: _selectedColor,
+                                  onTap: isSubmitting
+                                      ? null
+                                      : _openCustomColorPicker,
+                                ),
+                              _buildAddColorButton(
+                                onTap: isSubmitting
+                                    ? null
+                                    : _openCustomColorPicker,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isExpense) ...[
+                      const SizedBox(height: 16),
+                      // Tarjeta 2: Presupuesto mensual
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          color: AppColors.authCardFill,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: AppColors.authCardBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.16),
+                              blurRadius: 20,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.authAccent
+                                        .withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.authAccent
+                                          .withValues(alpha: 0.30),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.savings_outlined,
+                                    size: 20,
+                                    color: AppColors.authAccent,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'Presupuesto mensual',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.authTextPrimary,
+                                    ),
+                                  ),
+                                ),
+                                Switch(
+                                  value: _hasBudget,
+                                  activeThumbColor: AppColors.authAccent,
+                                  onChanged: isSubmitting
+                                      ? null
+                                      : (value) =>
+                                          setState(() => _hasBudget = value),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 2),
+                              child: Text(
+                                'Establece un límite mensual de gasto para supervisar desvíos.',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: AppColors.authTextFooter,
+                                ),
+                              ),
+                            ),
+                            if (_hasBudget) ...[
+                              const SizedBox(height: 16),
+                              InputTextField(
+                                controller: _budgetController,
+                                label: 'Monto mensual',
+                                hintText: '0.00',
+                                enabled: !isSubmitting,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                validator: (value) {
+                                  if (!_hasBudget) return null;
+                                  final parsed =
+                                      double.tryParse((value ?? '').trim());
+                                  if (parsed == null || parsed <= 0) {
+                                    return 'Ingresa un monto válido';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ],
-                  ),
-                  if (_hasBudget) ...[
-                    const SizedBox(height: 8),
-                    InputTextField(
-                      controller: _budgetController,
-                      hintText: '0.00',
-                      enabled: !isSubmitting,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      validator: (value) {
-                        if (!_hasBudget) return null;
-                        final parsed = double.tryParse((value ?? '').trim());
-                        if (parsed == null || parsed <= 0) {
-                          return 'Ingresa un monto válido';
-                        }
-                        return null;
-                      },
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      child: PrimaryButton(
+                        label:
+                            _isEditing ? 'Guardar cambios' : 'Crear categoría',
+                        disabledAlpha: 0.6,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        isLoading: isSubmitting,
+                        onPressed: isSubmitting ? null : _submit,
+                      ),
                     ),
                   ],
-                ],
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: PrimaryButton(
-                    label: _isEditing ? 'Guardar cambios' : 'Crear categoría',
-                    disabledAlpha: 0.6,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    isLoading: isSubmitting,
-                    onPressed: isSubmitting ? null : _submit,
-                  ),
                 ),
-              ],
+              ),
             ),
           ),
         ],
