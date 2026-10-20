@@ -545,13 +545,9 @@ class _TransactionsStatisticsScreenState
                               ),
                               const SizedBox(width: 18),
                               Expanded(
-                                child: Column(
-                                  children: expenseTypeBreakdown
-                                      .map((c) => StatisticsCategoryLegendRow(
-                                            category: c,
-                                            currency: widget.currency,
-                                          ))
-                                      .toList(),
+                                child: StatisticsCategoryLegend(
+                                  breakdown: expenseTypeBreakdown,
+                                  currency: widget.currency,
                                 ),
                               ),
                             ],
@@ -615,13 +611,9 @@ class _TransactionsStatisticsScreenState
                               ),
                               const SizedBox(width: 18),
                               Expanded(
-                                child: Column(
-                                  children: categorizedBreakdown
-                                      .map((c) => StatisticsCategoryLegendRow(
-                                            category: c,
-                                            currency: widget.currency,
-                                          ))
-                                      .toList(),
+                                child: StatisticsCategoryLegend(
+                                  breakdown: categorizedBreakdown,
+                                  currency: widget.currency,
                                 ),
                               ),
                             ],

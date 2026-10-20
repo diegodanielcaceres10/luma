@@ -5,6 +5,40 @@ import '../../../../../core/utils/category_visuals.dart';
 import '../../../../../core/utils/currency_format.dart';
 import '../../view_models/transaction_view_model.dart';
 
+/// Legend of a category donut chart. It is as wide as its longest row, so the
+/// percentages stay in a column right next to the names instead of at the far
+/// edge of the card.
+class StatisticsCategoryLegend extends StatelessWidget {
+  final List<CategoryTotal> breakdown;
+  final String currency;
+
+  const StatisticsCategoryLegend({
+    super.key,
+    required this.breakdown,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // The Align gives IntrinsicWidth loose constraints; under tight ones it
+    // would still fill the whole width.
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: IntrinsicWidth(
+        child: Column(
+          children: [
+            for (final category in breakdown)
+              StatisticsCategoryLegendRow(
+                category: category,
+                currency: currency,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class StatisticsCategoryLegendRow extends StatelessWidget {
   final CategoryTotal category;
   final String currency;
@@ -61,14 +95,16 @@ class StatisticsCategoryLegendRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 28,
+          const SizedBox(width: 10),
+          // Wide enough for "100%", so the column lines up across rows.
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 40),
             child: Text(
               '${category.percent.toStringAsFixed(0)}%',
               textAlign: TextAlign.right,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
                 color: AppColors.authTextSecondary,
               ),
             ),
