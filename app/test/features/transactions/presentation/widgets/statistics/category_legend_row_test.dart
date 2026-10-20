@@ -135,8 +135,10 @@ void main() {
       final percent = tester.getRect(find.text('20%'));
 
       expect(percent.left - longestName.right, lessThan(40));
-      // Well short of the 600 px the legend could have taken.
-      expect(percent.right, lessThan(100 + 300));
+      // The legend hugs its content: the percentage ends well short of the
+      // 600 px it could have taken. Relative, because tests render text with a
+      // much wider font than the app does.
+      expect(percent.right, lessThan(100 + 600 * 0.8));
     });
 
     testWidgets('aligns the percentages of all rows in a column',
