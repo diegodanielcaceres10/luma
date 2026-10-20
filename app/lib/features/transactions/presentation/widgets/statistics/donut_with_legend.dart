@@ -16,6 +16,11 @@ class StatisticsDonutWithLegend extends StatelessWidget {
 
   static const double _compactGap = 18;
 
+  /// In two columns the chart takes this share of its half, within
+  /// [_maxChartSize], so a taller card follows a wider one.
+  static const double _chartShareOfHalf = 0.7;
+  static const double _maxChartSize = 240;
+
   final List<CategoryTotal> breakdown;
   final double total;
   final String currency;
@@ -33,17 +38,19 @@ class StatisticsDonutWithLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chart = label == null
+    Widget chartOfSize(double size) => label == null
         ? StatisticsCategoryDonutChart(
             breakdown: breakdown,
             total: total,
             currency: currency,
+            size: size,
           )
         : StatisticsCategoryDonutChart(
             breakdown: breakdown,
             total: total,
             currency: currency,
             label: label!,
+            size: size,
           );
 
     return LayoutBuilder(
@@ -51,9 +58,13 @@ class StatisticsDonutWithLegend extends StatelessWidget {
         final twoColumns = constraints.maxWidth >= twoColumnsMinWidth;
 
         if (twoColumns) {
+          final size = (constraints.maxWidth / 2 * _chartShareOfHalf).clamp(
+            StatisticsCategoryDonutChart.defaultSize,
+            _maxChartSize,
+          );
           return Row(
             children: [
-              Expanded(child: Center(child: chart)),
+              Expanded(child: Center(child: chartOfSize(size))),
               Expanded(
                 child: StatisticsCategoryLegend(
                   breakdown: breakdown,
@@ -67,7 +78,7 @@ class StatisticsDonutWithLegend extends StatelessWidget {
 
         return Row(
           children: [
-            chart,
+            chartOfSize(StatisticsCategoryDonutChart.defaultSize),
             const SizedBox(width: _compactGap),
             Expanded(
               child: StatisticsCategoryLegend(

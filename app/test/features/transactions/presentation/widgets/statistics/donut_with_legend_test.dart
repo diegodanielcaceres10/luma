@@ -94,6 +94,58 @@ void main() {
     });
   });
 
+  group('chart size', () {
+    double chartSide(WidgetTester tester) =>
+        tester.getSize(find.byType(StatisticsCategoryDonutChart)).width;
+
+    testWidgets('grows with the width of its half', (tester) async {
+      await pump(tester, width: 600);
+
+      // 70 % of the 300 px half.
+      expect(chartSide(tester), closeTo(210, 0.01));
+    });
+
+    testWidgets('is 154 px right where the two columns start', (tester) async {
+      await pump(tester, width: 440);
+
+      expect(chartSide(tester), closeTo(154, 0.01));
+    });
+
+    testWidgets('never gets smaller than the default size', (tester) async {
+      await pump(tester, width: 440);
+
+      expect(chartSide(tester), greaterThanOrEqualTo(128));
+    });
+
+    testWidgets('stops growing at 240 px', (tester) async {
+      await pump(tester, width: 900);
+
+      expect(chartSide(tester), 240);
+    });
+
+    testWidgets('makes the card taller as the chart grows', (tester) async {
+      await pump(tester, width: 900);
+
+      final block = tester.getSize(find.byType(StatisticsDonutWithLegend));
+      expect(block.height, greaterThanOrEqualTo(240));
+    });
+
+    testWidgets('stays at the default size without room for two columns',
+        (tester) async {
+      await pump(tester, width: 300);
+
+      expect(chartSide(tester), 128);
+    });
+
+    testWidgets('scales the text in the middle with the chart',
+        (tester) async {
+      await pump(tester, width: 900);
+
+      final label = tester.widget<Text>(find.text('Total gastos'));
+      expect(label.style!.fontSize, closeTo(11 * 240 / 128, 0.01));
+    });
+  });
+
   group('without room for two columns', () {
     testWidgets('puts the legend right after the chart', (tester) async {
       await pump(tester, width: 300);

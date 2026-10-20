@@ -8,11 +8,17 @@ import '../../../../../core/utils/currency_format.dart';
 import '../../view_models/transaction_view_model.dart';
 
 class StatisticsCategoryDonutChart extends StatelessWidget {
+  /// Diameter the proportions below were designed for.
+  static const double defaultSize = 128;
+
   final List<CategoryTotal> breakdown;
   final double total;
   final String currency;
 
   final String label;
+
+  /// Diameter in logical pixels. Ring, padding and text scale with it.
+  final double size;
 
   const StatisticsCategoryDonutChart({
     super.key,
@@ -20,11 +26,12 @@ class StatisticsCategoryDonutChart extends StatelessWidget {
     required this.total,
     required this.currency,
     this.label = 'Total gastos',
+    this.size = defaultSize,
   });
 
   @override
   Widget build(BuildContext context) {
-    const size = 128.0;
+    final scale = size / defaultSize;
 
     return SizedBox(
       width: size,
@@ -33,11 +40,14 @@ class StatisticsCategoryDonutChart extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           CustomPaint(
-            size: const Size(size, size),
-            painter: _DonutChartPainter(breakdown: breakdown),
+            size: Size(size, size),
+            painter: _DonutChartPainter(
+              breakdown: breakdown,
+              strokeWidth: 15 * scale,
+            ),
           ),
           Padding(
-            padding: const EdgeInsets.all(28),
+            padding: EdgeInsets.all(28 * scale),
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Column(
@@ -46,17 +56,17 @@ class StatisticsCategoryDonutChart extends StatelessWidget {
                   Text(
                     label,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 11,
+                    style: TextStyle(
+                      fontSize: 11 * scale,
                       color: AppColors.authTextSecondary,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2 * scale),
                   Text(
                     formatCurrency(total, currency),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 14,
+                    style: TextStyle(
+                      fontSize: 14 * scale,
                       fontWeight: FontWeight.w700,
                       color: AppColors.authTextPrimary,
                     ),
@@ -77,7 +87,7 @@ class _DonutChartPainter extends CustomPainter {
   final List<CategoryTotal> breakdown;
   final double strokeWidth;
 
-  _DonutChartPainter({required this.breakdown}) : strokeWidth = 15;
+  _DonutChartPainter({required this.breakdown, required this.strokeWidth});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -114,6 +124,7 @@ class _DonutChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DonutChartPainter oldDelegate) {
-    return oldDelegate.breakdown != breakdown;
+    return oldDelegate.breakdown != breakdown ||
+        oldDelegate.strokeWidth != strokeWidth;
   }
 }
