@@ -8,8 +8,8 @@ import '../../../../../core/widgets/movement_tile.dart';
 import 'pending_movement.dart';
 
 /// A [PendingMovement] in the same row format as the movements history. The
-/// label (category, transfer or invoice) goes on the second line, so the first
-/// one is the description alone.
+/// date and the label (category, transfer or invoice) go on the second line,
+/// so the first one is the description alone.
 class PendingMovementTile extends StatelessWidget {
   final PendingMovement movement;
   final String currency;
@@ -29,21 +29,34 @@ class PendingMovementTile extends StatelessWidget {
     final amount = movement.amount;
     final formattedAmount = formatCurrency(amount, currency);
 
-    final leading = switch (movement) {
-      CategoryPendingMovement(:final category) => MovementLeading.category(
-          color: colorFromHex(
-            category?.color,
-            fallback: AppColors.authTextSecondary,
-          ),
+    // Without a category the line is just the date.
+    final (leading, label) = switch (movement) {
+      CategoryPendingMovement(:final category) => (
+          category == null
+              ? const MovementLeading.uncategorized()
+              : MovementLeading.category(
+                  color: colorFromHex(
+                    category.color,
+                    fallback: AppColors.authTextSecondary,
+                  ),
+                ),
+          category?.name,
         ),
-      TransferPendingMovement() => const MovementLeading.transfer(),
-      InvoicePendingMovement() => const MovementLeading.servicePayment(),
+      TransferPendingMovement() => (
+          const MovementLeading.transfer(),
+          movement.displayLabel,
+        ),
+      InvoicePendingMovement() => (
+          const MovementLeading.servicePayment(),
+          movement.displayLabel,
+        ),
     };
 
     return MovementTile(
       leading: leading,
       title: movement.description,
-      subtitle: '${movement.displayLabel} · ${formatDate(movement.date)}',
+      subtitle: [formatDate(movement.date), if (label != null) label]
+          .join(' · '),
       amountText: amount > 0 ? '+$formattedAmount' : formattedAmount,
       amountColor: amount > 0 ? AppColors.authIncome : AppColors.authExpense,
       trailing: trailing,

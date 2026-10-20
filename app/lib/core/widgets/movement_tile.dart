@@ -3,26 +3,38 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 
 /// Marker at the start of a [MovementTile]: an icon for transfers and service
-/// payments, or a dot in the category color for everything else.
+/// payments, a dot in the category color for movements with a category, and a
+/// hollow ring for those without one. The ring differs by shape, not color, so
+/// it can't be mistaken for a category the user colored gray.
 class MovementLeading extends StatelessWidget {
   final IconData? _icon;
   final Color _color;
   final String? _semanticLabel;
+  final bool _hollow;
 
   const MovementLeading.transfer({super.key})
       : _icon = Icons.swap_horiz_rounded,
         _color = AppColors.authTransfer,
-        _semanticLabel = 'Transferencia';
+        _semanticLabel = 'Transferencia',
+        _hollow = false;
 
   const MovementLeading.servicePayment({super.key})
       : _icon = Icons.request_page_outlined,
         _color = AppColors.authInvoice,
-        _semanticLabel = 'Pago de servicio';
+        _semanticLabel = 'Pago de servicio',
+        _hollow = false;
 
   const MovementLeading.category({super.key, required Color color})
       : _icon = null,
         _color = color,
-        _semanticLabel = null;
+        _semanticLabel = null,
+        _hollow = false;
+
+  const MovementLeading.uncategorized({super.key})
+      : _icon = null,
+        _color = AppColors.authTextSecondary,
+        _semanticLabel = 'Sin categoría',
+        _hollow = true;
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +56,18 @@ class MovementLeading extends StatelessWidget {
                 size: 20,
                 semanticLabel: _semanticLabel,
               )
-            : Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: _color,
-                  shape: BoxShape.circle,
+            : Semantics(
+                label: _semanticLabel,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: _hollow ? null : _color,
+                    shape: BoxShape.circle,
+                    border: _hollow
+                        ? Border.all(color: _color, width: 1.5)
+                        : null,
+                  ),
                 ),
               ),
       ),

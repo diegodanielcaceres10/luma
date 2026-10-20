@@ -53,6 +53,8 @@ class TransactionMovementRow extends StatelessWidget {
       leading = const MovementLeading.transfer();
     } else if (isServicePayment) {
       leading = const MovementLeading.servicePayment();
+    } else if (movement.category.isUncategorized) {
+      leading = const MovementLeading.uncategorized();
     } else {
       leading = MovementLeading.category(
         color: colorFromHex(
@@ -62,15 +64,23 @@ class TransactionMovementRow extends StatelessWidget {
       );
     }
 
-    final categoryLabel =
-        movement.isTransfer ? 'Transferencia' : movement.category.name;
+    // Without a category the line is just the date.
+    final String? label;
+    if (movement.isTransfer) {
+      label = 'Transferencia';
+    } else if (movement.category.isUncategorized) {
+      label = null;
+    } else {
+      label = movement.category.name;
+    }
 
     return Column(
       children: [
         MovementTile(
           leading: leading,
           title: movement.description,
-          subtitle: '$categoryLabel · ${formatDate(movement.date)}',
+          subtitle: [formatDate(movement.date), if (label != null) label]
+              .join(' · '),
           amountText: '$sign${formatCurrency(movement.amount, currency)}',
           amountColor: amountColor,
           trailing: onActions == null

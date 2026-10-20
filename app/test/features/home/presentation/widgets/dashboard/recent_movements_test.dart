@@ -14,6 +14,7 @@ void main() {
     String? description,
     String categoryName = 'Comida',
     String? categoryColor = '#F59E0B',
+    String? categoryId = 'c1',
     bool isTransfer = false,
   }) {
     return TransactionEntry(
@@ -22,7 +23,11 @@ void main() {
       amount: 21.05,
       description: description,
       date: date,
-      category: TransactionCategory(name: categoryName, color: categoryColor),
+      category: TransactionCategory(
+        id: categoryId,
+        name: categoryName,
+        color: categoryColor,
+      ),
       account: const TransactionAccount(name: 'Cuenta'),
       isTransfer: isTransfer,
     );
@@ -65,7 +70,7 @@ void main() {
     final title = tester.widget<Text>(find.text('Sin descripción'));
     expect(title.style?.fontStyle, FontStyle.italic);
     // The category appears once, in the second line.
-    expect(find.text('Comida · ${formatDate(date)}'), findsOneWidget);
+    expect(find.text('${formatDate(date)} · Comida'), findsOneWidget);
     expect(find.text('Comida'), findsNothing);
   });
 
@@ -74,7 +79,7 @@ void main() {
     await pumpList(tester, [movement(description: 'Supermercado')]);
 
     expect(find.text('Supermercado'), findsOneWidget);
-    expect(find.text('Comida · ${formatDate(date)}'), findsOneWidget);
+    expect(find.text('${formatDate(date)} · Comida'), findsOneWidget);
   });
 
   testWidgets('marks regular movements with the category color dot',
@@ -86,11 +91,22 @@ void main() {
     expect(find.byIcon(Icons.arrow_downward_rounded), findsNothing);
   });
 
+  testWidgets('shows only the date for a movement without category',
+      (tester) async {
+    await pumpList(
+      tester,
+      [movement(categoryId: null, categoryName: 'Sin categoría')],
+    );
+
+    expect(find.text(formatDate(date)), findsOneWidget);
+    expect(find.textContaining('Sin categoría'), findsNothing);
+  });
+
   testWidgets('marks transfers with the transfer icon', (tester) async {
     await pumpList(tester, [movement(isTransfer: true)]);
 
     expect(find.byIcon(Icons.swap_horiz_rounded), findsOneWidget);
-    expect(find.text('Transferencia · ${formatDate(date)}'), findsOneWidget);
+    expect(find.text('${formatDate(date)} · Transferencia'), findsOneWidget);
   });
 
   testWidgets('marks service payments with the invoice icon', (tester) async {

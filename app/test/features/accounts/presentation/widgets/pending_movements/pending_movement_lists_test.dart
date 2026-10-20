@@ -91,7 +91,7 @@ void main() {
       );
 
       expect(find.text('Supermercado'), findsOneWidget);
-      expect(find.text('Comida · ${formatDate(date)}'), findsOneWidget);
+      expect(find.text('${formatDate(date)} · Comida'), findsOneWidget);
     });
 
     testWidgets('shows "Sin descripción" in italics instead of the category',
@@ -110,12 +110,21 @@ void main() {
       expect(dotWithColor(const Color(0xFFF59E0B)), findsOneWidget);
     });
 
-    testWidgets('uses a neutral dot and "Sin categoría" without a category',
+    testWidgets('shows a hollow ring and only the date without a category',
         (tester) async {
       await pumpEditable(tester, [categoryMovement(category: null)]);
 
-      expect(dotWithColor(AppColors.authTextSecondary), findsOneWidget);
-      expect(find.text('Sin categoría · ${formatDate(date)}'), findsOneWidget);
+      expect(find.text(formatDate(date)), findsOneWidget);
+      expect(find.textContaining('Sin categoría'), findsNothing);
+      expect(dotWithColor(AppColors.authTextSecondary), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == 'Sin categoría',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('marks a transfer with its icon and names the other account',
@@ -131,7 +140,7 @@ void main() {
 
       expect(find.byIcon(Icons.swap_horiz_rounded), findsOneWidget);
       expect(
-        find.text('Transferencia a Cuenta Extra · ${formatDate(date)}'),
+        find.text('${formatDate(date)} · Transferencia a Cuenta Extra'),
         findsOneWidget,
       );
     });
@@ -157,7 +166,7 @@ void main() {
 
       expect(find.byIcon(Icons.request_page_outlined), findsOneWidget);
       expect(
-        find.text('Factura · Netflix · ${formatDate(date)}'),
+        find.text('${formatDate(date)} · Factura · Netflix'),
         findsOneWidget,
       );
     });
@@ -222,7 +231,7 @@ void main() {
       );
 
       expect(find.text('Supermercado'), findsOneWidget);
-      expect(find.text('Comida · ${formatDate(date)}'), findsOneWidget);
+      expect(find.text('${formatDate(date)} · Comida'), findsOneWidget);
       expect(dotWithColor(const Color(0xFFF59E0B)), findsOneWidget);
       expect(find.byTooltip('Editar'), findsNothing);
       expect(find.byTooltip('Quitar'), findsNothing);
@@ -241,7 +250,7 @@ void main() {
       ]);
 
       expect(find.byIcon(Icons.swap_horiz_rounded), findsOneWidget);
-      expect(find.text('Transferencia · ${formatDate(date)}'), findsOneWidget);
+      expect(find.text('${formatDate(date)} · Transferencia'), findsOneWidget);
     });
   });
 }

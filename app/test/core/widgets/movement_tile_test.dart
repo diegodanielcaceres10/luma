@@ -62,6 +62,36 @@ void main() {
     expect(find.byType(Icon), findsNothing);
   });
 
+  testWidgets('shows a hollow ring for a movement without category',
+      (tester) async {
+    await pumpTile(tester, leading: const MovementLeading.uncategorized());
+
+    final ring = tester.widget<Container>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Container &&
+            widget.decoration is BoxDecoration &&
+            (widget.decoration! as BoxDecoration).shape == BoxShape.circle,
+      ),
+    );
+    final decoration = ring.decoration! as BoxDecoration;
+    expect(decoration.color, isNull);
+    expect(decoration.border, isNotNull);
+    expect(find.byType(Icon), findsNothing);
+  });
+
+  testWidgets('labels the ring for screen readers', (tester) async {
+    await pumpTile(tester, leading: const MovementLeading.uncategorized());
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.label == 'Sin categoría',
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('shows the transfer icon as leading', (tester) async {
     await pumpTile(tester, leading: const MovementLeading.transfer());
 

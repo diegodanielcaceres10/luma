@@ -12,6 +12,7 @@ void main() {
     String type = 'expense',
     String? description = 'Supermercado',
     String? categoryColor = '#F59E0B',
+    String? categoryId = 'c1',
     bool isTransfer = false,
   }) {
     return TransactionEntry(
@@ -20,7 +21,11 @@ void main() {
       amount: 21.05,
       description: description,
       date: date,
-      category: TransactionCategory(name: 'Comida', color: categoryColor),
+      category: TransactionCategory(
+        id: categoryId,
+        name: categoryId == null ? 'Sin categoría' : 'Comida',
+        color: categoryColor,
+      ),
       account: const TransactionAccount(name: 'Cuenta'),
       isTransfer: isTransfer,
     );
@@ -57,11 +62,28 @@ void main() {
             (widget.decoration! as BoxDecoration).color == color,
       );
 
-  testWidgets('shows description, then category and date', (tester) async {
+  testWidgets('shows description, then date and category', (tester) async {
     await pumpRow(tester, movement());
 
     expect(find.text('Supermercado'), findsOneWidget);
-    expect(find.text('Comida · ${formatDate(date)}'), findsOneWidget);
+    expect(find.text('${formatDate(date)} · Comida'), findsOneWidget);
+  });
+
+  testWidgets('shows only the date and a hollow ring without category',
+      (tester) async {
+    await pumpRow(tester, movement(categoryId: null, categoryColor: null));
+
+    expect(find.text(formatDate(date)), findsOneWidget);
+    expect(find.textContaining('Sin categoría'), findsNothing);
+    expect(find.textContaining('·'), findsNothing);
+    expect(dotWithColor(AppColors.authTextSecondary), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.label == 'Sin categoría',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('marks a regular movement with a dot in the category color',
@@ -85,7 +107,7 @@ void main() {
     await pumpRow(tester, movement(isTransfer: true));
 
     expect(find.byIcon(Icons.swap_horiz_rounded), findsOneWidget);
-    expect(find.text('Transferencia · ${formatDate(date)}'), findsOneWidget);
+    expect(find.text('${formatDate(date)} · Transferencia'), findsOneWidget);
   });
 
   testWidgets('marks a service payment with the invoice icon',
@@ -93,7 +115,7 @@ void main() {
     await pumpRow(tester, movement(), isServicePayment: true);
 
     expect(find.byIcon(Icons.request_page_outlined), findsOneWidget);
-    expect(find.text('Comida · ${formatDate(date)}'), findsOneWidget);
+    expect(find.text('${formatDate(date)} · Comida'), findsOneWidget);
   });
 
   testWidgets('shows "Sin descripción" in italics when there is none',
