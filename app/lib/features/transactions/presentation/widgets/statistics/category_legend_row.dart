@@ -12,10 +12,14 @@ class StatisticsCategoryLegend extends StatelessWidget {
   final List<CategoryTotal> breakdown;
   final String currency;
 
+  /// Where the legend sits in the space it is given.
+  final Alignment alignment;
+
   const StatisticsCategoryLegend({
     super.key,
     required this.breakdown,
     required this.currency,
+    this.alignment = Alignment.centerLeft,
   });
 
   @override
@@ -23,7 +27,7 @@ class StatisticsCategoryLegend extends StatelessWidget {
     // The Align gives IntrinsicWidth loose constraints; under tight ones it
     // would still fill the whole width.
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: alignment,
       child: IntrinsicWidth(
         child: Column(
           children: [
