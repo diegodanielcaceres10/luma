@@ -1,7 +1,7 @@
 import '../../../../core/utils/app_clock.dart';
 import '../../data/models/transaction_entry.dart';
 
-enum TransactionTypeFilter { all, income, expense }
+enum TransactionTypeFilter { all, income, expense, transfer }
 
 enum TransactionDateRangeFilter { today, thisWeek, last7Days, last15Days, all }
 
@@ -17,6 +17,8 @@ class TransactionsFilters {
         return TransactionTypeFilter.income;
       case 'expense':
         return TransactionTypeFilter.expense;
+      case 'transfer':
+        return TransactionTypeFilter.transfer;
       default:
         return TransactionTypeFilter.all;
     }
@@ -30,6 +32,8 @@ class TransactionsFilters {
         return 'income';
       case TransactionTypeFilter.expense:
         return 'expense';
+      case TransactionTypeFilter.transfer:
+        return 'transfer';
     }
   }
 
@@ -92,15 +96,18 @@ class TransactionsFilters {
     return '${month.year}-$mm';
   }
 
-  /// Whether [t] passes the income/expense filter.
+  /// Whether [t] passes the type filter. Transfers only show under
+  /// [TransactionTypeFilter.transfer] (and all), never as income or expense.
   static bool matchesType(TransactionTypeFilter filter, TransactionEntry t) {
     switch (filter) {
       case TransactionTypeFilter.all:
         return true;
       case TransactionTypeFilter.income:
-        return t.isIncome;
+        return t.isIncome && !t.isTransfer;
       case TransactionTypeFilter.expense:
-        return !t.isIncome;
+        return !t.isIncome && !t.isTransfer;
+      case TransactionTypeFilter.transfer:
+        return t.isTransfer;
     }
   }
 

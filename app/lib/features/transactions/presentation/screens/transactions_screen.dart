@@ -682,6 +682,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                     value: TransactionTypeFilter.expense,
                                     label: 'Gastos'
                                   ),
+                                  (
+                                    value: TransactionTypeFilter.transfer,
+                                    label: 'Transferencias'
+                                  ),
                                 ],
                                 selectedValue: _typeFilter,
                                 onChanged: (value) {
