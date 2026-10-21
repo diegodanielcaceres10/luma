@@ -135,7 +135,7 @@ void main() {
           onOpenMonthlyBalance: (_) {},
           onOpenAddTransaction: (_) {},
           onGoToAccounts: () {},
-          onManageAccounts: () {},
+          onOpenAccount: (_) {},
           onGoToInvoices: () {},
           onGoToTransfers: () {},
         ),

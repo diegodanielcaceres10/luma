@@ -19,7 +19,7 @@ class DashboardBalanceCard extends StatelessWidget {
   /// Ids of the accounts without an opening balance this month.
   final Set<String> pendingAccountIds;
   final ValueChanged<String> onCompletePendingBalance;
-  final VoidCallback onManageAccounts;
+  final ValueChanged<String> onOpenAccount;
 
   /// Active accounts, for the breakdown that expands in the card.
   final List<Account> accounts;
@@ -36,7 +36,7 @@ class DashboardBalanceCard extends StatelessWidget {
     required this.currency,
     required this.netResult,
     required this.isLoadingNetResult,
-    required this.onManageAccounts,
+    required this.onOpenAccount,
     required this.accounts,
     required this.onCompletePendingBalance,
     this.pendingAccountIds = const {},
@@ -290,7 +290,7 @@ class DashboardBalanceCard extends StatelessWidget {
                   BalanceAccountsExpander(
                     accounts: accounts,
                     currency: currency,
-                    onManageAccounts: onManageAccounts,
+                    onOpenAccount: onOpenAccount,
                     pendingAccountIds: pendingAccountIds,
                     onCompletePendingBalance: onCompletePendingBalance,
                   ),

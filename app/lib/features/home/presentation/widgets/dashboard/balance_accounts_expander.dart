@@ -4,13 +4,12 @@ import '../../../../../core/utils/currency_format.dart';
 import '../../../../accounts/data/models/account.dart';
 
 /// Expandable part of the [DashboardBalanceCard]: a chevron at the bottom of the
-/// card that, when tapped, shows each account's balance and the link to
-/// account settings. Starts collapsed and its state is not kept between
-/// sessions.
+/// card that, when tapped, shows each account's balance; tapping an account
+/// opens it. Starts collapsed and its state is not kept between sessions.
 class BalanceAccountsExpander extends StatefulWidget {
   final List<Account> accounts;
   final String currency;
-  final VoidCallback onManageAccounts;
+  final ValueChanged<String> onOpenAccount;
   final Set<String> pendingAccountIds;
   final ValueChanged<String> onCompletePendingBalance;
 
@@ -18,7 +17,7 @@ class BalanceAccountsExpander extends StatefulWidget {
     super.key,
     required this.accounts,
     required this.currency,
-    required this.onManageAccounts,
+    required this.onOpenAccount,
     required this.pendingAccountIds,
     required this.onCompletePendingBalance,
   });
@@ -107,43 +106,14 @@ class _BalanceAccountsExpanderState extends State<BalanceAccountsExpander> {
         const SizedBox(height: 12),
         const Divider(color: Colors.white24, height: 1),
         const SizedBox(height: 14),
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Saldo por cuenta',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ),
-            Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
-                onTap: widget.onManageAccounts,
-                borderRadius: BorderRadius.circular(10),
-                hoverColor: Colors.white.withValues(alpha: 0.1),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                  ),
-                  child: const Center(
-                    child:
-                        Icon(Icons.settings, color: Colors.white70, size: 16),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        const Text(
+          'Saldo por cuenta',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+          ),
         ),
         const SizedBox(height: 8),
         for (final account in widget.accounts)
@@ -151,6 +121,7 @@ class _BalanceAccountsExpanderState extends State<BalanceAccountsExpander> {
             account: account,
             currency: widget.currency,
             isPending: widget.pendingAccountIds.contains(account.id),
+            onOpen: () => widget.onOpenAccount(account.id),
             onCompletePendingBalance: () =>
                 widget.onCompletePendingBalance(account.id),
           ),
@@ -159,18 +130,21 @@ class _BalanceAccountsExpanderState extends State<BalanceAccountsExpander> {
   }
 }
 
-/// One account of the expanded breakdown: name and balance, plus a link to
-/// load its opening balance when it is still missing this month.
+/// One account of the expanded breakdown: name and balance, which opens the
+/// account when tapped, plus a link to load its opening balance when it is
+/// still missing this month.
 class _AccountBalanceRow extends StatelessWidget {
   final Account account;
   final String currency;
   final bool isPending;
+  final VoidCallback onOpen;
   final VoidCallback onCompletePendingBalance;
 
   const _AccountBalanceRow({
     required this.account,
     required this.currency,
     required this.isPending,
+    required this.onOpen,
     required this.onCompletePendingBalance,
   });
 
@@ -190,46 +164,61 @@ class _AccountBalanceRow extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.account_balance_wallet_outlined,
-                      color: Colors.white70,
-                      size: 15,
+            // The warning below has its own action, so only this line opens
+            // the account.
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onOpen,
+                borderRadius: BorderRadius.circular(8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.account_balance_wallet_outlined,
+                          color: Colors.white70,
+                          size: 15,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    account.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        account.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Text(
+                      formatCurrency(account.balance, currency),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white54,
+                      size: 20,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  formatCurrency(account.balance, currency),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+              ),
             ),
             if (isPending) ...[
               const SizedBox(height: 8),
