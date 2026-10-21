@@ -283,7 +283,7 @@ class _AddTransferDialogState extends State<AddTransferDialog> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         PrimaryButton(
-          label: 'Agregar',
+          label: widget.initial == null ? 'Agregar' : 'Listo',
           onPressed: otherAccounts.isEmpty ? null : _save,
         ),
       ],
