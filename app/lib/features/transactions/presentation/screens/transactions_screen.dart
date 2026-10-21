@@ -17,6 +17,7 @@ import '../../../services/presentation/view_models/service_view_model.dart';
 import '../../data/models/transaction_entry.dart';
 import '../view_models/transaction_view_model.dart';
 import '../view_models/transactions_filters.dart';
+import '../widgets/history/category_filter.dart';
 import '../widgets/history/edit_movement_dialog.dart';
 import '../widgets/history/history_filter_widgets.dart';
 import '../widgets/history/movement_actions_sheet.dart';
@@ -777,17 +778,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 const TransactionsFilterSectionLabel(
                                     'Categoría'),
                                 const SizedBox(height: 8),
-                                FilterChipRow<String?>(
-                                  options: <({String? value, String label})>[
-                                    (value: null, label: 'Todas'),
-                                    ...categories.map(
-                                      (c) => (
-                                        value: _categoryModelKey(c),
-                                        label: c.name
-                                      ),
-                                    ),
-                                  ],
-                                  selectedValue: effectiveCategoryKey,
+                                TransactionsCategoryFilter(
+                                  categories: categories,
+                                  selectedKey: effectiveCategoryKey,
                                   onChanged: (key) {
                                     if (key != _categoryKey) _pushCategory(key);
                                   },
