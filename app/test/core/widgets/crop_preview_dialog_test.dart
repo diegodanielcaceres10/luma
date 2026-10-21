@@ -65,7 +65,16 @@ void main() {
     await tester.pump();
 
     expect(find.text('Enviando la imagen…'), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsWidgets);
+    // One spinner, in the status line; the buttons only keep their labels.
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(FilledButton),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsNothing,
+    );
+    expect(find.text('Enviar'), findsOneWidget);
     expect(find.text('Revisá la imagen'), findsOneWidget);
 
     // The other actions are disabled meanwhile.
@@ -81,6 +90,67 @@ void main() {
     expect(find.text('Revisá la imagen'), findsNothing);
     expect(review?.action, CropPreviewAction.send);
     expect(review?.value, 'scan-result');
+  });
+
+  testWidgets('disables every button while sending', (tester) async {
+    final request = Completer<String>();
+    await open(tester, () => request.future);
+
+    await tester.tap(find.text('Enviar'));
+    await tester.pump();
+
+    expect(
+      tester.widget<TextButton>(find.widgetWithText(TextButton, 'Cancelar'))
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Recortar de nuevo'),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Enviar'))
+          .onPressed,
+      isNull,
+    );
+
+    request.complete('done');
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('fades every button while sending', (tester) async {
+    final request = Completer<String>();
+    await open(tester, () => request.future);
+
+    await tester.tap(find.text('Enviar'));
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<Text>(find.text('Cancelar'))
+          .style
+          ?.color
+          ?.a,
+      lessThan(1),
+    );
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Recortar de nuevo'),
+          )
+          .style!
+          .foregroundColor!
+          .resolve({WidgetState.disabled})!
+          .a,
+      lessThan(1),
+    );
+
+    request.complete('done');
+    await tester.pumpAndSettle();
   });
 
   testWidgets('keeps the dialog open with an error when the request fails',

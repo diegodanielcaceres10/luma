@@ -49,6 +49,38 @@ void main() {
       expect(style?.fontWeight, isNull);
     });
 
+    testWidgets('fades the label when disabled and disabledAlpha is set',
+        (tester) async {
+      await tester.pumpWidget(
+        host(
+          const TextActionButton(
+            label: 'Volver',
+            onPressed: null,
+            disabledAlpha: 0.5,
+          ),
+        ),
+      );
+
+      expect(
+        labelStyle(tester, 'Volver')?.color,
+        AppColors.authTextSecondary.withValues(alpha: 0.5),
+      );
+    });
+
+    testWidgets('does not fade the label while enabled', (tester) async {
+      await tester.pumpWidget(
+        host(
+          TextActionButton(
+            label: 'Volver',
+            onPressed: () {},
+            disabledAlpha: 0.5,
+          ),
+        ),
+      );
+
+      expect(labelStyle(tester, 'Volver')?.color, AppColors.authTextSecondary);
+    });
+
     testWidgets('applies color and fontWeight to emphasize the action',
         (tester) async {
       await tester.pumpWidget(

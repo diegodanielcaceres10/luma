@@ -53,6 +53,9 @@ class _CropPreviewDialog<T> extends StatefulWidget {
 }
 
 class _CropPreviewDialogState<T> extends State<_CropPreviewDialog<T>> {
+  /// How faded the buttons look while the image is being sent.
+  static const double _disabledAlpha = 0.6;
+
   bool _isSending = false;
 
   /// Message of the last failed attempt; null if there was none.
@@ -165,20 +168,21 @@ class _CropPreviewDialogState<T> extends State<_CropPreviewDialog<T>> {
                 children: [
                   TextActionButton(
                     label: 'Cancelar',
+                    disabledAlpha: _disabledAlpha,
                     onPressed: _isSending
                         ? null
                         : () => _finish(CropPreviewAction.cancel),
                   ),
                   SecondaryButton(
                     label: 'Recortar de nuevo',
+                    disabledAlpha: _disabledAlpha,
                     onPressed: _isSending
                         ? null
                         : () => _finish(CropPreviewAction.recrop),
                   ),
                   PrimaryButton(
                     label: _errorMessage != null ? 'Reintentar' : 'Enviar',
-                    isLoading: _isSending,
-                    disabledAlpha: 0.6,
+                    disabledAlpha: _disabledAlpha,
                     onPressed: _isSending ? null : _send,
                   ),
                 ],
