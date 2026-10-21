@@ -175,9 +175,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final result = await pickAndCropImage<ReceiptScanResult>(
       context,
       source,
-      process: (image) => _receiptScanService.scan(
+      process: (image, report) => _receiptScanService.scan(
         imageBytes: image.bytes,
         mimeType: image.mimeType,
+        onStage: report,
       ),
     );
     if (result == null || !mounted) return;

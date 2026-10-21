@@ -249,9 +249,12 @@ class PendingMovementsSection extends StatelessWidget {
       context,
       source,
       maxWidth: 2000,
-      process: (image) =>
-          (scanService ?? StatementScanService(Supabase.instance.client))
-              .scan(imageBytes: image.bytes, mimeType: image.mimeType),
+      process: (image, report) =>
+          (scanService ?? StatementScanService(Supabase.instance.client)).scan(
+            imageBytes: image.bytes,
+            mimeType: image.mimeType,
+            onStage: report,
+          ),
     );
     if (scanned == null || !context.mounted) return;
 

@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../ai/scan_failure.dart';
+import '../ai/scan_progress_timeline.dart';
+import '../ai/scan_stage.dart';
 import 'primary_button.dart';
+import 'scan_progress_dialog.dart';
 import 'secondary_button.dart';
 import 'text_action_button.dart';
 
@@ -15,24 +18,26 @@ enum CropPreviewAction { send, recrop, cancel }
 /// is only set when [action] is [CropPreviewAction.send].
 typedef CropReview<T> = ({CropPreviewAction action, T? value});
 
-/// Message shown inside the dialog when the send action fails without saying
-/// why. A [ScanFailure] brings its own message.
+/// Message shown when the send action fails without saying why. A
+/// [ScanFailure] brings its own message.
 const cropSendErrorMessage = scanUnavailableMessage;
 
 /// Shows [bytes], exactly what is about to be sent, and asks whether to send
 /// it, crop it again or give up.
 ///
-/// "Enviar" runs [onSend] without closing the dialog: it shows progress, and
-/// closes with the result once [onSend] succeeds. If [onSend] throws, the
-/// dialog stays open with an error and "Reintentar", so the same image can be
-/// sent again, cropped again or dropped.
+/// "Enviar" runs [onSend] without closing the dialog. A popup follows the
+/// stages [onSend] reports (see [ScanProgress]) and, once it succeeds, says
+/// "Todo listo" for a moment and closes with the result. If [onSend] throws,
+/// the popup shows what failed and the user closes it to come back here, where
+/// the error stays with "Reintentar", so the same image can be sent again,
+/// cropped again or dropped.
 ///
 /// The user must choose: tapping outside the dialog does nothing, and going
 /// back counts as cancel, except while sending.
 Future<CropReview<T>> showCropPreviewDialog<T>(
   BuildContext context,
   Uint8List bytes, {
-  required Future<T> Function() onSend,
+  required Future<T> Function(ScanProgress report) onSend,
 }) async {
   final review = await showDialog<CropReview<T>>(
     context: context,
@@ -44,7 +49,7 @@ Future<CropReview<T>> showCropPreviewDialog<T>(
 
 class _CropPreviewDialog<T> extends StatefulWidget {
   final Uint8List bytes;
-  final Future<T> Function() onSend;
+  final Future<T> Function(ScanProgress report) onSend;
 
   const _CropPreviewDialog({required this.bytes, required this.onSend});
 
@@ -68,20 +73,33 @@ class _CropPreviewDialogState<T> extends State<_CropPreviewDialog<T>> {
       _errorMessage = null;
     });
 
+    final timeline = ScanProgressTimeline();
+    // The popup is closed here once the scan succeeds, or by the user after a
+    // failure.
+    final popup = showScanProgressDialog(context, timeline);
+
     final T value;
     try {
-      value = await widget.onSend();
+      value = await widget.onSend(timeline.report);
     } catch (error) {
+      final message =
+          error is ScanFailure ? error.userMessage : cropSendErrorMessage;
+      timeline.fail(message);
+      await popup;
+      timeline.dispose();
       if (!mounted) return;
       setState(() {
         _isSending = false;
-        _errorMessage =
-            error is ScanFailure ? error.userMessage : cropSendErrorMessage;
+        _errorMessage = message;
       });
       return;
     }
 
+    await timeline.complete();
+    timeline.dispose();
     if (!mounted) return;
+    // Closes the popup, which is the topmost route, and then this dialog.
+    Navigator.of(context).pop();
     Navigator.of(context).pop<CropReview<T>>(
       (action: CropPreviewAction.send, value: value),
     );
@@ -194,55 +212,25 @@ class _CropPreviewDialogState<T> extends State<_CropPreviewDialog<T>> {
     );
   }
 
-  /// Progress while sending, or the error of the last attempt. Nothing
-  /// otherwise.
+  /// The error of the last attempt, if there was one. The progress itself is
+  /// shown in the popup.
   Widget _buildStatus() {
-    if (_isSending) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 16),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.authAccent,
-              ),
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Enviando la imagen…',
-                style: TextStyle(
-                  color: AppColors.authTextSecondary,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     final errorMessage = _errorMessage;
-    if (errorMessage != null) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 16),
-        child: Semantics(
-          liveRegion: true,
-          child: Text(
-            errorMessage,
-            style: const TextStyle(
-              color: AppColors.authExpense,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
+    if (errorMessage == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Semantics(
+        liveRegion: true,
+        child: Text(
+          errorMessage,
+          style: const TextStyle(
+            color: AppColors.authExpense,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
-      );
-    }
-
-    return const SizedBox.shrink();
+      ),
+    );
   }
 }

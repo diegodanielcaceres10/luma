@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../ai/scan_stage.dart';
 import '../widgets/crop_preview_dialog.dart';
 import '../widgets/image_crop_screen.dart';
 import '../widgets/themed_cropper_page.dart';
@@ -19,12 +20,20 @@ typedef ImagePickFn = Future<XFile?> Function(ImageSource source);
 /// or null when the user cancels.
 typedef ImageCropFn = Future<Uint8List?> Function(String sourcePath);
 
+/// Sends [image] to be read. [report] says which stage the request is in; it
+/// is only listened to when a preview is shown.
+typedef ImageProcessFn<T> = Future<T> Function(
+  PickedImage image,
+  ScanProgress report,
+);
+
 /// Shows the cropped [bytes] and returns what the user decided to do with
-/// them. [send] runs the request for the image being shown; the preview keeps
-/// itself open until it succeeds, so the user can retry if it fails.
+/// them. [send] runs the request for the image being shown, passing it the
+/// callback that receives its stages; the preview keeps itself open until it
+/// succeeds, so the user can retry if it fails.
 typedef ImagePreviewFn<T> = Future<CropReview<T>> Function(
   Uint8List bytes,
-  Future<T> Function() send,
+  Future<T> Function(ScanProgress report) send,
 );
 
 /// Picks an image, lets the user crop it and sends it with [process]. Returns
@@ -42,7 +51,7 @@ Future<T?> pickCroppedImage<T>({
   required ImageSource source,
   required ImagePickFn pick,
   required ImageCropFn crop,
-  required Future<T> Function(PickedImage image) process,
+  required ImageProcessFn<T> process,
   ImagePreviewFn<T>? preview,
 }) async {
   final picked = await pick(source);
@@ -54,9 +63,9 @@ Future<T?> pickCroppedImage<T>({
     if (bytes == null) return null;
 
     final image = (bytes: bytes, mimeType: detectImageMimeType(bytes));
-    if (preview == null) return process(image);
+    if (preview == null) return process(image, (_) {});
 
-    final review = await preview(bytes, () => process(image));
+    final review = await preview(bytes, (report) => process(image, report));
     switch (review.action) {
       case CropPreviewAction.send:
         return review.value;
@@ -109,7 +118,7 @@ String detectImageMimeType(Uint8List bytes) {
 Future<T?> pickAndCropImage<T>(
   BuildContext context,
   ImageSource source, {
-  required Future<T> Function(PickedImage image) process,
+  required ImageProcessFn<T> process,
   int imageQuality = 85,
   int? maxWidth,
 }) {

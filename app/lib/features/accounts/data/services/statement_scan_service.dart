@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/ai/run_scan.dart';
 import '../../../../core/ai/scan_failure.dart';
+import '../../../../core/ai/scan_stage.dart';
 import '../../../../core/diagnostics/crashlytics_error_reporter.dart';
 import '../../../../core/diagnostics/error_reporter.dart';
 import '../models/scanned_movement.dart';
@@ -27,19 +28,24 @@ class StatementScanService {
   Future<List<ScannedMovement>> scan({
     required List<int> imageBytes,
     required String mimeType,
+    ScanProgress? onStage,
   }) {
     return runScan(
       function: _function,
       reason: 'Statement scan',
       reporter: _reporter,
       action: () async {
-        final response = await _client.functions.invoke(
-          _function,
-          body: {
-            'image_base64': base64Encode(imageBytes),
-            'mime_type': mimeType,
-          },
-        );
+        onStage?.call(ScanStage.preparing);
+        final body = {
+          'image_base64': base64Encode(imageBytes),
+          'mime_type': mimeType,
+        };
+
+        // Sending the request and waiting for the answer are a single call.
+        onStage?.call(ScanStage.sending);
+        final response = await _client.functions.invoke(_function, body: body);
+
+        onStage?.call(ScanStage.processing);
 
         final data = response.data;
         if (data is! Map) {

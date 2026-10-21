@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:luma/core/ai/scan_stage.dart';
 import 'package:luma/core/utils/image_crop_picker.dart';
 import 'package:luma/core/widgets/crop_preview_dialog.dart';
 
@@ -23,7 +24,7 @@ void main() {
     return cropped;
   }
 
-  Future<String> process(PickedImage image) async {
+  Future<String> process(PickedImage image, ScanProgress report) async {
     processed.add(image);
     return 'scan-result';
   }
@@ -74,7 +75,7 @@ void main() {
           source: ImageSource.gallery,
           pick: pick,
           crop: crop,
-          process: (_) async => throw Exception('down'),
+          process: (_, __) async => throw Exception('down'),
         ),
         throwsException,
       );
@@ -104,7 +105,7 @@ void main() {
         crop: crop,
         process: process,
         preview: (bytes, send) async =>
-            (action: CropPreviewAction.send, value: await send()),
+            (action: CropPreviewAction.send, value: await send((_) {})),
       );
 
       expect(result, 'scan-result');
@@ -118,14 +119,14 @@ void main() {
         source: ImageSource.gallery,
         pick: pick,
         crop: crop,
-        process: (image) async {
+        process: (image, _) async {
           attempts++;
           if (attempts == 1) throw Exception('down');
           return 'second-try';
         },
         preview: (bytes, send) async {
-          await expectLater(send(), throwsException);
-          return (action: CropPreviewAction.send, value: await send());
+          await expectLater(send((_) {}), throwsException);
+          return (action: CropPreviewAction.send, value: await send((_) {}));
         },
       );
 
@@ -133,6 +134,40 @@ void main() {
       expect(attempts, 2);
       // The photo was cropped once: retrying does not ask for a new crop.
       expect(croppedFrom, hasLength(1));
+    });
+
+    test('passes the stages the scan reports on to the preview', () async {
+      final stages = <ScanStage>[];
+
+      final result = await pickCroppedImage<String>(
+        source: ImageSource.gallery,
+        pick: pick,
+        crop: crop,
+        process: (image, report) async {
+          report(ScanStage.sending);
+          report(ScanStage.processing);
+          return 'scan-result';
+        },
+        preview: (bytes, send) async =>
+            (action: CropPreviewAction.send, value: await send(stages.add)),
+      );
+
+      expect(result, 'scan-result');
+      expect(stages, [ScanStage.sending, ScanStage.processing]);
+    });
+
+    test('without preview the reported stages go nowhere', () async {
+      final result = await pickCroppedImage<String>(
+        source: ImageSource.gallery,
+        pick: pick,
+        crop: crop,
+        process: (image, report) async {
+          report(ScanStage.sending);
+          return 'scan-result';
+        },
+      );
+
+      expect(result, 'scan-result');
     });
 
     test('crops the original photo again when the user asks to', () async {
@@ -148,7 +183,7 @@ void main() {
           if (reviews == 1) {
             return (action: CropPreviewAction.recrop, value: null);
           }
-          return (action: CropPreviewAction.send, value: await send());
+          return (action: CropPreviewAction.send, value: await send((_) {}));
         },
       );
 
