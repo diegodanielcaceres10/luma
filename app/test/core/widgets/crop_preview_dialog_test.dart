@@ -56,6 +56,14 @@ void main() {
   ) =>
       openStaged(tester, (_) => onSend());
 
+  /// Lets a successful send finish. After the scan ends the popup still shows
+  /// "Todo listo" for a stage, and settling only waits for frames, not for
+  /// timers, so the time is advanced by hand first.
+  Future<void> finishSend(WidgetTester tester) async {
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+  }
+
   /// Taps "Enviar", lets the failure show in the popup and closes it, which
   /// leaves the preview with its error.
   Future<void> sendAndCloseFailure(WidgetTester tester, String button) async {
@@ -101,7 +109,7 @@ void main() {
     expect(review, isNull);
 
     request.complete('scan-result');
-    await tester.pumpAndSettle();
+    await finishSend(tester);
 
     expect(find.text('Revisá la imagen'), findsNothing);
     expect(review?.action, CropPreviewAction.send);
@@ -135,7 +143,7 @@ void main() {
     );
 
     request.complete('done');
-    await tester.pumpAndSettle();
+    await finishSend(tester);
   });
 
   testWidgets('fades every button while sending', (tester) async {
@@ -166,7 +174,7 @@ void main() {
     );
 
     request.complete('done');
-    await tester.pumpAndSettle();
+    await finishSend(tester);
   });
 
   testWidgets('keeps the dialog open with an error when the request fails',
@@ -195,7 +203,7 @@ void main() {
     expect(find.text(cropSendErrorMessage), findsOneWidget);
 
     await tester.tap(find.text('Reintentar'));
-    await tester.pumpAndSettle();
+    await finishSend(tester);
 
     expect(attempts, 2);
     expect(find.text('Revisá la imagen'), findsNothing);
@@ -223,7 +231,7 @@ void main() {
     expect(find.text('Preparando la imagen'), findsOneWidget);
 
     retry.complete('done');
-    await tester.pumpAndSettle();
+    await finishSend(tester);
     expect(review?.value, 'done');
   });
 
@@ -284,28 +292,25 @@ void main() {
 
     await tester.tap(find.text('Enviar'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Preparando la imagen'), findsOneWidget);
 
+    // Each stage is held for a full second before the next one shows.
     report(ScanStage.sending);
     await tester.pump(second);
-    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Enviando y esperando respuesta'), findsOneWidget);
 
     report(ScanStage.processing);
     await tester.pump(second);
-    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Procesando el resultado'), findsOneWidget);
 
     request.complete('scan-result');
     await tester.pump(second);
-    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Todo listo'), findsOneWidget);
     // Still open: "Todo listo" is shown for a second first.
     expect(find.text('Revisá la imagen'), findsOneWidget);
     expect(review, isNull);
 
-    await tester.pumpAndSettle();
+    await finishSend(tester);
     expect(find.text('Todo listo'), findsNothing);
     expect(find.text('Revisá la imagen'), findsNothing);
     expect(review?.action, CropPreviewAction.send);

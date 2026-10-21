@@ -9,13 +9,12 @@ void main() {
 
   late ScanProgressTimeline timeline;
 
-  setUp(() => timeline = ScanProgressTimeline());
-  tearDown(() => timeline.dispose());
-
-  // Ends with the tree gone and the timeline released: it holds a timer for
-  // the stage being shown, which a widget test does not allow to be pending.
+  // The timeline is created inside the test so its timers run on the test's
+  // fake clock. It ends with the tree gone and the timeline released: a widget
+  // test must finish without pending timers.
   void testDialog(String name, Future<void> Function(WidgetTester) body) {
     testWidgets(name, (tester) async {
+      timeline = ScanProgressTimeline();
       await body(tester);
       await tester.pumpWidget(const SizedBox());
       timeline.dispose();

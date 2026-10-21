@@ -8,17 +8,13 @@ void main() {
   late ScanProgressTimeline timeline;
   var notifications = 0;
 
-  setUp(() {
-    notifications = 0;
-    timeline = ScanProgressTimeline()..addListener(() => notifications++);
-  });
-
-  tearDown(() => timeline.dispose());
-
-  // A widget test must end without pending timers: the timeline holds one for
-  // the stage being shown, so it is released when the body is done.
+  // The timeline is created inside the test so its timers run on the test's
+  // fake clock, and released at the end because a widget test must finish
+  // without pending timers.
   void testTimeline(String name, Future<void> Function(WidgetTester) body) {
     testWidgets(name, (tester) async {
+      notifications = 0;
+      timeline = ScanProgressTimeline()..addListener(() => notifications++);
       await body(tester);
       timeline.dispose();
     });
@@ -27,13 +23,13 @@ void main() {
   ScanStage stage() => timeline.state.stage;
   ScanProgressPhase phase() => timeline.state.phase;
 
-  test('dispose can be called twice', () {
+  testTimeline('dispose can be called twice', (tester) async {
     timeline.dispose();
 
     expect(timeline.dispose, returnsNormally);
   });
 
-  test('starts on the first stage', () {
+  testTimeline('starts on the first stage', (tester) async {
     expect(stage(), ScanStage.preparing);
     expect(phase(), ScanProgressPhase.running);
     expect(timeline.state.message, isNull);
