@@ -11,38 +11,37 @@ param(
     [switch]$Install
 )
 
-$ErrorActionPreference = "Stop"
+. "$PSScriptRoot\_common.ps1"
 
-$AppDir = Split-Path -Parent $PSScriptRoot
-Set-Location $AppDir
+Start-Task "Building debug APK" {
+    Enter-AppDir
+    Assert-EnvFile
 
-$EnvFile = ".env"
-if (-not (Test-Path $EnvFile)) {
-    throw "No encontré app\$EnvFile (copiá .env.example y completalo)"
-}
+    Invoke-Flutter build apk --debug --android-skip-build-dependency-validation "--dart-define-from-file=$script:EnvFileName"
 
-Write-Host "Compilando APK (debug)..." -ForegroundColor Cyan
-flutter build apk --debug --android-skip-build-dependency-validation --dart-define-from-file=$EnvFile
-if ($LASTEXITCODE -ne 0) {
-    throw "flutter build apk falló (exit code $LASTEXITCODE)"
-}
+    $srcApk = "build/app/outputs/flutter-apk/app-debug.apk"
+    if (-not (Test-Path $srcApk)) {
+        throw "Generated APK not found at $srcApk"
+    }
 
-$SrcApk = "build\app\outputs\flutter-apk\app-debug.apk"
-if (-not (Test-Path $SrcApk)) {
-    throw "No encontré el APK generado en $SrcApk"
-}
+    $distDir = "dist"
+    New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 
-$DistDir = "dist"
-New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
+    $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $destApk = Join-Path $distDir "luma-app-debug-$timestamp.apk"
+    Move-Item -Force $srcApk $destApk
+    Write-Ok "APK ready: $destApk"
 
-$Timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$DestApk = "$DistDir\luma-app-debug-$Timestamp.apk"
-
-Move-Item -Force $SrcApk $DestApk
-
-Write-Host "APK listo: $DestApk" -ForegroundColor Green
-
-if ($Install) {
-    Write-Host "Instalando en el dispositivo conectado..." -ForegroundColor Cyan
-    adb install -r $DestApk
+    if ($Install) {
+        Write-Step "Installing on the connected device"
+        if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
+            throw "adb was not found in PATH. Install the Android platform tools to use -Install."
+        }
+        Write-Info "Command: adb install -r $destApk"
+        & adb install -r $destApk
+        if ($LASTEXITCODE -ne 0) {
+            throw "adb install failed (exit code $LASTEXITCODE)"
+        }
+        Write-Ok "APK installed"
+    }
 }
