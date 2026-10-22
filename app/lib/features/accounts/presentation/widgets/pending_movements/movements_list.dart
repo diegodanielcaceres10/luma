@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utils/currency_format.dart';
-import '../../../../../core/utils/date_format.dart';
 import 'pending_movement.dart';
+import 'pending_movement_tile.dart';
 
 class MovementsSectionHeader extends StatelessWidget {
   final String title;
@@ -76,7 +75,6 @@ class MovementsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: AppColors.authCardFill,
         borderRadius: BorderRadius.circular(20),
@@ -116,64 +114,12 @@ class _MovementListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final amount = movement.amount;
-    final amountText = amount > 0
-        ? '+${formatCurrency(amount, currency)}'
-        : formatCurrency(amount, currency);
-    final amountColor =
-        amount > 0 ? AppColors.authIncome : AppColors.authExpense;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+    return PendingMovementTile(
+      movement: movement,
+      currency: currency,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  movement.displayLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.authTextPrimary,
-                  ),
-                ),
-                if (movement.description != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    movement.description!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.authTextSecondary,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 2),
-                Text(
-                  formatDate(movement.date),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.authTextSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            amountText,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: amountColor,
-            ),
-          ),
           IconButton(
             onPressed: onEdit,
             icon: const Icon(

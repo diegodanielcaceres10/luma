@@ -85,6 +85,60 @@ void main() {
       expect(tester.widget<Text>(find.text('Cancelar')).style?.fontSize, 19);
     });
 
+    testWidgets('fades text and border when disabled and disabledAlpha is set',
+        (tester) async {
+      await tester.pumpWidget(
+        host(
+          const SecondaryButton(
+            label: 'Cancelar',
+            onPressed: null,
+            disabledAlpha: 0.5,
+          ),
+        ),
+      );
+
+      final style = button(tester).style!;
+      expect(
+        style.foregroundColor!.resolve({WidgetState.disabled}),
+        AppColors.authTextPrimary.withValues(alpha: 0.5),
+      );
+      expect(
+        style.side!.resolve({WidgetState.disabled})?.color,
+        AppColors.authCardBorder.withValues(alpha: 0.5),
+      );
+    });
+
+    testWidgets('keeps the border opaque when enabled with disabledAlpha',
+        (tester) async {
+      await tester.pumpWidget(
+        host(
+          SecondaryButton(
+            label: 'Cancelar',
+            onPressed: () {},
+            disabledAlpha: 0.5,
+          ),
+        ),
+      );
+
+      final style = button(tester).style!;
+      expect(style.side!.resolve({})?.color, AppColors.authCardBorder);
+      expect(style.foregroundColor!.resolve({}), AppColors.authTextPrimary);
+    });
+
+    testWidgets('keeps the Material disabled look without disabledAlpha',
+        (tester) async {
+      await tester.pumpWidget(
+        host(const SecondaryButton(label: 'Cancelar', onPressed: null)),
+      );
+
+      final style = button(tester).style!;
+      expect(
+        style.side!.resolve({WidgetState.disabled})?.color,
+        AppColors.authCardBorder,
+      );
+      expect(style.foregroundColor!.resolve({WidgetState.disabled}), isNull);
+    });
+
     testWidgets('keeps the theme shape without borderRadius', (tester) async {
       await tester.pumpWidget(
         host(SecondaryButton(label: 'Cancelar', onPressed: () {})),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_colors.dart';
+
 class GoogleSignInButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isLoading;
@@ -12,45 +14,68 @@ class GoogleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final isInteractive = !isLoading;
+
+    return Container(
       width: double.infinity,
       height: 56,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF1F1F1F),
-          disabledBackgroundColor: Colors.white70,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161F1A),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: AppColors.authCardBorder.withValues(alpha: 0.6),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.40),
+            blurRadius: 22,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: AppColors.authAccent.withValues(alpha: 0.08),
+            blurRadius: 16,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(28),
+        child: InkWell(
+          onTap: isInteractive ? onPressed : null,
+          borderRadius: BorderRadius.circular(28),
+          splashColor: Colors.white.withValues(alpha: 0.08),
+          highlightColor: Colors.white.withValues(alpha: 0.04),
+          child: Center(
+            child: isLoading
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: AppColors.authAccent,
+                    ),
+                  )
+                : const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _GoogleMark(size: 20),
+                      SizedBox(width: 14),
+                      Text(
+                        'Continuar con Google',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFF1F5F3),
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Color(0xFF1F1F1F),
-                ),
-              )
-            : const Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _GoogleMark(size: 20),
-                  SizedBox(width: 12),
-                  Text(
-                    'Continuar con Google',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F1F1F),
-                    ),
-                  ),
-                ],
-              ),
       ),
     );
   }

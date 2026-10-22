@@ -84,12 +84,42 @@ class _AccountFormScreenState extends State<AccountFormScreen> {
       if (isDuplicate) {
         _formKey.currentState!.validate();
       }
+      final message = isDuplicate
+          ? 'Ya existe una cuenta con ese nombre.'
+          : 'Ocurrió un error al guardar. Intentá de nuevo.';
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            isDuplicate
-                ? 'Ya existe una cuenta con ese nombre.'
-                : 'Ocurrió un error al guardar. Intentá de nuevo.',
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF1E2922),
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(
+              color: AppColors.authCardBorder,
+              width: 1,
+            ),
+          ),
+          content: Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: AppColors.error,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: AppColors.authTextPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -113,57 +143,130 @@ class _AccountFormScreenState extends State<AccountFormScreen> {
                 minHeight: 3,
               ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                children: [
-                  ScreenHeader(
-                    title: _isEditing ? 'Editar cuenta' : 'Nueva cuenta',
-                    subtitle: _isEditing
-                        ? 'Modifica el nombre de tu cuenta.'
-                        : 'Registra una cuenta para llevar tu saldo.',
-                    size: ScreenHeaderSize.compact,
-                    onBack: widget.onDone,
-                    backEnabled: !isSubmitting,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    children: [
+                      ScreenHeader(
+                        title: _isEditing ? 'Editar cuenta' : 'Nueva cuenta',
+                        subtitle: _isEditing
+                            ? 'Modifica el nombre de tu cuenta.'
+                            : 'Registra una cuenta para llevar tu saldo.',
+                        size: ScreenHeaderSize.compact,
+                        onBack: widget.onDone,
+                        backEnabled: !isSubmitting,
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          color: AppColors.authCardFill,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: AppColors.authCardBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.16),
+                              blurRadius: 20,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.authAccent
+                                        .withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.authAccent
+                                          .withValues(alpha: 0.30),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.account_balance_rounded,
+                                    size: 20,
+                                    color: AppColors.authAccent,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Datos de la cuenta',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.authTextPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            InputTextField(
+                              controller: _nameController,
+                              label: 'Nombre',
+                              hintText: 'Ej: Cuenta corriente',
+                              enabled: !isSubmitting,
+                              validator: (value) =>
+                                  value == null || value.trim().isEmpty
+                                      ? 'Ingresa un nombre'
+                                      : null,
+                            ),
+                            if (!_isEditing) ...[
+                              const SizedBox(height: 20),
+                              InputTextField(
+                                controller: _balanceController,
+                                label: 'Saldo inicial',
+                                hintText: '0.00',
+                                enabled: !isSubmitting,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                validator: (value) {
+                                  final parsed =
+                                      double.tryParse((value ?? '').trim());
+                                  return parsed == null
+                                      ? 'Ingresa un monto válido'
+                                      : null;
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 4),
+                                child: Text(
+                                  'Este será el saldo de partida para registrar tus movimientos.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.authTextFooter,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: PrimaryButton(
+                          label: _isEditing ? 'Guardar cambios' : 'Crear cuenta',
+                          disabledAlpha: 0.6,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          isLoading: isSubmitting,
+                          onPressed: isSubmitting ? null : _submit,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  InputTextField(
-                    controller: _nameController,
-                    label: 'Nombre',
-                    hintText: 'Ej: Cuenta corriente',
-                    enabled: !isSubmitting,
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Ingresa un nombre'
-                        : null,
-                  ),
-                  if (!_isEditing) ...[
-                    const SizedBox(height: 20),
-                    InputTextField(
-                      controller: _balanceController,
-                      label: 'Saldo inicial',
-                      hintText: '0.00',
-                      enabled: !isSubmitting,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      validator: (value) {
-                        final parsed = double.tryParse((value ?? '').trim());
-                        return parsed == null
-                            ? 'Ingresa un monto válido'
-                            : null;
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    child: PrimaryButton(
-                      label: _isEditing ? 'Guardar cambios' : 'Crear cuenta',
-                      disabledAlpha: 0.6,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      isLoading: isSubmitting,
-                      onPressed: isSubmitting ? null : _submit,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],

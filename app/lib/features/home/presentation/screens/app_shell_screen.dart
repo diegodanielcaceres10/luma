@@ -49,6 +49,13 @@ int _navIndexFor(String path) {
 bool _isRouteActive(String location, String base) =>
     location == base || location.startsWith('$base/');
 
+/// Width of the persistent sidebar (tablet and desktop layouts only).
+double _sidebarWidthFor({
+  required bool isCompact,
+  required bool isWideDesktop,
+}) =>
+    isCompact ? 72.0 : (isWideDesktop ? 260.0 : 240.0);
+
 class _NavDestination {
   final IconData icon;
   final String label;
@@ -244,21 +251,27 @@ class AppShellScreen extends StatelessWidget {
                     onNavigate: navigateTo,
                   ),
                   Expanded(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: kAppMaxDesktopContentWidth,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildContentHeader(
-                              isMobile: false,
-                              trailing: _headerAction(navIndex),
-                            ),
-                            Expanded(child: child),
-                          ],
+                    child: _DialogsCenteredOnContent(
+                      sidebarWidth: _sidebarWidthFor(
+                        isCompact: isTablet,
+                        isWideDesktop: isWideDesktop,
+                      ),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: kAppMaxDesktopContentWidth,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildContentHeader(
+                                isMobile: false,
+                                trailing: _headerAction(navIndex),
+                              ),
+                              Expanded(child: child),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -269,6 +282,43 @@ class AppShellScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Dialogs open on the root navigator and center on the whole window, which
+/// leaves them off-center next to the content when a sidebar is showing.
+/// `showDialog` captures the theme of the context it is called from, so
+/// reserving the sidebar's width in the dialog insets here centers every
+/// dialog opened from the content area on the content itself.
+class _DialogsCenteredOnContent extends StatelessWidget {
+  final double sidebarWidth;
+  final Widget child;
+
+  const _DialogsCenteredOnContent({
+    required this.sidebarWidth,
+    required this.child,
+  });
+
+  // Material's default dialog insets, plus the sidebar on the left.
+  static const _horizontal = 40.0;
+  static const _vertical = 24.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Theme(
+      data: theme.copyWith(
+        dialogTheme: theme.dialogTheme.copyWith(
+          insetPadding: EdgeInsets.fromLTRB(
+            sidebarWidth + _horizontal,
+            _vertical,
+            _horizontal,
+            _vertical,
+          ),
+        ),
+      ),
+      child: child,
     );
   }
 }
@@ -290,7 +340,10 @@ class _AppSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sidebarWidth = isCompact ? 72.0 : (isWideDesktop ? 260.0 : 240.0);
+    final sidebarWidth = _sidebarWidthFor(
+      isCompact: isCompact,
+      isWideDesktop: isWideDesktop,
+    );
 
     return Container(
       width: sidebarWidth,

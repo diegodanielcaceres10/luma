@@ -193,7 +193,7 @@ class _AddInvoiceDialogState extends State<AddInvoiceDialog> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         PrimaryButton(
-          label: 'Agregar',
+          label: widget.initial == null ? 'Agregar' : 'Listo',
           onPressed: _save,
         ),
       ],

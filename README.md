@@ -22,7 +22,7 @@ luma/
 │   │   ├── core/         # Config, navegación, utils y widgets compartidos
 │   │   └── features/     # Módulos por feature (ver abajo)
 │   ├── assets/           # Imágenes, logo y fuentes
-│   ├── scripts/          # Scripts de build (build_apk.sh / .ps1)
+│   ├── scripts/          # Scripts de build, test y ejecución (.ps1 / .sh)
 │   └── pubspec.yaml
 └── db/
     └── migrations/       # Migraciones SQL del esquema de Supabase/Postgres
@@ -68,6 +68,21 @@ quedar compiladas, cualquiera puede extraerlas del build.
 Si compilás en CI (por ejemplo GitHub Actions), definí esas variables como
 secrets/variables y generá el `.env` antes del build, o pasá cada una con
 `--dart-define=NOMBRE=valor`.
+
+### Scripts
+
+En `app/scripts/` hay un script por tarea, en PowerShell (`.ps1`) y en shell
+(`.sh`). Se pueden ejecutar desde cualquier carpeta, por ejemplo desde la raíz
+del repo, y todos muestran los mismos logs: qué hacen, el comando exacto,
+el resultado y el tiempo total.
+
+| Tarea | PowerShell | Shell |
+| --- | --- | --- |
+| Compilar un APK debug en `app/dist/` | `.\app\scripts\build_apk.ps1` (`-Install` lo instala con adb) | `./app/scripts/build_apk.sh` (`INSTALL=1`) |
+| Ejecutar los tests | `.\app\scripts\test.ps1 [args de flutter test]` | `./app/scripts/test.sh [args de flutter test]` |
+| Ejecutar la app en Chrome (puerto 5005) | `.\app\scripts\run.ps1` (`-Port`, `-Device`) | `./app/scripts/run.sh` (`PORT`, `DEVICE`) |
+
+La compilación y la ejecución necesitan `app/.env` (ver Configuración).
 
 ### Crashlytics (Android)
 

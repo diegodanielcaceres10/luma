@@ -13,8 +13,7 @@ import '../export/transactions_statistics_screen_pdf_builder.dart';
 import '../view_models/transaction_view_model.dart';
 import '../view_models/transactions_statistics_report.dart';
 import '../widgets/statistics/budget_categories_card.dart';
-import '../widgets/statistics/category_donut_chart.dart';
-import '../widgets/statistics/category_legend_row.dart';
+import '../widgets/statistics/donut_with_legend.dart';
 import '../widgets/statistics/justify_month_card.dart';
 import '../widgets/statistics/statistics_header.dart';
 import '../widgets/statistics/summary_cards.dart';
@@ -534,27 +533,11 @@ class _TransactionsStatisticsScreenState
                         clipBehavior: Clip.antiAlias,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              StatisticsCategoryDonutChart(
-                                breakdown: expenseTypeBreakdown,
-                                total: expenseTypeTotal,
-                                currency: widget.currency,
-                                label: 'Gasto real',
-                              ),
-                              const SizedBox(width: 18),
-                              Expanded(
-                                child: Column(
-                                  children: expenseTypeBreakdown
-                                      .map((c) => StatisticsCategoryLegendRow(
-                                            category: c,
-                                            currency: widget.currency,
-                                          ))
-                                      .toList(),
-                                ),
-                              ),
-                            ],
+                          child: StatisticsDonutWithLegend(
+                            breakdown: expenseTypeBreakdown,
+                            total: expenseTypeTotal,
+                            currency: widget.currency,
+                            label: 'Gasto real',
                           ),
                         ),
                       ),
@@ -605,26 +588,10 @@ class _TransactionsStatisticsScreenState
                         clipBehavior: Clip.antiAlias,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              StatisticsCategoryDonutChart(
-                                breakdown: categorizedBreakdown,
-                                total: categorizedTotal,
-                                currency: widget.currency,
-                              ),
-                              const SizedBox(width: 18),
-                              Expanded(
-                                child: Column(
-                                  children: categorizedBreakdown
-                                      .map((c) => StatisticsCategoryLegendRow(
-                                            category: c,
-                                            currency: widget.currency,
-                                          ))
-                                      .toList(),
-                                ),
-                              ),
-                            ],
+                          child: StatisticsDonutWithLegend(
+                            breakdown: categorizedBreakdown,
+                            total: categorizedTotal,
+                            currency: widget.currency,
                           ),
                         ),
                       ),

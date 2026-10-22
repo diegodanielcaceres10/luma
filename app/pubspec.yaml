@@ -2,7 +2,7 @@ name: luma
 description: "A new Flutter project."
 publish_to: "none"
 
-version: 2.0.0
+version: 2.1.0
 
 environment:
   sdk: ^3.5.3
@@ -41,7 +41,8 @@ flutter:
   assets:
     - assets/logo.png
     - assets/images/balance_card_bg.png
-    - assets/images/login_bg.png
+    - assets/images/login_bg_mobile_dark.png
+    - assets/images/login_bg_desktop_dark.png
     - assets/fonts/Roboto-Regular.ttf
     - assets/fonts/Roboto-Bold.ttf
 

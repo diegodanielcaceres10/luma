@@ -16,8 +16,6 @@ import 'statement_review/review_tile.dart';
 /// Only the description of a line can be corrected. Lines outside [dateRange]
 /// start unselected and can't be added; lines that match something in
 /// [known] are flagged as possible duplicates and also start unselected.
-/// Lines whose description mentions a transfer are added as transfers unless
-/// the user unticks them.
 Future<List<PendingMovement>?> showStatementReviewSheet(
   BuildContext context, {
   required List<ScannedMovement> movements,
@@ -72,7 +70,6 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
     _items = widget.movements.map(StatementReviewItem.new).toList();
     for (final item in _items) {
       _refreshFlags(item);
-      _refreshTransfer(item);
       item.selected = item.inRange && !item.duplicate;
     }
   }
@@ -88,15 +85,6 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
         (!_dayOf(date).isBefore(_dayOf(range.start)) &&
             !_dayOf(date).isAfter(_dayOf(range.end)));
     item.duplicate = isPossibleDuplicate(item.movement, widget.known);
-  }
-
-  /// Flags the line as a transfer when its description says so; the box
-  /// starts ticked only the first time the flag turns on.
-  void _refreshTransfer(StatementReviewItem item) {
-    final wasTransfer = item.isTransfer;
-    item.isTransfer = mentionsTransfer(item.movement.description);
-    if (item.isTransfer && !wasTransfer) item.asTransfer = true;
-    if (!item.isTransfer) item.asTransfer = false;
   }
 
   Iterable<StatementReviewItem> get _selected => _items.where((i) => i.selected);
@@ -124,26 +112,17 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
         date: item.movement.date,
         description: description.isEmpty ? null : description,
       );
-      _refreshTransfer(item);
     });
   }
 
   void _confirm() {
     final range = _range;
     final result = _selected.map<PendingMovement>((i) {
-      final date = i.movement.date ?? range.end;
-      if (i.asTransfer) {
-        return TransferPendingMovement(
-          amount: i.movement.signedAmount,
-          description: i.movement.description,
-          date: date,
-        );
-      }
       return CategoryPendingMovement(
         amount: i.movement.signedAmount,
         type: i.movement.type,
         description: i.movement.description,
-        date: date,
+        date: i.movement.date ?? range.end,
       );
     }).toList();
     Navigator.of(context).pop(result);
@@ -208,8 +187,6 @@ class _StatementReviewSheetState extends State<_StatementReviewSheet> {
                     currency: widget.currency,
                     onToggle: (value) =>
                         setState(() => item.selected = value ?? false),
-                    onToggleTransfer: (value) =>
-                        setState(() => item.asTransfer = value ?? false),
                     onEdit: () => _edit(item),
                   );
                 },

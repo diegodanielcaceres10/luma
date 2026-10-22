@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
+import '../../../../../core/utils/category_visuals.dart';
 import '../../../../../core/utils/currency_format.dart';
 import '../../../../../core/utils/date_format.dart';
+import '../../../../../core/widgets/movement_tile.dart';
 import '../../../data/models/transaction_entry.dart';
 
 class TransactionMovementRow extends StatelessWidget {
@@ -33,114 +35,62 @@ class TransactionMovementRow extends StatelessWidget {
     this.onActions,
   });
 
-
   @override
   Widget build(BuildContext context) {
     final sign = movement.isIncome ? '+' : '-';
     // Disable the menu while an action is running.
     final isBusy = isDeleting || isUpdating;
 
-    final color = movement.isTransfer
+    // Transfers are neither income nor expense: use a neutral color.
+    final amountColor = movement.isTransfer
         ? AppColors.authTransfer
         : movement.isIncome
             ? AppColors.authIncome
             : AppColors.authExpense;
 
-    final IconData iconData;
-    final String? semanticLabel;
+    final MovementLeading leading;
     if (movement.isTransfer) {
-      iconData = Icons.swap_horiz_rounded;
-      semanticLabel = 'Transferencia';
+      leading = const MovementLeading.transfer();
     } else if (isServicePayment) {
-      iconData = Icons.request_page_outlined;
-      semanticLabel = 'Pago de servicio';
-    } else if (movement.isIncome) {
-      iconData = Icons.arrow_downward_rounded;
-      semanticLabel = null;
+      leading = const MovementLeading.servicePayment();
+    } else if (movement.category.isUncategorized) {
+      leading = const MovementLeading.uncategorized();
     } else {
-      iconData = Icons.arrow_upward_rounded;
-      semanticLabel = null;
+      leading = MovementLeading.category(
+        color: colorFromHex(
+          movement.category.color,
+          fallback: AppColors.authTextSecondary,
+        ),
+      );
     }
 
-    final podColor = isServicePayment ? AppColors.authInvoice : color;
+    // Without a category the line is just the date.
+    final String? label;
+    if (movement.isTransfer) {
+      label = 'Transferencia';
+    } else if (movement.category.isUncategorized) {
+      label = null;
+    } else {
+      label = movement.category.name;
+    }
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: podColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: podColor.withValues(alpha: 0.25),
-                    width: 1,
-                  ),
-                ),
-                child: Center(
-                  child: Icon(
-                    iconData,
-                    color: podColor,
-                    size: 20,
-                    semanticLabel: semanticLabel,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      movement.description?.isNotEmpty == true
-                          ? movement.description!
-                          : movement.category.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.authTextPrimary,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${movement.category.name} · ${formatDate(movement.date)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.authTextSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '$sign${formatCurrency(movement.amount, currency)}',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  // Transfers are neither income nor expense: use a neutral color.
-                  color: color,
-                ),
-              ),
-              if (onActions != null) ...[
-                const SizedBox(width: 4),
-                _RowActionButton(
+        MovementTile(
+          leading: leading,
+          title: movement.description,
+          subtitle: [formatDate(movement.date), if (label != null) label]
+              .join(' · '),
+          amountText: '$sign${formatCurrency(movement.amount, currency)}',
+          amountColor: amountColor,
+          trailing: onActions == null
+              ? null
+              : _RowActionButton(
                   icon: Icons.more_vert_rounded,
                   tooltip: 'Opciones del movimiento',
                   isLoading: isBusy,
                   onPressed: isBusy ? null : onActions,
                 ),
-              ],
-            ],
-          ),
         ),
         if (showDivider)
           const Divider(height: 1, color: AppColors.authCardBorder),

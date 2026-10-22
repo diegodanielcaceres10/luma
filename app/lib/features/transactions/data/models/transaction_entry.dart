@@ -9,6 +9,10 @@ class TransactionCategory {
     this.color,
   });
 
+  /// The movement has no category: the backend returned none, so [name] is
+  /// only a placeholder.
+  bool get isUncategorized => id == null;
+
   factory TransactionCategory.fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return const TransactionCategory(name: 'Sin categoría');

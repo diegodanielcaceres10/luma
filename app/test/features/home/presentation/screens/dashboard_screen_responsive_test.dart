@@ -96,6 +96,8 @@ class FakeInvoiceVM extends ChangeNotifier implements InvoiceViewModel {
   @override
   double pendingAmountForCurrentMonth(dynamic services) => 0;
   @override
+  Set<String> get servicePaymentTransactionIds => const {};
+  @override
   Future<void> loadInvoices() async {}
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -133,7 +135,7 @@ void main() {
           onOpenMonthlyBalance: (_) {},
           onOpenAddTransaction: (_) {},
           onGoToAccounts: () {},
-          onManageAccounts: () {},
+          onOpenAccount: (_) {},
           onGoToInvoices: () {},
           onGoToTransfers: () {},
         ),

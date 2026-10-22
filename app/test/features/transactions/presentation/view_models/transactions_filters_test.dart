@@ -5,6 +5,7 @@ import 'package:luma/features/transactions/presentation/view_models/transactions
 TransactionEntry entry({
   DateTime? date,
   String type = 'expense',
+  bool isTransfer = false,
   TransactionCategory category = const TransactionCategory(
     id: 'c1',
     name: 'Comida',
@@ -18,6 +19,7 @@ TransactionEntry entry({
     id: 't1',
     type: type,
     amount: 10,
+    isTransfer: isTransfer,
     date: date ?? DateTime(2026, 10, 14),
     category: category,
     account: account,
@@ -46,6 +48,17 @@ void main() {
       expect(
         TransactionsFilters.typeFromQuery('otro'),
         TransactionTypeFilter.all,
+      );
+    });
+
+    test('type filter: transfer uses the transfer query value', () {
+      expect(
+        TransactionsFilters.typeQueryValue(TransactionTypeFilter.transfer),
+        'transfer',
+      );
+      expect(
+        TransactionsFilters.typeFromQuery('transfer'),
+        TransactionTypeFilter.transfer,
       );
     });
 
@@ -200,6 +213,64 @@ void main() {
       expect(
         TransactionsFilters.matchesType(TransactionTypeFilter.expense, income),
         isFalse,
+      );
+    });
+  });
+
+  group('matchesType with transfers', () {
+    final incomeTransfer = entry(type: 'income', isTransfer: true);
+    final expenseTransfer = entry(type: 'expense', isTransfer: true);
+
+    test('income and expense leave transfers out', () {
+      expect(
+        TransactionsFilters.matchesType(
+          TransactionTypeFilter.income,
+          incomeTransfer,
+        ),
+        isFalse,
+      );
+      expect(
+        TransactionsFilters.matchesType(
+          TransactionTypeFilter.expense,
+          expenseTransfer,
+        ),
+        isFalse,
+      );
+    });
+
+    test('transfer keeps only transfers, whichever their type', () {
+      for (final transfer in [incomeTransfer, expenseTransfer]) {
+        expect(
+          TransactionsFilters.matchesType(
+            TransactionTypeFilter.transfer,
+            transfer,
+          ),
+          isTrue,
+        );
+      }
+      expect(
+        TransactionsFilters.matchesType(
+          TransactionTypeFilter.transfer,
+          entry(type: 'income'),
+        ),
+        isFalse,
+      );
+      expect(
+        TransactionsFilters.matchesType(
+          TransactionTypeFilter.transfer,
+          entry(),
+        ),
+        isFalse,
+      );
+    });
+
+    test('all still shows transfers', () {
+      expect(
+        TransactionsFilters.matchesType(
+          TransactionTypeFilter.all,
+          expenseTransfer,
+        ),
+        isTrue,
       );
     });
   });

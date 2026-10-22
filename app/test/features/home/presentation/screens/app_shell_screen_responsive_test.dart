@@ -122,4 +122,71 @@ void main() {
     expect(pageRect.width, 1200.0);
     expect(pageRect.left, 260.0 + 70.0);
   });
+
+  group('dialogs opened from the content area', () {
+    // Opens a fixed-size dialog from a page inside the shell and returns the
+    // horizontal center of the dialog.
+    Future<double> openDialogCenterX(WidgetTester tester, Size size) async {
+      await setViewport(tester, size);
+
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          ShellRoute(
+            builder: (context, state, child) => AppShellScreen(child: child),
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => Scaffold(
+                  body: Builder(
+                    builder: (context) => TextButton(
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (_) => const Dialog(
+                          child: SizedBox(
+                            key: Key('dialog-content'),
+                            width: 400,
+                            height: 200,
+                          ),
+                        ),
+                      ),
+                      child: const Text('open'),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      return tester.getCenter(find.byKey(const Key('dialog-content'))).dx;
+    }
+
+    testWidgets('are centered next to the 260 px sidebar', (tester) async {
+      final centerX = await openDialogCenterX(tester, const Size(1600, 900));
+
+      // Content area spans 260..1600.
+      expect(centerX, (260 + 1600) / 2);
+    });
+
+    testWidgets('are centered next to the compact 72 px sidebar',
+        (tester) async {
+      final centerX = await openDialogCenterX(tester, const Size(800, 800));
+
+      // Content area spans 72..800.
+      expect(centerX, (72 + 800) / 2);
+    });
+
+    testWidgets('stay centered on the window on mobile', (tester) async {
+      final centerX = await openDialogCenterX(tester, const Size(400, 800));
+
+      expect(centerX, 400 / 2);
+    });
+  });
 }

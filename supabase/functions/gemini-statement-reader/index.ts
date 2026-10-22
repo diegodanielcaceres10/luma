@@ -142,6 +142,23 @@ function describeGeminiResponse(
   };
 }
 
+// Tells the app what kind of failure this is, so it can show a fitting message
+// and decide what is worth reporting. The code is the only thing the app reads
+// besides `error`.
+//   quota    → the free tier limit was reached
+//   config   → the key is missing, invalid or revoked, or the model is gone
+//   parse    → Gemini answered, but not with something usable
+//   upstream → Gemini failed or is down
+type ScanErrorCode = "quota" | "config" | "parse" | "upstream";
+
+function codeForGeminiError(status: number, body: string): ScanErrorCode {
+  if (status === 429) return "quota";
+  // Gemini reports an invalid key as 400 with reason API_KEY_INVALID.
+  if (status === 401 || status === 403 || status === 404) return "config";
+  if (body.includes("API_KEY_INVALID")) return "config";
+  return "upstream";
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
@@ -152,26 +169,34 @@ Deno.serve(async (req: Request) => {
   let apiKey: string | undefined;
 
   // Logs the failure with what is known about the request so far. The client
-  // only gets `error`; the detail stays in the logs.
+  // only gets `error` and `code`; the detail stays in the logs.
   const fail = (
     stage: string,
     status: number,
     error: string,
     details: Record<string, unknown> = {},
+    code?: ScanErrorCode,
   ): Response => {
     logScanError(stage, {
       status,
+      code: code ?? null,
       ...context,
       ...details,
       duration_ms: Date.now() - startedAt,
     });
-    return jsonResponse({ error }, status);
+    return jsonResponse(code ? { error, code } : { error }, status);
   };
 
   try {
     apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) {
-      return fail("config_missing", 500, "Falta configurar GEMINI_API_KEY.");
+      return fail(
+        "config_missing",
+        500,
+        "Falta configurar GEMINI_API_KEY.",
+        {},
+        "config",
+      );
     }
 
     const { image_base64, mime_type } = await req.json();
@@ -217,10 +242,17 @@ Deno.serve(async (req: Request) => {
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text();
-      return fail("gemini_http_error", 502, `Gemini respondió ${geminiRes.status}.`, {
-        gemini_status: geminiRes.status,
-        gemini_body: redact(errText.slice(0, MAX_LOGGED_DETAIL), apiKey),
-      });
+      const code = codeForGeminiError(geminiRes.status, errText);
+      return fail(
+        "gemini_http_error",
+        code === "quota" ? 429 : 502,
+        `Gemini respondió ${geminiRes.status}.`,
+        {
+          gemini_status: geminiRes.status,
+          gemini_body: redact(errText.slice(0, MAX_LOGGED_DETAIL), apiKey),
+        },
+        code,
+      );
     }
 
     const geminiData = await geminiRes.json();
@@ -231,6 +263,7 @@ Deno.serve(async (req: Request) => {
         502,
         "Gemini no devolvió contenido.",
         describeGeminiResponse(geminiData),
+        "parse",
       );
     }
 
@@ -243,6 +276,7 @@ Deno.serve(async (req: Request) => {
         502,
         "No se pudo interpretar la respuesta del modelo.",
         describeGeminiResponse(geminiData, rawText),
+        "parse",
       );
     }
 
@@ -253,6 +287,6 @@ Deno.serve(async (req: Request) => {
     return fail("unexpected", 500, "Error inesperado.", {
       error_name: e?.name ?? null,
       error_message: redact(String(e?.message ?? err).slice(0, MAX_LOGGED_DETAIL), apiKey),
-    });
+    }, "upstream");
   }
 });

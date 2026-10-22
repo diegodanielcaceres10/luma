@@ -34,6 +34,11 @@ abstract final class AppTheme {
       bottomSheetTheme: const BottomSheetThemeData(
         constraints: BoxConstraints(maxWidth: kAppMaxContentWidth),
       ),
+      // Dialogs also open on the root navigator. minWidth keeps Material's
+      // default, which this constraint replaces.
+      dialogTheme: const DialogThemeData(
+        constraints: BoxConstraints(minWidth: 280, maxWidth: kDialogMaxWidth),
+      ),
       cardTheme: const CardThemeData(
         color: AppColors.surface,
         elevation: 0,

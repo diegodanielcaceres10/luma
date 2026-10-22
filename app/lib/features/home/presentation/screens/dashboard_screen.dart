@@ -34,7 +34,7 @@ class DashboardScreen extends StatefulWidget {
   final ValueChanged<String> onOpenMonthlyBalance;
   final ValueChanged<String> onOpenAddTransaction;
   final VoidCallback onGoToAccounts;
-  final VoidCallback onManageAccounts;
+  final ValueChanged<String> onOpenAccount;
   final VoidCallback onGoToInvoices;
   final VoidCallback onGoToTransfers;
 
@@ -50,7 +50,7 @@ class DashboardScreen extends StatefulWidget {
     required this.onOpenMonthlyBalance,
     required this.onOpenAddTransaction,
     required this.onGoToAccounts,
-    required this.onManageAccounts,
+    required this.onOpenAccount,
     required this.onGoToInvoices,
     required this.onGoToTransfers,
     this.onSeeAllMovements,
@@ -283,7 +283,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   for (final account in pendingAccounts) account.id,
                 },
                 onCompletePendingBalance: widget.onOpenMonthlyBalance,
-                onManageAccounts: widget.onManageAccounts,
+                onOpenAccount: widget.onOpenAccount,
                 accounts: activeAccounts,
                 pendingInvoicesTotal: pendingInvoicesTotal,
                 pendingInvoicesCount: pendingInvoicesCount,
@@ -300,6 +300,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 isLoading: transactionViewModel.isLoading,
                 movements: transactionViewModel.recentMovements,
                 currency: accountViewModel.primaryCurrency,
+                servicePaymentIds:
+                    widget.invoiceViewModel.servicePaymentTransactionIds,
               );
 
               if (isTwoColumn) {

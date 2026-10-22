@@ -264,7 +264,7 @@ class _AddMovementDialogState extends State<AddMovementDialog> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         PrimaryButton(
-          label: 'Agregar',
+          label: widget.initial == null ? 'Agregar' : 'Listo',
           onPressed: _save,
         ),
       ],
