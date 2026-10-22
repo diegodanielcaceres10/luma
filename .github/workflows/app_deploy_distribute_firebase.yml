@@ -1,4 +1,4 @@
-name: Distribute Android (Firebase App Distribution)
+name: App Deploy Distribute Firebase
 
 on:
   push:
