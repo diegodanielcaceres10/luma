@@ -7,7 +7,7 @@ on:
       - "release-*"
     paths:
       - "app/**"
-      - ".github/workflows/tests.yml"
+      - ".github/workflows/app_pr_tests.yml"
 
 jobs:
   test:
