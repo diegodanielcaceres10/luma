@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/filter_chip_row.dart';
 import '../../../../core/widgets/month_filter_button.dart';
@@ -188,6 +187,49 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   // Id of the transaction being updated.
   String? _updatingId;
 
+  void _showFloatingSnackBar(
+    String message, {
+    bool isError = false,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1E2922),
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(
+            color: AppColors.authCardBorder,
+            width: 1,
+          ),
+        ),
+        content: Row(
+          children: [
+            Icon(
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_outline_rounded,
+              color: isError ? AppColors.error : AppColors.authAccent,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.authTextPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Opens the actions menu of [movement] and runs the chosen action.
   Future<void> _openActions(TransactionEntry movement) async {
     final linkedInvoice =
@@ -237,9 +279,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ? successMessage
         : errorMessage() ?? 'No se pudo guardar los cambios.';
     if (message != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      _showFloatingSnackBar(message, isError: !success);
     }
 
     setState(() => _updatingId = null);
@@ -312,6 +352,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             '(${formatCurrency(invoice.amount, widget.currency)}). El '
             'movimiento conserva su monto.',
         confirmLabel: 'Vincular',
+        icon: Icons.link_rounded,
+        accentColor: AppColors.authAccent,
       );
       if (!confirmed || !mounted) return;
     }
@@ -344,6 +386,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       message: 'La factura de ${service?.name ?? 'servicio'} vuelve a quedar '
           'pendiente y el movimiento se mantiene como un gasto común.',
       confirmLabel: 'Desvincular',
+      icon: Icons.link_off_rounded,
+      accentColor: AppColors.authExpense,
     );
     if (!confirmed || !mounted) return;
 
@@ -359,27 +403,66 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     required String title,
     required String message,
     required String confirmLabel,
+    IconData icon = Icons.help_outline_rounded,
+    Color accentColor = AppColors.authAccent,
   }) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.authBackgroundTop,
+        backgroundColor: AppColors.authBackgroundBottom,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           side: const BorderSide(color: AppColors.authCardBorder),
         ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: AppColors.authTextPrimary,
-            fontWeight: FontWeight.w700,
-          ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: accentColor.withValues(alpha: 0.30),
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: accentColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppColors.authTextPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: const TextStyle(
+                color: AppColors.authTextSecondary,
+                fontSize: 14,
+                height: 1.45,
+              ),
+            ),
+          ],
         ),
-        content: Text(
-          message,
-          style: const TextStyle(color: AppColors.authTextSecondary),
-        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextActionButton(
             label: 'Volver',
@@ -387,7 +470,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
           TextActionButton(
             label: confirmLabel,
-            color: AppColors.authAccent,
+            color: accentColor,
             fontWeight: FontWeight.w700,
             onPressed: () => Navigator.of(dialogContext).pop(true),
           ),
@@ -399,29 +482,104 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   /// Asks for confirmation, then deletes the transaction.
   Future<void> _confirmDelete(TransactionEntry movement) async {
+    final titleText = movement.description?.isNotEmpty == true
+        ? movement.description!
+        : movement.category.name;
+    final amountText = formatCurrency(movement.amount, widget.currency);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.authBackgroundTop,
+        backgroundColor: AppColors.authBackgroundBottom,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           side: const BorderSide(color: AppColors.authCardBorder),
         ),
-        title: const Text(
-          '¿Eliminar movimiento?',
-          style: TextStyle(
-            color: AppColors.authTextPrimary,
-            fontWeight: FontWeight.w700,
-          ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.authExpense.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.authExpense.withValues(alpha: 0.30),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.delete_outline_rounded,
+                    size: 20,
+                    color: AppColors.authExpense,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    '¿Eliminar movimiento?',
+                    style: TextStyle(
+                      color: AppColors.authTextPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.authCardFill,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.authCardBorder.withValues(alpha: 0.6),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      titleText,
+                      style: const TextStyle(
+                        color: AppColors.authTextPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    amountText,
+                    style: const TextStyle(
+                      color: AppColors.authExpense,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'El saldo de la cuenta se va a actualizar. Esta acción no se puede deshacer.',
+              style: TextStyle(
+                color: AppColors.authTextSecondary,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ],
         ),
-        content: Text(
-          '${movement.description?.isNotEmpty == true ? movement.description! : movement.category.name} · '
-          '${formatCurrency(movement.amount, widget.currency)}\n\n'
-          'El saldo de la cuenta se va a actualizar. Esta acción no se '
-          'puede deshacer.',
-          style: const TextStyle(color: AppColors.authTextSecondary),
-        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextActionButton(
             label: 'Volver',
@@ -455,14 +613,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     if (success) {
       // Balance changed server-side; reload accounts to show it.
       await widget.accountViewModel.loadAccounts();
+      if (mounted) {
+        _showFloatingSnackBar('Movimiento eliminado correctamente.');
+      }
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.transactionViewModel.errorMessage ??
-                'No se pudo eliminar el movimiento.',
-          ),
-        ),
+      _showFloatingSnackBar(
+        widget.transactionViewModel.errorMessage ??
+            'No se pudo eliminar el movimiento.',
+        isError: true,
       );
     }
 
@@ -539,12 +697,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.authCardFill,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.authCardBorder),
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(
+                                color: AppColors.authCardBorder,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.12),
-                                  blurRadius: 16,
+                                  color: Colors.black.withValues(alpha: 0.14),
+                                  blurRadius: 18,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
@@ -553,23 +713,41 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
-                                  width: 44,
-                                  height: 44,
+                                  width: 52,
+                                  height: 52,
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    shape: BoxShape.circle,
+                                    color: AppColors.authAccent
+                                        .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: AppColors.authAccent
+                                          .withValues(alpha: 0.25),
+                                    ),
                                   ),
                                   child: const Icon(
                                     Icons.receipt_long_outlined,
-                                    color: AppColors.authTextSecondary,
-                                    size: 22,
+                                    color: AppColors.authAccent,
+                                    size: 26,
                                   ),
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 16),
                                 const Text(
-                                  'Todavía no hay movimientos.',
+                                  'Todavía no hay movimientos',
                                   textAlign: TextAlign.center,
-                                  style: AppTextStyles.authSubtitle,
+                                  style: TextStyle(
+                                    color: AppColors.authTextPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Tus ingresos y gastos registrados aparecerán listados aquí.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: AppColors.authTextSecondary,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ],
                             ),
@@ -653,22 +831,86 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         ),
                         const SizedBox(height: 20),
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
                             color: AppColors.authCardFill,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(22),
                             border: Border.all(color: AppColors.authCardBorder),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.10),
-                                blurRadius: 14,
-                                offset: const Offset(0, 3),
+                                color: Colors.black.withValues(alpha: 0.12),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.authAccent
+                                          .withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: AppColors.authAccent
+                                            .withValues(alpha: 0.25),
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.tune_rounded,
+                                      size: 16,
+                                      color: AppColors.authAccent,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      'Filtros',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.authTextPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  if (hasActiveFilters)
+                                    InkWell(
+                                      onTap: _pushClearFilters,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.refresh_rounded,
+                                              size: 14,
+                                              color: AppColors.authAccent,
+                                            ),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Limpiar',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.authAccent,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
                               FilterChipRow<TransactionTypeFilter>(
                                 options: const [
                                   (
@@ -806,13 +1048,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             return Container(
                               decoration: BoxDecoration(
                                 color: AppColors.authCardFill,
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(22),
                                 border: Border.all(
                                     color: AppColors.authCardBorder),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.18),
-                                    blurRadius: 16,
+                                    color: Colors.black.withValues(alpha: 0.16),
+                                    blurRadius: 18,
                                     offset: const Offset(0, 4),
                                   ),
                                 ],
@@ -820,6 +1062,56 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               clipBehavior: Clip.antiAlias,
                               child: Column(
                                 children: [
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      14,
+                                      16,
+                                      12,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          hasActiveFilters
+                                              ? 'RESULTADOS'
+                                              : 'HISTORIAL',
+                                          style: const TextStyle(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.8,
+                                            color: AppColors.authTextFooter,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white
+                                                .withValues(alpha: 0.05),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            '$total movimiento${total == 1 ? '' : 's'}',
+                                            style: const TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  AppColors.authTextSecondary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Divider(
+                                    height: 1,
+                                    color: AppColors.authCardBorder
+                                        .withValues(alpha: 0.5),
+                                  ),
                                   ...List.generate(visible.length, (i) {
                                     final movement = visible[i];
                                     return TransactionMovementRow(
@@ -842,9 +1134,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                         _visibleCount =
                                             visibleCount + _pageSize;
                                       }),
-                                      child: Padding(
+                                      child: Container(
+                                        width: double.infinity,
                                         padding: const EdgeInsets.symmetric(
                                             vertical: 14),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.02),
+                                          border: Border(
+                                            top: BorderSide(
+                                              color: AppColors.authCardBorder
+                                                  .withValues(alpha: 0.5),
+                                            ),
+                                          ),
+                                        ),
                                         child: Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
