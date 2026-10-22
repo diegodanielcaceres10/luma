@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "app/**"
+      - ".github/workflows/app_deploy_distribute_firebase.yml"
   workflow_dispatch:
 
 jobs:

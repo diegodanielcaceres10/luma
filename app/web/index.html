@@ -18,19 +18,27 @@
 
     <meta charset="UTF-8" />
     <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
-    <meta name="description" content="A new Flutter project." />
+    <meta
+      name="description"
+      content="Control de gastos, cuentas y servicios en un solo lugar."
+    />
+
+    <!-- Brand color: mirrors AppColors.authBackgroundTop in
+         app/lib/app/theme/app_colors.dart (also used in manifest.json and in
+         the body background below). Update all of them together. -->
+    <meta name="theme-color" content="#12291D" />
 
     <!-- iOS meta tags & icons -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="apple-mobile-web-app-title" content="app" />
+    <meta name="apple-mobile-web-app-title" content="Luma" />
     <link rel="apple-touch-icon" href="icons/Icon-192.png" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png" />
 
-    <title>app</title>
+    <title>Luma</title>
     <link rel="manifest" href="manifest.json" />
 
     <!-- cropperjs: crop screen used by image_cropper on web -->
@@ -40,6 +48,11 @@
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <style>
+      /* Avoids a white flash before Flutter paints its first frame. */
+      body {
+        background-color: #12291d;
+      }
+
       /* App accent (#4CBB7A) over the default cropperjs blue. */
       .cropper-view-box {
         outline-color: rgba(76, 187, 122, 0.85);
