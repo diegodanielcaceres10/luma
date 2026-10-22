@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
+import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/utils/image_crop_picker.dart';
@@ -100,6 +101,49 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     super.dispose();
   }
 
+  void _showFloatingSnackBar(
+    String message, {
+    bool isError = false,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1E2922),
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(
+            color: AppColors.authCardBorder,
+            width: 1,
+          ),
+        ),
+        content: Row(
+          children: [
+            Icon(
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_outline_rounded,
+              color: isError ? AppColors.error : AppColors.authAccent,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.authTextPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -152,13 +196,10 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       if (!mounted) return;
       widget.onDone();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.transactionViewModel.errorMessage ??
-                'No se pudo guardar la transacción.',
-          ),
-        ),
+      _showFloatingSnackBar(
+        widget.transactionViewModel.errorMessage ??
+            'No se pudo guardar la transacción.',
+        isError: true,
       );
     }
   }
@@ -196,30 +237,56 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.authBackgroundTop,
+        backgroundColor: AppColors.authBackgroundBottom,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           side: const BorderSide(color: AppColors.authCardBorder),
         ),
-        title: const Text(
-          'Datos leídos del ticket',
-          style: TextStyle(
-            color: AppColors.authTextPrimary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.authAccent.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.authAccent.withValues(alpha: 0.30),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.document_scanner_rounded,
+                    size: 20,
+                    color: AppColors.authAccent,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Datos leídos del ticket',
+                    style: TextStyle(
+                      color: AppColors.authTextPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(14),
+                color: AppColors.authCardFill,
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppColors.authCardBorder.withValues(alpha: 0.3),
+                  color: AppColors.authCardBorder.withValues(alpha: 0.6),
                 ),
               ),
               child: Column(
@@ -230,9 +297,17 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         ? formatCurrency(result.amount!, currency)
                         : 'No detectado',
                   ),
+                  const Divider(
+                    height: 12,
+                    color: AppColors.authCardBorder,
+                  ),
                   _scanResultRow(
                     'Descripción',
                     result.description ?? 'No detectada',
+                  ),
+                  const Divider(
+                    height: 12,
+                    color: AppColors.authCardBorder,
                   ),
                   _scanResultRow(
                     'Fecha',
@@ -255,6 +330,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
             ),
           ],
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextActionButton(
             label: 'Cancelar',
@@ -304,11 +380,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       }
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content:
-            Text('Datos aplicados al formulario — revisalos antes de guardar.'),
-      ),
+    _showFloatingSnackBar(
+      'Datos aplicados al formulario — revisalos antes de guardar.',
     );
   }
 
@@ -344,23 +417,60 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.authBackgroundTop,
+        backgroundColor: AppColors.authBackgroundBottom,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           side: const BorderSide(color: AppColors.authCardBorder),
         ),
-        title: const Text(
-          '¿Volver a la selección?',
-          style: TextStyle(
-            color: AppColors.authTextPrimary,
-            fontWeight: FontWeight.w700,
-          ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.authExpense.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.authExpense.withValues(alpha: 0.30),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 20,
+                    color: AppColors.authExpense,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    '¿Volver a la selección?',
+                    style: TextStyle(
+                      color: AppColors.authTextPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Se van a perder los datos cargados en el formulario.',
+              style: TextStyle(
+                color: AppColors.authTextSecondary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+          ],
         ),
-        content: const Text(
-          'Se van a perder los datos cargados en el formulario.',
-          style: TextStyle(color: AppColors.authTextSecondary),
-        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextActionButton(
             label: 'Seguir editando',
@@ -469,24 +579,84 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                         onBack: _handleFormBack,
                         backEnabled: !isBusy,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
+                      // Tarjeta 1: Importe y clasificación
                       Container(
                         padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
                           color: AppColors.authCardFill,
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius: BorderRadius.circular(22),
                           border: Border.all(color: AppColors.authCardBorder),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.14),
-                              blurRadius: 18,
-                              offset: const Offset(0, 4),
+                              color: Colors.black.withValues(alpha: 0.16),
+                              blurRadius: 20,
+                              offset: const Offset(0, 6),
                             ),
                           ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: _accentColor
+                                        .withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: _accentColor
+                                          .withValues(alpha: 0.30),
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    _isIncome
+                                        ? Icons.arrow_downward_rounded
+                                        : Icons.arrow_upward_rounded,
+                                    size: 20,
+                                    color: _accentColor,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'Importe y clasificación',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.authTextPrimary,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _accentColor
+                                        .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: _accentColor
+                                          .withValues(alpha: 0.28),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _isIncome ? 'Ingreso' : 'Gasto',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: _accentColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
                             InputTextField(
                               controller: _amountController,
                               label: 'Monto',
@@ -494,13 +664,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                               enabled: !isBusy,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
-                                      decimal: true),
+                                decimal: true,
+                              ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Ingresa un monto';
                                 }
                                 final parsed = double.tryParse(
-                                    value.replaceAll(',', '.'));
+                                  value.replaceAll(',', '.'),
+                                );
                                 if (parsed == null || parsed <= 0) {
                                   return 'Monto inválido';
                                 }
@@ -514,7 +686,8 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                             if (widget.categoryViewModel.isLoading)
                               const Center(
                                 child: CircularProgressIndicator(
-                                    color: AppColors.authAccent),
+                                  color: AppColors.authAccent,
+                                ),
                               )
                             else if (categories.isEmpty)
                               Text(
@@ -524,36 +697,73 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                     : 'No hay categorías de gasto todavía. '
                                         'Se guardará sin categoría.',
                                 style: const TextStyle(
-                                    color: AppColors.authTextSecondary),
+                                  color: AppColors.authTextSecondary,
+                                ),
                               )
                             else
                               DropdownButtonFormField<Category>(
                                 initialValue: _selectedCategory,
                                 dropdownColor: AppColors.authBackgroundBottom,
                                 style: const TextStyle(
-                                    color: AppColors.authTextPrimary),
+                                  color: AppColors.authTextPrimary,
+                                ),
                                 decoration: InputTextField.formDecoration,
-                                // DropdownButtonFormField paints its placeholder through this parameter,
-                                // not through decoration.hintStyle.
                                 hint: const Text(
                                   'Sin categoría',
                                   style: TextStyle(
-                                      color: AppColors.authTextSecondary),
+                                    color: AppColors.authTextSecondary,
+                                  ),
                                 ),
-                                // The null item lets the user go back to no category.
                                 items: [
-                                  const DropdownMenuItem<Category>(
+                                  DropdownMenuItem<Category>(
                                     value: null,
-                                    child: Text(
-                                      'Sin categoría',
-                                      style: TextStyle(
-                                          color: AppColors.authTextSecondary),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color:
+                                                  AppColors.authTextSecondary,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'Sin categoría',
+                                          style: TextStyle(
+                                            color: AppColors.authTextSecondary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   ...categories.map(
                                     (c) => DropdownMenuItem<Category>(
                                       value: c,
-                                      child: Text(c.name),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: colorFromHex(
+                                                c.color,
+                                                fallback:
+                                                    AppColors.authTextFooter,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(c.name),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -562,13 +772,67 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                     : (value) => setState(
                                         () => _selectedCategory = value),
                               ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Tarjeta 2: Cuenta y detalles
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          color: AppColors.authCardFill,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: AppColors.authCardBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.16),
+                              blurRadius: 20,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.authAccent
+                                        .withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.authAccent
+                                          .withValues(alpha: 0.30),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.account_balance_wallet_outlined,
+                                    size: 20,
+                                    color: AppColors.authAccent,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Cuenta y detalles',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.authTextPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
                             const SizedBox(height: 20),
                             const Text('Cuenta', style: _labelStyle),
                             const SizedBox(height: 8),
                             if (widget.accountViewModel.isLoading)
                               const Center(
                                 child: CircularProgressIndicator(
-                                    color: AppColors.authAccent),
+                                  color: AppColors.authAccent,
+                                ),
                               )
                             else if (accounts.isEmpty)
                               const Text(
@@ -580,12 +844,14 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                 initialValue: _selectedAccount,
                                 dropdownColor: AppColors.authBackgroundBottom,
                                 style: const TextStyle(
-                                    color: AppColors.authTextPrimary),
+                                  color: AppColors.authTextPrimary,
+                                ),
                                 decoration: InputTextField.formDecoration,
                                 hint: const Text(
                                   'Seleccioná una cuenta',
                                   style: TextStyle(
-                                      color: AppColors.authTextSecondary),
+                                    color: AppColors.authTextSecondary,
+                                  ),
                                 ),
                                 items: accounts.map((a) {
                                   final isPending = widget
@@ -630,11 +896,16 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                                     Text(
                                       formatDate(_selectedDate),
                                       style: const TextStyle(
-                                          color: AppColors.authTextPrimary),
+                                        color: AppColors.authTextPrimary,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
-                                    const Icon(Icons.calendar_today_rounded,
-                                        size: 18,
-                                        color: AppColors.authTextSecondary),
+                                    const Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 18,
+                                      color: AppColors.authTextSecondary,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -642,7 +913,7 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 28),
                       SizedBox(
                         width: double.infinity,
                         child: PrimaryButton(
