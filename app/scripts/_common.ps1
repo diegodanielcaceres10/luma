@@ -44,11 +44,20 @@ function Format-Elapsed([TimeSpan]$Span) {
 function Start-Task([string]$Title, [scriptblock]$Body) {
     $startedAt = Get-Date
     Write-Step $Title
+    $failure = $null
+    # The caller's folder is restored even if the task fails or is interrupted.
+    Push-Location
     try {
         & $Body
     }
     catch {
-        Write-Fail ("Failed after {0}: {1}" -f (Format-Elapsed ((Get-Date) - $startedAt)), $_.Exception.Message)
+        $failure = $_.Exception.Message
+    }
+    finally {
+        Pop-Location
+    }
+    if ($failure) {
+        Write-Fail ("Failed after {0}: {1}" -f (Format-Elapsed ((Get-Date) - $startedAt)), $failure)
         exit 1
     }
     Write-Ok ("Finished in {0}" -f (Format-Elapsed ((Get-Date) - $startedAt)))
