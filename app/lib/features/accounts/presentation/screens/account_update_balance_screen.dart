@@ -198,14 +198,48 @@ class _AccountUpdateBalanceScreenState
     } catch (error) {
       if (!mounted) return;
       _movementsController.removeWhere(saved.contains);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
-        ),
-      );
+      _showFloatingSnackBar(error.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  void _showFloatingSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1E2922),
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(
+            color: AppColors.authCardBorder,
+            width: 1,
+          ),
+        ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: AppColors.error,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.authTextPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildStepContent(
@@ -284,6 +318,90 @@ class _AccountUpdateBalanceScreenState
     }
   }
 
+  Widget _buildAccountHero(Account account) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.authAccent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.authAccent.withValues(alpha: 0.30),
+              ),
+            ),
+            child: const Icon(
+              Icons.account_balance_wallet_outlined,
+              size: 22,
+              color: AppColors.authAccent,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  account.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.authTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Actualización periódica de saldo',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.authTextSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.authCardBorder.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.authCardBorder,
+              ),
+            ),
+            child: Text(
+              'Paso ${_currentStep + 1} de 3',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStepNav() {
     final isFirstStep = _currentStep == 0;
     final isLastStep = _currentStep == 2;
@@ -292,7 +410,6 @@ class _AccountUpdateBalanceScreenState
       label: 'Atrás',
       labelStyle: const TextStyle(fontWeight: FontWeight.w700),
       padding: const EdgeInsets.symmetric(vertical: 16),
-      borderRadius: 30,
       onPressed: _isSaving ? null : () => setState(() => _currentStep -= 1),
     );
 
@@ -301,7 +418,6 @@ class _AccountUpdateBalanceScreenState
       labelStyle: const TextStyle(fontWeight: FontWeight.w700),
       disabledAlpha: 0.4,
       padding: const EdgeInsets.symmetric(vertical: 16),
-      borderRadius: 30,
       isLoading: isLastStep && _isSaving,
       onPressed: !isLastStep
           ? (_isSaving || (isFirstStep && _difference == null)
@@ -356,36 +472,33 @@ class _AccountUpdateBalanceScreenState
                 minHeight: 3,
               ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                children: [
-                  ScreenHeader(
-                    title: 'Actualizar saldo',
-                    subtitle:
-                        'Ingresa el nuevo saldo de tu cuenta y agrega los movimientos '
-                        'que justifiquen la diferencia.',
-                    size: ScreenHeaderSize.compact,
-                    onBack: widget.onDone,
-                    backEnabled: !_isSaving,
-                  ),
-                  if (account != null) ...[
-                    const SizedBox(height: 20),
-                    Text(
-                      account.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.authTextPrimary,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    children: [
+                      ScreenHeader(
+                        title: 'Actualizar saldo',
+                        subtitle:
+                            'Ingresa el nuevo saldo de tu cuenta y agrega los movimientos '
+                            'que justifiquen la diferencia.',
+                        size: ScreenHeaderSize.compact,
+                        onBack: widget.onDone,
+                        backEnabled: !_isSaving,
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    _buildStepContent(account, currency, currencySymbol),
-                    const SizedBox(height: 24),
-                    _buildStepNav(),
-                  ],
-                ],
+                      if (account != null) ...[
+                        const SizedBox(height: 20),
+                        _buildAccountHero(account),
+                        const SizedBox(height: 20),
+                        _buildStepContent(account, currency, currencySymbol),
+                        const SizedBox(height: 24),
+                        _buildStepNav(),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ],

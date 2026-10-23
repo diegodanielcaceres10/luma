@@ -174,14 +174,48 @@ class _AccountJustifyUncontrolledScreenState
     } catch (error) {
       if (!mounted) return;
       _movementsController.removeWhere(saved.contains);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
-        ),
-      );
+      _showFloatingSnackBar(error.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  void _showFloatingSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1E2922),
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(
+            color: AppColors.authCardBorder,
+            width: 1,
+          ),
+        ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: AppColors.error,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.authTextPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildStepContent(Account account, String currency) {
@@ -249,6 +283,90 @@ class _AccountJustifyUncontrolledScreenState
     }
   }
 
+  Widget _buildAccountHero(Account account) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.authAccent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.authAccent.withValues(alpha: 0.30),
+              ),
+            ),
+            child: const Icon(
+              Icons.account_balance_wallet_outlined,
+              size: 22,
+              color: AppColors.authAccent,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  account.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.authTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Justificación de saldo del mes',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.authTextSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.authCardBorder.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.authCardBorder,
+              ),
+            ),
+            child: Text(
+              'Paso ${_currentStep + 1} de 2',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStepNav() {
     final isFirstStep = _currentStep == 0;
     final isLastStep = _currentStep == 1;
@@ -258,7 +376,6 @@ class _AccountJustifyUncontrolledScreenState
       label: 'Atrás',
       labelStyle: const TextStyle(fontWeight: FontWeight.w700),
       padding: const EdgeInsets.symmetric(vertical: 16),
-      borderRadius: 30,
       onPressed: _isSaving ? null : () => setState(() => _currentStep -= 1),
     );
 
@@ -267,7 +384,6 @@ class _AccountJustifyUncontrolledScreenState
       labelStyle: const TextStyle(fontWeight: FontWeight.w700),
       disabledAlpha: 0.4,
       padding: const EdgeInsets.symmetric(vertical: 16),
-      borderRadius: 30,
       isLoading: isLastStep && _isSaving,
       onPressed: !isLastStep
           ? (_isSaving || !canAdvance
@@ -306,48 +422,46 @@ class _AccountJustifyUncontrolledScreenState
               minHeight: 3,
             ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-              children: [
-                ScreenHeader(
-                  title: 'Justificar sin declarar',
-                  subtitle: 'Agregá los movimientos que expliquen el saldo '
-                      'sin declarar de este mes en esta cuenta.',
-                  size: ScreenHeaderSize.compact,
-                  onBack: widget.onDone,
-                  backEnabled: !_isSaving,
-                ),
-                if (account != null) ...[
-                  const SizedBox(height: 20),
-                  Text(
-                    account.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.authTextPrimary,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                  children: [
+                    ScreenHeader(
+                      title: 'Justificar sin declarar',
+                      subtitle: 'Agregá los movimientos que expliquen el saldo '
+                          'sin declarar de este mes en esta cuenta.',
+                      size: ScreenHeaderSize.compact,
+                      onBack: widget.onDone,
+                      backEnabled: !_isSaving,
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  if (_isLoadingTarget)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40),
-                        child: CircularProgressIndicator(
-                          color: AppColors.authAccent,
-                        ),
-                      ),
-                    )
-                  else if (target == null || target.abs() < kRemainderEpsilon)
-                    NothingToJustifyCard(onBack: widget.onDone)
-                  else ...[
-                    _buildStepContent(account, currency),
-                    const SizedBox(height: 24),
-                    _buildStepNav(),
+                    if (account != null) ...[
+                      const SizedBox(height: 20),
+                      _buildAccountHero(account),
+                      const SizedBox(height: 20),
+                      if (_isLoadingTarget)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 40),
+                            child: CircularProgressIndicator(
+                              color: AppColors.authAccent,
+                            ),
+                          ),
+                        )
+                      else if (target == null ||
+                          target.abs() < kRemainderEpsilon)
+                        NothingToJustifyCard(onBack: widget.onDone)
+                      else ...[
+                        _buildStepContent(account, currency),
+                        const SizedBox(height: 24),
+                        _buildStepNav(),
+                      ],
+                    ],
                   ],
-                ],
-              ],
+                ),
+              ),
             ),
           ),
         ],

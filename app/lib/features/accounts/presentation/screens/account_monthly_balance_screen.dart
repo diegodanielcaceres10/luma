@@ -173,39 +173,68 @@ class _AccountMonthlyBalanceScreenState
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.authBackgroundTop,
+        backgroundColor: AppColors.authBackgroundBottom,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           side: const BorderSide(color: AppColors.authCardBorder),
         ),
-        icon: const Icon(
-          Icons.calendar_month_rounded,
-          color: AppColors.authAccent,
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.authAccent.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.authAccent.withValues(alpha: 0.30),
+                ),
+              ),
+              child: const Icon(
+                Icons.calendar_month_rounded,
+                color: AppColors.authAccent,
+                size: 26,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Saldo inicial del mes',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.authTextPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Esta pantalla sirve para cerrar $_previousMonthLabel: ingresá el '
+              'saldo con el que arrancó la cuenta en $_monthLabel y justificá '
+              'con movimientos de $_previousMonthLabel la diferencia con el '
+              'saldo guardado. Los movimientos de $_monthLabel no se cargan '
+              'acá: se controlan desde que termines.',
+              style: const TextStyle(
+                color: AppColors.authTextSecondary,
+                fontSize: 13.5,
+                height: 1.45,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-        title: const Text(
-          'Saldo inicial del mes',
-          style: TextStyle(
-            color: AppColors.authTextPrimary,
-            fontWeight: FontWeight.w700,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        content: Text(
-          'Esta pantalla sirve para cerrar $_previousMonthLabel: ingresá el '
-          'saldo con el que arrancó la cuenta en $_monthLabel y justificá '
-          'con movimientos de $_previousMonthLabel la diferencia con el '
-          'saldo guardado. Los movimientos de $_monthLabel no se cargan '
-          'acá: se controlan desde que termines.',
-          style: const TextStyle(color: AppColors.authTextSecondary),
-          textAlign: TextAlign.center,
-        ),
-        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         actions: [
-          PrimaryButton(
-            label: 'Entendido',
-            labelStyle: const TextStyle(fontWeight: FontWeight.w700),
-            onPressed: () => Navigator.of(dialogContext).pop(),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              label: 'Entendido',
+              labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
           ),
         ],
       ),
@@ -376,9 +405,40 @@ class _AccountMonthlyBalanceScreenState
   }
 
   void _showSaveError(Object error) {
+    final message = error.toString().replaceFirst('Exception: ', '');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(error.toString().replaceFirst('Exception: ', '')),
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1E2922),
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(
+            color: AppColors.authCardBorder,
+            width: 1,
+          ),
+        ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: AppColors.error,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.authTextPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -391,11 +451,20 @@ class _AccountMonthlyBalanceScreenState
   }
 
   Widget _buildMessage(String message) {
-    return Text(
-      message,
-      style: const TextStyle(
-        fontSize: 14,
-        color: AppColors.authTextSecondary,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.authCardBorder),
+      ),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 14,
+          color: AppColors.authTextSecondary,
+        ),
       ),
     );
   }
@@ -486,6 +555,90 @@ class _AccountMonthlyBalanceScreenState
     }
   }
 
+  Widget _buildAccountHero(Account account) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.authAccent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.authAccent.withValues(alpha: 0.30),
+              ),
+            ),
+            child: const Icon(
+              Icons.account_balance_wallet_outlined,
+              size: 22,
+              color: AppColors.authAccent,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  account.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.authTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Ajuste y conciliación de ciclo',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.authTextSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.authCardBorder.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.authCardBorder,
+              ),
+            ),
+            child: Text(
+              'Paso ${_currentStep + 1} de ${_lastStep + 1}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.authTextSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStepNav() {
     final isFirstStep = _currentStep == 0;
     final isLastStep = _currentStep == _lastStep;
@@ -506,7 +659,6 @@ class _AccountMonthlyBalanceScreenState
       labelStyle: const TextStyle(fontWeight: FontWeight.w700),
       disabledAlpha: 0.4,
       padding: const EdgeInsets.symmetric(vertical: 16),
-      borderRadius: 30,
       isLoading: isLastStep && _isSaving,
       onPressed: onNext,
     );
@@ -530,7 +682,6 @@ class _AccountMonthlyBalanceScreenState
       label: 'Atrás',
       labelStyle: const TextStyle(fontWeight: FontWeight.w700),
       padding: const EdgeInsets.symmetric(vertical: 16),
-      borderRadius: 30,
       onPressed: _isSaving || _adjustmentApplied
           ? null
           : () => setState(() => _currentStep -= 1),
@@ -563,56 +714,53 @@ class _AccountMonthlyBalanceScreenState
                 minHeight: 3,
               ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                children: [
-                  ScreenHeader(
-                    title: 'Saldo inicial',
-                    subtitle: _isPending == true
-                        ? 'Ingresá el saldo con el que arrancó la cuenta '
-                            'en $_monthLabel de $year para empezar a '
-                            'controlar el nuevo ciclo.'
-                        : null,
-                    size: ScreenHeaderSize.compact,
-                    onBack: widget.onDone,
-                    backEnabled: !_isSaving,
-                  ),
-                  const SizedBox(height: 20),
-                  if (_isPending == null)
-                    _checkFailed
-                        ? _buildMessage(
-                            'No pudimos comprobar el saldo inicial de esta '
-                            'cuenta. Intentá de nuevo más tarde.',
-                          )
-                        : const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(24),
-                              child: CircularProgressIndicator(
-                                color: AppColors.authAccent,
-                              ),
-                            ),
-                          )
-                  else if (_isPending == false)
-                    _buildMessage(
-                      'Esta cuenta ya tiene el saldo inicial de este mes.',
-                    )
-                  else ...[
-                    Text(
-                      _account.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.authTextPrimary,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    children: [
+                      ScreenHeader(
+                        title: 'Saldo inicial',
+                        subtitle: _isPending == true
+                            ? 'Ingresá el saldo con el que arrancó la cuenta '
+                                'en $_monthLabel de $year para empezar a '
+                                'controlar el nuevo ciclo.'
+                            : null,
+                        size: ScreenHeaderSize.compact,
+                        onBack: widget.onDone,
+                        backEnabled: !_isSaving,
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    _buildStepContent(_account, currency),
-                    const SizedBox(height: 24),
-                    _buildStepNav(),
-                  ],
-                ],
+                      const SizedBox(height: 20),
+                      if (_isPending == null)
+                        _checkFailed
+                            ? _buildMessage(
+                                'No pudimos comprobar el saldo inicial de esta '
+                                'cuenta. Intentá de nuevo más tarde.',
+                              )
+                            : const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(24),
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.authAccent,
+                                  ),
+                                ),
+                              )
+                      else if (_isPending == false)
+                        _buildMessage(
+                          'Esta cuenta ya tiene el saldo inicial de este mes.',
+                        )
+                      else ...[
+                        _buildAccountHero(_account),
+                        const SizedBox(height: 20),
+                        _buildStepContent(_account, currency),
+                        const SizedBox(height: 24),
+                        _buildStepNav(),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
