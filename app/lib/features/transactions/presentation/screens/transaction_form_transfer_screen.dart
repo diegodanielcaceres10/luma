@@ -64,6 +64,49 @@ class _TransactionFormTransferScreenState
     super.dispose();
   }
 
+  void _showFloatingSnackBar(
+    String message, {
+    bool isError = false,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1E2922),
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(
+            color: AppColors.authCardBorder,
+            width: 1,
+          ),
+        ),
+        content: Row(
+          children: [
+            Icon(
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_outline_rounded,
+              color: isError ? AppColors.error : AppColors.authAccent,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.authTextPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -118,13 +161,10 @@ class _TransactionFormTransferScreenState
       if (!mounted) return;
       widget.onDone();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.transactionViewModel.errorMessage ??
-                'No se pudo guardar la transferencia.',
-          ),
-        ),
+      _showFloatingSnackBar(
+        widget.transactionViewModel.errorMessage ??
+            'No se pudo guardar la transferencia.',
+        isError: true,
       );
     }
   }
@@ -183,21 +223,23 @@ class _TransactionFormTransferScreenState
                         children: [
                           ScreenHeader(
                             title: 'Transferencia entre cuentas',
+                            subtitle:
+                                'Mové dinero entre tus cuentas y mantené los saldos sincronizados.',
                             size: ScreenHeaderSize.compact,
                             onBack: widget.onDone,
                             backEnabled: !isSubmitting,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           if (accounts.length < 2)
                             Container(
                               padding: const EdgeInsets.all(18),
                               decoration: BoxDecoration(
                                 color: AppColors.authExpense
-                                    .withValues(alpha: 0.12),
+                                    .withValues(alpha: 0.10),
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
                                   color: AppColors.authExpense
-                                      .withValues(alpha: 0.35),
+                                      .withValues(alpha: 0.30),
                                 ),
                               ),
                               child: const Row(
@@ -205,16 +247,15 @@ class _TransactionFormTransferScreenState
                                   Icon(
                                     Icons.info_outline_rounded,
                                     color: AppColors.authExpense,
-                                    size: 24,
+                                    size: 22,
                                   ),
-                                  SizedBox(width: 14),
+                                  SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      'Necesitás al menos dos cuentas activas para '
-                                      'transferir entre ellas.',
+                                      'Necesitás al menos dos cuentas activas para transferir entre ellas.',
                                       style: TextStyle(
                                         color: AppColors.authTextPrimary,
-                                        fontSize: 14,
+                                        fontSize: 13.5,
                                         height: 1.4,
                                       ),
                                     ),
@@ -223,26 +264,84 @@ class _TransactionFormTransferScreenState
                               ),
                             )
                           else ...[
+                            // Tarjeta 1: Cuentas y sentido
                             Container(
                               padding: const EdgeInsets.all(22),
                               decoration: BoxDecoration(
                                 color: AppColors.authCardFill,
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                    color: AppColors.authCardBorder),
+                                borderRadius: BorderRadius.circular(22),
+                                border:
+                                    Border.all(color: AppColors.authCardBorder),
                                 boxShadow: [
                                   BoxShadow(
-                                    color:
-                                        Colors.black.withValues(alpha: 0.14),
-                                    blurRadius: 18,
-                                    offset: const Offset(0, 4),
+                                    color: Colors.black.withValues(alpha: 0.16),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 6),
                                   ),
                                 ],
                               ),
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.stretch,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 38,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.authTransfer
+                                              .withValues(alpha: 0.14),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: AppColors.authTransfer
+                                                .withValues(alpha: 0.30),
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.swap_horiz_rounded,
+                                          size: 20,
+                                          color: AppColors.authTransfer,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Expanded(
+                                        child: Text(
+                                          'Cuentas y sentido',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.authTextPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.authTransfer
+                                              .withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: AppColors.authTransfer
+                                                .withValues(alpha: 0.28),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _isIncoming ? 'Entrada' : 'Salida',
+                                          style: const TextStyle(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.authTransfer,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
                                   const Text('Cuenta donde impacta',
                                       style: _labelStyle),
                                   const SizedBox(height: 8),
@@ -259,9 +358,7 @@ class _TransactionFormTransferScreenState
                                     ),
                                     decoration: InputTextField.formDecoration,
                                     items: accountOptions
-                                        .map(
-                                          (Account a) => _accountItem(a),
-                                        )
+                                        .map((Account a) => _accountItem(a))
                                         .toList(),
                                     onChanged: isSubmitting
                                         ? null
@@ -272,6 +369,9 @@ class _TransactionFormTransferScreenState
                                                 _otherAccountId = null;
                                               }
                                             }),
+                                    validator: (value) => value == null
+                                        ? 'Seleccioná una cuenta'
+                                        : null,
                                   ),
                                   const SizedBox(height: 20),
                                   const Text('Sentido', style: _labelStyle),
@@ -330,9 +430,10 @@ class _TransactionFormTransferScreenState
                                           (Account a) =>
                                               DropdownMenuItem<String?>(
                                             value: a.id,
-                                            child: Text(a.name,
-                                                overflow:
-                                                    TextOverflow.ellipsis),
+                                            child: Text(
+                                              a.name,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                           ),
                                         )
                                         .toList(),
@@ -345,6 +446,64 @@ class _TransactionFormTransferScreenState
                                                 _accountId = null;
                                               }
                                             }),
+                                    validator: (value) => value == null
+                                        ? 'Seleccioná la otra cuenta'
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            // Tarjeta 2: Importe y fecha
+                            Container(
+                              padding: const EdgeInsets.all(22),
+                              decoration: BoxDecoration(
+                                color: AppColors.authCardFill,
+                                borderRadius: BorderRadius.circular(22),
+                                border:
+                                    Border.all(color: AppColors.authCardBorder),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.16),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 38,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.authAccent
+                                              .withValues(alpha: 0.14),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: AppColors.authAccent
+                                                .withValues(alpha: 0.30),
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.payments_outlined,
+                                          size: 20,
+                                          color: AppColors.authAccent,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Importe y fecha',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.authTextPrimary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 20),
                                   InputTextField(
@@ -354,14 +513,16 @@ class _TransactionFormTransferScreenState
                                     enabled: !isSubmitting,
                                     keyboardType:
                                         const TextInputType.numberWithOptions(
-                                            decimal: true),
+                                      decimal: true,
+                                    ),
                                     validator: (value) {
                                       if (value == null ||
                                           value.trim().isEmpty) {
                                         return 'Ingresá un monto';
                                       }
                                       final parsed = double.tryParse(
-                                          value.replaceAll(',', '.'));
+                                        value.replaceAll(',', '.'),
+                                      );
                                       if (parsed == null || parsed <= 0) {
                                         return 'Monto inválido';
                                       }
@@ -375,8 +536,7 @@ class _TransactionFormTransferScreenState
                                     onTap: isSubmitting ? null : _pickDate,
                                     borderRadius: BorderRadius.circular(14),
                                     child: InputDecorator(
-                                      decoration:
-                                          InputTextField.formDecoration,
+                                      decoration: InputTextField.formDecoration,
                                       child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
@@ -384,8 +544,10 @@ class _TransactionFormTransferScreenState
                                           Text(
                                             formatDate(_selectedDate),
                                             style: const TextStyle(
-                                                color:
-                                                    AppColors.authTextPrimary),
+                                              color: AppColors.authTextPrimary,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                           const Icon(
                                             Icons.calendar_today_rounded,
@@ -399,7 +561,7 @@ class _TransactionFormTransferScreenState
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 28),
                             SizedBox(
                               width: double.infinity,
                               child: PrimaryButton(
