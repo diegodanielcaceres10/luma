@@ -3,7 +3,7 @@ name: PWA Deploy Cloudflare Pages
 on:
   push:
     branches:
-      - release-*
+      - main
     paths:
       - "app/**"
       - ".github/workflows/app_deploy_cloudflare_pages.yml"
@@ -71,4 +71,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           workingDirectory: app
-          command: pages deploy build/web --project-name=luma-e16 --branch=main
+          command: pages deploy build/web --project-name=luma --branch=main
