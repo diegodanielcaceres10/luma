@@ -71,4 +71,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           workingDirectory: app
-          command: pages deploy build/web --project-name=luma --branch=main
+          command: pages deploy build/web --project-name=luma-e16 --branch=main
