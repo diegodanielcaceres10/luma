@@ -1,9 +1,9 @@
-name: Deploy PWA (Cloudflare Pages)
+name: PWA Deploy Cloudflare Pages
 
 on:
   push:
     branches:
-      - main
+      - release-*
     paths:
       - "app/**"
       - ".github/workflows/app_deploy_cloudflare_pages.yml"
