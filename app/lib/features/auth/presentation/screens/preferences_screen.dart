@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../home/presentation/view_models/app_lock_view_model.dart';
-import '../../../notifications/presentation/widgets/notification_log_section.dart';
 import '../../data/models/app_preferences.dart';
 import '../view_models/preferences_view_model.dart';
 
@@ -142,10 +141,6 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                       ),
                     ),
                   ),
-                ],
-                if (!kIsWeb) ...[
-                  const SizedBox(height: 8),
-                  const NotificationLogSection(),
                 ],
                 const SizedBox(height: 20),
                 const _SectionLabel('Seguridad'),
