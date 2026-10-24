@@ -7,34 +7,64 @@ import 'text_action_button.dart';
 ///
 /// Resolves to `true` only when "Sí" is pressed. Pressing "No" or tapping
 /// outside the dialog resolves to `false`, so nothing is saved by accident.
-Future<bool> showConfirmDialog(BuildContext context) async {
+Future<bool> showConfirmDialog(
+  BuildContext context, {
+  String title = '¿Estás seguro?',
+  String message = '¿Seguro que querés continuar?',
+  String confirmLabel = 'Sí',
+  String cancelLabel = 'No',
+}) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      backgroundColor: AppColors.authBackgroundTop,
+      backgroundColor: AppColors.authBackgroundBottom,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         side: const BorderSide(color: AppColors.authCardBorder),
       ),
-      title: const Text(
-        '¿Estás seguro?',
-        style: TextStyle(
-          color: AppColors.authTextPrimary,
-          fontWeight: FontWeight.w700,
+      icon: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.authAccent.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.authAccent.withValues(alpha: 0.25),
+          ),
+        ),
+        child: const Center(
+          child: Icon(
+            Icons.help_outline_rounded,
+            color: AppColors.authAccent,
+            size: 24,
+          ),
         ),
       ),
-      content: const Text(
-        '¿Seguro que querés continuar?',
-        style: TextStyle(color: AppColors.authTextSecondary),
+      title: Text(
+        title,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: AppColors.authTextPrimary,
+          fontWeight: FontWeight.w700,
+          fontSize: 18,
+        ),
+      ),
+      content: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: AppColors.authTextSecondary,
+          fontSize: 14,
+        ),
       ),
       actions: [
         TextActionButton(
-          label: 'No',
+          label: cancelLabel,
           onPressed: () => Navigator.of(dialogContext).pop(false),
         ),
         TextActionButton(
-          label: 'Sí',
+          label: confirmLabel,
           color: AppColors.authAccent,
           fontWeight: FontWeight.w700,
           onPressed: () => Navigator.of(dialogContext).pop(true),
