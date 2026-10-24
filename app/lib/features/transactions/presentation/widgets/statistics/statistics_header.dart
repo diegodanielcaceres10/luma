@@ -9,6 +9,9 @@ class StatisticsHeader extends StatelessWidget {
 
   final ValueChanged<DateTime> onMonthChanged;
 
+  /// Null hides the "Comparar meses" button.
+  final VoidCallback? onCompareMonths;
+
   /// Null hides the "Exportar PDF" button.
   final VoidCallback? onExportPdf;
 
@@ -21,6 +24,7 @@ class StatisticsHeader extends StatelessWidget {
     super.key,
     required this.selectedMonth,
     required this.onMonthChanged,
+    this.onCompareMonths,
     this.onExportPdf,
     this.onExportFullPdf,
     this.isExportingPdf = false,
@@ -41,15 +45,27 @@ class StatisticsHeader extends StatelessWidget {
             onChanged: onMonthChanged,
           ),
         ),
-        if (onExportPdf != null || onExportFullPdf != null) ...[
+        if (onCompareMonths != null ||
+            onExportPdf != null ||
+            onExportFullPdf != null) ...[
           const SizedBox(height: 14),
-          // Both buttons are disabled while either export is running.
+          // Both export buttons are disabled while either export is running;
+          // comparing months stays available.
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
+              // First, so it keeps its place when the export buttons come
+              // and go with the selected month.
+              if (onCompareMonths != null)
+                _HeaderActionButton(
+                  label: 'Comparar meses',
+                  icon: Icons.compare_arrows_rounded,
+                  isLoading: false,
+                  onPressed: onCompareMonths,
+                ),
               if (onExportPdf != null)
-                _ExportPdfButton(
+                _HeaderActionButton(
                   label: 'Exportar PDF',
                   icon: Icons.picture_as_pdf_outlined,
                   isLoading: isExportingPdf,
@@ -57,7 +73,7 @@ class StatisticsHeader extends StatelessWidget {
                       isExportingPdf || isExportingFullPdf ? null : onExportPdf,
                 ),
               if (onExportFullPdf != null)
-                _ExportPdfButton(
+                _HeaderActionButton(
                   label: 'Exportar PDF completo',
                   icon: Icons.description_outlined,
                   isLoading: isExportingFullPdf,
@@ -73,14 +89,14 @@ class StatisticsHeader extends StatelessWidget {
   }
 }
 
-class _ExportPdfButton extends StatelessWidget {
+class _HeaderActionButton extends StatelessWidget {
   final String label;
 
   final IconData icon;
   final bool isLoading;
   final VoidCallback? onPressed;
 
-  const _ExportPdfButton({
+  const _HeaderActionButton({
     required this.label,
     required this.icon,
     required this.isLoading,

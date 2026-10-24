@@ -16,6 +16,7 @@ import '../features/auth/presentation/view_models/preferences_view_model.dart';
 import '../features/categories/data/repositories/category_repository.dart';
 import '../features/categories/data/services/category_service.dart';
 import '../features/categories/presentation/view_models/category_view_model.dart';
+import '../features/comparison/presentation/view_models/month_comparison_view_model.dart';
 import '../features/home/data/services/biometric_service.dart';
 import '../features/home/presentation/screens/lock_screen.dart';
 import '../features/home/presentation/view_models/app_lock_view_model.dart';
@@ -52,6 +53,7 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
   late final MonthlyBalanceViewModel _monthlyBalanceViewModel;
   late final ServiceViewModel _serviceViewModel;
   late final InvoiceViewModel _invoiceViewModel;
+  late final MonthComparisonViewModel _comparisonViewModel;
   late final PreferencesViewModel _preferencesViewModel;
   late final BiometricService _biometricService;
   late final AppLockViewModel _appLockViewModel;
@@ -66,6 +68,7 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     monthlyBalanceViewModel: _monthlyBalanceViewModel,
     serviceViewModel: _serviceViewModel,
     invoiceViewModel: _invoiceViewModel,
+    comparisonViewModel: _comparisonViewModel,
     preferencesViewModel: _preferencesViewModel,
     appLockViewModel: _appLockViewModel,
   );
@@ -111,6 +114,11 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     final invoiceRepository = InvoiceRepository(InvoiceService(client));
     _invoiceViewModel =
         InvoiceViewModel(invoiceRepository, _transactionViewModel);
+
+    _comparisonViewModel = MonthComparisonViewModel(
+      transactionRepository,
+      monthlyBalanceRepository,
+    );
 
     _biometricService = BiometricService();
     _appLockViewModel = AppLockViewModel(
@@ -221,6 +229,7 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     _monthlyBalanceViewModel.dispose();
     _serviceViewModel.dispose();
     _invoiceViewModel.dispose();
+    _comparisonViewModel.dispose();
     _preferencesViewModel.dispose();
     _appLockViewModel.dispose();
     _notificationsViewModel.dispose();

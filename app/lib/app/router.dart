@@ -5,6 +5,7 @@ import '../features/accounts/presentation/view_models/monthly_balance_view_model
 import '../features/auth/presentation/view_models/auth_view_model.dart';
 import '../features/auth/presentation/view_models/preferences_view_model.dart';
 import '../features/categories/presentation/view_models/category_view_model.dart';
+import '../features/comparison/presentation/view_models/month_comparison_view_model.dart';
 import '../features/home/presentation/screens/app_shell_screen.dart';
 import '../features/home/presentation/view_models/app_lock_view_model.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
@@ -15,6 +16,7 @@ import 'not_found_screen.dart';
 import 'routes/accounts_routes.dart';
 import 'routes/auth_routes.dart';
 import 'routes/categories_routes.dart';
+import 'routes/comparison_routes.dart';
 import 'routes/home_routes.dart';
 import 'routes/invoices_routes.dart';
 import 'routes/services_routes.dart';
@@ -35,6 +37,7 @@ GoRouter buildAppRouter({
   required MonthlyBalanceViewModel monthlyBalanceViewModel,
   required ServiceViewModel serviceViewModel,
   required InvoiceViewModel invoiceViewModel,
+  required MonthComparisonViewModel comparisonViewModel,
   required PreferencesViewModel preferencesViewModel,
   required AppLockViewModel appLockViewModel,
 }) {
@@ -50,6 +53,7 @@ GoRouter buildAppRouter({
     monthlyBalanceViewModel: monthlyBalanceViewModel,
     serviceViewModel: serviceViewModel,
     invoiceViewModel: invoiceViewModel,
+    comparisonViewModel: comparisonViewModel,
     preferencesViewModel: preferencesViewModel,
     appLockViewModel: appLockViewModel,
   );
@@ -78,6 +82,7 @@ GoRouter buildAppRouter({
         routes: [
           ...homeRoutes(deps),
           ...transactionsRoutes(deps),
+          ...comparisonRoutes(deps),
           ...accountsRoutes(deps),
           ...categoriesRoutes(deps),
           ...servicesRoutes(deps),

@@ -30,6 +30,9 @@ class TransactionsStatisticsScreen extends StatefulWidget {
   /// loading in it.
   final ValueChanged<DateTime> onJustifyMonth;
 
+  /// Opens the comparison of [month] against the month before it.
+  final ValueChanged<DateTime> onCompareMonths;
+
   const TransactionsStatisticsScreen({
     super.key,
     required this.transactionViewModel,
@@ -38,6 +41,7 @@ class TransactionsStatisticsScreen extends StatefulWidget {
     required this.monthlyBalanceViewModel,
     required this.currency,
     required this.onJustifyMonth,
+    required this.onCompareMonths,
   });
 
   @override
@@ -222,6 +226,7 @@ class _TransactionsStatisticsScreenState
         final header = StatisticsHeader(
           selectedMonth: month,
           onMonthChanged: vm.loadStatisticsMonth,
+          onCompareMonths: () => widget.onCompareMonths(month),
           onExportPdf: canExportPdf ? () => _exportPdf() : null,
           onExportFullPdf: canExportPdf
               ? () => _exportPdf(includeMovements: true)
