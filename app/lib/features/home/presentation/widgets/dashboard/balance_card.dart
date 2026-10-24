@@ -216,26 +216,36 @@ class DashboardBalanceCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.22),
-                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.black.withValues(alpha: 0.28),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: Colors.white.withValues(alpha: 0.12),
                           ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.receipt_long_rounded,
-                              color: Colors.white70,
-                              size: 16,
+                            Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.receipt_long_rounded,
+                                  color: Colors.white70,
+                                  size: 15,
+                                ),
+                              ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'Servicios pendientes de pagar: '
                                 '${formatCurrency(pendingInvoicesTotal, currency)}',
                                 style: const TextStyle(
-                                  color: Colors.white70,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.w500,
                                   fontSize: 13,
                                 ),
@@ -251,25 +261,35 @@ class DashboardBalanceCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.22),
-                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.black.withValues(alpha: 0.28),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: Colors.white.withValues(alpha: 0.12),
                           ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.request_page_outlined,
-                              color: Colors.white70,
-                              size: 16,
+                            Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.request_page_outlined,
+                                  color: Colors.white70,
+                                  size: 15,
+                                ),
+                              ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'Facturas por pagar: $pendingInvoicesCount',
                                 style: const TextStyle(
-                                  color: Colors.white70,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.w500,
                                   fontSize: 13,
                                 ),
@@ -316,18 +336,31 @@ class _PendingBalancesAlert extends StatelessWidget {
         : 'Faltan cargar los saldos iniciales de $count cuentas este mes';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFBBF24).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFFBBF24).withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: const Color(0xFFFBBF24).withValues(alpha: 0.3),
+          color: const Color(0xFFFBBF24).withValues(alpha: 0.35),
         ),
       ),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded,
-              color: Color(0xFFFBBF24), size: 18),
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFBBF24).withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFFBBF24),
+                size: 17,
+              ),
+            ),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

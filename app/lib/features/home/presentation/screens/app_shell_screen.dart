@@ -542,7 +542,12 @@ class _BottomNav extends StatelessWidget {
                           item.$2,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 11, color: color),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight:
+                                isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color: color,
+                          ),
                         ),
                         const SizedBox(height: 3),
                         SizedBox(
@@ -552,6 +557,8 @@ class _BottomNav extends StatelessWidget {
                               ? const DecoratedBox(
                                   decoration: BoxDecoration(
                                     color: AppColors.authAccent,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(2)),
                                   ),
                                 )
                               : null,
