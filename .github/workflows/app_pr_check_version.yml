@@ -1,4 +1,4 @@
-name: Check version bump
+name: App Check version
 
 on:
   pull_request:

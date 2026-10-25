@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/widgets/month_filter_button.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
@@ -31,6 +30,9 @@ class TransactionsStatisticsScreen extends StatefulWidget {
   /// loading in it.
   final ValueChanged<DateTime> onJustifyMonth;
 
+  /// Opens the comparison of [month] against the month before it.
+  final ValueChanged<DateTime> onCompareMonths;
+
   const TransactionsStatisticsScreen({
     super.key,
     required this.transactionViewModel,
@@ -39,6 +41,7 @@ class TransactionsStatisticsScreen extends StatefulWidget {
     required this.monthlyBalanceViewModel,
     required this.currency,
     required this.onJustifyMonth,
+    required this.onCompareMonths,
   });
 
   @override
@@ -56,6 +59,49 @@ class _TransactionsStatisticsScreenState
     super.initState();
     // Always reloaded: it tells which accounts were left without loading.
     widget.monthlyBalanceViewModel.loadOpeningMonths();
+  }
+
+  void _showFloatingSnackBar(
+    String message, {
+    bool isError = false,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1E2922),
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(
+            color: AppColors.authCardBorder,
+            width: 1,
+          ),
+        ),
+        content: Row(
+          children: [
+            Icon(
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_outline_rounded,
+              color: isError ? AppColors.error : AppColors.authAccent,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.authTextPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Offers to justify a past month for the accounts that have neither an
@@ -125,8 +171,9 @@ class _TransactionsStatisticsScreenState
       await Printing.sharePdf(bytes: bytes, filename: data.fileName);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo generar el PDF.')),
+        _showFloatingSnackBar(
+          'No se pudo generar el PDF.',
+          isError: true,
         );
       }
     } finally {
@@ -179,6 +226,7 @@ class _TransactionsStatisticsScreenState
         final header = StatisticsHeader(
           selectedMonth: month,
           onMonthChanged: vm.loadStatisticsMonth,
+          onCompareMonths: () => widget.onCompareMonths(month),
           onExportPdf: canExportPdf ? () => _exportPdf() : null,
           onExportFullPdf: canExportPdf
               ? () => _exportPdf(includeMovements: true)
@@ -291,12 +339,12 @@ class _TransactionsStatisticsScreenState
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.authCardFill,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(22),
                             border: Border.all(color: AppColors.authCardBorder),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.12),
-                                blurRadius: 16,
+                                color: Colors.black.withValues(alpha: 0.14),
+                                blurRadius: 18,
                                 offset: const Offset(0, 4),
                               ),
                             ],
@@ -305,34 +353,47 @@ class _TransactionsStatisticsScreenState
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                width: 44,
-                                height: 44,
+                                width: 52,
+                                height: 52,
                                 decoration: BoxDecoration(
                                   color: AppColors.authExpense
                                       .withValues(alpha: 0.12),
-                                  shape: BoxShape.circle,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppColors.authExpense
+                                        .withValues(alpha: 0.25),
+                                  ),
                                 ),
                                 child: const Icon(
                                   Icons.error_outline_rounded,
                                   color: AppColors.authExpense,
-                                  size: 22,
+                                  size: 24,
                                 ),
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 16),
                               Text(
                                 errorMessage,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: AppColors.authTextSecondary,
+                                  fontSize: 13.5,
                                 ),
                               ),
-                              const SizedBox(height: 14),
-                              TextButton(
+                              const SizedBox(height: 16),
+                              TextButton.icon(
                                 style: TextButton.styleFrom(
                                   foregroundColor: AppColors.authAccent,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
                                 ),
                                 onPressed: () => vm.loadStatisticsMonth(month),
-                                child: const Text('Reintentar'),
+                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                label: const Text(
+                                  'Reintentar',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
                               ),
                             ],
                           ),
@@ -399,12 +460,12 @@ class _TransactionsStatisticsScreenState
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.authCardFill,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(22),
                             border: Border.all(color: AppColors.authCardBorder),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.12),
-                                blurRadius: 16,
+                                color: Colors.black.withValues(alpha: 0.14),
+                                blurRadius: 18,
                                 offset: const Offset(0, 4),
                               ),
                             ],
@@ -413,25 +474,43 @@ class _TransactionsStatisticsScreenState
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                width: 44,
-                                height: 44,
+                                width: 52,
+                                height: 52,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  shape: BoxShape.circle,
+                                  color: AppColors.authAccent
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppColors.authAccent
+                                        .withValues(alpha: 0.25),
+                                  ),
                                 ),
                                 child: const Icon(
-                                  Icons.receipt_long_outlined,
-                                  color: AppColors.authTextSecondary,
-                                  size: 22,
+                                  Icons.pie_chart_outline_rounded,
+                                  color: AppColors.authAccent,
+                                  size: 24,
                                 ),
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 16),
                               Text(
                                 isCurrentMonth
                                     ? 'Todavía no hay gastos este mes.'
                                     : 'No hay gastos registrados en $monthInSentence.',
                                 textAlign: TextAlign.center,
-                                style: AppTextStyles.authSubtitle,
+                                style: const TextStyle(
+                                  color: AppColors.authTextPrimary,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Los gastos que registres se desglosarán automáticamente aquí.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.authTextSecondary,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
@@ -520,19 +599,19 @@ class _TransactionsStatisticsScreenState
                       Container(
                         decoration: BoxDecoration(
                           color: AppColors.authCardFill,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(22),
                           border: Border.all(color: AppColors.authCardBorder),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.16),
-                              blurRadius: 16,
+                              blurRadius: 18,
                               offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(18),
                           child: StatisticsDonutWithLegend(
                             breakdown: expenseTypeBreakdown,
                             total: expenseTypeTotal,
@@ -575,19 +654,19 @@ class _TransactionsStatisticsScreenState
                       Container(
                         decoration: BoxDecoration(
                           color: AppColors.authCardFill,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(22),
                           border: Border.all(color: AppColors.authCardBorder),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.16),
-                              blurRadius: 16,
+                              blurRadius: 18,
                               offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(18),
                           child: StatisticsDonutWithLegend(
                             breakdown: categorizedBreakdown,
                             total: categorizedTotal,

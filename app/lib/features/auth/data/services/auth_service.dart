@@ -23,8 +23,11 @@ class AuthService {
 
   Future<void> signInWithGoogle() async {
     if (kIsWeb) {
+      // Without redirectTo Supabase falls back to the project's Site URL,
+      // which may not be the origin the PWA is served from.
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
+        redirectTo: Uri.base.origin,
         authScreenLaunchMode: LaunchMode.platformDefault,
       );
       return;

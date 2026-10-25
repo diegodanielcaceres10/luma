@@ -346,17 +346,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               }
 
               // Single-column layout: mobile & narrow viewports (< 768 px)
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 96),
-                children: [
-                  greetingWidget,
-                  const SizedBox(height: 22),
-                  balanceCardWidget,
-                  const SizedBox(height: 28),
-                  movementsHeaderWidget,
-                  const SizedBox(height: 12),
-                  movementsListWidget,
-                ],
+              return Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 680),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 96),
+                    children: [
+                      greetingWidget,
+                      const SizedBox(height: 22),
+                      balanceCardWidget,
+                      const SizedBox(height: 28),
+                      movementsHeaderWidget,
+                      const SizedBox(height: 12),
+                      movementsListWidget,
+                    ],
+                  ),
+                ),
               );
             },
           ),

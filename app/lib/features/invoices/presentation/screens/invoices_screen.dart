@@ -177,10 +177,18 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
         ]),
         builder: (context, _) {
           final allInvoices = widget.invoiceViewModel.invoices;
-          final invoices = allInvoices
-              .where(_matchesStatus)
-              .where(_matchesMonth)
-              .toList();
+          final monthInvoices = allInvoices.where(_matchesMonth).toList();
+          final invoices = monthInvoices.where(_matchesStatus).toList();
+
+          // Total commitment for the selected month (excluding cancelled)
+          final totalMonthAmount = monthInvoices
+              .where((i) => !i.cancelled)
+              .fold<double>(0, (sum, i) => sum + i.amount);
+          final paidMonthCount =
+              monthInvoices.where((i) => i.paid).length;
+          final pendingMonthCount =
+              monthInvoices.where((i) => i.isPending).length;
+
           // The notice only makes sense where pending invoices are visible.
           final previousPending = (_statusFilter == _StatusFilter.all ||
                   _statusFilter == _StatusFilter.pending)
@@ -189,100 +197,290 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
           final isInitialLoad =
               widget.invoiceViewModel.isLoading && allInvoices.isEmpty;
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: [
-              ScreenHeader(
-                title: 'Facturas',
-                subtitle: 'Gestiona tus facturas y sus pagos.',
-                size: ScreenHeaderSize.compact,
-                onBack: widget.onBack,
-                action: HeaderAddButton(
-                  tooltip: 'Nueva factura',
-                  onPressed: widget.onOpenForm,
-                ),
-              ),
-              const SizedBox(height: 12),
-              NotificationsHint(
-                preferencesViewModel: widget.preferencesViewModel,
-                onOpenPreferences: widget.onOpenPreferences,
-              ),
-              const SizedBox(height: 16),
-              if (isInitialLoad)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.authAccent,
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: [
+                  ScreenHeader(
+                    title: 'Facturas',
+                    subtitle: 'Gestiona tus facturas y sus pagos.',
+                    size: ScreenHeaderSize.compact,
+                    onBack: widget.onBack,
+                    action: HeaderAddButton(
+                      tooltip: 'Nueva factura',
+                      onPressed: widget.onOpenForm,
                     ),
                   ),
-                )
-              else ...[
-                if (previousPending > 0) ...[
-                  _PreviousPendingNotice(count: previousPending),
+                  const SizedBox(height: 12),
+                  NotificationsHint(
+                    preferencesViewModel: widget.preferencesViewModel,
+                    onOpenPreferences: widget.onOpenPreferences,
+                  ),
                   const SizedBox(height: 16),
-                ],
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: MonthFilterButton(
-                    selectedMonth: _selectedMonth,
-                    onChanged: (month) =>
-                        context.push(_urlFor(_statusFilter, month)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                FilterChipRow<_StatusFilter>(
-                  options: const [
-                    (value: _StatusFilter.all, label: 'Todas'),
-                    (value: _StatusFilter.pending, label: 'Pendientes'),
-                    (value: _StatusFilter.paid, label: 'Pagadas'),
-                    (value: _StatusFilter.cancelled, label: 'Canceladas'),
+                  if (isInitialLoad)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 40),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.authAccent,
+                        ),
+                      ),
+                    )
+                  else ...[
+                    if (previousPending > 0) ...[
+                      _PreviousPendingNotice(count: previousPending),
+                      const SizedBox(height: 16),
+                    ],
+                    _InvoiceMonthSummaryCard(
+                      totalAmount: totalMonthAmount,
+                      paidCount: paidMonthCount,
+                      pendingCount: pendingMonthCount,
+                      currency: widget.currency,
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: MonthFilterButton(
+                        selectedMonth: _selectedMonth,
+                        onChanged: (month) =>
+                            context.push(_urlFor(_statusFilter, month)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    FilterChipRow<_StatusFilter>(
+                      options: const [
+                        (value: _StatusFilter.all, label: 'Todas'),
+                        (value: _StatusFilter.pending, label: 'Pendientes'),
+                        (value: _StatusFilter.paid, label: 'Pagadas'),
+                        (value: _StatusFilter.cancelled, label: 'Canceladas'),
+                      ],
+                      selectedValue: _statusFilter,
+                      onChanged: (value) {
+                        if (value == _statusFilter) return;
+                        context.push(_urlFor(value, _selectedMonth));
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    if (invoices.isEmpty)
+                      _EmptyInvoicesCard(
+                        message: allInvoices.isEmpty
+                            ? 'Todavía no hay facturas.\nTocá + para crear la primera.'
+                            : 'No hay facturas con este filtro.',
+                      )
+                    else
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.authCardFill,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.authCardBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 18,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: List.generate(invoices.length, (i) {
+                            final invoice = invoices[i];
+                            final service = widget.serviceViewModel
+                                .serviceById(invoice.serviceId);
+                            return _InvoiceRow(
+                              invoice: invoice,
+                              serviceName:
+                                  service?.name ?? 'Servicio eliminado',
+                              currency: widget.currency,
+                              onTap: () => widget.onOpenView(invoice),
+                              showDivider: i != invoices.length - 1,
+                            );
+                          }),
+                        ),
+                      ),
                   ],
-                  selectedValue: _statusFilter,
-                  onChanged: (value) {
-                    if (value == _statusFilter) return;
-                    context.push(_urlFor(value, _selectedMonth));
-                  },
-                ),
-                const SizedBox(height: 16),
-                if (invoices.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 40),
-                    child: Text(
-                      allInvoices.isEmpty
-                          ? 'Todavía no hay facturas.\nTocá + para crear la '
-                              'primera.'
-                          : 'No hay facturas con este filtro.',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.authSubtitle,
-                    ),
-                  )
-                else
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: AppColors.authCardFill,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.authCardBorder),
-                    ),
-                    child: Column(
-                      children: List.generate(invoices.length, (i) {
-                        final invoice = invoices[i];
-                        final service = widget.serviceViewModel
-                            .serviceById(invoice.serviceId);
-                        return _InvoiceRow(
-                          invoice: invoice,
-                          serviceName: service?.name ?? 'Servicio eliminado',
-                          currency: widget.currency,
-                          onTap: () => widget.onOpenView(invoice),
-                          showDivider: i != invoices.length - 1,
-                        );
-                      }),
-                    ),
-                  ),
-              ],
-            ],
+                ],
+              ),
+            ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _InvoiceMonthSummaryCard extends StatelessWidget {
+  final double totalAmount;
+  final int paidCount;
+  final int pendingCount;
+  final String currency;
+
+  const _InvoiceMonthSummaryCard({
+    required this.totalAmount,
+    required this.paidCount,
+    required this.pendingCount,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.authAccent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.authAccent.withValues(alpha: 0.30),
+              ),
+            ),
+            child: const Icon(
+              Icons.receipt_rounded,
+              color: AppColors.authAccent,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Total mensual facturado',
+                  style: TextStyle(
+                    color: AppColors.authTextSecondary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  formatCurrency(totalAmount, currency),
+                  style: const TextStyle(
+                    color: AppColors.authTextPrimary,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: AppColors.authIncome,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$paidCount pagadas',
+                      style: const TextStyle(
+                        color: AppColors.authTextFooter,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: AppColors.authExpense,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$pendingCount pendientes',
+                      style: const TextStyle(
+                        color: AppColors.authTextFooter,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyInvoicesCard extends StatelessWidget {
+  final String message;
+
+  const _EmptyInvoicesCard({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      decoration: BoxDecoration(
+        color: AppColors.authCardFill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.authCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.authAccent.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.authAccent.withValues(alpha: 0.25),
+              ),
+            ),
+            child: const Icon(
+              Icons.receipt_outlined,
+              size: 28,
+              color: AppColors.authAccent,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.authSubtitle,
+          ),
+        ],
       ),
     );
   }
@@ -301,25 +499,39 @@ class _PreviousPendingNotice extends StatelessWidget {
         : 'Tenés $count facturas pendientes de períodos anteriores. '
             'Cambiá el mes para verlas.';
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 1),
-          child: Icon(
-            Icons.info_outline_rounded,
-            size: 16,
-            color: AppColors.authTextSecondary,
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.authAccent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.authAccent.withValues(alpha: 0.25),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: AppTextStyles.authSubtitle.copyWith(fontSize: 13),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.schedule_rounded,
+              size: 16,
+              color: AppColors.authAccent,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.authTextPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -341,87 +553,143 @@ class _InvoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badgeColor = invoice.cancelled
+    final isCancelled = invoice.cancelled;
+    final isPaid = invoice.paid;
+
+    final statusColor = isCancelled
         ? AppColors.authTextFooter
-        : invoice.paid
+        : isPaid
             ? AppColors.authIncome
             : AppColors.authExpense;
-    final badgeLabel = invoice.cancelled
+    final badgeLabel = isCancelled
         ? 'Cancelada'
-        : invoice.paid
+        : isPaid
             ? 'Pagada'
             : 'Pendiente';
 
     final dueDate = invoice.dueDate;
     final subtitleParts = <String>[
       '${kMonthNames[invoice.month - 1]} ${invoice.year}',
-      if (dueDate != null)
-        'vence el ${formatDate(dueDate)}',
+      if (dueDate != null) 'vence el ${formatDate(dueDate)}',
     ];
+
+    final iconData = isCancelled
+        ? Icons.cancel_outlined
+        : isPaid
+            ? Icons.check_circle_rounded
+            : Icons.schedule_rounded;
 
     return Column(
       children: [
         Opacity(
-          opacity: invoice.cancelled ? 0.5 : 1,
-          child: InkWell(
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          opacity: isCancelled ? 0.5 : 1.0,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(
+                          color: statusColor.withValues(alpha: 0.28),
+                        ),
+                      ),
+                      child: Icon(
+                        iconData,
+                        size: 20,
+                        color: statusColor,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            serviceName,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.authTextPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitleParts.join(' · '),
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.authTextSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '$serviceName - '
-                          '${formatCurrency(invoice.amount, currency)}',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          formatCurrency(invoice.amount, currency),
+                          style: TextStyle(
                             fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.authTextPrimary,
+                            fontWeight: FontWeight.w700,
+                            color: isCancelled
+                                ? AppColors.authTextFooter
+                                : AppColors.authTextPrimary,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitleParts.join(' · '),
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.authTextSecondary,
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: statusColor.withValues(alpha: 0.24),
+                            ),
+                          ),
+                          child: Text(
+                            badgeLabel,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: statusColor,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: badgeColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(999),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: AppColors.authTextFooter,
                     ),
-                    child: Text(
-                      badgeLabel,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: badgeColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.authTextFooter),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ),
         if (showDivider)
-          const Divider(height: 1, color: AppColors.authCardBorder),
+          const Divider(
+            height: 1,
+            indent: 70,
+            endIndent: 16,
+            color: AppColors.authCardBorder,
+          ),
       ],
     );
   }

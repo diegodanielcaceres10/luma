@@ -1,4 +1,4 @@
-﻿name: Deploy Angular to GitHub Pages
+﻿name: Web Deploy GitHub Pages
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "web/**"
+      - ".github/workflows/web_deploy_github_pages.yml"
   workflow_dispatch:
 
 permissions:

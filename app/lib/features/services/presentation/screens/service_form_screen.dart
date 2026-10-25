@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/category_visuals.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
+import '../../../../core/widgets/input_text_field.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../categories/data/models/category.dart';
@@ -41,24 +43,6 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
   String? _selectedCategoryId;
 
   bool get _isEditing => widget.service != null;
-
-  static const _fieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: AppColors.authCardFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authCardBorder),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(14)),
-      borderSide: BorderSide(color: AppColors.authAccent),
-    ),
-    hintStyle: TextStyle(color: AppColors.authTextFooter),
-  );
 
   @override
   void initState() {
@@ -120,10 +104,38 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
       final isDuplicate = vm.submitError == ServiceSubmitError.duplicate;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            isDuplicate
-                ? 'Ya existe un servicio con ese nombre.'
-                : 'Ocurrió un error al guardar. Intentá de nuevo.',
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF1E2922),
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(
+              color: AppColors.authCardBorder,
+              width: 1,
+            ),
+          ),
+          content: Row(
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: AppColors.error,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  isDuplicate
+                      ? 'Ya existe un servicio con ese nombre.'
+                      : 'Ocurrió un error al guardar. Intentá de nuevo.',
+                  style: const TextStyle(
+                    color: AppColors.authTextPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -149,117 +161,283 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
                 minHeight: 3,
               ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                children: [
-                  ScreenHeader(
-                    title: _isEditing ? 'Editar servicio' : 'Nuevo servicio',
-                    size: ScreenHeaderSize.compact,
-                    onBack: widget.onDone,
-                    backEnabled: !isSubmitting,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Categoría',
-                      style: TextStyle(color: AppColors.authTextSecondary)),
-                  const SizedBox(height: 8),
-                  if (widget.categoryViewModel.isLoading)
-                    const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.authAccent),
-                    )
-                  else
-                    DropdownButtonFormField<String?>(
-                      initialValue: _selectedCategoryId,
-                      dropdownColor: AppColors.authBackgroundBottom,
-                      style: const TextStyle(color: AppColors.authTextPrimary),
-                      // DropdownButtonFormField ignores decoration.hintText /
-                      // hintStyle for its placeholder, so the color is set
-                      // here instead.
-                      hint: const Text(
-                        'Seleccioná una categoría',
-                        style: TextStyle(color: AppColors.authTextSecondary),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    children: [
+                      ScreenHeader(
+                        title: _isEditing ? 'Editar servicio' : 'Nuevo servicio',
+                        subtitle: _isEditing
+                            ? 'Modifica los datos y condiciones del servicio recurrente.'
+                            : 'Registra una suscripción o costo fijo para proyectar tus gastos.',
+                        size: ScreenHeaderSize.compact,
+                        onBack: widget.onDone,
+                        backEnabled: !isSubmitting,
                       ),
-                      decoration: _fieldDecoration,
-                      items: expenseCategories
-                          .map(
-                            (Category c) => DropdownMenuItem<String?>(
-                              value: c.id,
-                              child: Text(c.name),
+                      const SizedBox(height: 20),
+                      // Tarjeta 1: Datos del servicio
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          color: AppColors.authCardFill,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: AppColors.authCardBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.16),
+                              blurRadius: 20,
+                              offset: const Offset(0, 6),
                             ),
-                          )
-                          .toList(),
-                      onChanged: isSubmitting
-                          ? null
-                          : (value) =>
-                              setState(() => _selectedCategoryId = value),
-                      validator: (value) =>
-                          value == null ? 'Seleccioná una categoría' : null,
-                    ),
-                  const SizedBox(height: 20),
-                  const Text('Nombre',
-                      style: TextStyle(color: AppColors.authTextSecondary)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _nameController,
-                    enabled: !isSubmitting,
-                    style: const TextStyle(color: AppColors.authTextPrimary),
-                    decoration: _fieldDecoration.copyWith(
-                      hintText: 'Ej: Netflix',
-                    ),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Ingresa un nombre'
-                        : null,
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.authAccent
+                                        .withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.authAccent
+                                          .withValues(alpha: 0.30),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.receipt_long_rounded,
+                                    size: 20,
+                                    color: AppColors.authAccent,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'Datos del servicio',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.authTextPrimary,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.authExpense
+                                        .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: AppColors.authExpense
+                                          .withValues(alpha: 0.28),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Gasto fijo',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.authExpense,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            const Text(
+                              'Categoría',
+                              style: TextStyle(
+                                color: AppColors.authTextSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (widget.categoryViewModel.isLoading)
+                              const Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.authAccent,
+                                ),
+                              )
+                            else
+                              DropdownButtonFormField<String?>(
+                                initialValue: _selectedCategoryId,
+                                dropdownColor: AppColors.authBackgroundBottom,
+                                style: const TextStyle(
+                                  color: AppColors.authTextPrimary,
+                                ),
+                                hint: const Text(
+                                  'Seleccioná una categoría',
+                                  style: TextStyle(
+                                    color: AppColors.authTextSecondary,
+                                  ),
+                                ),
+                                decoration: InputTextField.formDecoration,
+                                items: expenseCategories
+                                    .map(
+                                      (Category c) =>
+                                          DropdownMenuItem<String?>(
+                                        value: c.id,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              width: 10,
+                                              height: 10,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: colorFromHex(
+                                                  c.color,
+                                                  fallback: AppColors
+                                                      .authTextFooter,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(c.name),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: isSubmitting
+                                    ? null
+                                    : (value) => setState(
+                                        () => _selectedCategoryId = value),
+                                validator: (value) => value == null
+                                    ? 'Seleccioná una categoría'
+                                    : null,
+                              ),
+                            const SizedBox(height: 20),
+                            InputTextField(
+                              controller: _nameController,
+                              label: 'Nombre',
+                              hintText: 'Ej: Netflix',
+                              enabled: !isSubmitting,
+                              validator: (value) =>
+                                  value == null || value.trim().isEmpty
+                                      ? 'Ingresa un nombre'
+                                      : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Tarjeta 2: Condiciones y Pago
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          color: AppColors.authCardFill,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: AppColors.authCardBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.16),
+                              blurRadius: 20,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.authAccent
+                                        .withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.authAccent
+                                          .withValues(alpha: 0.30),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.calendar_month_rounded,
+                                    size: 20,
+                                    color: AppColors.authAccent,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Condiciones y pago',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.authTextPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            InputTextField(
+                              controller: _amountController,
+                              label: 'Monto aproximado',
+                              hintText: '0.00',
+                              helperText:
+                                  'Monto recurrente estimado que se facturará cada mes.',
+                              enabled: !isSubmitting,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              validator: (value) {
+                                final parsed =
+                                    double.tryParse((value ?? '').trim());
+                                return parsed == null || parsed < 0
+                                    ? 'Ingresa un monto válido'
+                                    : null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            InputTextField(
+                              controller: _dueDayController,
+                              label: 'Día de vencimiento (opcional)',
+                              hintText: 'Ej: 10',
+                              helperText:
+                                  'Día del mes (1 a 31) en que opera el débito o vencimiento.',
+                              enabled: !isSubmitting,
+                              keyboardType: TextInputType.number,
+                              validator: (value) {
+                                final text = (value ?? '').trim();
+                                if (text.isEmpty) return null;
+                                final parsed = int.tryParse(text);
+                                if (parsed == null ||
+                                    parsed < 1 ||
+                                    parsed > 31) {
+                                  return 'Ingresa un día entre 1 y 31';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      SizedBox(
+                        width: double.infinity,
+                        child: PrimaryButton(
+                          label:
+                              _isEditing ? 'Guardar cambios' : 'Crear servicio',
+                          disabledAlpha: 0.6,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          isLoading: isSubmitting,
+                          onPressed: isSubmitting ? null : _submit,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  const Text('Monto aproximado',
-                      style: TextStyle(color: AppColors.authTextSecondary)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _amountController,
-                    enabled: !isSubmitting,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(color: AppColors.authTextPrimary),
-                    decoration: _fieldDecoration.copyWith(hintText: '0.00'),
-                    validator: (value) {
-                      final parsed = double.tryParse((value ?? '').trim());
-                      return parsed == null || parsed < 0
-                          ? 'Ingresa un monto válido'
-                          : null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Día de vencimiento (opcional)',
-                      style: TextStyle(color: AppColors.authTextSecondary)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _dueDayController,
-                    enabled: !isSubmitting,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: AppColors.authTextPrimary),
-                    decoration: _fieldDecoration.copyWith(hintText: 'Ej: 10'),
-                    validator: (value) {
-                      final text = (value ?? '').trim();
-                      if (text.isEmpty) return null;
-                      final parsed = int.tryParse(text);
-                      if (parsed == null || parsed < 1 || parsed > 31) {
-                        return 'Ingresa un día entre 1 y 31';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    child: PrimaryButton(
-                      label: _isEditing ? 'Guardar cambios' : 'Crear servicio',
-                      disabledAlpha: 0.6,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      isLoading: isSubmitting,
-                      onPressed: isSubmitting ? null : _submit,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],

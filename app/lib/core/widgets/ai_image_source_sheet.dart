@@ -25,11 +25,22 @@ Future<ImageSource?> showAiImageSourceSheet(
     ),
     builder: (context) => SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.authCardBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
             Text(
               title,
               style: const TextStyle(
@@ -72,14 +83,56 @@ class _SourceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: AppColors.authTextPrimary),
-      title: Text(
-        label,
-        style: const TextStyle(color: AppColors.authTextPrimary),
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      child: Material(
+        color: AppColors.authCardFill,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.authAccent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.authAccent.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(icon, color: AppColors.authAccent, size: 20),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: AppColors.authTextPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: AppColors.authTextSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      onTap: onTap,
     );
   }
 }
@@ -94,10 +147,10 @@ class _PrivacyNotice extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.authExpense.withValues(alpha: 0.12),
+        color: AppColors.authExpense.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.authExpense.withValues(alpha: 0.5),
+          color: AppColors.authExpense.withValues(alpha: 0.35),
         ),
       ),
       child: const Row(
@@ -108,7 +161,7 @@ class _PrivacyNotice extends StatelessWidget {
             size: 20,
             color: AppColors.authExpense,
           ),
-          SizedBox(width: 10),
+          SizedBox(width: 12),
           Expanded(
             child: Text(
               'Esta función es de uso personal y con fines educativos y de '
@@ -120,7 +173,7 @@ class _PrivacyNotice extends StatelessWidget {
               'o de tarjeta, documentos) ni nada que no quieras compartir.',
               style: TextStyle(
                 fontSize: 13,
-                height: 1.35,
+                height: 1.4,
                 color: AppColors.authTextPrimary,
               ),
             ),

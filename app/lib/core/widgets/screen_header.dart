@@ -55,7 +55,7 @@ class ScreenHeader extends StatelessWidget {
           children: [
             if (onBack != null) ...[
               _BackButton(onPressed: backEnabled ? onBack : null),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
             ],
             Expanded(
               child: Semantics(
@@ -92,16 +92,25 @@ class _BackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: 'Volver',
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Icon(
-            Icons.arrow_back_rounded,
-            color: onPressed == null
-                ? AppColors.authTextPrimary.withValues(alpha: 0.4)
-                : AppColors.authTextPrimary,
+      child: Material(
+        color: AppColors.authCardFill,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.authCardBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: SizedBox(
+            width: 38,
+            height: 38,
+            child: Icon(
+              Icons.arrow_back_rounded,
+              size: 20,
+              color: onPressed == null
+                  ? AppColors.authTextPrimary.withValues(alpha: 0.3)
+                  : AppColors.authTextPrimary,
+            ),
           ),
         ),
       ),

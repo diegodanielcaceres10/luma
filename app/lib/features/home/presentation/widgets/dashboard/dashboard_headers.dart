@@ -109,18 +109,19 @@ class DashboardSectionHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           child: InkWell(
             onTap: onSeeAll,
-            borderRadius: BorderRadius.circular(10),
-            hoverColor: AppColors.authCardFill,
+            borderRadius: BorderRadius.circular(12),
+            hoverColor: AppColors.authAccent.withValues(alpha: 0.10),
+            splashColor: AppColors.authAccent.withValues(alpha: 0.15),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Ver todas',
+                    'Ver todos',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,

@@ -53,6 +53,18 @@ class InputTextField extends StatelessWidget {
       borderRadius: BorderRadius.all(Radius.circular(14)),
       borderSide: BorderSide(color: AppColors.authAccent),
     ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authExpense),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authExpense, width: 1.5),
+    ),
+    errorStyle: TextStyle(
+      color: AppColors.authExpense,
+      fontSize: 12,
+    ),
     hintStyle: TextStyle(color: AppColors.authTextFooter),
   );
 
@@ -74,6 +86,18 @@ class InputTextField extends StatelessWidget {
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(14)),
       borderSide: BorderSide(color: AppColors.authAccent),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authExpense),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: AppColors.authExpense, width: 1.5),
+    ),
+    errorStyle: TextStyle(
+      color: AppColors.authExpense,
+      fontSize: 12,
     ),
   );
 

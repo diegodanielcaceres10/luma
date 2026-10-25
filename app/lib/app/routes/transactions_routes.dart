@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/navigation/app_back.dart';
 import '../../features/accounts/presentation/screens/account_justify_month_screen.dart';
+import '../../features/comparison/presentation/view_models/comparison_months.dart';
 import '../../features/home/presentation/screens/routed_screen_scaffold.dart';
 import '../../features/transactions/presentation/screens/transaction_form_screen.dart';
 import '../../features/transactions/presentation/screens/transaction_form_transfer_screen.dart';
@@ -86,6 +87,8 @@ List<RouteBase> transactionsRoutes(AppDependencies deps) {
           '/statistics/justify-month'
           '?month=${TransactionsFilters.monthQueryValue(month) ?? ''}',
         ),
+        onCompareMonths: (month) =>
+            context.push(ComparisonMonths.locationFor(month)),
       ),
     ),
     GoRoute(

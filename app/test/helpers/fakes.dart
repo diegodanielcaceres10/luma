@@ -149,6 +149,11 @@ class FakeMonthlyBalanceRepository implements MonthlyBalanceRepository {
   /// Opening balance per account returned for any requested month.
   Map<String, double> openingBalances = {};
 
+  /// Uncontrolled total per month (`year * 12 + month`); months without an
+  /// entry return [uncontrolledExpensesTotal].
+  Map<int, double> uncontrolledByMonth = {};
+  Object? uncontrolledError;
+
   final requestedMonths = <({int month, int year})>[];
   final saved = <({String accountId, int month, int year, double amount})>[];
 
@@ -188,7 +193,8 @@ class FakeMonthlyBalanceRepository implements MonthlyBalanceRepository {
     required int month,
     required int year,
   }) async {
-    return uncontrolledExpensesTotal;
+    _throwIfSet(uncontrolledError);
+    return uncontrolledByMonth[year * 12 + month] ?? uncontrolledExpensesTotal;
   }
 
   @override
@@ -222,8 +228,23 @@ class FakeTransactionRepository implements TransactionRepository {
   int createCalls = 0;
   final justifying = <({int month, int year})>[];
 
+  /// Entries returned per month (`year * 12 + month`); other months are empty.
+  Map<int, List<TransactionEntry>> entriesByMonth = {};
+  Object? loadError;
+
+  /// Months asked for, in call order.
+  final requestedMonths = <DateTime>[];
+
+  /// Awaited by every [getForMonth] call, to hold a request in flight.
+  Future<void> Function(DateTime month)? beforeLoad;
+
   @override
-  Future<List<TransactionEntry>> getForMonth(DateTime month) async => [];
+  Future<List<TransactionEntry>> getForMonth(DateTime month) async {
+    requestedMonths.add(month);
+    await beforeLoad?.call(month);
+    _throwIfSet(loadError);
+    return List.of(entriesByMonth[month.year * 12 + month.month] ?? const []);
+  }
 
   @override
   Future<String> create({

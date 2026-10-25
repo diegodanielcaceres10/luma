@@ -1,0 +1,74 @@
+name: PWA Deploy Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - ".github/workflows/app_deploy_cloudflare_pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.4"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Public variables compiled into the build with --dart-define-from-file
+      # (see README). Never put real secrets (service_role, etc.) in this .env.
+      - name: Create .env from secrets
+        run: |
+          cat > .env <<EOF
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID=${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          EOF
+
+      # Without these values the app starts with a blank screen (see main.dart),
+      # so fail here instead of publishing a broken build.
+      - name: Check required secrets
+        run: |
+          for key in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY; do
+            if ! grep -q "^${key}=.\+" .env; then
+              echo "::error::Falta el secret ${key} (ver README)."
+              exit 1
+            fi
+          done
+
+      - name: Build web
+        run: flutter build web --release --dart-define-from-file=.env
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          workingDirectory: app
+          command: pages deploy build/web --project-name=luma --branch=main

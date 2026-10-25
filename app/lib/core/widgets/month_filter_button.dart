@@ -43,40 +43,42 @@ class MonthFilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => _pick(context),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.authCardFill,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.authCardBorder),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.calendar_today_outlined,
-              size: 15,
-              color: AppColors.authTextPrimary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              formatMonthLabel(selectedMonth),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+    return Material(
+      color: AppColors.authCardFill,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.authCardBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _pick(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 15,
                 color: AppColors.authTextPrimary,
               ),
-            ),
-            const SizedBox(width: 2),
-            const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              size: 18,
-              color: AppColors.authTextSecondary,
-            ),
-          ],
+              const SizedBox(width: 8),
+              Text(
+                formatMonthLabel(selectedMonth),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.authTextPrimary,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 18,
+                color: AppColors.authTextSecondary,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -134,36 +136,66 @@ class _MonthPickerSheet extends StatelessWidget {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: months.length,
-                  separatorBuilder: (_, __) => const Divider(
-                    height: 1,
-                    color: AppColors.authCardBorder,
-                  ),
+                  separatorBuilder: (_, __) => const SizedBox(height: 4),
                   itemBuilder: (context, index) {
                     final month = months[index];
                     final isSelected = month.year == selectedMonth.year &&
                         month.month == selectedMonth.month;
 
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        formatMonthLabel(month),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                    return Material(
+                      color: isSelected
+                          ? AppColors.authAccent.withValues(alpha: 0.12)
+                          : Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
                           color: isSelected
-                              ? AppColors.authAccent
-                              : AppColors.authTextPrimary,
+                              ? AppColors.authAccent.withValues(alpha: 0.3)
+                              : Colors.transparent,
                         ),
                       ),
-                      trailing: isSelected
-                          ? const Icon(
-                              Icons.check_rounded,
-                              color: AppColors.authAccent,
-                              size: 20,
-                            )
-                          : null,
-                      onTap: () => Navigator.of(context).pop(month),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () => Navigator.of(context).pop(month),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_month_rounded,
+                                size: 18,
+                                color: isSelected
+                                    ? AppColors.authAccent
+                                    : AppColors.authTextSecondary,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  formatMonthLabel(month),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? AppColors.authAccent
+                                        : AppColors.authTextPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_rounded,
+                                  color: AppColors.authAccent,
+                                  size: 20,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),

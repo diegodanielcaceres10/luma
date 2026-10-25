@@ -3,6 +3,7 @@ import '../features/accounts/presentation/view_models/monthly_balance_view_model
 import '../features/auth/presentation/view_models/auth_view_model.dart';
 import '../features/auth/presentation/view_models/preferences_view_model.dart';
 import '../features/categories/presentation/view_models/category_view_model.dart';
+import '../features/comparison/presentation/view_models/month_comparison_view_model.dart';
 import '../features/home/presentation/view_models/app_lock_view_model.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
 import '../features/services/presentation/view_models/service_view_model.dart';
@@ -18,6 +19,7 @@ class AppDependencies {
     required this.monthlyBalanceViewModel,
     required this.serviceViewModel,
     required this.invoiceViewModel,
+    required this.comparisonViewModel,
     required this.preferencesViewModel,
     required this.appLockViewModel,
   });
@@ -29,6 +31,7 @@ class AppDependencies {
   final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final ServiceViewModel serviceViewModel;
   final InvoiceViewModel invoiceViewModel;
+  final MonthComparisonViewModel comparisonViewModel;
   final PreferencesViewModel preferencesViewModel;
   final AppLockViewModel appLockViewModel;
 }

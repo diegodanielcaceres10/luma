@@ -18,19 +18,28 @@
 
     <meta charset="UTF-8" />
     <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
-    <meta name="description" content="A new Flutter project." />
+    <meta
+      name="description"
+      content="Control de gastos, cuentas y servicios en un solo lugar."
+    />
+
+    <!-- Brand color: mirrors AppColors.authBackgroundTop in
+         app/lib/app/theme/app_colors.dart (also used in manifest.json and in
+         the body background below). Update all of them together. -->
+    <meta name="theme-color" content="#12291D" />
 
     <!-- iOS meta tags & icons -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="apple-mobile-web-app-title" content="app" />
-    <link rel="apple-touch-icon" href="icons/Icon-192.png" />
+    <meta name="apple-mobile-web-app-title" content="Luma" />
+    <!-- iOS fills transparent pixels with black, so it uses the opaque icon. -->
+    <link rel="apple-touch-icon" href="icons/Icon-maskable-192.png" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png" />
 
-    <title>app</title>
+    <title>Luma</title>
     <link rel="manifest" href="manifest.json" />
 
     <!-- cropperjs: crop screen used by image_cropper on web -->
@@ -40,6 +49,36 @@
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <style>
+      /* Avoids a white flash before Flutter paints its first frame. */
+      body {
+        background-color: #12291d;
+      }
+
+      /* Splash shown until Flutter paints its first frame. Same background
+         and leaf size (96px high, centered) as the Flutter SplashScreen, so
+         the hand-off is not visible. */
+      #luma-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #12291d;
+      }
+      #luma-splash img {
+        height: 96px;
+        width: auto;
+        animation: luma-splash-in 400ms ease-out both;
+      }
+      @keyframes luma-splash-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #luma-splash img { animation: none; }
+      }
+
       /* App accent (#4CBB7A) over the default cropperjs blue. */
       .cropper-view-box {
         outline-color: rgba(76, 187, 122, 0.85);
@@ -103,6 +142,19 @@
     </style>
   </head>
   <body>
+    <div id="luma-splash" aria-hidden="true">
+      <img src="splash/leaf.png" alt="" />
+    </div>
+    <script>
+      window.addEventListener(
+        'flutter-first-frame',
+        function () {
+          var splash = document.getElementById('luma-splash');
+          if (splash) splash.remove();
+        },
+        { once: true }
+      );
+    </script>
     <script src="flutter_bootstrap.js" async></script>
   </body>
 </html>
