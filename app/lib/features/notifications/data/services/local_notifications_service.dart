@@ -31,13 +31,6 @@ class LocalNotificationsService {
   /// estado y en la bandeja de notificaciones.
   static const _brandColor = Color(0xFF1F7A4C);
 
-  /// Full-color logo shown next to the text. It must live in `drawable-*`
-  /// because `DrawableResourceAndroidBitmap` only looks up drawables, so the
-  /// launcher icon in `mipmap-*` cannot be used here (it fails with
-  /// `invalid_large_icon` and the notification is never shown).
-  static const _largeIcon =
-      DrawableResourceAndroidBitmap('ic_notification_large');
-
   bool _initialized = false;
 
   /// Inicializa el plugin y crea (o actualiza) el canal de notificaciones
@@ -119,10 +112,6 @@ class LocalNotificationsService {
           importance: Importance.high,
           priority: Priority.high,
           color: _brandColor,
-          // Ícono grande = el logo completo (a color), a la derecha del
-          // texto. El chico (arriba) es la silueta simple para la barra
-          // de estado — son recursos Android distintos a propósito.
-          largeIcon: _largeIcon,
         ),
       ),
     );
@@ -150,7 +139,6 @@ class LocalNotificationsService {
           importance: Importance.high,
           priority: Priority.high,
           color: _brandColor,
-          largeIcon: _largeIcon,
         ),
       ),
     );
@@ -179,7 +167,6 @@ class LocalNotificationsService {
           importance: Importance.high,
           priority: Priority.high,
           color: _brandColor,
-          largeIcon: _largeIcon,
         ),
       ),
     );
