@@ -31,6 +31,7 @@ dependencies:
   workmanager: ^0.10.0
   firebase_core: ^4.15.0
   firebase_crashlytics: ^5.4.0
+  lottie: ^3.6.1
 
 dev_dependencies:
   flutter_test:
@@ -43,6 +44,7 @@ flutter:
     - assets/images/balance_card_bg.png
     - assets/images/login_bg_mobile_dark.png
     - assets/images/login_bg_desktop_dark.png
+    - assets/animations/luma_splash.json
     - assets/fonts/Roboto-Regular.ttf
     - assets/fonts/Roboto-Bold.ttf
 
