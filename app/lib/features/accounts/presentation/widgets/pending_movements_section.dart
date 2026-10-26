@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/image_crop_picker.dart';
-import '../../../../core/widgets/ai_image_source_sheet.dart';
+import '../../../../core/widgets/dialogs/ai_image_source_sheet.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/data/models/invoice.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../app/theme/app_colors.dart';
+import '../../../app/theme/app_colors.dart';
 
 /// Text field shared by the forms and dialogs: an optional label above and
 /// the field below, styled like the rest of the auth-themed screens.

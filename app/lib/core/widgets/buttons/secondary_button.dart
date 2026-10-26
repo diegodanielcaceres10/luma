@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import '../../../app/theme/app_colors.dart';
 
 /// Secondary action next to a [PrimaryButton]: outlined, with the app's card
 /// border. The defaults give the plain look; the optional parameters cover the

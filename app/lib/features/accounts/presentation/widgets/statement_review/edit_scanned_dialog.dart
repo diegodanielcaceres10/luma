@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/widgets/input_text_field.dart';
-import '../../../../../core/widgets/primary_button.dart';
-import '../../../../../core/widgets/text_action_button.dart';
+import '../../../../../core/widgets/inputs/input_text_field.dart';
+import '../../../../../core/widgets/buttons/primary_button.dart';
+import '../../../../../core/widgets/buttons/text_action_button.dart';
 
 /// Lets the user fix the description of a line read from a statement. Amount,
 /// date and category come from the statement and are not editable. Pops the

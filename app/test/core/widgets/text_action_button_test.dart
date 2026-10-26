@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luma/app/theme/app_colors.dart';
-import 'package:luma/core/widgets/text_action_button.dart';
+import 'package:luma/core/widgets/buttons/text_action_button.dart';
 
 Widget host(Widget child) =>
     MaterialApp(home: Scaffold(body: Center(child: child)));

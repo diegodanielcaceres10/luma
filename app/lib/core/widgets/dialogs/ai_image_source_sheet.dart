@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../app/theme/app_colors.dart';
+import '../../../app/theme/app_colors.dart';
 
 /// Asks where an image comes from before it is sent to the AI service, and
 /// warns about what that means. Resolves to null when the user dismisses the

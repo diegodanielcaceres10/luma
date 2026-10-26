@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
-import '../../core/widgets/luma_logo.dart';
+import '../../core/widgets/layout/luma_logo.dart';
 import '../theme/app_colors.dart';
 
 /// Splash with the animated leaf. It loops while [ready] is false and, once

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
 import '../../../../../app/theme/app_text_styles.dart';
-import '../../../../../core/widgets/text_action_button.dart';
+import '../../../../../core/widgets/buttons/text_action_button.dart';
 
 class TransactionsFilterSectionLabel extends StatelessWidget {
   final String label;

@@ -4,7 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
-import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
 import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../../notifications/presentation/widgets/notifications_hint.dart';
 import '../../data/models/account.dart';

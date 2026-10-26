@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/widgets/luma_logo.dart';
-import '../core/widgets/primary_button.dart';
+import '../core/widgets/layout/luma_logo.dart';
+import '../core/widgets/buttons/primary_button.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_text_styles.dart';
 

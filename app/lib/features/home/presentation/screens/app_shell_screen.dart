@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/luma_logo.dart';
-import '../../../../core/widgets/max_width_frame.dart';
+import '../../../../core/widgets/layout/luma_logo.dart';
+import '../../../../core/widgets/layout/max_width_frame.dart';
 import '../widgets/luma_header.dart';
 
 /// Breakpoints for responsive layout.

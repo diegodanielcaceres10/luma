@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
-import '../../../../core/widgets/confirm_dialog.dart';
-import '../../../../core/widgets/input_text_field.dart';
-import '../../../../core/widgets/primary_button.dart';
-import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/dialogs/confirm_dialog.dart';
+import '../../../../core/widgets/inputs/input_text_field.dart';
+import '../../../../core/widgets/buttons/primary_button.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
 import '../../../categories/data/models/category.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../data/models/service.dart';

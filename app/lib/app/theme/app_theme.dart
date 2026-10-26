@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/widgets/max_width_frame.dart';
+import '../../core/widgets/layout/max_width_frame.dart';
 import 'app_colors.dart';
 
 abstract final class AppTheme {

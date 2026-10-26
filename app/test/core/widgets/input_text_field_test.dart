@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:luma/core/widgets/input_text_field.dart';
+import 'package:luma/core/widgets/inputs/input_text_field.dart';
 
 Widget host(Widget child) => MaterialApp(home: Scaffold(body: child));
 

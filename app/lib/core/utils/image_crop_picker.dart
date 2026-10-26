@@ -6,9 +6,9 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../ai/scan_stage.dart';
-import '../widgets/crop_preview_dialog.dart';
-import '../widgets/image_crop_screen.dart';
-import '../widgets/themed_cropper_page.dart';
+import '../widgets/cropper/crop_preview_dialog.dart';
+import '../widgets/cropper/image_crop_screen.dart';
+import '../widgets/cropper/themed_cropper_page.dart';
 
 /// An image already cropped by the user, ready to be sent for scanning.
 typedef PickedImage = ({Uint8List bytes, String mimeType});

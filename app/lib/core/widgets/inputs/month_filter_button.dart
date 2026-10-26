@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../utils/app_clock.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../utils/app_clock.dart';
 
 String formatMonthLabel(DateTime date) {
   final formatted = DateFormat('MMMM yyyy', 'es').format(date);

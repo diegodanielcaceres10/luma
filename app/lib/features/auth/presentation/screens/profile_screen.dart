@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/widgets/app_version_footer.dart';
-import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/layout/app_version_footer.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
 import '../view_models/auth_view_model.dart';
 
 class ProfileScreen extends StatelessWidget {

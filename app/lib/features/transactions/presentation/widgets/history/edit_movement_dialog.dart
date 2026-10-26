@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utils/currency_format.dart';
-import '../../../../../core/widgets/input_text_field.dart';
-import '../../../../../core/widgets/text_action_button.dart';
+import '../../../../../core/widgets/inputs/input_text_field.dart';
+import '../../../../../core/widgets/buttons/text_action_button.dart';
 import '../../../../categories/data/models/category.dart';
 import '../../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../data/models/transaction_entry.dart';

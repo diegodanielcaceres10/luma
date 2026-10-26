@@ -3,10 +3,10 @@ import 'dart:typed_data';
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../utils/image_cropping.dart';
-import 'primary_button.dart';
-import 'text_action_button.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../utils/image_cropping.dart';
+import '../buttons/primary_button.dart';
+import '../buttons/text_action_button.dart';
 
 /// Opens the crop screen for [bytes] and returns the cropped image as a JPEG,
 /// or null when the user cancels.

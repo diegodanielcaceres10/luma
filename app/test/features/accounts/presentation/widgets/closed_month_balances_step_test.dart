@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luma/core/utils/currency_format.dart';
-import 'package:luma/core/widgets/filter_chip_row.dart';
+import 'package:luma/core/widgets/inputs/filter_chip_row.dart';
 import 'package:luma/features/accounts/data/models/account.dart';
 import 'package:luma/features/accounts/presentation/widgets/closed_month_balances_step.dart';
 

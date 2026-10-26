@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 
-import '../../app/theme/app_colors.dart';
-import 'max_width_frame.dart';
-import 'primary_button.dart';
-import 'text_action_button.dart';
+import '../../../app/theme/app_colors.dart';
+import '../layout/max_width_frame.dart';
+import '../buttons/primary_button.dart';
+import '../buttons/text_action_button.dart';
 
 /// Full-screen crop page for web, styled like the rest of the app. Plugged into
 /// `WebUiSettings.customRouteBuilder`, which hands over the cropper and the

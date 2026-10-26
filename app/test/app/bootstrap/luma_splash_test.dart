@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lottie/lottie.dart';
 import 'package:luma/app/bootstrap/luma_splash.dart';
-import 'package:luma/core/widgets/luma_logo.dart';
+import 'package:luma/core/widgets/layout/luma_logo.dart';
 
 /// Serves every asset except the Lottie file, which fails to load.
 class _LottieFailingBundle extends CachingAssetBundle {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luma/app/theme/app_theme.dart';
-import 'package:luma/core/widgets/max_width_frame.dart';
+import 'package:luma/core/widgets/layout/max_width_frame.dart';
 
 void main() {
   Future<Size> openDialog(WidgetTester tester, Size viewport) async {

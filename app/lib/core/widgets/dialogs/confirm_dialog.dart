@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import 'text_action_button.dart';
+import '../../../app/theme/app_colors.dart';
+import '../buttons/text_action_button.dart';
 
 /// Asks the user to confirm before continuing, e.g. before saving a record.
 ///

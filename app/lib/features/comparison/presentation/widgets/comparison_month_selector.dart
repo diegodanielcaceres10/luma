@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/month_filter_button.dart';
+import '../../../../core/widgets/inputs/month_filter_button.dart';
 import '../../../transactions/presentation/view_models/transactions_filters.dart';
 
 /// Picks the two months to compare, one under the other: "Antes" on top,

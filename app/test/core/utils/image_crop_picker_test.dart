@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:luma/core/ai/scan_stage.dart';
 import 'package:luma/core/utils/image_crop_picker.dart';
-import 'package:luma/core/widgets/crop_preview_dialog.dart';
+import 'package:luma/core/widgets/cropper/crop_preview_dialog.dart';
 
 void main() {
   final cropped = Uint8List.fromList([1, 2, 3]);

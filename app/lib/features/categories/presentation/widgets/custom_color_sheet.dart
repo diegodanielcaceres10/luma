@@ -7,8 +7,8 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart'
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/category_visuals.dart';
-import '../../../../core/widgets/primary_button.dart';
-import '../../../../core/widgets/secondary_button.dart';
+import '../../../../core/widgets/buttons/primary_button.dart';
+import '../../../../core/widgets/buttons/secondary_button.dart';
 
 /// Bottom sheet to pick a custom color. Returns '#RRGGBB' on confirm, or
 /// `null` if dismissed.

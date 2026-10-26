@@ -4,7 +4,7 @@ import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utils/category_visuals.dart';
 import '../../../../../core/utils/currency_format.dart';
 import '../../../../../core/utils/date_format.dart';
-import '../../../../../core/widgets/movement_tile.dart';
+import '../../../../../core/widgets/cards/movement_tile.dart';
 import '../../../data/models/transaction_entry.dart';
 
 class TransactionMovementRow extends StatelessWidget {

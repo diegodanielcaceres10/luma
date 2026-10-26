@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
-import '../../../../core/widgets/filter_chip_row.dart';
+import '../../../../core/widgets/inputs/filter_chip_row.dart';
 import '../../data/models/account.dart';
 import 'balance_comparison_card.dart';
 

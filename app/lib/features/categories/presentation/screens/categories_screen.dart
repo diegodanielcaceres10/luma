@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/category_visuals.dart';
-import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
 import '../../data/models/category.dart';
 import '../view_models/category_view_model.dart';
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../ai/scan_progress_timeline.dart';
-import '../ai/scan_stage.dart';
-import 'secondary_button.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../ai/scan_progress_timeline.dart';
+import '../../ai/scan_stage.dart';
+import '../buttons/secondary_button.dart';
 
 /// Shows [ScanProgressDialog] for [timeline]. The returned future completes
 /// when the popup is closed: by the caller once the scan succeeds, or by the

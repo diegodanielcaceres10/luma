@@ -2,14 +2,14 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../ai/scan_failure.dart';
-import '../ai/scan_progress_timeline.dart';
-import '../ai/scan_stage.dart';
-import 'primary_button.dart';
-import 'scan_progress_dialog.dart';
-import 'secondary_button.dart';
-import 'text_action_button.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../ai/scan_failure.dart';
+import '../../ai/scan_progress_timeline.dart';
+import '../../ai/scan_stage.dart';
+import '../buttons/primary_button.dart';
+import '../dialogs/scan_progress_dialog.dart';
+import '../buttons/secondary_button.dart';
+import '../buttons/text_action_button.dart';
 
 /// What the user decided after seeing the cropped image.
 enum CropPreviewAction { send, recrop, cancel }

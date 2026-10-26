@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import '../../../app/theme/app_colors.dart';
 
 /// Text-only action used in dialogs and sheets ("Cancelar", "Volver", "Sí").
 /// It is muted by default; pass [color] and [fontWeight] to emphasize the

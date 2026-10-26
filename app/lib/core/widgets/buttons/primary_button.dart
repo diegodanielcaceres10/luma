@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import '../../../app/theme/app_colors.dart';
 
 /// Main call-to-action button of forms, dialogs and sheets, styled like the
 /// auth-themed screens: accent background with dark text.

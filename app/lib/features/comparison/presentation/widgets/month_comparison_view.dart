@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
 import '../../../transactions/presentation/view_models/transactions_filters.dart';
 import '../view_models/month_comparison.dart';
 import '../view_models/month_comparison_view_model.dart';

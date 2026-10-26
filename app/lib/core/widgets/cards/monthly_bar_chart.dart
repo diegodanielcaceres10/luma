@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../utils/currency_format.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../utils/currency_format.dart';
 
 const double _barAreaHeight = 110;
 const double _amountLabelHeight = 20;

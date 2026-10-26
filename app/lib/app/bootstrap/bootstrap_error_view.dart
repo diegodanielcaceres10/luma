@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/buttons/primary_button.dart';
 import '../theme/app_colors.dart';
 
 /// Shown when the app could not start (for example the backend failed to

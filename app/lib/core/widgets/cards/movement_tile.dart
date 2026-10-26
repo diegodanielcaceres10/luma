@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import '../../../app/theme/app_colors.dart';
 
 /// Marker at the start of a [MovementTile]: an icon for transfers and service
 /// payments, a dot in the category color for movements with a category, and a
