@@ -7,6 +7,7 @@ import 'app/bootstrap/app_bootstrap.dart';
 import 'app/bootstrap/app_initializer.dart';
 import 'app/theme/app_theme.dart';
 import 'core/config/app_env.dart';
+import 'core/config/app_info.dart';
 import 'core/diagnostics/crashlytics_error_reporter.dart';
 import 'core/diagnostics/global_error_handlers.dart';
 import 'features/home/presentation/screens/update_required_screen.dart';
@@ -37,6 +38,7 @@ Future<void> main() async {
     appBuilder: (pendingUpdateMessage) =>
         LumaApp(pendingUpdateMessage: pendingUpdateMessage),
     blockedBuilder: (message) => MaterialApp(
+      title: AppInfo.name,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       home: UpdateRequiredScreen(message: message),

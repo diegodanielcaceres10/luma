@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/config/app_info.dart';
 import '../features/accounts/data/repositories/account_repository.dart';
 import '../features/accounts/data/repositories/monthly_balance_repository.dart';
 import '../features/accounts/data/services/account_service.dart';
@@ -239,7 +240,7 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Luma',
+      title: AppInfo.name,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: _router,

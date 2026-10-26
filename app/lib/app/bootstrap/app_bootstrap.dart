@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/config/app_info.dart';
 import '../../core/diagnostics/error_reporter.dart';
 import '../theme/app_theme.dart';
 import 'app_initializer.dart';
@@ -113,6 +114,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
   Widget _plainApp(Key key, Widget home) {
     return MaterialApp(
       key: key,
+      title: AppInfo.name,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       home: home,

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:luma/app/bootstrap/app_bootstrap.dart';
 import 'package:luma/app/bootstrap/app_initializer.dart';
 import 'package:luma/app/bootstrap/bootstrap_error_view.dart';
+import 'package:luma/core/config/app_info.dart';
 import 'package:luma/features/home/data/models/version_check_result.dart';
 
 import '../../helpers/fakes.dart';
@@ -121,6 +122,19 @@ void main() {
     expect(reporter.reports, hasLength(1));
     expect(reporter.reports.single.fatal, isFalse);
     expect(reporter.reports.single.error, isA<StateError>());
+  });
+
+  testWidgets('keeps the app title on the splash and the error view',
+      (tester) async {
+    await tester.pumpWidget(bootstrap());
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).title,
+        AppInfo.name);
+
+    backendRuns.single.completeError(StateError('backend down'));
+    await settle(tester);
+
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).title,
+        AppInfo.name);
   });
 
   testWidgets(
