@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
@@ -12,6 +14,16 @@ import '../theme/app_colors.dart';
 /// static logo is shown instead and [onFinished] is called as soon as [ready]
 /// is true: a decoration must never hold up the app.
 class LumaSplash extends StatefulWidget {
+  /// The leaf stays still this long before it starts moving, so it gets seen
+  /// even when the app is ready almost immediately.
+  static const startDelay = Duration(seconds: 1);
+
+  /// One pass of the looping part of the animation (frames 0-60 of the asset).
+  static const loopDuration = Duration(seconds: 3);
+
+  /// The closing part of the animation (frames 60-90 of the asset).
+  static const outroDuration = Duration(seconds: 1);
+
   final bool ready;
   final VoidCallback onFinished;
 
@@ -25,11 +37,10 @@ class _LumaSplashState extends State<LumaSplash>
     with SingleTickerProviderStateMixin {
   static const _asset = 'assets/animations/luma_splash.json';
 
-  // These values mirror assets/animations/luma_splash.json: 90 frames at
-  // 30 fps, the loop covers frames 0-60 and the outro frames 60-90. Frame 60
-  // looks like frame 0, so restarting the loop has no visible jump.
-  static const _loopDuration = Duration(seconds: 2);
-  static const _outroDuration = Duration(seconds: 1);
+  // Mirrors assets/animations/luma_splash.json: 90 frames, the loop covers
+  // frames 0-60 and the outro frames 60-90. Frame 60 looks like frame 0, so
+  // restarting the loop has no visible jump. The durations of the public
+  // constants stretch or squeeze those frames; they do not change the asset.
   static const _loopEnd = 60 / 90;
 
   // The canvas keeps a 32 px margin on each side of 512, so the leaf is 87.5%
@@ -39,6 +50,7 @@ class _LumaSplashState extends State<LumaSplash>
   static const _canvasSize = _leafHeight / _leafToCanvasRatio;
 
   late final AnimationController _controller;
+  Timer? _startTimer;
   bool _started = false;
   bool _reduceMotion = false;
   bool _assetFailed = false;
@@ -61,7 +73,8 @@ class _LumaSplashState extends State<LumaSplash>
       if (_reduceMotion) {
         _scheduleFinishIfReady();
       } else {
-        _playLoop();
+        // Frame 0 is shown still until the delay is over.
+        _startTimer = Timer(LumaSplash.startDelay, _playLoop);
       }
     }
   }
@@ -76,13 +89,16 @@ class _LumaSplashState extends State<LumaSplash>
 
   @override
   void dispose() {
+    _startTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
   void _playLoop() {
     _controller.value = 0;
-    _controller.animateTo(_loopEnd, duration: _loopDuration).then((_) {
+    _controller
+        .animateTo(_loopEnd, duration: LumaSplash.loopDuration)
+        .then((_) {
       if (!mounted) return;
       if (widget.ready) {
         _playOutro();
@@ -93,7 +109,9 @@ class _LumaSplashState extends State<LumaSplash>
   }
 
   void _playOutro() {
-    _controller.animateTo(1, duration: _outroDuration).then((_) => _finish());
+    _controller
+        .animateTo(1, duration: LumaSplash.outroDuration)
+        .then((_) => _finish());
   }
 
   void _scheduleFinishIfReady() {

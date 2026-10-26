@@ -61,29 +61,27 @@ void main() {
   }
 
   // The loop never settles, so time is advanced by hand, never pumpAndSettle.
-  Future<void> elapse(WidgetTester tester, Duration time) =>
-      tester.pump(time);
-
-  // Plays loop (2 s) and outro (1 s) with ready already true, asserting that
-  // onFinished has not fired before the outro has had its full second. The
-  // outro starts one frame after the loop ends (its ticker anchors on the next
-  // frame), so the phases are stepped through instead of jumped over.
-  Future<void> playToTheEnd(
-    WidgetTester tester, {
-    required Duration alreadyElapsed,
-  }) async {
-    // Finish the loop (2 s), with a 100 ms margin, wherever it is.
-    const loop = Duration(seconds: 2);
-    await elapse(
-      tester,
-      loop - alreadyElapsed + const Duration(milliseconds: 100),
-    );
-    // First frame of the outro: its ticker anchors here with 0 ms elapsed.
-    await elapse(tester, const Duration(milliseconds: 16));
-    await elapse(tester, const Duration(milliseconds: 900));
-    expect(finished, 0, reason: 'the outro still has 100 ms to go');
-    await elapse(tester, const Duration(milliseconds: 200));
+  // It goes in 100 ms frames: the start delay timer and each animation phase
+  // anchor on the first frame after they fire, so a single big jump would make
+  // the exact finishing instant depend on frame granularity.
+  Future<void> elapse(WidgetTester tester, Duration time) async {
+    const step = Duration(milliseconds: 100);
+    var left = time;
+    while (left > Duration.zero) {
+      final frame = left < step ? left : step;
+      await tester.pump(frame);
+      left -= frame;
+    }
   }
+
+  // Earliest instant at which onFinished can fire when ready is true before
+  // the first loop ends: start delay, one loop and the outro. Every phase can
+  // start up to one frame late, hence the margins used by the tests.
+  final minimumTotal = LumaSplash.startDelay +
+      LumaSplash.loopDuration +
+      LumaSplash.outroDuration;
+  const frameMargin = Duration(milliseconds: 100);
+  const lateMargin = Duration(milliseconds: 600);
 
   testWidgets('draws the leaf 96 px high', (tester) async {
     await pumpSplash(tester);
@@ -116,14 +114,16 @@ void main() {
     ready.value = true;
     await tester.pump();
 
-    // The loop (2 s) is still running: ready does not cut it short.
-    await elapse(tester, const Duration(milliseconds: 1000));
+    // The loop is still running: ready does not cut it short.
+    const sofar = Duration(milliseconds: 2500);
+    await elapse(tester, const Duration(milliseconds: 2000));
     expect(finished, 0);
 
-    await playToTheEnd(
-      tester,
-      alreadyElapsed: const Duration(milliseconds: 1500),
-    );
+    // Stop just short of the earliest possible finish.
+    await elapse(tester, minimumTotal - frameMargin - sofar);
+    expect(finished, 0);
+
+    await elapse(tester, frameMargin + lateMargin);
     expect(finished, 1);
 
     await elapse(tester, const Duration(seconds: 5));
@@ -136,7 +136,11 @@ void main() {
     await pumpSplash(tester);
     await letAssetsLoad(tester);
 
-    await playToTheEnd(tester, alreadyElapsed: Duration.zero);
+    // Start delay, loop and outro all have to play before it finishes.
+    await elapse(tester, minimumTotal - frameMargin);
+    expect(finished, 0);
+
+    await elapse(tester, frameMargin + lateMargin);
     expect(finished, 1);
 
     await elapse(tester, const Duration(seconds: 5));
