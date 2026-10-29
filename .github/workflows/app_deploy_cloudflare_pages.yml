@@ -48,6 +48,11 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
           GOOGLE_IOS_CLIENT_ID=${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          FIREBASE_WEB_API_KEY=${{ secrets.FIREBASE_WEB_API_KEY }}
+          FIREBASE_WEB_APP_ID=${{ secrets.FIREBASE_WEB_APP_ID }}
+          FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_VAPID_KEY=${{ secrets.FIREBASE_VAPID_KEY }}
           EOF
 
       # Without these values the app starts with a blank screen (see main.dart),
@@ -63,6 +68,26 @@ jobs:
 
       - name: Build web
         run: flutter build web --release --dart-define-from-file=.env
+
+      # Web push is optional: with no Firebase web variables the PWA is
+      # published without it. A partial set is an error, so a half-configured
+      # build never goes out.
+      - name: Configure web push
+        run: |
+          set_count=0
+          for key in FIREBASE_WEB_API_KEY FIREBASE_WEB_APP_ID FIREBASE_MESSAGING_SENDER_ID FIREBASE_PROJECT_ID FIREBASE_VAPID_KEY; do
+            if grep -q "^${key}=.\+" .env; then
+              set_count=$((set_count + 1))
+            fi
+          done
+          if [ "$set_count" -eq 0 ]; then
+            echo "::notice::Sin configuración de Firebase web: la PWA se publica sin notificaciones push."
+          elif [ "$set_count" -lt 5 ]; then
+            echo "::error::Configuración de Firebase web incompleta ($set_count de 5 variables). Ver README."
+            exit 1
+          else
+            sh scripts/configure_web_push.sh .env build/web/firebase-messaging-sw.js
+          fi
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4

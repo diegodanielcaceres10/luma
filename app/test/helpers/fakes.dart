@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:luma/core/diagnostics/error_reporter.dart';
 import 'package:luma/features/accounts/data/models/account.dart';
 import 'package:luma/features/accounts/data/models/monthly_opening_balance.dart';
@@ -6,7 +8,9 @@ import 'package:luma/features/accounts/data/repositories/monthly_balance_reposit
 import 'package:luma/features/auth/data/repositories/preferences_repository.dart';
 import 'package:luma/features/invoices/data/models/invoice.dart';
 import 'package:luma/features/invoices/data/repositories/invoice_repository.dart';
-import 'package:luma/features/notifications/data/repositories/notification_log_repository.dart';
+import 'package:luma/features/notifications/data/repositories/device_token_repository.dart';
+import 'package:luma/features/notifications/data/services/local_notifications_service.dart';
+import 'package:luma/features/notifications/data/services/push_messaging_service.dart';
 import 'package:luma/features/transactions/data/models/transaction_entry.dart';
 import 'package:luma/features/transactions/data/repositories/transaction_repository.dart';
 
@@ -291,32 +295,11 @@ class FakePreferencesRepository implements PreferencesRepository {
   Future<void> setCurrencyCode(String value) async {}
 
   @override
+  Future<void> setNotificationsEnabled(bool value) async {}
+
+  @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} is not faked');
-}
-
-/// Keeps the notification log in memory; [failing] makes every call throw.
-class InMemoryNotificationLogStore implements NotificationLogStore {
-  final Map<String, String> values = {};
-  bool failing = false;
-
-  @override
-  Future<String?> read(String key) async {
-    if (failing) throw StateError('read failed');
-    return values[key];
-  }
-
-  @override
-  Future<void> write(String key, String value) async {
-    if (failing) throw StateError('write failed');
-    values[key] = value;
-  }
-
-  @override
-  Future<void> delete(String key) async {
-    if (failing) throw StateError('delete failed');
-    values.remove(key);
-  }
 }
 
 /// Keeps the reports in memory so tests can check what would be sent.
@@ -336,4 +319,144 @@ class FakeErrorReporter implements ErrorReporter {
 
 void _throwIfSet(Object? error) {
   if (error != null) throw error;
+}
+
+/// Stands in for the push plugin. Every call is appended to [calls] so tests
+/// can check the order of events across fakes.
+class FakePushMessagingService implements PushMessagingService {
+  FakePushMessagingService(this.calls);
+
+  final List<String> calls;
+  final _refreshes = StreamController<String>.broadcast();
+  var _foreground = StreamController<PushMessage>.broadcast();
+
+  @override
+  bool isSupported = true;
+
+  /// False simulates web, where foreground messages are not shown by the app.
+  bool foregroundSupported = true;
+
+  @override
+  bool get showsForegroundMessages => isSupported && foregroundSupported;
+  String? token = 'token-a';
+  Object? getTokenError;
+  Object? deleteTokenError;
+
+  /// When set, `getToken` never answers until it completes.
+  Completer<String?>? holdGetToken;
+
+  /// Browser permission (web). Not recorded in [calls]: it is not part of the
+  /// token order the tests check.
+  bool permissionGranted = true;
+  Object? permissionError;
+  int permissionRequests = 0;
+
+  /// When set, `requestPermission` waits for it, like a user taking a while
+  /// to answer the prompt.
+  Completer<void>? holdPermission;
+
+  @override
+  Future<bool> requestPermission() async {
+    permissionRequests++;
+    if (permissionError != null) throw permissionError!;
+    await holdPermission?.future;
+    return permissionGranted;
+  }
+
+  @override
+  String get platform => 'android';
+
+  /// Simulates FCM rotating the token.
+  void emitRefresh(String newToken) => _refreshes.add(newToken);
+
+  /// Simulates a push message arriving while the app is open.
+  void emitForeground(PushMessage message) => _foreground.add(message);
+
+  void emitForegroundError(Object error) => _foreground.addError(error);
+
+  /// Simulates the foreground stream ending; the next listener gets a new one.
+  Future<void> endForeground() async {
+    final ended = _foreground;
+    _foreground = StreamController<PushMessage>.broadcast();
+    await ended.close();
+  }
+
+  @override
+  Future<String?> getToken() async {
+    calls.add('getToken');
+    if (getTokenError != null) throw getTokenError!;
+    if (holdGetToken != null) return holdGetToken!.future;
+    return token;
+  }
+
+  @override
+  Stream<String> get onTokenRefresh => _refreshes.stream;
+
+  @override
+  Stream<PushMessage> get onForegroundMessage {
+    calls.add('onForegroundMessage');
+    return _foreground.stream;
+  }
+
+  @override
+  Future<void> deleteToken() async {
+    calls.add('deleteToken');
+    if (deleteTokenError != null) throw deleteTokenError!;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} is not faked');
+}
+
+/// Keeps what would be shown to the user instead of calling the plugin.
+class RecordingLocalNotificationsService implements LocalNotificationsService {
+  final shown = <({int id, String title, String body})>[];
+  Object? showError;
+
+  @override
+  Future<void> showPush({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    if (showError != null) throw showError!;
+    shown.add((id: id, title: title, body: body));
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} is not faked');
+}
+
+/// Records token writes in [calls] instead of calling Supabase.
+class FakeDeviceTokenRepository implements DeviceTokenRepository {
+  FakeDeviceTokenRepository(this.calls);
+
+  final List<String> calls;
+  Object? registerError;
+  Object? unregisterError;
+
+  /// When set, `register` never answers until it completes.
+  Completer<void>? holdRegister;
+
+  @override
+  Future<void> register({
+    required String token,
+    required String platform,
+  }) async {
+    calls.add('register:$token:$platform');
+    if (registerError != null) throw registerError!;
+    await holdRegister?.future;
+  }
+
+  @override
+  Future<void> unregister(String token) async {
+    calls.add('unregister:$token');
+    if (unregisterError != null) throw unregisterError!;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} is not faked');
 }

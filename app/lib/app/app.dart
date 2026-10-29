@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/config/app_info.dart';
+import '../core/diagnostics/crashlytics_error_reporter.dart';
 import '../features/accounts/data/repositories/account_repository.dart';
 import '../features/accounts/data/repositories/monthly_balance_repository.dart';
 import '../features/accounts/data/services/account_service.dart';
@@ -25,6 +26,12 @@ import '../features/home/presentation/widgets/app_lock_gate.dart';
 import '../features/invoices/data/repositories/invoice_repository.dart';
 import '../features/invoices/data/services/invoice_service.dart';
 import '../features/invoices/presentation/view_models/invoice_view_model.dart';
+import '../features/notifications/data/repositories/device_token_repository.dart';
+import '../features/notifications/data/services/device_token_service.dart';
+import '../features/notifications/data/services/foreground_push_presenter.dart';
+import '../features/notifications/data/services/local_notifications_service.dart';
+import '../features/notifications/data/services/push_messaging_service.dart';
+import '../features/notifications/data/services/push_token_registrar.dart';
 import '../features/notifications/presentation/view_models/notifications_view_model.dart';
 import '../features/services/data/repositories/service_repository.dart';
 import '../features/services/data/services/service_service.dart';
@@ -88,8 +95,21 @@ class _LumaAppState extends State<LumaApp> with WidgetsBindingObserver {
     _preferencesViewModel.loadPreferences();
 
     // Not awaited: a slow call shouldn't delay the first frame.
-    _notificationsViewModel =
-        NotificationsViewModel(preferencesViewModel: _preferencesViewModel);
+    final pushMessaging = PushMessagingService();
+    _notificationsViewModel = NotificationsViewModel(
+      preferencesViewModel: _preferencesViewModel,
+      authViewModel: _authViewModel,
+      pushTokenRegistrar: PushTokenRegistrar(
+        messaging: pushMessaging,
+        tokens: DeviceTokenRepository(DeviceTokenService(client)),
+        reporter: CrashlyticsErrorReporter.create,
+      ),
+      foregroundPushPresenter: ForegroundPushPresenter(
+        messaging: pushMessaging,
+        notifications: LocalNotificationsService(),
+        reporter: CrashlyticsErrorReporter.create,
+      ),
+    );
     _notificationsViewModel.initialize();
 
     final accountRepository = AccountRepository(AccountService(client));

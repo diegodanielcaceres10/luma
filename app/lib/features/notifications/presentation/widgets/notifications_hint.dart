@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/config/app_env.dart';
 import '../../../auth/presentation/view_models/preferences_view_model.dart';
 
 /// Short note under a screen header that tells whether notifications are on
@@ -23,8 +24,8 @@ class NotificationsHint extends StatelessWidget {
       listenable: preferencesViewModel,
       builder: (context, _) => NotificationsHintText(
         enabled: preferencesViewModel.preferences.notificationsEnabled,
-        // Notifications are not available on web.
-        supported: !kIsWeb,
+        // On web only when its push config is present.
+        supported: !kIsWeb || AppEnv.webPushConfigured,
         onOpenPreferences: onOpenPreferences,
       ),
     );
