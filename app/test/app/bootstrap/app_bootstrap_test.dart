@@ -31,9 +31,9 @@ void main() {
     return VersionCheckResult(
       status: status,
       message: 'update message',
-      installedVersion: '3.0.0',
+      installedVersion: '3.1.0',
       currentVersion: '3.1.0',
-      minVersion: '3.0.0',
+      minVersion: '3.1.0',
     );
   }
 
@@ -158,7 +158,8 @@ void main() {
     expect(find.text('app:none'), findsOneWidget);
   });
 
-  testWidgets('runs the initializer once when Reintentar is tapped twice '
+  testWidgets(
+      'runs the initializer once when Reintentar is tapped twice '
       'quickly', (tester) async {
     await tester.pumpWidget(bootstrap());
     backendRuns.single.completeError(StateError('backend down'));

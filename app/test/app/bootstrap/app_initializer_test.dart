@@ -7,9 +7,9 @@ void main() {
     return VersionCheckResult(
       status: status,
       message: 'message for $status',
-      installedVersion: '3.0.0',
+      installedVersion: '3.1.0',
       currentVersion: '3.1.0',
-      minVersion: '3.0.0',
+      minVersion: '3.1.0',
     );
   }
 
@@ -52,8 +52,7 @@ void main() {
     expect((result as BootstrapBlocked).message, blocked.message);
   });
 
-  test('returns BootstrapReady when the version check returns null',
-      () async {
+  test('returns BootstrapReady when the version check returns null', () async {
     final result = await initializer(checkVersion: () async => null).run();
 
     expect(result, isA<BootstrapReady>());
