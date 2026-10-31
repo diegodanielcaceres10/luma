@@ -4,7 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
-import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
 import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../../notifications/presentation/widgets/notifications_hint.dart';
 import '../../data/models/account.dart';
@@ -46,7 +46,7 @@ class AccountsScreen extends StatelessWidget {
           return Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
+              constraints: const BoxConstraints(maxWidth: 1200),
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [

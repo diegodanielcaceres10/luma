@@ -2,18 +2,13 @@ import 'dart:ui' show Color;
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import '../../../../core/utils/currency_format.dart';
-
 /// Wrapper fino sobre `flutter_local_notifications`, mismo criterio que
 /// `BiometricService` (feature `home`): aísla el plugin para que el
 /// resto de la app no dependa de su API directamente.
 ///
-/// A diferencia de `BiometricService`, esta clase se instancia tanto desde
-/// el isolate principal de la UI como desde el isolate de background que
-/// dispara Workmanager (ver `NotificationSchedulerService`) — cada isolate
-/// tiene su propia copia del plugin, no hay estado compartido entre ellos,
-/// por eso [initialize] es idempotente y se llama sola antes de mostrar
-/// cualquier notificación.
+/// Solo se usa para mostrar los push que llegan con la app abierta (Android
+/// no los muestra solo) y para pedir el permiso de notificaciones. [initialize]
+/// es idempotente y se llama sola antes de cada uso.
 class LocalNotificationsService {
   final FlutterLocalNotificationsPlugin _plugin;
 
@@ -67,98 +62,33 @@ class LocalNotificationsService {
 
   /// Pide el permiso de notificaciones (obligatorio en runtime desde
   /// Android 13/API 33 — `POST_NOTIFICATIONS`; en versiones anteriores es
-  /// un no-op que no necesita pedirse). Se llama desde el isolate
-  /// principal cuando el usuario activa la preferencia — nunca desde la
-  /// tarea de background, ahí ya es tarde para pedir permisos.
+  /// un no-op que no necesita pedirse). Se llama cuando el usuario activa la
+  /// preferencia. También es lo que permite ver los push con la app en
+  /// segundo plano.
   Future<bool> requestPermission() async {
     await initialize();
     final granted = await _androidPlugin?.requestNotificationsPermission();
     return granted ?? true;
   }
 
-  /// Whether the system lets the app show notifications (permission granted
-  /// and not blocked in the settings). Where it can't be read, it is taken as
-  /// allowed.
-  Future<bool> areNotificationsEnabled() async {
-    await initialize();
-    return await _androidPlugin?.areNotificationsEnabled() ?? true;
-  }
-
   AndroidFlutterLocalNotificationsPlugin? get _androidPlugin =>
       _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
 
-  /// Notificación de "esta factura vence hoy". [id] tiene que ser estable
-  /// para una misma factura (se usa el hash del uuid) para no duplicar el
-  /// aviso si la rutina llegara a correr más de una vez el mismo día.
-  Future<void> showInvoiceDueToday({
+  /// Shows a push message received while the app is open, with the same
+  /// channel and look as the other notices. [id] must be stable per notice so
+  /// a repeated delivery replaces the previous one instead of stacking.
+  Future<void> showPush({
     required int id,
-    required String serviceName,
-    required double amount,
-    required String currencyCode,
-  }) async {
-    await initialize();
-
-    final formattedAmount = formatCurrency(amount, currencyCode);
-    await _plugin.show(
-      id,
-      'Vence hoy: $serviceName',
-      'La factura de $serviceName vence hoy ($formattedAmount).',
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          _invoicesChannelId,
-          _invoicesChannelName,
-          channelDescription: _invoicesChannelDescription,
-          importance: Importance.high,
-          priority: Priority.high,
-          color: _brandColor,
-        ),
-      ),
-    );
-  }
-
-  /// Reminder for a service that is due today but has no invoice for the
-  /// current period yet. [id] must be stable per service and day so a
-  /// repeated run does not show it twice.
-  Future<void> showMissingInvoiceDueToday({
-    required int id,
-    required String serviceName,
+    required String title,
+    required String body,
   }) async {
     await initialize();
 
     await _plugin.show(
       id,
-      'Falta cargar la factura: $serviceName',
-      '$serviceName vence hoy y todavía no cargaste la factura de este '
-          'mes. Ingresala para tenerla al día.',
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          _invoicesChannelId,
-          _invoicesChannelName,
-          channelDescription: _invoicesChannelDescription,
-          importance: Importance.high,
-          priority: Priority.high,
-          color: _brandColor,
-        ),
-      ),
-    );
-  }
-
-  /// Reminder for an active account whose balance has not changed for
-  /// [days] days. [id] must be stable per account and day so a repeated run
-  /// does not show it twice.
-  Future<void> showStaleAccount({
-    required int id,
-    required String accountName,
-    required int days,
-  }) async {
-    await initialize();
-
-    await _plugin.show(
-      id,
-      'Cuenta sin actualizar: $accountName',
-      'Hace $days días que no se actualiza el saldo de $accountName. '
-          'Revisá si te falta cargar movimientos.',
+      title,
+      body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
           _invoicesChannelId,

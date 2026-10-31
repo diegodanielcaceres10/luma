@@ -21,6 +21,8 @@ class FakeAuthVM extends ChangeNotifier implements AuthViewModel {
   @override
   String get initials => 'DT';
   @override
+  String? get avatarUrl => null;
+  @override
   bool get isAuthenticated => true;
   @override
   bool get isLoading => false;

@@ -163,6 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       initials: widget.authViewModel.initials,
                       firstName:
                           widget.authViewModel.displayName.split(' ').first,
+                      photoUrl: widget.authViewModel.avatarUrl,
                     ),
                     const SizedBox(height: 40),
                     Center(
@@ -271,6 +272,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final greetingWidget = DashboardGreetingRow(
                 initials: widget.authViewModel.initials,
                 firstName: widget.authViewModel.displayName.split(' ').first,
+                photoUrl: widget.authViewModel.avatarUrl,
               );
 
               final balanceCardWidget = DashboardBalanceCard(

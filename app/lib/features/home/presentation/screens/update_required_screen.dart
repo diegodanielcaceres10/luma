@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_system_ui.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/widgets/luma_logo.dart';
+import '../../../../core/widgets/layout/luma_logo.dart';
 
 /// Screen that blocks the entire app when the installed version is below the
 /// minimum required one (see the `check-app-version` Edge Function).

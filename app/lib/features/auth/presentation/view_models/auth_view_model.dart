@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/repositories/auth_repository.dart';
+import 'avatar_url.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _repository;
@@ -32,6 +33,10 @@ class AuthViewModel extends ChangeNotifier {
         user?.email ??
         'usuario';
   }
+
+  /// Google profile photo of the signed-in user, or `null` if unavailable.
+  String? get avatarUrl =>
+      resolveAvatarUrl(_repository.currentUser?.userMetadata);
 
   String get initials {
     final parts =

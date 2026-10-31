@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luma/core/ai/scan_progress_timeline.dart';
 import 'package:luma/core/ai/scan_stage.dart';
-import 'package:luma/core/widgets/scan_progress_dialog.dart';
+import 'package:luma/core/widgets/dialogs/scan_progress_dialog.dart';
 
 void main() {
   const second = Duration(seconds: 1);

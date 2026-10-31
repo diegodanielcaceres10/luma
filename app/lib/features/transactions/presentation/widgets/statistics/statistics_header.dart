@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/widgets/month_filter_button.dart';
-import '../../../../../core/widgets/screen_header.dart';
+import '../../../../../core/widgets/inputs/month_filter_button.dart';
+import '../../../../../core/widgets/layout/screen_header.dart';
 
 class StatisticsHeader extends StatelessWidget {
   final DateTime selectedMonth;

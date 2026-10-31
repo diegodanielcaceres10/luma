@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
-import '../../../../core/widgets/secondary_button.dart';
+import '../../../../core/widgets/buttons/secondary_button.dart';
 import 'pending_movement_persistence.dart';
 
 class NothingToJustifyCard extends StatelessWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/widgets/primary_button.dart';
+import '../../../../../core/widgets/buttons/primary_button.dart';
 
 /// Centered spinner while the dashboard's initial data arrives.
 class DashboardLoading extends StatelessWidget {

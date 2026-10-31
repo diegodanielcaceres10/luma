@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/config/app_env.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
 import '../../../home/presentation/view_models/app_lock_view_model.dart';
 import '../../data/models/app_preferences.dart';
 import '../view_models/preferences_view_model.dart';
@@ -66,13 +67,15 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   Widget build(BuildContext context) {
     final vm = widget.viewModel;
     final prefs = vm.preferences;
+    // Web needs its Firebase config at build time (see AppEnv.webPushConfigured).
+    const notificationsAvailable = !kIsWeb || AppEnv.webPushConfigured;
 
     return SafeArea(
       top: false,
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 620),
+          constraints: const BoxConstraints(maxWidth: 1200),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
@@ -86,7 +89,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColors.authAccent),
+                    child:
+                        CircularProgressIndicator(color: AppColors.authAccent),
                   ),
                 )
               else ...[
@@ -120,9 +124,11 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 _PreferenceCard(
                   child: _SwitchRow(
                     label: 'Notificaciones habilitadas',
-                    // Web cannot enable this, so never show a stored mobile value.
-                    value: !kIsWeb && prefs.notificationsEnabled,
-                    onChanged: kIsWeb ? null : vm.setNotificationsEnabled,
+                    // Where it cannot be enabled, never show a stored value.
+                    value: notificationsAvailable && prefs.notificationsEnabled,
+                    onChanged: notificationsAvailable
+                        ? vm.setNotificationsEnabled
+                        : null,
                     icon: Icons.notifications_none_rounded,
                     iconColor: const Color(0xFF4C9BE8),
                   ),
@@ -132,8 +138,13 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
-                      'Las notificaciones no están disponibles en la versión '
-                      'web. Instalá la app en tu celular para activarlas.',
+                      notificationsAvailable
+                          ? 'El navegador te va a pedir permiso. Si lo '
+                              'bloqueaste, habilitalo desde la configuración '
+                              'del sitio.'
+                          : 'Las notificaciones no están disponibles en la '
+                              'versión web. Instalá la app en tu celular para '
+                              'activarlas.',
                       style: TextStyle(
                         fontSize: 12.5,
                         height: 1.4,

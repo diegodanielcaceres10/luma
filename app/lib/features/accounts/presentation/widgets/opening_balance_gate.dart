@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/primary_button.dart';
-import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/buttons/primary_button.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/monthly_balance_view_model.dart';
 

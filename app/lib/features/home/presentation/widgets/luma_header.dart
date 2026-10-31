@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/luma_logo.dart';
+import '../../../../core/widgets/layout/luma_logo.dart';
 
 /// Header shared by all shell screens (AppShellScreen): hamburger menu, Luma
 /// brand and an optional action on the right (bell, settings, etc.).

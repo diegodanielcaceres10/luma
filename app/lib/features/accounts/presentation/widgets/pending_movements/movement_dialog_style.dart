@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utils/app_clock.dart';
-import '../../../../../core/widgets/input_text_field.dart';
+import '../../../../../core/widgets/inputs/input_text_field.dart';
 
 /// Shared with the statement review sheet so its dialogs look like these.
 const kMovementDialogLabelStyle = TextStyle(

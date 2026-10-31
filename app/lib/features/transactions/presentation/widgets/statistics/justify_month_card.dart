@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/widgets/secondary_button.dart';
+import '../../../../../core/widgets/buttons/secondary_button.dart';
 
 /// Offers to justify a past month for the accounts that were left without
 /// loading (no opening balance and no movements in it).

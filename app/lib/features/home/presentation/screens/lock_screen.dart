@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/widgets/luma_logo.dart';
-import '../../../../core/widgets/primary_button.dart';
-import '../../../../core/widgets/text_action_button.dart';
+import '../../../../core/widgets/layout/luma_logo.dart';
+import '../../../../core/widgets/buttons/primary_button.dart';
+import '../../../../core/widgets/buttons/text_action_button.dart';
 import '../../../auth/presentation/view_models/auth_view_model.dart';
 import '../view_models/app_lock_view_model.dart';
 

@@ -45,25 +45,6 @@ class InvoiceService {
     });
   }
 
-  /// Pending invoices due exactly today (device local date), used by the
-  /// daily notifications routine (`NotificationSchedulerService`). It does
-  /// not filter by user because RLS (`auth.uid() = user_id`) already does.
-  Future<List<Invoice>> fetchDueToday() async {
-    final now = nowLocal();
-    final today = formatDbDate(now);
-
-    final rows = await _client
-        .from('invoices')
-        .select()
-        .eq('due_date', today)
-        .eq('paid', false)
-        .eq('cancelled', false);
-
-    return (rows as List)
-        .map((row) => Invoice.fromMap(row as Map<String, dynamic>))
-        .toList();
-  }
-
   /// Edits a pending invoice (service, month, year, amount, due date). Not
   /// used for paid or cancelled invoices: the view screen does not offer it.
   Future<void> update({

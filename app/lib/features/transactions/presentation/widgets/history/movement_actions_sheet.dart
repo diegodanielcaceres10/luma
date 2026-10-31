@@ -162,10 +162,20 @@ class _ActionOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: iconColor.withValues(alpha: 0.18),
-              child: Icon(icon, size: 18, color: iconColor),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: iconColor.withValues(alpha: 0.25),
+                  width: 1,
+                ),
+              ),
+              child: Center(
+                child: Icon(icon, size: 18, color: iconColor),
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(

@@ -4,10 +4,10 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/app_clock.dart';
 import '../../../../core/utils/currency_format.dart';
 import '../../../../core/utils/date_format.dart';
-import '../../../../core/widgets/confirm_dialog.dart';
-import '../../../../core/widgets/input_text_field.dart';
-import '../../../../core/widgets/primary_button.dart';
-import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/dialogs/confirm_dialog.dart';
+import '../../../../core/widgets/inputs/input_text_field.dart';
+import '../../../../core/widgets/buttons/primary_button.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
 import '../../../accounts/data/models/account.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../accounts/presentation/view_models/monthly_balance_view_model.dart';
@@ -217,7 +217,7 @@ class _TransactionFormTransferScreenState
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 620),
+                      constraints: const BoxConstraints(maxWidth: 1200),
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                         children: [

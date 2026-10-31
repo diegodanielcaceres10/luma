@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/luma_logo.dart';
-import '../../../../core/widgets/max_width_frame.dart';
+import '../../../../core/widgets/layout/luma_logo.dart';
+import '../../../../core/widgets/layout/max_width_frame.dart';
 import '../widgets/luma_header.dart';
 
 /// Breakpoints for responsive layout.
@@ -146,19 +146,13 @@ class AppShellScreen extends StatelessWidget {
 
   Widget? _headerAction(int navIndex) {
     switch (navIndex) {
-      case 0: // Home
-        return const IconButton(
-          onPressed: null,
-          icon: Icon(Icons.notifications_none_rounded),
-          color: AppColors.authTextPrimary,
-        );
       case 3: // Profile
         return const IconButton(
           onPressed: null,
           icon: Icon(Icons.settings_outlined),
           color: AppColors.authTextPrimary,
         );
-      default: // Movements, Statistics
+      default:
         return null;
     }
   }

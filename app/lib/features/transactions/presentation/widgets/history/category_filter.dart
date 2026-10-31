@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../core/widgets/filter_chip_row.dart';
+import '../../../../../core/widgets/inputs/filter_chip_row.dart';
 import '../../../data/models/transaction_entry.dart';
 
 /// Category selector of the movements history. "Todas" and "Sin categoría"

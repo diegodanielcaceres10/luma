@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luma/app/theme/app_colors.dart';
-import 'package:luma/core/widgets/movement_tile.dart';
+import 'package:luma/core/widgets/cards/movement_tile.dart';
 
 void main() {
   Future<void> pumpTile(

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../../../../core/widgets/app_version_footer.dart';
-import '../../../../core/widgets/screen_header.dart';
+import '../../../../core/widgets/layout/app_version_footer.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
 import '../view_models/auth_view_model.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -24,7 +24,7 @@ class ProfileScreen extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620),
+        constraints: const BoxConstraints(maxWidth: 1200),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [

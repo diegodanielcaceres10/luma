@@ -3,10 +3,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
-import '../../../../core/widgets/filter_chip_row.dart';
-import '../../../../core/widgets/month_filter_button.dart';
-import '../../../../core/widgets/screen_header.dart';
-import '../../../../core/widgets/text_action_button.dart';
+import '../../../../core/widgets/inputs/filter_chip_row.dart';
+import '../../../../core/widgets/inputs/month_filter_button.dart';
+import '../../../../core/widgets/layout/screen_header.dart';
+import '../../../../core/widgets/buttons/text_action_button.dart';
 import '../../../accounts/presentation/view_models/account_view_model.dart';
 import '../../../accounts/presentation/widgets/pending_movements/select_pending_invoice_sheet.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
@@ -676,7 +676,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   Align(
                     alignment: Alignment.topCenter,
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 960),
+                      constraints: const BoxConstraints(maxWidth: 1200),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -817,7 +817,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 Align(
                   alignment: Alignment.topCenter,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 960),
+                    constraints: const BoxConstraints(maxWidth: 1200),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
