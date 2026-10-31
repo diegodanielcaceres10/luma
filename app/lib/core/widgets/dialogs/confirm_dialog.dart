@@ -23,24 +23,6 @@ Future<bool> showConfirmDialog(
         borderRadius: BorderRadius.circular(24),
         side: const BorderSide(color: AppColors.authCardBorder),
       ),
-      icon: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: AppColors.authAccent.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppColors.authAccent.withValues(alpha: 0.25),
-          ),
-        ),
-        child: const Center(
-          child: Icon(
-            Icons.help_outline_rounded,
-            color: AppColors.authAccent,
-            size: 24,
-          ),
-        ),
-      ),
       title: Text(
         title,
         textAlign: TextAlign.center,
