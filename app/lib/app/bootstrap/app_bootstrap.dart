@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/config/app_info.dart';
 import '../../core/diagnostics/error_reporter.dart';
+import '../theme/app_system_ui.dart';
 import '../theme/app_theme.dart';
 import 'app_initializer.dart';
 import 'bootstrap_error_view.dart';
@@ -117,6 +119,12 @@ class _AppBootstrapState extends State<AppBootstrap> {
       title: AppInfo.name,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      // Same style as the main app, so the status bar does not flip from
+      // dark to light icons when the splash hands over to the app.
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: appStatusBarStyle,
+        child: child!,
+      ),
       home: home,
     );
   }

@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luma/app/bootstrap/app_bootstrap.dart';
 import 'package:luma/app/bootstrap/app_initializer.dart';
 import 'package:luma/app/bootstrap/bootstrap_error_view.dart';
+import 'package:luma/app/theme/app_system_ui.dart';
 import 'package:luma/core/config/app_info.dart';
 import 'package:luma/features/home/data/models/version_check_result.dart';
 
@@ -122,6 +124,28 @@ void main() {
     expect(reporter.reports, hasLength(1));
     expect(reporter.reports.single.fatal, isFalse);
     expect(reporter.reports.single.error, isA<StateError>());
+  });
+
+  testWidgets('applies the app status bar style on the splash and error view',
+      (tester) async {
+    SystemUiOverlayStyle styleOf(String text) => tester
+        .widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+          find
+              .ancestor(
+                of: find.text(text),
+                matching: find.byType(AnnotatedRegion<SystemUiOverlayStyle>),
+              )
+              .first,
+        )
+        .value;
+
+    await tester.pumpWidget(bootstrap());
+    expect(styleOf('splash'), appStatusBarStyle);
+
+    backendRuns.single.completeError(StateError('backend down'));
+    await settle(tester);
+
+    expect(styleOf('No pudimos iniciar Luma'), appStatusBarStyle);
   });
 
   testWidgets('keeps the app title on the splash and the error view',
