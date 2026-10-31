@@ -77,8 +77,6 @@ class CategoryViewScreen extends StatelessWidget {
                     budget: budget,
                     isExpense: isExpense,
                   ),
-                  const SizedBox(height: 14),
-                  _QuickActionsRow(onEdit: onEdit),
                   const SizedBox(height: 20),
                   CategoryTrendSection(
                     category: current,
@@ -340,71 +338,6 @@ class _HeroCategoryCard extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _QuickActionsRow extends StatelessWidget {
-  final VoidCallback onEdit;
-
-  const _QuickActionsRow({required this.onEdit});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.authCardFill,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.authCardBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onEdit,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.authAccent.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.authAccent.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.edit_rounded,
-                    size: 16,
-                    color: AppColors.authAccent,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Editar categoría',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.authTextPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
