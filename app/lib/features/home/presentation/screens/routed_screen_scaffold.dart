@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
-
-/// Scaffold for screens opened as a route of their own (forms, lists,
-/// initial balances, etc.): gradient background and the screen's content.
-/// It draws no AppBar or "back" button: the header, drawer and bottom nav
-/// are provided by AppShellScreen from the outside, and each screen brings
-/// its own title and back button (`context.goBack()`, see
-/// core/navigation/app_back.dart).
+/// Pass-through wrapper for screens opened as a route of their own (forms,
+/// lists, initial balances, etc.).
+///
+/// The outer shell ([AppShellScreen]) already provides the Scaffold and the
+/// unified dark green gradient background for the entire app. This widget
+/// renders the [body] directly so the background is seamless, transparent,
+/// and consistent across all screens without duplicating gradients.
 class RoutedScreenScaffold extends StatelessWidget {
   final Widget body;
 
@@ -15,21 +14,6 @@ class RoutedScreenScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.authBackgroundBottom,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.authBackgroundTop,
-              AppColors.authBackgroundBottom,
-            ],
-          ),
-        ),
-        child: body,
-      ),
-    );
+    return body;
   }
 }

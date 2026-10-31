@@ -146,19 +146,13 @@ class AppShellScreen extends StatelessWidget {
 
   Widget? _headerAction(int navIndex) {
     switch (navIndex) {
-      case 0: // Home
-        return const IconButton(
-          onPressed: null,
-          icon: Icon(Icons.notifications_none_rounded),
-          color: AppColors.authTextPrimary,
-        );
       case 3: // Profile
         return const IconButton(
           onPressed: null,
           icon: Icon(Icons.settings_outlined),
           color: AppColors.authTextPrimary,
         );
-      default: // Movements, Statistics
+      default:
         return null;
     }
   }
