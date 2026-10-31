@@ -7,11 +7,21 @@ class DashboardGreetingRow extends StatelessWidget {
   final String initials;
   final String firstName;
 
-  const DashboardGreetingRow(
-      {super.key, required this.initials, required this.firstName});
+  /// Profile photo shown inside the avatar. When it is `null`, still loading
+  /// or fails to load, the avatar shows [initials] instead.
+  final String? photoUrl;
+
+  const DashboardGreetingRow({
+    super.key,
+    required this.initials,
+    required this.firstName,
+    this.photoUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final url = photoUrl;
+
     return Row(
       children: [
         Container(
@@ -39,16 +49,10 @@ class DashboardGreetingRow extends StatelessWidget {
               ),
             ],
           ),
-          child: Center(
-            child: Text(
-              initials,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-                color: AppColors.authTextPrimary,
-              ),
-            ),
+          child: ClipOval(
+            child: url == null
+                ? _GreetingInitials(initials: initials)
+                : _GreetingPhoto(url: url, initials: initials),
           ),
         ),
         const SizedBox(width: 14),
@@ -78,6 +82,49 @@ class DashboardGreetingRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _GreetingPhoto extends StatelessWidget {
+  final String url;
+  final String initials;
+
+  const _GreetingPhoto({required this.url, required this.initials});
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = _GreetingInitials(initials: initials);
+
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      excludeFromSemantics: true,
+      // Keeps the initials visible until the first frame is decoded.
+      frameBuilder: (context, child, frame, loadedSync) =>
+          loadedSync || frame != null ? child : fallback,
+      errorBuilder: (context, error, stackTrace) => fallback,
+    );
+  }
+}
+
+class _GreetingInitials extends StatelessWidget {
+  final String initials;
+
+  const _GreetingInitials({required this.initials});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        initials,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
+          color: AppColors.authTextPrimary,
+        ),
+      ),
     );
   }
 }
