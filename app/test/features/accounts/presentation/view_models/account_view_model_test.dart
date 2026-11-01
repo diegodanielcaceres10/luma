@@ -163,6 +163,41 @@ void main() {
     });
   });
 
+  group('markBalanceUpdatedAt', () {
+    test('saves the date and reloads the list', () async {
+      repository.accounts = [account('a')];
+
+      final marked = await viewModel.markBalanceUpdatedAt(
+        accountId: 'a',
+        at: DateTime(2026, 11),
+      );
+
+      expect(marked, isTrue);
+      expect(repository.setBalanceUpdatedAtCalls, [
+        (id: 'a', at: DateTime(2026, 11)),
+      ]);
+      expect(repository.getAccountsCalls, 1);
+      expect(viewModel.errorMessage, isNull);
+    });
+
+    test('reports its own error message when saving the date fails',
+        () async {
+      repository.writeError = Exception('boom');
+
+      final marked = await viewModel.markBalanceUpdatedAt(
+        accountId: 'a',
+        at: DateTime(2026, 11),
+      );
+
+      expect(marked, isFalse);
+      expect(repository.setBalanceUpdatedAtCalls, isEmpty);
+      expect(
+        viewModel.errorMessage,
+        'No se pudo actualizar la fecha del saldo.',
+      );
+    });
+  });
+
   group('uncontrolled adjustment', () {
     Future<bool> adjust() => viewModel.applyUncontrolledAdjustment(
           userId: 'user-1',
