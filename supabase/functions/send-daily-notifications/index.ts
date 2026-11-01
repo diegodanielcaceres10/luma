@@ -2,12 +2,13 @@
 // sin cargar y cuentas sin actualizar) a los dispositivos registrados en
 // `device_tokens`, usando FCM HTTP v1.
 //
-// La invoca un job de pg_cron cada hora. La función calcula la hora local en
-// NOTIFY_TIMEZONE y solo envía cuando coincide con NOTIFY_HOUR, así el envío
-// se mantiene a la misma hora local durante los cambios de horario.
+// La invoca un job de pg_cron una vez por día (12:00 GMT) con `force: true`, así
+// que el envío no depende de la hora local. La función calcula la fecha local
+// en NOTIFY_TIMEZONE. Sin `force`, solo envía cuando la hora local coincide con
+// NOTIFY_HOUR (protege las llamadas manuales con el body vacío).
 //
 // Request (POST), header `x-cron-secret` obligatorio. Cuerpo opcional:
-//   { "force": true }    -> envía aunque no sea NOTIFY_HOUR
+//   { "force": true }    -> envía aunque no sea NOTIFY_HOUR (lo usa el cron)
 //   { "dry_run": true }  -> lista lo que se enviaría, sin llamar a FCM
 //
 // Response (200):
@@ -22,8 +23,10 @@
 // committear valores):
 //   FCM_SERVICE_ACCOUNT → JSON completo de la cuenta de servicio de Firebase
 //   CRON_SECRET         → secreto compartido con el job de pg_cron
-//   NOTIFY_TIMEZONE     → zona horaria IANA (por defecto "Europe/Madrid")
-//   NOTIFY_HOUR         → hora local de envío, 0-23 (por defecto 9)
+//   NOTIFY_TIMEZONE     → zona horaria IANA de la fecha local (por defecto
+//                         "Europe/Madrid")
+//   NOTIFY_HOUR         → hora local 0-23 que se valida solo sin `force` (por
+//                         defecto 9)
 // SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY las inyecta Supabase.
 //
 // Deploy (sin verificación de JWT: la autenticación es x-cron-secret):
@@ -40,14 +43,14 @@
 //   select vault.create_secret('<CRON_SECRET>', 'cron_secret');
 //   select cron.schedule(
 //     'send-daily-notifications',
-//     '0 * * * *',
+//     '0 12 * * *',
 //     $$ select net.http_post(
 //       url := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-daily-notifications',
 //       headers := jsonb_build_object(
 //         'Content-Type', 'application/json',
 //         'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
 //       ),
-//       body := '{}'::jsonb,
+//       body := '{"force": true}'::jsonb,
 //       timeout_milliseconds := 60000
 //     ); $$
 //   );
