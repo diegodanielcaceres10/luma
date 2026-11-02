@@ -68,6 +68,19 @@ class AccountService {
     await _client.from('accounts').update({'is_active': isActive}).eq('id', id);
   }
 
+  /// Sets `balance_updated_at` explicitly. The database trigger only stamps
+  /// `now()` when `balance` changes, so an update that touches just this
+  /// column keeps the given value. It is also the only way to record that the
+  /// balance was confirmed without changing it.
+  Future<void> setBalanceUpdatedAt({
+    required String id,
+    required DateTime at,
+  }) async {
+    await _client.from('accounts').update({
+      'balance_updated_at': at.toUtc().toIso8601String(),
+    }).eq('id', id);
+  }
+
   /// Adjusts `balance` by [amount] (may be negative or positive) and adds
   /// that same amount to `monthly_account_balances.uncontrolled_expenses_total`
   /// for the given month/year, in a single atomic operation.

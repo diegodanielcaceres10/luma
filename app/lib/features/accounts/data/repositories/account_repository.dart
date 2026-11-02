@@ -37,6 +37,13 @@ class AccountRepository {
     return _service.setActive(id: id, isActive: isActive);
   }
 
+  Future<void> setBalanceUpdatedAt({
+    required String id,
+    required DateTime at,
+  }) {
+    return _service.setBalanceUpdatedAt(id: id, at: at);
+  }
+
   Future<void> applyUncontrolledAdjustment({
     required String userId,
     required String accountId,

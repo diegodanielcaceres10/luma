@@ -188,7 +188,19 @@ class _AccountUpdateBalanceScreenState
         }
         await widget.transactionViewModel.refreshUncontrolledTotals();
       } else {
-        await widget.accountViewModel.loadAccounts();
+        // Nothing is left uncovered, so the balance may not have changed and
+        // the database wouldn't stamp the date by itself. Marking it also
+        // reloads the accounts.
+        final marked = await widget.accountViewModel.markBalanceUpdatedAt(
+          accountId: account.id,
+          at: nowLocal(),
+        );
+        if (!marked) {
+          throw Exception(
+            widget.accountViewModel.errorMessage ??
+                'No se pudo actualizar la fecha del saldo.',
+          );
+        }
       }
       if (!mounted) return;
 

@@ -81,6 +81,7 @@ class FakeAccountRepository implements AccountRepository {
   int getAccountsCalls = 0;
   int createCalls = 0;
   final setActiveCalls = <({String id, bool isActive})>[];
+  final setBalanceUpdatedAtCalls = <({String id, DateTime at})>[];
 
   @override
   Future<List<Account>> getAccounts() async {
@@ -103,6 +104,15 @@ class FakeAccountRepository implements AccountRepository {
   Future<void> setActive({required String id, required bool isActive}) async {
     _throwIfSet(writeError);
     setActiveCalls.add((id: id, isActive: isActive));
+  }
+
+  @override
+  Future<void> setBalanceUpdatedAt({
+    required String id,
+    required DateTime at,
+  }) async {
+    _throwIfSet(writeError);
+    setBalanceUpdatedAtCalls.add((id: id, at: at));
   }
 
   @override

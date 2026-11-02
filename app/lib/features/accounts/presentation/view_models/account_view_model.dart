@@ -168,6 +168,20 @@ class AccountViewModel extends ChangeNotifier {
     );
   }
 
+  /// Records that the balance of [accountId] is up to date as of [at]. The
+  /// database only stamps `balance_updated_at` when the balance changes, so
+  /// flows where the user confirms it unchanged (or where the date is the
+  /// start of a month) set it explicitly through this method.
+  Future<bool> markBalanceUpdatedAt({
+    required String accountId,
+    required DateTime at,
+  }) async {
+    return _submit(
+      () => _repository.setBalanceUpdatedAt(id: accountId, at: at),
+      genericErrorMessage: 'No se pudo actualizar la fecha del saldo.',
+    );
+  }
+
   /// Adjusts the balance of account [accountId] by [amount] (may be negative
   /// or positive) and accumulates that same amount into
   /// `monthly_account_balances.uncontrolled_expenses_total` for the given

@@ -7,9 +7,9 @@ void main() {
     return VersionCheckResult(
       status: status,
       message: 'message for $status',
-      installedVersion: '3.1.0',
-      currentVersion: '3.1.0',
-      minVersion: '3.1.0',
+      installedVersion: '3.2.0',
+      currentVersion: '3.2.0',
+      minVersion: '3.2.0',
     );
   }
 

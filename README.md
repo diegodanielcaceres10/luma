@@ -47,13 +47,18 @@ Tablas principales: `accounts`, `categories`, `transactions`, `services`,
 
 ### Notificaciones push
 
-Un job de `pg_cron` invoca cada hora la Edge Function
-`send-daily-notifications` (`supabase/functions/send-daily-notifications`).
-Cuando la hora local en `NOTIFY_TIMEZONE` coincide con `NOTIFY_HOUR`, envía por
-FCM a los dispositivos de `device_tokens`: facturas que vencen hoy, facturas
-del mes sin cargar y cuentas con 5 días o más sin actualizar. La consulta es
-`notifications_due` (`V003__push_notifications.sql`) y solo la puede ejecutar
-`service_role`.
+Un job de `pg_cron` invoca una vez por día, a las 12:00 GMT, la Edge Function
+`send-daily-notifications` (`supabase/functions/send-daily-notifications`) con
+`{"force": true}`. La función envía por FCM a los dispositivos de
+`device_tokens`: facturas que vencen hoy, facturas del mes sin cargar y cuentas
+con 5 días o más sin actualizar. La fecha de referencia se calcula en
+`NOTIFY_TIMEZONE`. La consulta es `notifications_due`
+(`V003__push_notifications.sql`) y solo la puede ejecutar `service_role`.
+
+El horario es fijo en GMT, así que la hora local de llegada cambia con el
+horario de verano: 13:00 (invierno) o 14:00 (verano) en España, y 09:00 en
+Argentina, que no cambia de hora. Si se suman usuarios en otras zonas, conviene
+revisar este esquema.
 
 Puesta en marcha (una sola vez):
 
@@ -76,14 +81,14 @@ supabase functions deploy send-daily-notifications --no-verify-jwt
 select vault.create_secret('<CRON_SECRET>', 'cron_secret');
 select cron.schedule(
   'send-daily-notifications',
-  '0 * * * *',
+  '0 12 * * *',
   $$ select net.http_post(
     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-daily-notifications',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
     ),
-    body := '{}'::jsonb,
+    body := '{"force": true}'::jsonb,
     timeout_milliseconds := 60000
   ); $$
 );
@@ -103,7 +108,10 @@ Notas:
   sin servidor (por ejemplo con el proyecto pausado) no llega ninguno.
 - Con la app abierta en Android, el sistema no muestra el push por sí solo: la
   app lo muestra como una notificación local.
-- Si la corrida de las 9:00 falla, no se reintenta hasta el día siguiente.
+- `NOTIFY_HOUR` solo se aplica a las llamadas sin `force`: una llamada manual
+  con el body vacío envía únicamente si la hora local coincide. El job diario
+  manda `force` y no depende de ese valor.
+- Si la corrida diaria falla, no se reintenta hasta el día siguiente.
 - Los tokens que FCM informa como inválidos se borran de `device_tokens`; el
   resto de los errores no borra nada.
 - Los proyectos del plan gratuito de Supabase se pausan tras un período de

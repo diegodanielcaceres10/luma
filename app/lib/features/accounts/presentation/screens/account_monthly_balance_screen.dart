@@ -244,11 +244,14 @@ class _AccountMonthlyBalanceScreenState
   /// Opening balance typed by the user minus the account's stored balance
   /// (stale from the previous cycle). `null` while the field is empty or not
   /// a valid number. Rounded to cents to avoid double subtraction remainders.
-  double? get _difference {
+  double? get _difference => _differenceFrom(_account.balance);
+
+  /// Same as [_difference], but against the given stored [balance].
+  double? _differenceFrom(double balance) {
     final openingBalance = parseBalanceAmount(_openingBalanceController.text);
     if (openingBalance == null) return null;
 
-    final cents = ((openingBalance - _account.balance) * 100).round();
+    final cents = ((openingBalance - balance) * 100).round();
     return cents / 100;
   }
 
@@ -362,16 +365,40 @@ class _AccountMonthlyBalanceScreenState
 
   /// Skips the justification: the stored balance is declared up to date, so
   /// it becomes the opening balance of the new month, with no movements or
-  /// adjustment. Only allowed once the typed opening balance equals the stored
-  /// balance, so the user has to consciously confirm it. The account is read
-  /// fresh because an earlier failed save may have already moved its balance.
+  /// adjustment. It is always available and always asks for confirmation
+  /// first; a typed amount that differs from the stored balance would be
+  /// discarded, so the dialog says so. The account is read fresh because an
+  /// earlier failed save may have already moved its balance.
   Future<void> _saveWithCurrentBalance() async {
-    if (_isSaving || _difference != 0) return;
+    if (_isSaving) return;
+
+    final account = _findAccount(_account.id) ?? _account;
+    final currency = widget.accountViewModel.primaryCurrency;
+    final balanceLabel = formatCurrency(account.balance, currency);
+    final typedDifference = _differenceFrom(account.balance);
+    final discardsTypedAmount = typedDifference != null && typedDifference != 0;
+
+    final confirmed = discardsTypedAmount
+        ? await showConfirmDialog(
+            context,
+            title: 'Usar el saldo actual',
+            message: 'Ingresaste un saldo distinto al actual. Si continuás, '
+                'se usará $balanceLabel como saldo inicial del mes y se '
+                'ignorará el monto ingresado.',
+            confirmLabel: 'Continuar',
+            cancelLabel: 'Cancelar',
+          )
+        : await showConfirmDialog(
+            context,
+            message: 'Se usará el saldo actual ($balanceLabel) como saldo '
+                'inicial de $_monthLabel, sin movimientos ni ajustes. '
+                '¿Querés continuar?',
+          );
+    if (!confirmed || !mounted) return;
 
     setState(() => _isSaving = true);
 
     try {
-      final account = _findAccount(_account.id) ?? _account;
       await _createOpeningBalanceRecord(
         accountId: account.id,
         openingBalance: account.balance,
@@ -387,10 +414,29 @@ class _AccountMonthlyBalanceScreenState
     }
   }
 
+  /// Dates the account's balance at the first day of the month being opened
+  /// and then saves the opening balance. The date goes first, so the month
+  /// only counts as started once both succeeded and a retry can repeat both
+  /// safely. Both save paths end here, including the one where the balance
+  /// doesn't change and the database wouldn't stamp it by itself.
   Future<void> _createOpeningBalanceRecord({
     required String accountId,
     required double openingBalance,
   }) async {
+    final stamped = await widget.accountViewModel.markBalanceUpdatedAt(
+      accountId: accountId,
+      at: DateTime(
+        widget.monthlyBalanceViewModel.currentYear,
+        widget.monthlyBalanceViewModel.currentMonth,
+      ),
+    );
+    if (!stamped) {
+      throw Exception(
+        widget.accountViewModel.errorMessage ??
+            'No se pudo actualizar la fecha del saldo.',
+      );
+    }
+
     final created = await widget.monthlyBalanceViewModel.saveOpeningBalance(
       userId: widget.userId,
       accountId: accountId,
@@ -671,8 +717,7 @@ class _AccountMonthlyBalanceScreenState
           TextActionButton(
             label: 'Mi saldo está al día, sin movimientos',
             fontWeight: FontWeight.w600,
-            onPressed:
-                _isSaving || _difference != 0 ? null : _saveWithCurrentBalance,
+            onPressed: _isSaving ? null : _saveWithCurrentBalance,
           ),
         ],
       );
