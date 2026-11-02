@@ -14,6 +14,7 @@ export 'inputs/filter_chip_row.dart';
 export 'inputs/input_text_field.dart';
 export 'inputs/month_filter_button.dart';
 export 'layout/app_version_footer.dart';
+export 'layout/luma_loading_indicator.dart';
 export 'layout/luma_logo.dart';
 export 'layout/max_width_frame.dart';
 export 'layout/screen_header.dart';

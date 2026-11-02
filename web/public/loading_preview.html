@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luma - Financial Loading Animation Preview</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, -apple-system, sans-serif;
+    }
+    body {
+      background: #0B1B13;
+      color: #E2E8F0;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    p.subtitle {
+      color: #AFC2B8;
+      font-size: 14px;
+      max-width: 600px;
+      line-height: 1.5;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(76, 187, 122, 0.15);
+      color: #4CBB7A;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(76, 187, 122, 0.3);
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      max-width: 1040px;
+      width: 100%;
+      margin-bottom: 32px;
+    }
+    .card {
+      background: #12291D;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .card.light-mode {
+      background: #F8FAFC;
+      border-color: #E2E8F0;
+      color: #0F172A;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.06);
+    }
+    .card.light-mode .card-title {
+      color: #0F172A;
+    }
+    .card.light-mode .card-desc {
+      color: #64748B;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #FFFFFF;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 12px;
+      color: #6C7F76;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .anim-box {
+      width: 160px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    .sizes-flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      width: 100%;
+      padding: 20px 0;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .size-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .size-label {
+      font-size: 11px;
+      color: #AFC2B8;
+      font-weight: 500;
+    }
+    .button-preview {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #4CBB7A;
+      color: #020604;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(76, 187, 122, 0.35);
+      margin-top: 10px;
+      border: none;
+      cursor: pointer;
+    }
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .btn-ctrl {
+      background: rgba(255,255,255,0.08);
+      color: #E2E8F0;
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-ctrl:hover {
+      background: rgba(255,255,255,0.15);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="badge">FINTECH MOTION DESIGN</div>
+    <h1>Luma Financial Loading Indicator</h1>
+    <p class="subtitle">A minimalist 2D loading animation with abstract financial balance elements, synchronized orbital movement, fluid easing, and clean vector shapes.</p>
+  </div>
+
+  <div class="preview-grid">
+    <!-- Brand Dark Mode Card -->
+    <div class="card">
+      <div class="card-title">Brand Dark Background</div>
+      <div class="card-desc">Luma Theme (Top: #12291D, Bottom: #020604)</div>
+      <div class="anim-box">
+        <div id="anim-dark" style="width: 140px; height: 140px;"></div>
+      </div>
+    </div>
+
+    <!-- Light Mode Card -->
+    <div class="card light-mode">
+      <div class="card-title">Surface Light Background</div>
+      <div class="card-desc">Clean Surface Mode (#F8FAFC)</div>
+      <div class="anim-box">
+        <div id="anim-light" style="width: 140px; height: 140px;"></div>
+      </div>
+    </div>
+
+    <!-- Multi-Size Mobile Integration Card -->
+    <div class="card full-width">
+      <div class="card-title">Mobile Scale Verification</div>
+      <div class="card-desc">Fluid rendering across typical mobile UI containers</div>
+      
+      <div class="sizes-flex">
+        <div class="size-item">
+          <div id="anim-s24" style="width: 24px; height: 24px;"></div>
+          <span class="size-label">24px (Inline/Button)</span>
+        </div>
+        <div class="size-item">
+          <div id="anim-s40" style="width: 40px; height: 40px;"></div>
+          <span class="size-label">40px (List / Tile)</span>
+        </div>
+        <div class="size-item">
+          <div id="anim-s64" style="width: 64px; height: 64px;"></div>
+          <span class="size-label">64px (Card / Modal)</span>
+        </div>
+        <div class="size-item">
+          <div id="anim-s96" style="width: 96px; height: 96px;"></div>
+          <span class="size-label">96px (Page Loader)</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 12px; text-align: center;">
+        <button class="button-preview">
+          <div id="anim-btn" style="width: 22px; height: 22px;"></div>
+          <span>Syncing Transactions...</span>
+        </button>
+      </div>
+
+      <div class="controls">
+        <button class="btn-ctrl" onclick="togglePlay()">Play / Pause</button>
+        <button class="btn-ctrl" onclick="setSpeed(0.5)">0.5x Slow</button>
+        <button class="btn-ctrl" onclick="setSpeed(1.0)">1.0x Normal</button>
+        <button class="btn-ctrl" onclick="setSpeed(1.5)">1.5x Fast</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const animData = {"v": "5.5.2", "fr": 60, "ip": 0, "op": 144, "w": 300, "h": 300, "nm": "Luma Financial Sync Loading", "ddd": 0, "assets": [], "layers": [{"ddd": 0, "ind": 1, "ty": 3, "nm": "Orbit Controller 1", "sr": 1, "ks": {"o": {"a": 0, "k": 100}, "r": {"a": 1, "k": [{"t": 0, "s": [0.0], "i": {"x": [1.0], "y": [1.0]}, "o": {"x": [0.0], "y": [0.0]}}, {"t": 144, "s": [360.0]}]}, "p": {"a": 0, "k": [150, 150, 0]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 0, "k": [100, 100, 100]}}, "ip": 0, "op": 144, "st": 0, "bm": 0}, {"ddd": 0, "ind": 2, "ty": 3, "nm": "Orbit Controller 2", "sr": 1, "ks": {"o": {"a": 0, "k": 100}, "r": {"a": 1, "k": [{"t": 0, "s": [120.0], "i": {"x": [1.0], "y": [1.0]}, "o": {"x": [0.0], "y": [0.0]}}, {"t": 144, "s": [480.0]}]}, "p": {"a": 0, "k": [150, 150, 0]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 0, "k": [100, 100, 100]}}, "ip": 0, "op": 144, "st": 0, "bm": 0}, {"ddd": 0, "ind": 3, "ty": 3, "nm": "Orbit Controller 3", "sr": 1, "ks": {"o": {"a": 0, "k": 100}, "r": {"a": 1, "k": [{"t": 0, "s": [240.0], "i": {"x": [1.0], "y": [1.0]}, "o": {"x": [0.0], "y": [0.0]}}, {"t": 144, "s": [600.0]}]}, "p": {"a": 0, "k": [150, 150, 0]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 0, "k": [100, 100, 100]}}, "ip": 0, "op": 144, "st": 0, "bm": 0}, {"ddd": 0, "ind": 4, "ty": 4, "nm": "Fintech Card Alpha", "parent": 1, "sr": 1, "ks": {"o": {"a": 1, "k": [{"t": 0, "s": [80.0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 18, "s": [94.1], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [100.0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 54, "s": [94.1], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [80.0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 90, "s": [65.9], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [60.0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 126, "s": [65.9], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [80.0]}]}, "r": {"a": 0, "k": 0}, "p": {"a": 1, "k": [{"t": 0, "s": [0, -56, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [0, -59, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [0, -55, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [0, -58, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [0, -56, 0]}]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 1, "k": [{"t": 0, "s": [96.0, 96.0, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 18, "s": [103.1, 103.1, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [106.0, 106.0, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 54, "s": [103.1, 103.1, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [96.0, 96.0, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 90, "s": [88.9, 88.9, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [86.0, 86.0, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 126, "s": [88.9, 88.9, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [96.0, 96.0, 100]}]}}, "ao": 0, "shapes": [{"ty": "gr", "nm": "Card Shapes", "it": [{"ty": "rc", "d": 1, "s": {"a": 0, "k": [28, 18]}, "p": {"a": 0, "k": [0, 3]}, "r": {"a": 0, "k": 5.0}, "nm": "Shadow Path"}, {"ty": "fl", "c": {"a": 0, "k": [0.02, 0.08, 0.04, 1.0]}, "o": {"a": 0, "k": 20}, "nm": "Shadow Fill"}, {"ty": "rc", "d": 1, "s": {"a": 0, "k": [28, 18]}, "p": {"a": 0, "k": [0, 0]}, "r": {"a": 0, "k": 5.0}, "nm": "Body Path"}, {"ty": "fl", "c": {"a": 0, "k": [0.298, 0.7333, 0.4784, 1.0]}, "o": {"a": 0, "k": 95}, "nm": "Body Fill"}, {"ty": "st", "c": {"a": 0, "k": [1.0, 1.0, 1.0, 1.0]}, "o": {"a": 0, "k": 30}, "w": {"a": 0, "k": 1.0}, "lc": 2, "lj": 2, "nm": "Rim Stroke"}, {"ty": "rc", "d": 1, "s": {"a": 0, "k": [6, 4.5]}, "p": {"a": 0, "k": [-7, -2]}, "r": {"a": 0, "k": 1.5}, "nm": "Chip Path"}, {"ty": "fl", "c": {"a": 0, "k": [1.0, 1.0, 1.0, 1.0]}, "o": {"a": 0, "k": 40}, "nm": "Chip Fill"}, {"ty": "rc", "d": 1, "s": {"a": 0, "k": [10, 2]}, "p": {"a": 0, "k": [3, 2.5]}, "r": {"a": 0, "k": 1.0}, "nm": "Stripe Path"}, {"ty": "fl", "c": {"a": 0, "k": [1.0, 1.0, 1.0, 1.0]}, "o": {"a": 0, "k": 30}, "nm": "Stripe Fill"}, {"ty": "tr", "p": {"a": 0, "k": [0, 0]}, "a": {"a": 0, "k": [0, 0]}, "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}, "sk": {"a": 0, "k": 0}, "sa": {"a": 0, "k": 0}, "nm": "Transform"}]}], "ip": 0, "op": 144, "st": 0, "bm": 0}, {"ddd": 0, "ind": 5, "ty": 4, "nm": "Fintech Card Beta", "parent": 2, "sr": 1, "ks": {"o": {"a": 1, "k": [{"t": 0, "s": [97.3], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 18, "s": [85.2], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [70.0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 54, "s": [60.7], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [62.7], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 90, "s": [74.8], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [90.0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 126, "s": [99.3], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [97.3]}]}, "r": {"a": 0, "k": 0}, "p": {"a": 1, "k": [{"t": 0, "s": [0, -56, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [0, -59, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [0, -55, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [0, -58, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [0, -56, 0]}]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 1, "k": [{"t": 0, "s": [104.7, 104.7, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 18, "s": [98.6, 98.6, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [91.0, 91.0, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 54, "s": [86.3, 86.3, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [87.3, 87.3, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 90, "s": [93.4, 93.4, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [101.0, 101.0, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 126, "s": [105.7, 105.7, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [104.7, 104.7, 100]}]}}, "ao": 0, "shapes": [{"ty": "gr", "nm": "Card Shapes", "it": [{"ty": "rc", "d": 1, "s": {"a": 0, "k": [28, 18]}, "p": {"a": 0, "k": [0, 3]}, "r": {"a": 0, "k": 5.0}, "nm": "Shadow Path"}, {"ty": "fl", "c": {"a": 0, "k": [0.02, 0.08, 0.04, 1.0]}, "o": {"a": 0, "k": 20}, "nm": "Shadow Fill"}, {"ty": "rc", "d": 1, "s": {"a": 0, "k": [28, 18]}, "p": {"a": 0, "k": [0, 0]}, "r": {"a": 0, "k": 5.0}, "nm": "Body Path"}, {"ty": "fl", "c": {"a": 0, "k": [0.4314, 0.9059, 0.7176, 1.0]}, "o": {"a": 0, "k": 95}, "nm": "Body Fill"}, {"ty": "st", "c": {"a": 0, "k": [1.0, 1.0, 1.0, 1.0]}, "o": {"a": 0, "k": 30}, "w": {"a": 0, "k": 1.0}, "lc": 2, "lj": 2, "nm": "Rim Stroke"}, {"ty": "rc", "d": 1, "s": {"a": 0, "k": [6, 4.5]}, "p": {"a": 0, "k": [-7, -2]}, "r": {"a": 0, "k": 1.5}, "nm": "Chip Path"}, {"ty": "fl", "c": {"a": 0, "k": [1.0, 1.0, 1.0, 1.0]}, "o": {"a": 0, "k": 40}, "nm": "Chip Fill"}, {"ty": "rc", "d": 1, "s": {"a": 0, "k": [10, 2]}, "p": {"a": 0, "k": [3, 2.5]}, "r": {"a": 0, "k": 1.0}, "nm": "Stripe Path"}, {"ty": "fl", "c": {"a": 0, "k": [1.0, 1.0, 1.0, 1.0]}, "o": {"a": 0, "k": 30}, "nm": "Stripe Fill"}, {"ty": "tr", "p": {"a": 0, "k": [0, 0]}, "a": {"a": 0, "k": [0, 0]}, "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}, "sk": {"a": 0, "k": 0}, "sa": {"a": 0, "k": 0}, "nm": "Transform"}]}], "ip": 0, "op": 144, "st": 0, "bm": 0}, {"ddd": 0, "ind": 6, "ty": 4, "nm": "Fintech Card Gamma", "parent": 3, "sr": 1, "ks": {"o": {"a": 1, "k": [{"t": 0, "s": [62.7], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 18, "s": [60.7], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [70.0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 54, "s": [85.2], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [97.3], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 90, "s": [99.3], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [90.0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 126, "s": [74.8], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [62.7]}]}, "r": {"a": 0, "k": 0}, "p": {"a": 1, "k": [{"t": 0, "s": [0, -56, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [0, -59, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [0, -55, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [0, -58, 0], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [0, -56, 0]}]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 1, "k": [{"t": 0, "s": [87.3, 87.3, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 18, "s": [86.3, 86.3, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [91.0, 91.0, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 54, "s": [98.6, 98.6, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [104.7, 104.7, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 90, "s": [105.7, 105.7, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [101.0, 101.0, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 126, "s": [93.4, 93.4, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [87.3, 87.3, 100]}]}}, "ao": 0, "shapes": [{"ty": "gr", "nm": "Card Shapes", "it": [{"ty": "rc", "d": 1, "s": {"a": 0, "k": [28, 18]}, "p": {"a": 0, "k": [0, 3]}, "r": {"a": 0, "k": 5.0}, "nm": "Shadow Path"}, {"ty": "fl", "c": {"a": 0, "k": [0.02, 0.08, 0.04, 1.0]}, "o": {"a": 0, "k": 20}, "nm": "Shadow Fill"}, {"ty": "rc", "d": 1, "s": {"a": 0, "k": [28, 18]}, "p": {"a": 0, "k": [0, 0]}, "r": {"a": 0, "k": 5.0}, "nm": "Body Path"}, {"ty": "fl", "c": {"a": 0, "k": [0.1215, 0.4784, 0.298, 1.0]}, "o": {"a": 0, "k": 95}, "nm": "Body Fill"}, {"ty": "st", "c": {"a": 0, "k": [1.0, 1.0, 1.0, 1.0]}, "o": {"a": 0, "k": 30}, "w": {"a": 0, "k": 1.0}, "lc": 2, "lj": 2, "nm": "Rim Stroke"}, {"ty": "rc", "d": 1, "s": {"a": 0, "k": [6, 4.5]}, "p": {"a": 0, "k": [-7, -2]}, "r": {"a": 0, "k": 1.5}, "nm": "Chip Path"}, {"ty": "fl", "c": {"a": 0, "k": [1.0, 1.0, 1.0, 1.0]}, "o": {"a": 0, "k": 40}, "nm": "Chip Fill"}, {"ty": "rc", "d": 1, "s": {"a": 0, "k": [10, 2]}, "p": {"a": 0, "k": [3, 2.5]}, "r": {"a": 0, "k": 1.0}, "nm": "Stripe Path"}, {"ty": "fl", "c": {"a": 0, "k": [1.0, 1.0, 1.0, 1.0]}, "o": {"a": 0, "k": 30}, "nm": "Stripe Fill"}, {"ty": "tr", "p": {"a": 0, "k": [0, 0]}, "a": {"a": 0, "k": [0, 0]}, "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}, "sk": {"a": 0, "k": 0}, "sa": {"a": 0, "k": 0}, "nm": "Transform"}]}], "ip": 0, "op": 144, "st": 0, "bm": 0}, {"ddd": 0, "ind": 7, "ty": 4, "nm": "Fluid Sync Arc Primary", "sr": 1, "ks": {"o": {"a": 0, "k": 80}, "r": {"a": 1, "k": [{"t": 0, "s": [0], "i": {"x": [0.4], "y": [1.0]}, "o": {"x": [0.6], "y": [0.0]}}, {"t": 72, "s": [180], "i": {"x": [0.4], "y": [1.0]}, "o": {"x": [0.6], "y": [0.0]}}, {"t": 144, "s": [360]}]}, "p": {"a": 0, "k": [150, 150, 0]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 0, "k": [100, 100]}}, "ao": 0, "shapes": [{"ty": "gr", "nm": "Arc 1 Group", "it": [{"d": 1, "ty": "el", "s": {"a": 0, "k": [114, 114]}, "p": {"a": 0, "k": [0, 0]}, "nm": "Circle"}, {"ty": "tm", "s": {"a": 0, "k": 0}, "e": {"a": 1, "k": [{"t": 0, "s": [18], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [48], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [22], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [50], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [18]}]}, "o": {"a": 0, "k": 0}, "m": 1, "nm": "Trim Path"}, {"ty": "st", "c": {"a": 0, "k": [0.298, 0.7333, 0.4784, 1.0]}, "o": {"a": 0, "k": 100}, "w": {"a": 0, "k": 3.0}, "lc": 2, "lj": 2, "nm": "Stroke"}, {"ty": "tr", "p": {"a": 0, "k": [0, 0]}, "a": {"a": 0, "k": [0, 0]}, "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}, "sk": {"a": 0, "k": 0}, "sa": {"a": 0, "k": 0}, "nm": "Transform"}]}], "ip": 0, "op": 144, "st": 0, "bm": 0}, {"ddd": 0, "ind": 8, "ty": 4, "nm": "Fluid Sync Arc Secondary", "sr": 1, "ks": {"o": {"a": 0, "k": 55}, "r": {"a": 1, "k": [{"t": 0, "s": [180], "i": {"x": [0.4], "y": [1.0]}, "o": {"x": [0.6], "y": [0.0]}}, {"t": 72, "s": [360], "i": {"x": [0.4], "y": [1.0]}, "o": {"x": [0.6], "y": [0.0]}}, {"t": 144, "s": [540]}]}, "p": {"a": 0, "k": [150, 150, 0]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 0, "k": [100, 100]}}, "ao": 0, "shapes": [{"ty": "gr", "nm": "Arc 2 Group", "it": [{"d": 1, "ty": "el", "s": {"a": 0, "k": [114, 114]}, "p": {"a": 0, "k": [0, 0]}, "nm": "Circle"}, {"ty": "tm", "s": {"a": 0, "k": 0}, "e": {"a": 1, "k": [{"t": 0, "s": [12], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [32], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [15], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [34], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [12]}]}, "o": {"a": 0, "k": 0}, "m": 1, "nm": "Trim Path"}, {"ty": "st", "c": {"a": 0, "k": [0.4314, 0.9059, 0.7176, 1.0]}, "o": {"a": 0, "k": 100}, "w": {"a": 0, "k": 2.0}, "lc": 2, "lj": 2, "nm": "Stroke"}, {"ty": "tr", "p": {"a": 0, "k": [0, 0]}, "a": {"a": 0, "k": [0, 0]}, "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}, "sk": {"a": 0, "k": 0}, "sa": {"a": 0, "k": 0}, "nm": "Transform"}]}], "ip": 0, "op": 144, "st": 0, "bm": 0}, {"ddd": 0, "ind": 9, "ty": 4, "nm": "Orbital Guide Track", "sr": 1, "ks": {"o": {"a": 0, "k": 16}, "r": {"a": 0, "k": 0}, "p": {"a": 0, "k": [150, 150, 0]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 0, "k": [100, 100]}}, "ao": 0, "shapes": [{"ty": "gr", "nm": "Track Group", "it": [{"d": 1, "ty": "el", "s": {"a": 0, "k": [114, 114]}, "p": {"a": 0, "k": [0, 0]}, "nm": "Circle"}, {"ty": "st", "c": {"a": 0, "k": [0.298, 0.7333, 0.4784, 1.0]}, "o": {"a": 0, "k": 100}, "w": {"a": 0, "k": 1.2}, "lc": 2, "lj": 2, "nm": "Stroke"}, {"ty": "tr", "p": {"a": 0, "k": [0, 0]}, "a": {"a": 0, "k": [0, 0]}, "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}, "sk": {"a": 0, "k": 0}, "sa": {"a": 0, "k": 0}, "nm": "Transform"}]}], "ip": 0, "op": 144, "st": 0, "bm": 0}, {"ddd": 0, "ind": 10, "ty": 4, "nm": "Central Sync Pulse Wave", "sr": 1, "ks": {"o": {"a": 1, "k": [{"t": 0, "s": [18], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 24, "s": [42], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 48, "s": [18], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [42], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 96, "s": [18], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 120, "s": [42], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [18]}]}, "r": {"a": 0, "k": 0}, "p": {"a": 0, "k": [150, 150, 0]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 1, "k": [{"t": 0, "s": [85, 85], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 24, "s": [130, 130], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 48, "s": [85, 85], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [130, 130], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 96, "s": [85, 85], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 120, "s": [130, 130], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [85, 85]}]}}, "ao": 0, "shapes": [{"ty": "gr", "nm": "Pulse Group", "it": [{"d": 1, "ty": "el", "s": {"a": 0, "k": [36, 36]}, "p": {"a": 0, "k": [0, 0]}, "nm": "Circle"}, {"ty": "st", "c": {"a": 0, "k": [0.4314, 0.9059, 0.7176, 1.0]}, "o": {"a": 0, "k": 100}, "w": {"a": 0, "k": 1.8}, "lc": 2, "lj": 2, "nm": "Stroke"}, {"ty": "tr", "p": {"a": 0, "k": [0, 0]}, "a": {"a": 0, "k": [0, 0]}, "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}, "sk": {"a": 0, "k": 0}, "sa": {"a": 0, "k": 0}, "nm": "Transform"}]}], "ip": 0, "op": 144, "st": 0, "bm": 0}, {"ddd": 0, "ind": 11, "ty": 4, "nm": "Central Anchor Node", "sr": 1, "ks": {"o": {"a": 0, "k": 95}, "r": {"a": 0, "k": 0}, "p": {"a": 0, "k": [150, 150, 0]}, "a": {"a": 0, "k": [0, 0, 0]}, "s": {"a": 1, "k": [{"t": 0, "s": [100, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 36, "s": [112, 112], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 72, "s": [100, 100], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 108, "s": [112, 112], "i": {"x": [0.45], "y": [1.0]}, "o": {"x": [0.55], "y": [0.0]}}, {"t": 144, "s": [100, 100]}]}}, "ao": 0, "shapes": [{"ty": "gr", "nm": "Core Group", "it": [{"d": 1, "ty": "el", "s": {"a": 0, "k": [12, 12]}, "p": {"a": 0, "k": [0, 0]}, "nm": "Core Circle"}, {"ty": "fl", "c": {"a": 0, "k": [0.298, 0.7333, 0.4784, 1.0]}, "o": {"a": 0, "k": 100}, "nm": "Fill"}, {"ty": "st", "c": {"a": 0, "k": [1.0, 1.0, 1.0, 1.0]}, "o": {"a": 0, "k": 35}, "w": {"a": 0, "k": 1.2}, "lc": 2, "lj": 2, "nm": "Rim"}, {"ty": "tr", "p": {"a": 0, "k": [0, 0]}, "a": {"a": 0, "k": [0, 0]}, "s": {"a": 0, "k": [100, 100]}, "r": {"a": 0, "k": 0}, "o": {"a": 0, "k": 100}, "sk": {"a": 0, "k": 0}, "sa": {"a": 0, "k": 0}, "nm": "Transform"}]}], "ip": 0, "op": 144, "st": 0, "bm": 0}]};
+    const animInstances = [];
+
+    const containers = [
+      'anim-dark',
+      'anim-light',
+      'anim-s24',
+      'anim-s40',
+      'anim-s64',
+      'anim-s96',
+      'anim-btn'
+    ];
+
+    containers.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        const inst = lottie.loadAnimation({
+          container: el,
+          renderer: 'svg',
+          loop: true,
+          autoplay: true,
+          animationData: animData
+        });
+        animInstances.push(inst);
+      }
+    });
+
+    let isPlaying = true;
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      animInstances.forEach(inst => isPlaying ? inst.play() : inst.pause());
+    }
+
+    function setSpeed(speed) {
+      animInstances.forEach(inst => inst.setSpeed(speed));
+    }
+  </script>
+</body>
+</html>
