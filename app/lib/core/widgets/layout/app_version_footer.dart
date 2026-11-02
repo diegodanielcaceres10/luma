@@ -20,7 +20,7 @@ class AppVersionFooter extends StatefulWidget {
 }
 
 class _AppVersionFooterState extends State<AppVersionFooter> {
-  static const _author = 'Desarrollado por Diego Caceres';
+  static const _author = 'Desarrollado por Diego Daniel Caceres';
 
   String? _versionLabel;
 
