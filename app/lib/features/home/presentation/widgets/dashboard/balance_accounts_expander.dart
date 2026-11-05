@@ -130,9 +130,9 @@ class _BalanceAccountsExpanderState extends State<BalanceAccountsExpander> {
   }
 }
 
-/// One account of the expanded breakdown: name and balance, which opens the
-/// account when tapped, plus a link to load its opening balance when it is
-/// still missing this month.
+/// One account of the expanded breakdown: icon, name, a warning when its
+/// opening balance is still missing this month, balance and chevron. Tapping
+/// the row opens the account; tapping the warning loads the opening balance.
 class _AccountBalanceRow extends StatelessWidget {
   final Account account;
   final String currency;
@@ -153,7 +153,6 @@ class _AccountBalanceRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(12),
@@ -161,113 +160,81 @@ class _AccountBalanceRow extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.08),
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // The warning below has its own action, so only this line opens
-            // the account.
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onOpen,
-                borderRadius: BorderRadius.circular(8),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.account_balance_wallet_outlined,
-                          color: Colors.white70,
-                          size: 15,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        account.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      formatCurrency(account.balance, currency),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.white54,
-                      size: 20,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (isPending) ...[
-              const SizedBox(height: 8),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onCompletePendingBalance,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 6),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onOpen,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFBBF24).withValues(alpha: 0.12),
+                      color: Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color:
-                            const Color(0xFFFBBF24).withValues(alpha: 0.28),
-                      ),
                     ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 15,
-                        ),
-                        SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Falta cargar el saldo inicial',
-                            style: TextStyle(
-                              color: Color(0xFFFDE68A),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 15,
-                        ),
-                      ],
+                    child: const Center(
+                      child: Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: Colors.white70,
+                        size: 15,
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      account.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  if (isPending) ...[
+                    const SizedBox(width: 8),
+                    Semantics(
+                      button: true,
+                      label: 'Falta cargar el saldo inicial',
+                      child: InkWell(
+                        onTap: onCompletePendingBalance,
+                        borderRadius: BorderRadius.circular(12),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(
+                            Icons.warning_amber_rounded,
+                            color: Color(0xFFFBBF24),
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: 8),
+                  Text(
+                    formatCurrency(account.balance, currency),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white54,
+                    size: 20,
+                  ),
+                ],
               ),
-            ],
-          ],
+            ),
+          ),
         ),
       ),
     );
