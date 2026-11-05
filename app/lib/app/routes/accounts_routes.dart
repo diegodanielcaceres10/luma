@@ -57,6 +57,7 @@ List<RouteBase> accountsRoutes(AppDependencies deps) {
       builder: (context, state) => RoutedScreenScaffold(
         body: AccountsScreen(
           accountViewModel: accountViewModel,
+          monthlyBalanceViewModel: monthlyBalanceViewModel,
           preferencesViewModel: preferencesViewModel,
           onOpenView: (account) =>
               context.push('/accounts/${account.id}'),
@@ -193,6 +194,7 @@ List<RouteBase> accountsRoutes(AppDependencies deps) {
       builder: (context, state) => RoutedScreenScaffold(
         body: AccountsScreen(
           accountViewModel: accountViewModel,
+          monthlyBalanceViewModel: monthlyBalanceViewModel,
           preferencesViewModel: preferencesViewModel,
           onBack: () => context.goBack(),
           onOpenView: (account) =>
