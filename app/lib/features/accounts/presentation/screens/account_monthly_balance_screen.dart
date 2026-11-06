@@ -521,6 +521,8 @@ class _AccountMonthlyBalanceScreenState
         return BalanceComparisonCard(
           previousLabel: 'Saldo anterior (desactualizado del ciclo anterior)',
           newLabel: 'Saldo inicial del mes para este nuevo ciclo',
+          newLabelNote: 'No es el saldo actual: es el saldo con el que '
+              'arranca la cuenta este mes.',
           newBalanceName: 'saldo inicial',
           previousBalance: account.balance,
           currency: currency,

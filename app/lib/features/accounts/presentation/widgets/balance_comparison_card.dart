@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
 
+const _kWarningColor = Color(0xFFFBBF24);
+
 double? parseBalanceAmount(String? raw) {
   final text = (raw ?? '').trim().replaceAll(',', '.');
   if (text.isEmpty) return null;
@@ -100,6 +102,9 @@ class BalanceAmountField extends StatelessWidget {
 class BalanceComparisonCard extends StatelessWidget {
   final String previousLabel;
   final String newLabel;
+
+  /// Optional highlighted note shown under [newLabel].
+  final String? newLabelNote;
   final String newBalanceName;
   final double previousBalance;
   final String currency;
@@ -110,6 +115,7 @@ class BalanceComparisonCard extends StatelessWidget {
     super.key,
     this.previousLabel = 'Saldo anterior (en la app)',
     this.newLabel = 'Nuevo saldo actual',
+    this.newLabelNote,
     this.newBalanceName = 'nuevo saldo',
     required this.previousBalance,
     required this.currency,
@@ -161,6 +167,30 @@ class BalanceComparisonCard extends StatelessWidget {
               color: AppColors.authTextSecondary,
             ),
           ),
+          if (newLabelNote != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  size: 16,
+                  color: _kWarningColor,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    newLabelNote!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _kWarningColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 6),
           amountField,
           const SizedBox(height: 16),
