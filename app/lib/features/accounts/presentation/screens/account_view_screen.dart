@@ -6,26 +6,35 @@ import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/layout/screen_header.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
+import '../view_models/monthly_balance_view_model.dart';
 import '../widgets/account_trend_section.dart';
 import '../widgets/month_variation_indicator.dart';
 
 enum _AccountAction { edit, updateBalance, justifyUncontrolled }
 
+const _kWarningColor = Color(0xFFFBBF24);
+
 class AccountViewScreen extends StatefulWidget {
   final Account account;
   final AccountViewModel accountViewModel;
+  final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final VoidCallback onEdit;
   final VoidCallback onUpdateBalance;
   final VoidCallback onJustifyUncontrolled;
+
+  /// Opens the opening balance flow, from the missing-balance banner.
+  final VoidCallback onCompleteBalance;
   final VoidCallback onBack;
 
   const AccountViewScreen({
     super.key,
     required this.account,
     required this.accountViewModel,
+    required this.monthlyBalanceViewModel,
     required this.onEdit,
     required this.onUpdateBalance,
     required this.onJustifyUncontrolled,
+    required this.onCompleteBalance,
     required this.onBack,
   });
 
@@ -53,9 +62,17 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
     return SafeArea(
       top: false,
       child: ListenableBuilder(
-        listenable: widget.accountViewModel,
+        listenable: Listenable.merge([
+          widget.accountViewModel,
+          widget.monthlyBalanceViewModel,
+        ]),
         builder: (context, _) {
           final current = _currentAccount();
+          // Unknown until the monthly check runs, so nothing is flagged by
+          // mistake while it loads or fails.
+          final isPending = widget.monthlyBalanceViewModel.checked &&
+              current.isActive &&
+              widget.monthlyBalanceViewModel.isAccountPending(current.id);
           final currency = widget.accountViewModel.primaryCurrency;
           final uncontrolled =
               widget.accountViewModel.uncontrolledTotalOf(current.id);
@@ -102,6 +119,12 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  if (isPending) ...[
+                    _MissingOpeningBalanceBanner(
+                      onCompleteBalance: widget.onCompleteBalance,
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   _HeroBalanceCard(
                     current: current,
                     currency: currency,
@@ -127,6 +150,95 @@ class _AccountViewScreenState extends State<AccountViewScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _MissingOpeningBalanceBanner extends StatelessWidget {
+  final VoidCallback onCompleteBalance;
+
+  const _MissingOpeningBalanceBanner({required this.onCompleteBalance});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _kWarningColor.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _kWarningColor.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _kWarningColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: _kWarningColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Falta cerrar el mes anterior',
+                      style: TextStyle(
+                        color: _kWarningColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Registrá y cerrá el mes anterior antes de continuar '
+                      'con el saldo del nuevo mes.',
+                      style: TextStyle(
+                        color: AppColors.authTextSecondary,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton(
+              onPressed: onCompleteBalance,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _kWarningColor,
+                side: BorderSide(color: _kWarningColor.withValues(alpha: 0.4)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                minimumSize: const Size(0, 32),
+                visualDensity: VisualDensity.compact,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Cargar saldo inicial',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
