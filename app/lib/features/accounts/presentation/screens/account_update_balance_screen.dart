@@ -9,7 +9,6 @@ import '../../../../core/widgets/dialogs/confirm_dialog.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/layout/screen_header.dart';
 import '../../../../core/widgets/buttons/secondary_button.dart';
-import '../../../../core/widgets/buttons/text_action_button.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -445,10 +444,15 @@ class _AccountUpdateBalanceScreenState
           SizedBox(width: double.infinity, child: nextButton),
           if (diff != null && diff != 0) ...[
             const SizedBox(height: 8),
-            TextActionButton(
-              label: 'Guardar sin justificar movimientos',
-              fontWeight: FontWeight.w600,
-              onPressed: _isSaving ? null : _saveAndUpdateBalance,
+            SizedBox(
+              width: double.infinity,
+              child: SecondaryButton(
+                label: 'Guardar sin justificar movimientos',
+                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                disabledAlpha: 0.4,
+                onPressed: _isSaving ? null : _saveAndUpdateBalance,
+              ),
             ),
           ],
         ],
