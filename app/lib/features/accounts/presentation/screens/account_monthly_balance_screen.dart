@@ -7,7 +7,6 @@ import '../../../../core/widgets/dialogs/confirm_dialog.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/layout/screen_header.dart';
 import '../../../../core/widgets/buttons/secondary_button.dart';
-import '../../../../core/widgets/buttons/text_action_button.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -390,9 +389,10 @@ class _AccountMonthlyBalanceScreenState
           )
         : await showConfirmDialog(
             context,
-            message: 'Se usará el saldo actual ($balanceLabel) como saldo '
-                'inicial de $_monthLabel, sin movimientos ni ajustes. '
-                '¿Querés continuar?',
+            message: 'Confirmás que no hubo movimientos desde la última '
+                'actualización hasta el cierre del mes. Se usará el saldo '
+                'actual ($balanceLabel) como saldo inicial de $_monthLabel, '
+                'sin movimientos ni ajustes. ¿Querés continuar?',
           );
     if (!confirmed || !mounted) return;
 
@@ -716,10 +716,15 @@ class _AccountMonthlyBalanceScreenState
         children: [
           SizedBox(width: double.infinity, child: nextButton),
           const SizedBox(height: 8),
-          TextActionButton(
-            label: 'Mi saldo está al día, sin movimientos',
-            fontWeight: FontWeight.w600,
-            onPressed: _isSaving ? null : _saveWithCurrentBalance,
+          SizedBox(
+            width: double.infinity,
+            child: SecondaryButton(
+              label: 'No hubo movimientos desde la última actualización',
+              labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              disabledAlpha: 0.4,
+              onPressed: _isSaving ? null : _saveWithCurrentBalance,
+            ),
           ),
         ],
       );
