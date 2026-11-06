@@ -101,8 +101,7 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
   MonthlyBalanceViewModel get _balances => widget.monthlyBalanceViewModel;
 
   String get _monthInSentence => formatMonthLabel(_month).toLowerCase();
-  String get _nextMonthInSentence =>
-      formatMonthLabel(_nextMonth).toLowerCase();
+  String get _nextMonthInSentence => formatMonthLabel(_nextMonth).toLowerCase();
 
   @override
   void initState() {
@@ -238,8 +237,7 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
   bool get _canSaveUnjustifiedRemainder {
     final remainder = _unjustifiedRemainder;
     return remainder != null &&
-        (_uncontrolledExpensesEnabled ||
-            remainder.abs() < kRemainderEpsilon);
+        (_uncontrolledExpensesEnabled || remainder.abs() < kRemainderEpsilon);
   }
 
   /// Part of the difference the movements don't cover: it stays as the
@@ -268,8 +266,12 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
     final account = _account;
     final opening = _openingBalance;
     final difference = _difference;
-    if (account == null || opening == null || difference == null ||
-        !_canSaveUnjustifiedRemainder) return;
+    if (account == null ||
+        opening == null ||
+        difference == null ||
+        !_canSaveUnjustifiedRemainder) {
+      return;
+    }
     if (_isSaving) return;
 
     final confirmed = await showConfirmDialog(context);
@@ -451,10 +453,10 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
                       ? 'Los gastos no controlados están desactivados. '
                           'Cargá movimientos para justificar toda la diferencia.'
                       : remainder.abs() < kRemainderEpsilon
-                      ? 'Ya justificaste toda la diferencia.'
-                      : 'Todavía falta justificar '
-                          '${remainder > 0 ? '+' : ''}'
-                          '${formatCurrency(remainder, currency)}.',
+                          ? 'Ya justificaste toda la diferencia.'
+                          : 'Todavía falta justificar '
+                              '${remainder > 0 ? '+' : ''}'
+                              '${formatCurrency(remainder, currency)}.',
                   style: TextStyle(
                     fontSize: 12,
                     color: remainder.abs() < kRemainderEpsilon

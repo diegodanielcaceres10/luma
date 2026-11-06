@@ -263,8 +263,7 @@ class _AccountMonthlyBalanceScreenState
   bool get _canSaveUnjustifiedRemainder {
     final remainder = _unjustifiedRemainder;
     return remainder != null &&
-        (_uncontrolledExpensesEnabled ||
-            remainder.abs() < kRemainderEpsilon);
+        (_uncontrolledExpensesEnabled || remainder.abs() < kRemainderEpsilon);
   }
 
   /// Part of the difference that the movements don't cover: what is added to
@@ -296,8 +295,12 @@ class _AccountMonthlyBalanceScreenState
     final account = _account;
     final openingBalance = parseBalanceAmount(_openingBalanceController.text);
     final remainder = _unjustifiedRemainder;
-    if (openingBalance == null || remainder == null || _isSaving ||
-        !_canSaveUnjustifiedRemainder) return;
+    if (openingBalance == null ||
+        remainder == null ||
+        _isSaving ||
+        !_canSaveUnjustifiedRemainder) {
+      return;
+    }
 
     final confirmed = await showConfirmDialog(context);
     if (!confirmed || !mounted) return;
@@ -564,10 +567,10 @@ class _AccountMonthlyBalanceScreenState
                       ? 'Los gastos no controlados están desactivados. '
                           'Cargá movimientos para justificar toda la diferencia.'
                       : remainder == 0
-                      ? 'Ya justificaste toda la diferencia.'
-                      : 'Todavía falta justificar '
-                          '${remainder > 0 ? '+' : ''}'
-                          '${formatCurrency(remainder, currency)}.',
+                          ? 'Ya justificaste toda la diferencia.'
+                          : 'Todavía falta justificar '
+                              '${remainder > 0 ? '+' : ''}'
+                              '${formatCurrency(remainder, currency)}.',
                   style: TextStyle(
                     fontSize: 12,
                     color: remainder == 0
