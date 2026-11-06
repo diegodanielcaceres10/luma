@@ -232,6 +232,16 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
   double get _movementsTotal =>
       _savedMovementsTotal + _movementsController.total;
 
+  bool get _uncontrolledExpensesEnabled =>
+      widget.accountViewModel.uncontrolledExpensesEnabled;
+
+  bool get _canSaveUnjustifiedRemainder {
+    final remainder = _unjustifiedRemainder;
+    return remainder != null &&
+        (_uncontrolledExpensesEnabled ||
+            remainder.abs() < kRemainderEpsilon);
+  }
+
   /// Part of the difference the movements don't cover: it stays as the
   /// month's uncontrolled total.
   double? get _unjustifiedRemainder {
@@ -258,7 +268,8 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
     final account = _account;
     final opening = _openingBalance;
     final difference = _difference;
-    if (account == null || opening == null || difference == null) return;
+    if (account == null || opening == null || difference == null ||
+        !_canSaveUnjustifiedRemainder) return;
     if (_isSaving) return;
 
     final confirmed = await showConfirmDialog(context);
@@ -435,7 +446,11 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
           helperText: remainder == null
               ? null
               : Text(
-                  remainder.abs() < kRemainderEpsilon
+                  !_uncontrolledExpensesEnabled &&
+                          remainder.abs() >= kRemainderEpsilon
+                      ? 'Los gastos no controlados están desactivados. '
+                          'Cargá movimientos para justificar toda la diferencia.'
+                      : remainder.abs() < kRemainderEpsilon
                       ? 'Ya justificaste toda la diferencia.'
                       : 'Todavía falta justificar '
                           '${remainder > 0 ? '+' : ''}'
@@ -546,7 +561,7 @@ class _AccountJustifyMonthScreenState extends State<AccountJustifyMonthScreen> {
     if (_isSaving) {
       onNext = null;
     } else if (isLastStep) {
-      onNext = _save;
+      onNext = _canSaveUnjustifiedRemainder ? _save : null;
     } else if (isFirstStep && !_canLeaveFirstStep) {
       onNext = null;
     } else {

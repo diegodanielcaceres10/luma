@@ -13,6 +13,8 @@ class PreferencesRepository {
   static const _currencyCodeKey = 'preferences.currency_code';
   static const _darkThemeEnabledKey = 'preferences.dark_theme_enabled';
   static const _notificationsEnabledKey = 'preferences.notifications_enabled';
+  static const _uncontrolledExpensesEnabledKey =
+      'preferences.uncontrolled_expenses_enabled';
   static const _biometricLockEnabledKey = 'preferences.biometric_lock_enabled';
 
   /// Loads the saved preferences; missing values fall back to
@@ -23,6 +25,8 @@ class PreferencesRepository {
     final currencyCode = await _prefs.getString(_currencyCodeKey);
     final darkThemeEnabled = await _prefs.getBool(_darkThemeEnabledKey);
     final notificationsEnabled = await _prefs.getBool(_notificationsEnabledKey);
+    final uncontrolledExpensesEnabled =
+        await _prefs.getBool(_uncontrolledExpensesEnabledKey);
     final biometricLockEnabled = await _prefs.getBool(_biometricLockEnabledKey);
 
     return AppPreferences(
@@ -30,6 +34,8 @@ class PreferencesRepository {
       darkThemeEnabled: darkThemeEnabled ?? defaults.darkThemeEnabled,
       notificationsEnabled:
           notificationsEnabled ?? defaults.notificationsEnabled,
+      uncontrolledExpensesEnabled:
+          uncontrolledExpensesEnabled ?? defaults.uncontrolledExpensesEnabled,
       biometricLockEnabled:
           biometricLockEnabled ?? defaults.biometricLockEnabled,
     );
@@ -43,6 +49,9 @@ class PreferencesRepository {
 
   Future<void> setNotificationsEnabled(bool value) =>
       _prefs.setBool(_notificationsEnabledKey, value);
+
+  Future<void> setUncontrolledExpensesEnabled(bool value) =>
+      _prefs.setBool(_uncontrolledExpensesEnabledKey, value);
 
   Future<void> setBiometricLockEnabled(bool value) =>
       _prefs.setBool(_biometricLockEnabledKey, value);

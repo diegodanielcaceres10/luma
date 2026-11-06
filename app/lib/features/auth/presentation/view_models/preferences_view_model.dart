@@ -46,6 +46,11 @@ class PreferencesViewModel extends ChangeNotifier {
         () => _repository.setNotificationsEnabled(value),
       );
 
+  Future<void> setUncontrolledExpensesEnabled(bool value) => _applyAndPersist(
+        (prefs) => prefs.copyWith(uncontrolledExpensesEnabled: value),
+        () => _repository.setUncontrolledExpensesEnabled(value),
+      );
+
   Future<void> setBiometricLockEnabled(bool value) => _applyAndPersist(
         (prefs) => prefs.copyWith(biometricLockEnabled: value),
         () => _repository.setBiometricLockEnabled(value),

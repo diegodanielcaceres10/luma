@@ -59,6 +59,11 @@ class AccountViewModel extends ChangeNotifier {
   // calculations): the currency chosen in Preferences is used across the app.
   String get primaryCurrency => _preferencesViewModel.preferences.currencyCode;
 
+  /// Whether balance reconciliation flows may leave a difference as an
+  /// uncontrolled expense or income.
+  bool get uncontrolledExpensesEnabled =>
+      _preferencesViewModel.preferences.uncontrolledExpensesEnabled;
+
   /// Signed `uncontrolled_expenses_total` of [accountId] for the current
   /// month, or 0 if it has not been loaded (see [loadUncontrolledTotal]).
   double uncontrolledTotalOf(String accountId) =>

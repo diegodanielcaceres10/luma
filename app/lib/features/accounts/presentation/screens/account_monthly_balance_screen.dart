@@ -257,6 +257,16 @@ class _AccountMonthlyBalanceScreenState
   double get _movementsTotal =>
       _savedMovementsTotal + _movementsController.total;
 
+  bool get _uncontrolledExpensesEnabled =>
+      widget.accountViewModel.uncontrolledExpensesEnabled;
+
+  bool get _canSaveUnjustifiedRemainder {
+    final remainder = _unjustifiedRemainder;
+    return remainder != null &&
+        (_uncontrolledExpensesEnabled ||
+            remainder.abs() < kRemainderEpsilon);
+  }
+
   /// Part of the difference that the movements don't cover: what is added to
   /// the previous month's `uncontrolled_expenses_total`. Positive: an income
   /// is missing; negative: an expense is missing.
@@ -286,7 +296,8 @@ class _AccountMonthlyBalanceScreenState
     final account = _account;
     final openingBalance = parseBalanceAmount(_openingBalanceController.text);
     final remainder = _unjustifiedRemainder;
-    if (openingBalance == null || remainder == null || _isSaving) return;
+    if (openingBalance == null || remainder == null || _isSaving ||
+        !_canSaveUnjustifiedRemainder) return;
 
     final confirmed = await showConfirmDialog(context);
     if (!confirmed || !mounted) return;
@@ -548,7 +559,11 @@ class _AccountMonthlyBalanceScreenState
           helperText: remainder == null
               ? null
               : Text(
-                  remainder == 0
+                  !_uncontrolledExpensesEnabled &&
+                          remainder.abs() >= kRemainderEpsilon
+                      ? 'Los gastos no controlados están desactivados. '
+                          'Cargá movimientos para justificar toda la diferencia.'
+                      : remainder == 0
                       ? 'Ya justificaste toda la diferencia.'
                       : 'Todavía falta justificar '
                           '${remainder > 0 ? '+' : ''}'
@@ -695,7 +710,7 @@ class _AccountMonthlyBalanceScreenState
     if (_isSaving) {
       onNext = null;
     } else if (isLastStep) {
-      onNext = _saveAndStartMonth;
+      onNext = _canSaveUnjustifiedRemainder ? _saveAndStartMonth : null;
     } else if (isFirstStep && _difference == null) {
       onNext = null;
     } else {

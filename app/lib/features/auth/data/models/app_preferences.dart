@@ -4,13 +4,15 @@ const List<String> kSupportedCurrencyCodes = ['USD', 'EUR', 'BRL', 'ARS'];
 
 /// User preferences stored only on this device (see PreferencesRepository).
 ///
-/// Currency and theme are only stored for now; [biometricLockEnabled] and
-/// [notificationsEnabled] are applied by AppLockViewModel and
-/// NotificationsViewModel.
+/// [biometricLockEnabled] and [notificationsEnabled] are applied by
+/// AppLockViewModel and NotificationsViewModel.
 class AppPreferences {
   final String currencyCode;
   final bool darkThemeEnabled;
   final bool notificationsEnabled;
+
+  /// Allows balance reconciliation flows to keep an uncovered difference.
+  final bool uncontrolledExpensesEnabled;
 
   /// When true (and supported), AppLockViewModel locks the app on open and
   /// on resume.
@@ -20,6 +22,7 @@ class AppPreferences {
     required this.currencyCode,
     required this.darkThemeEnabled,
     required this.notificationsEnabled,
+    required this.uncontrolledExpensesEnabled,
     required this.biometricLockEnabled,
   });
 
@@ -29,18 +32,22 @@ class AppPreferences {
       : currencyCode = defaultCurrencyCode,
         darkThemeEnabled = false,
         notificationsEnabled = false,
+        uncontrolledExpensesEnabled = false,
         biometricLockEnabled = false;
 
   AppPreferences copyWith({
     String? currencyCode,
     bool? darkThemeEnabled,
     bool? notificationsEnabled,
+    bool? uncontrolledExpensesEnabled,
     bool? biometricLockEnabled,
   }) {
     return AppPreferences(
       currencyCode: currencyCode ?? this.currencyCode,
       darkThemeEnabled: darkThemeEnabled ?? this.darkThemeEnabled,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      uncontrolledExpensesEnabled:
+          uncontrolledExpensesEnabled ?? this.uncontrolledExpensesEnabled,
       biometricLockEnabled: biometricLockEnabled ?? this.biometricLockEnabled,
     );
   }

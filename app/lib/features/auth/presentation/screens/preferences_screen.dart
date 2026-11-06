@@ -119,6 +119,18 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                const _SectionLabel('Control de gastos'),
+                const SizedBox(height: 8),
+                _PreferenceCard(
+                  child: _SwitchRow(
+                    label: 'Permitir gastos no controlados',
+                    value: prefs.uncontrolledExpensesEnabled,
+                    onChanged: vm.setUncontrolledExpensesEnabled,
+                    icon: Icons.receipt_long_outlined,
+                    iconColor: const Color(0xFFE9A23B),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 const _SectionLabel('Notificaciones'),
                 const SizedBox(height: 8),
                 _PreferenceCard(
