@@ -31,6 +31,7 @@ class TextActionButton extends StatelessWidget {
       onPressed: onPressed,
       child: Text(
         label,
+        textAlign: TextAlign.center,
         style: TextStyle(
           color: isFaded ? color.withValues(alpha: alpha) : color,
           fontWeight: fontWeight,

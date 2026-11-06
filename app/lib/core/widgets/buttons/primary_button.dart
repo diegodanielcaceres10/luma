@@ -65,7 +65,7 @@ class PrimaryButton extends StatelessWidget {
               color: AppColors.authBackgroundBottom,
             ),
           )
-        : Text(label, style: labelStyle);
+        : Text(label, style: labelStyle, textAlign: TextAlign.center);
 
     final icon = this.icon;
     if (icon != null) {
