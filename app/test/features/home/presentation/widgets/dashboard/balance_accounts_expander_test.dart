@@ -129,4 +129,50 @@ void main() {
       expect(warning, lessThan(balance));
     });
   });
+
+  group('row layout by screen width', () {
+    void setWidth(WidgetTester tester, double width) {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+    }
+
+    testWidgets('keeps the balance next to the name on regular screens',
+        (tester) async {
+      setWidth(tester, 420);
+      await pumpExpanded(tester);
+
+      final name = tester.getRect(find.text('Cuenta 1'));
+      final balance = tester.getRect(find.textContaining('100').first);
+
+      expect(balance.left, greaterThan(name.right));
+      expect(balance.top, lessThan(name.bottom));
+    });
+
+    testWidgets('puts the balance under the name on very narrow screens',
+        (tester) async {
+      setWidth(tester, 260);
+      await pumpExpanded(tester, pending: {'a1'});
+
+      final name = tester.getRect(find.text('Cuenta 1'));
+      final balance = tester.getRect(find.textContaining('100').first);
+
+      expect(balance.top, greaterThanOrEqualTo(name.bottom));
+      expect(balance.left, closeTo(name.left, 1));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps the warning and its action on very narrow screens',
+        (tester) async {
+      setWidth(tester, 260);
+      await pumpExpanded(tester, pending: {'a1'});
+
+      await tester.tap(find.byIcon(Icons.warning_amber_rounded));
+      await tester.pump();
+
+      expect(completed, ['a1']);
+      expect(opened, isEmpty);
+    });
+  });
 }
