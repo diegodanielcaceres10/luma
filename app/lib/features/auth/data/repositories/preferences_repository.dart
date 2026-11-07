@@ -11,7 +11,6 @@ class PreferencesRepository {
       : _prefs = prefs ?? SharedPreferencesAsync();
 
   static const _currencyCodeKey = 'preferences.currency_code';
-  static const _darkThemeEnabledKey = 'preferences.dark_theme_enabled';
   static const _notificationsEnabledKey = 'preferences.notifications_enabled';
   static const _uncontrolledExpensesEnabledKey =
       'preferences.uncontrolled_expenses_enabled';
@@ -23,7 +22,6 @@ class PreferencesRepository {
     const defaults = AppPreferences.defaults();
 
     final currencyCode = await _prefs.getString(_currencyCodeKey);
-    final darkThemeEnabled = await _prefs.getBool(_darkThemeEnabledKey);
     final notificationsEnabled = await _prefs.getBool(_notificationsEnabledKey);
     final uncontrolledExpensesEnabled =
         await _prefs.getBool(_uncontrolledExpensesEnabledKey);
@@ -31,7 +29,6 @@ class PreferencesRepository {
 
     return AppPreferences(
       currencyCode: currencyCode ?? defaults.currencyCode,
-      darkThemeEnabled: darkThemeEnabled ?? defaults.darkThemeEnabled,
       notificationsEnabled:
           notificationsEnabled ?? defaults.notificationsEnabled,
       uncontrolledExpensesEnabled:
@@ -43,9 +40,6 @@ class PreferencesRepository {
 
   Future<void> setCurrencyCode(String value) =>
       _prefs.setString(_currencyCodeKey, value);
-
-  Future<void> setDarkThemeEnabled(bool value) =>
-      _prefs.setBool(_darkThemeEnabledKey, value);
 
   Future<void> setNotificationsEnabled(bool value) =>
       _prefs.setBool(_notificationsEnabledKey, value);

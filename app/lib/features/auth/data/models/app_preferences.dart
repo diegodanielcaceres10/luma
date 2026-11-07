@@ -8,7 +8,6 @@ const List<String> kSupportedCurrencyCodes = ['USD', 'EUR', 'BRL', 'ARS'];
 /// AppLockViewModel and NotificationsViewModel.
 class AppPreferences {
   final String currencyCode;
-  final bool darkThemeEnabled;
   final bool notificationsEnabled;
 
   /// Allows balance reconciliation flows to keep an uncovered difference.
@@ -20,7 +19,6 @@ class AppPreferences {
 
   const AppPreferences({
     required this.currencyCode,
-    required this.darkThemeEnabled,
     required this.notificationsEnabled,
     required this.uncontrolledExpensesEnabled,
     required this.biometricLockEnabled,
@@ -30,21 +28,18 @@ class AppPreferences {
 
   const AppPreferences.defaults()
       : currencyCode = defaultCurrencyCode,
-        darkThemeEnabled = false,
         notificationsEnabled = false,
         uncontrolledExpensesEnabled = false,
         biometricLockEnabled = false;
 
   AppPreferences copyWith({
     String? currencyCode,
-    bool? darkThemeEnabled,
     bool? notificationsEnabled,
     bool? uncontrolledExpensesEnabled,
     bool? biometricLockEnabled,
   }) {
     return AppPreferences(
       currencyCode: currencyCode ?? this.currencyCode,
-      darkThemeEnabled: darkThemeEnabled ?? this.darkThemeEnabled,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       uncontrolledExpensesEnabled:
           uncontrolledExpensesEnabled ?? this.uncontrolledExpensesEnabled,

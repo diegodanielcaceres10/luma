@@ -107,18 +107,6 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const _SectionLabel('Apariencia'),
-                const SizedBox(height: 8),
-                _PreferenceCard(
-                  child: _SwitchRow(
-                    label: 'Tema oscuro',
-                    value: prefs.darkThemeEnabled,
-                    onChanged: vm.setDarkThemeEnabled,
-                    icon: Icons.dark_mode_outlined,
-                    iconColor: const Color(0xFF8FA6C9),
-                  ),
-                ),
-                const SizedBox(height: 20),
                 const _SectionLabel('Control de gastos'),
                 const SizedBox(height: 8),
                 _PreferenceCard(

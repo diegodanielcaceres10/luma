@@ -36,11 +36,6 @@ class PreferencesViewModel extends ChangeNotifier {
         () => _repository.setCurrencyCode(value),
       );
 
-  Future<void> setDarkThemeEnabled(bool value) => _applyAndPersist(
-        (prefs) => prefs.copyWith(darkThemeEnabled: value),
-        () => _repository.setDarkThemeEnabled(value),
-      );
-
   Future<void> setNotificationsEnabled(bool value) => _applyAndPersist(
         (prefs) => prefs.copyWith(notificationsEnabled: value),
         () => _repository.setNotificationsEnabled(value),
