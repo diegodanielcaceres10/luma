@@ -30,7 +30,7 @@
 
     <!-- Inner Application Dashboard Mockup -->
     <div class="rounded-2xl border border-white/[0.06] bg-neutral-900/60 p-4 sm:p-6 lg:p-8">
-      <!-- Real Android screenshots (displayed below native 440px width to stay sharp) -->
+      <!-- Real Android screenshots (displayed well below their native 660px width to stay sharp) -->
       <div
         class="flex snap-x snap-mandatory items-center gap-4 overflow-x-auto pb-2 sm:justify-center sm:gap-6 sm:overflow-visible sm:pb-0"
       >
@@ -38,8 +38,8 @@
           <img
             src="screens/screen-login.webp"
             alt="Pantalla de inicio de sesión de Luma con Google"
-            width="440"
-            height="978"
+            width="660"
+            height="1389"
             loading="lazy"
             class="w-44 rounded-2xl border border-white/10 shadow-xl shadow-emerald-950/40 sm:w-48 lg:w-52"
           />
@@ -50,8 +50,8 @@
           <img
             src="screens/screen-home.webp"
             alt="Pantalla de inicio de Luma con balance del mes y últimos movimientos"
-            width="440"
-            height="978"
+            width="660"
+            height="1389"
             loading="lazy"
             class="w-48 rounded-2xl border border-emerald-500/30 shadow-2xl shadow-emerald-500/20 sm:w-56 lg:w-60"
           />
@@ -62,8 +62,8 @@
           <img
             src="screens/screen-charts.webp"
             alt="Pantalla de estadísticas de Luma con gastos por categoría"
-            width="440"
-            height="978"
+            width="660"
+            height="1389"
             loading="lazy"
             class="w-44 rounded-2xl border border-white/10 shadow-xl shadow-emerald-950/40 sm:w-48 lg:w-52"
           />
@@ -115,8 +115,8 @@
               [src]="screen.src"
               [alt]="screen.alt"
               [attr.aria-hidden]="activeTablet() === screen.id ? null : 'true'"
-              width="1600"
-              height="1000"
+              width="1280"
+              height="740"
               loading="lazy"
               decoding="async"
               [class]="
