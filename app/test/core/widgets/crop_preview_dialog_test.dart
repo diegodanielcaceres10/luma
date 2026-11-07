@@ -73,11 +73,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('shows the image with its three actions', (tester) async {
+  testWidgets('shows the image with its actions', (tester) async {
     await open(tester, () async => 'ok');
 
     expect(find.text('Revisá la imagen'), findsOneWidget);
-    expect(find.text('Cancelar'), findsOneWidget);
+    // Cancel is the close icon in the corner, not a text button.
+    expect(find.byTooltip('Cancelar'), findsOneWidget);
+    expect(find.text('Cancelar'), findsNothing);
     expect(find.text('Recortar de nuevo'), findsOneWidget);
     expect(find.text('Enviar'), findsOneWidget);
     expect(find.text(cropSendErrorMessage), findsNothing);
@@ -124,8 +126,7 @@ void main() {
     await tester.pump();
 
     expect(
-      tester.widget<TextButton>(find.widgetWithText(TextButton, 'Cancelar'))
-          .onPressed,
+      tester.widget<IconButton>(find.byType(IconButton)).onPressed,
       isNull,
     );
     expect(
@@ -154,11 +155,7 @@ void main() {
     await tester.pump();
 
     expect(
-      tester
-          .widget<Text>(find.text('Cancelar'))
-          .style
-          ?.color
-          ?.a,
+      tester.widget<IconButton>(find.byType(IconButton)).disabledColor?.a,
       lessThan(1),
     );
     expect(
@@ -363,7 +360,7 @@ void main() {
       return 'ok';
     });
 
-    await tester.tap(find.text('Cancelar'));
+    await tester.tap(find.byTooltip('Cancelar'));
     await tester.pumpAndSettle();
 
     expect(review?.action, CropPreviewAction.cancel);

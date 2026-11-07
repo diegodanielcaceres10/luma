@@ -9,7 +9,6 @@ import '../../ai/scan_stage.dart';
 import '../buttons/primary_button.dart';
 import '../dialogs/scan_progress_dialog.dart';
 import '../buttons/secondary_button.dart';
-import '../buttons/text_action_button.dart';
 
 /// What the user decided after seeing the cropped image.
 enum CropPreviewAction { send, recrop, cancel }
@@ -133,13 +132,33 @@ class _CropPreviewDialogState<T> extends State<_CropPreviewDialog<T>> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Revisá la imagen',
-                style: TextStyle(
-                  color: AppColors.authTextPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                ),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Revisá la imagen',
+                      style: TextStyle(
+                        color: AppColors.authTextPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Cancelar',
+                    icon: const Icon(Icons.close_rounded),
+                    color: AppColors.authTextSecondary,
+                    disabledColor: AppColors.authTextSecondary
+                        .withValues(alpha: _disabledAlpha),
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 40, minHeight: 40),
+                    onPressed: _isSending
+                        ? null
+                        : () => _finish(CropPreviewAction.cancel),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               const Text(
@@ -178,32 +197,28 @@ class _CropPreviewDialogState<T> extends State<_CropPreviewDialog<T>> {
               ),
               _buildStatus(),
               const SizedBox(height: 20),
-              Wrap(
-                alignment: WrapAlignment.end,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  TextActionButton(
-                    label: 'Cancelar',
-                    disabledAlpha: _disabledAlpha,
-                    onPressed: _isSending
-                        ? null
-                        : () => _finish(CropPreviewAction.cancel),
-                  ),
-                  SecondaryButton(
-                    label: 'Recortar de nuevo',
-                    disabledAlpha: _disabledAlpha,
-                    onPressed: _isSending
-                        ? null
-                        : () => _finish(CropPreviewAction.recrop),
-                  ),
-                  PrimaryButton(
-                    label: _errorMessage != null ? 'Reintentar' : 'Enviar',
-                    disabledAlpha: _disabledAlpha,
-                    onPressed: _isSending ? null : _send,
-                  ),
-                ],
+              // Stacked at full width so long labels never split the actions
+              // across uneven lines on small screens.
+              SizedBox(
+                width: double.infinity,
+                child: PrimaryButton(
+                  label: _errorMessage != null ? 'Reintentar' : 'Enviar',
+                  disabledAlpha: _disabledAlpha,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  onPressed: _isSending ? null : _send,
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: SecondaryButton(
+                  label: 'Recortar de nuevo',
+                  disabledAlpha: _disabledAlpha,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  onPressed: _isSending
+                      ? null
+                      : () => _finish(CropPreviewAction.recrop),
+                ),
               ),
             ],
           ),
