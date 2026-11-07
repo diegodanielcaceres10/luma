@@ -258,58 +258,61 @@ class _DifferenceBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.authCardBorder),
       ),
-      child: Row(
+      // The message goes below the amount, at full width: next to it, small
+      // screens left the text only a few characters per line.
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: tone.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: tone, size: 22),
-          ),
-          const SizedBox(width: 12),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 130),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Diferencia',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.authTextSecondary,
-                  ),
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: tone.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 2),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    valueText,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: diff == null || diff == 0
-                          ? AppColors.authTextPrimary
-                          : tone,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                fontSize: 12,
-                height: 1.4,
-                color: AppColors.authTextSecondary,
+                child: Icon(icon, color: tone, size: 22),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Diferencia',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.authTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        valueText,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: diff == null || diff == 0
+                              ? AppColors.authTextPrimary
+                              : tone,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              color: AppColors.authTextSecondary,
             ),
           ),
         ],
