@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, afterNextRender, ElementRef, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { NavbarComponent } from '../../components/navbar/navbar';
 import { HeroComponent } from '../../components/hero/hero';
 import { AppShowcaseComponent } from '../../components/app-showcase/app-showcase';
@@ -9,6 +10,7 @@ import { SecuritySectionComponent } from '../../components/security-section/secu
 import { StackSectionComponent } from '../../components/stack-section/stack-section';
 import { CtaBannerComponent } from '../../components/cta-banner/cta-banner';
 import { FooterComponent } from '../../components/footer/footer';
+import { EditorialBackgroundComponent } from '../../components/editorial-background/editorial-background';
 
 @Component({
   selector: 'app-home',
@@ -23,8 +25,50 @@ import { FooterComponent } from '../../components/footer/footer';
     StackSectionComponent,
     CtaBannerComponent,
     FooterComponent,
+    EditorialBackgroundComponent,
   ],
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
-export class Home {}
+export class Home {
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly el = inject(ElementRef);
+
+  constructor() {
+    afterNextRender(() => {
+      this.initScrollReveal();
+    });
+  }
+
+  private initScrollReveal(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const elementsToReveal = this.el.nativeElement.querySelectorAll(
+      '.editorial-reveal, .editorial-reveal-scale, .editorial-stat-reveal, .editorial-progress-fill'
+    );
+
+    if (prefersReducedMotion) {
+      elementsToReveal.forEach((el: Element) => el.classList.add('is-revealed'));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+            obs.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        root: null,
+        threshold: 0.1,
+        rootMargin: '0px 0px -40px 0px',
+      }
+    );
+
+    elementsToReveal.forEach((el: Element) => observer.observe(el));
+  }
+}

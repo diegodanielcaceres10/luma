@@ -1,23 +1,23 @@
-<section id="experiencia" class="relative py-28 md:py-36 border-t border-white/[0.06] bg-neutral-950/40">
+<section id="experiencia" class="relative py-28 md:py-36 border-t border-white/[0.06] bg-neutral-950/40 editorial-section-border">
   
   <div class="mx-auto max-w-7xl px-6 sm:px-8">
     
     <div class="mx-auto max-w-3xl text-center mb-16">
-      <div class="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-950/30 px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-teal-400 mb-4">
+      <div class="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-950/30 px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-teal-400 mb-4 editorial-reveal">
         Flujo de Trabajo
       </div>
-      <h2 class="font-serif text-4xl sm:text-5xl font-normal tracking-tight text-white mb-6">
+      <h2 class="font-serif text-4xl sm:text-5xl font-normal tracking-tight text-white mb-6 editorial-reveal editorial-delay-1">
         Diseñado para la velocidad.
         <span class="block italic font-serif text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-200">
           Sin fricción innecesaria.
         </span>
       </h2>
-      <p class="text-base sm:text-lg text-neutral-400 max-w-2xl mx-auto">
+      <p class="text-base sm:text-lg text-neutral-400 max-w-2xl mx-auto editorial-reveal editorial-delay-2">
         Explora cómo Luma simplifica cada aspecto de tu gestión patrimonial en solo un par de toques.
       </p>
 
       <!-- Tab Buttons Selector -->
-      <div class="mt-10 inline-flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-neutral-900/80 p-1.5 backdrop-blur-xl">
+      <div class="mt-10 inline-flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-neutral-900/80 p-1.5 backdrop-blur-xl editorial-reveal editorial-delay-3">
         <button
           type="button"
           (click)="setTab('flow')"
@@ -51,7 +51,7 @@
     </div>
 
     <!-- Active Tab Panel Showcase -->
-    <div class="mx-auto max-w-5xl rounded-3xl border border-white/[0.08] bg-neutral-900/50 p-6 sm:p-10 backdrop-blur-2xl">
+    <div class="mx-auto max-w-5xl rounded-3xl border border-white/[0.08] bg-neutral-900/50 p-6 sm:p-10 backdrop-blur-2xl editorial-reveal-scale editorial-delay-2">
       
       @if (activeTab() === 'flow') {
         <div class="grid gap-8 lg:grid-cols-2 items-center">
@@ -126,7 +126,7 @@
                 <span class="text-emerald-400 font-bold">$340 / $500 (68%)</span>
               </div>
               <div class="h-2.5 w-full rounded-full bg-neutral-800 overflow-hidden">
-                <div class="h-full bg-emerald-400 rounded-full" style="width: 68%"></div>
+                <div class="h-full bg-emerald-400 rounded-full editorial-progress-fill" style="--progress-width: 68%; width: 68%"></div>
               </div>
               <div class="text-[11px] text-neutral-400 mt-1">Te quedan $160 para los próximos 12 días.</div>
             </div>
@@ -137,7 +137,7 @@
                 <span class="text-teal-300 font-bold">$89 / $120 (74%)</span>
               </div>
               <div class="h-2.5 w-full rounded-full bg-neutral-800 overflow-hidden">
-                <div class="h-full bg-teal-400 rounded-full" style="width: 74%"></div>
+                <div class="h-full bg-teal-400 rounded-full editorial-progress-fill" style="--progress-width: 74%; width: 74%"></div>
               </div>
             </div>
           </div>
