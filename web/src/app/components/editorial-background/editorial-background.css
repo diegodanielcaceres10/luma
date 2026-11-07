@@ -1,0 +1,90 @@
+.editorial-bg-root {
+  contain: paint layout;
+}
+
+/* Tactile paper-like micrograin via lightweight procedural SVG */
+.editorial-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.7'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+/* Subtle organic ambient breathing - extremely light on CPU */
+@keyframes editorial-breathe-subtle {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate3d(6px, -10px, 0) scale(1.03);
+    opacity: 1;
+  }
+}
+
+@keyframes editorial-breathe-reverse {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate3d(-8px, 12px, 0) scale(1.02);
+    opacity: 0.75;
+  }
+}
+
+.editorial-orb {
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.editorial-orb-hero {
+  animation: editorial-breathe-subtle 22s ease-in-out infinite;
+}
+
+.editorial-orb-showcase {
+  animation: editorial-breathe-reverse 26s ease-in-out infinite;
+}
+
+.editorial-orb-bento {
+  animation: editorial-breathe-subtle 28s ease-in-out infinite 3s;
+}
+
+.editorial-orb-security {
+  animation: editorial-breathe-reverse 24s ease-in-out infinite 5s;
+}
+
+.editorial-orb-cta {
+  animation: editorial-breathe-subtle 20s ease-in-out infinite 2s;
+}
+
+/* Editorial contour subtle line drift */
+.editorial-contours {
+  pointer-events: none;
+}
+
+.editorial-path {
+  transition: stroke 0.6s ease;
+}
+
+/* Strict reduction for accessibility and low-power */
+@media (prefers-reduced-motion: reduce) {
+  .editorial-orb-hero,
+  .editorial-orb-showcase,
+  .editorial-orb-bento,
+  .editorial-orb-security,
+  .editorial-orb-cta {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Mobile optimizations: simplify blurs and reduce layer sizes */
+@media (max-width: 768px) {
+  .editorial-orb {
+    filter: blur(80px) !important;
+    opacity: 0.65;
+  }
+  .editorial-contours {
+    opacity: 0.35;
+  }
+}

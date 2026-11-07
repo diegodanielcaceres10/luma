@@ -79,13 +79,21 @@ void main() {
   });
 
   group('with a missing opening balance', () {
-    const warning = 'Falta cargar el saldo inicial';
+    const warningIcon = Icons.warning_amber_rounded;
 
-    testWidgets('the warning completes the balance and nothing else',
+    testWidgets('shows only the warning icon, without the text',
         (tester) async {
       await pumpExpanded(tester, pending: {'a1'});
 
-      await tester.tap(find.text(warning));
+      expect(find.byIcon(warningIcon), findsOneWidget);
+      expect(find.text('Falta cargar el saldo inicial'), findsNothing);
+    });
+
+    testWidgets('the warning icon completes the balance and nothing else',
+        (tester) async {
+      await pumpExpanded(tester, pending: {'a1'});
+
+      await tester.tap(find.byIcon(warningIcon));
       await tester.pump();
 
       expect(completed, ['a1']);
@@ -103,12 +111,68 @@ void main() {
       expect(completed, isEmpty);
     });
 
-    testWidgets('keeps one chevron for the row and one for the warning',
+    testWidgets('keeps a single chevron per row', (tester) async {
+      await pumpExpanded(tester, pending: {'a1'});
+
+      expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(2));
+    });
+
+    testWidgets('places the warning between the name and the balance',
         (tester) async {
       await pumpExpanded(tester, pending: {'a1'});
 
-      // Two accounts plus the warning's own chevron.
-      expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(3));
+      final name = tester.getTopLeft(find.text('Cuenta 1')).dx;
+      final warning = tester.getTopLeft(find.byIcon(warningIcon)).dx;
+      final balance = tester.getTopLeft(find.textContaining('100').first).dx;
+
+      expect(name, lessThan(warning));
+      expect(warning, lessThan(balance));
+    });
+  });
+
+  group('row layout by screen width', () {
+    void setWidth(WidgetTester tester, double width) {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+    }
+
+    testWidgets('keeps the balance next to the name on regular screens',
+        (tester) async {
+      setWidth(tester, 420);
+      await pumpExpanded(tester);
+
+      final name = tester.getRect(find.text('Cuenta 1'));
+      final balance = tester.getRect(find.textContaining('100').first);
+
+      expect(balance.left, greaterThan(name.right));
+      expect(balance.top, lessThan(name.bottom));
+    });
+
+    testWidgets('puts the balance under the name on very narrow screens',
+        (tester) async {
+      setWidth(tester, 260);
+      await pumpExpanded(tester, pending: {'a1'});
+
+      final name = tester.getRect(find.text('Cuenta 1'));
+      final balance = tester.getRect(find.textContaining('100').first);
+
+      expect(balance.top, greaterThanOrEqualTo(name.bottom));
+      expect(balance.left, closeTo(name.left, 1));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps the warning and its action on very narrow screens',
+        (tester) async {
+      setWidth(tester, 260);
+      await pumpExpanded(tester, pending: {'a1'});
+
+      await tester.tap(find.byIcon(Icons.warning_amber_rounded));
+      await tester.pump();
+
+      expect(completed, ['a1']);
+      expect(opened, isEmpty);
     });
   });
 }

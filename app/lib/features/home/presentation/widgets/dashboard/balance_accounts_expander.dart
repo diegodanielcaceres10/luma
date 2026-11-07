@@ -130,9 +130,17 @@ class _BalanceAccountsExpanderState extends State<BalanceAccountsExpander> {
   }
 }
 
-/// One account of the expanded breakdown: name and balance, which opens the
-/// account when tapped, plus a link to load its opening balance when it is
-/// still missing this month.
+/// Row width under which the balance goes below the name. Next to the
+/// balance, icon, chevron and padding, a narrower row leaves the name with
+/// almost no room.
+const double _kCompactRowWidth = 330;
+
+/// One account of the expanded breakdown: icon, name, a warning when its
+/// opening balance is still missing this month, balance and chevron. Tapping
+/// the row opens the account; tapping the warning loads the opening balance.
+///
+/// On very narrow screens the balance moves under the name so the name keeps
+/// the room it needs.
 class _AccountBalanceRow extends StatelessWidget {
   final Account account;
   final String currency;
@@ -152,124 +160,160 @@ class _AccountBalanceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.08),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // The warning below has its own action, so only this line opens
-            // the account.
-            Material(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < _kCompactRowWidth;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+            ),
+            child: Material(
               color: Colors.transparent,
               child: InkWell(
                 onTap: onOpen,
-                borderRadius: BorderRadius.circular(8),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.account_balance_wallet_outlined,
-                          color: Colors.white70,
-                          size: 15,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        account.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      formatCurrency(account.balance, currency),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.white54,
-                      size: 20,
-                    ),
-                  ],
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: compact ? _buildCompact() : _buildRegular(),
                 ),
               ),
             ),
-            if (isPending) ...[
-              const SizedBox(height: 8),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onCompletePendingBalance,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFBBF24).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color:
-                            const Color(0xFFFBBF24).withValues(alpha: 0.28),
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 15,
-                        ),
-                        SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Falta cargar el saldo inicial',
-                            style: TextStyle(
-                              color: Color(0xFFFDE68A),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 15,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRegular() {
+    return Row(
+      children: [
+        const _AccountIcon(),
+        const SizedBox(width: 10),
+        Expanded(child: _name(maxLines: 1)),
+        if (isPending) ...[
+          const SizedBox(width: 8),
+          _warning(),
+        ],
+        const SizedBox(width: 8),
+        _balance(),
+        const SizedBox(width: 4),
+        const _Chevron(),
+      ],
+    );
+  }
+
+  Widget _buildCompact() {
+    return Row(
+      children: [
+        const _AccountIcon(),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _name(maxLines: 2),
+              const SizedBox(height: 2),
+              // Scales down instead of wrapping "USD" onto its own line.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: _balance(),
               ),
             ],
-          ],
+          ),
+        ),
+        if (isPending) ...[
+          const SizedBox(width: 4),
+          _warning(),
+        ],
+        const SizedBox(width: 4),
+        const _Chevron(),
+      ],
+    );
+  }
+
+  Widget _name({required int maxLines}) {
+    return Text(
+      account.name,
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        fontSize: 13,
+      ),
+    );
+  }
+
+  Widget _balance() {
+    return Text(
+      formatCurrency(account.balance, currency),
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w700,
+        fontSize: 14,
+      ),
+    );
+  }
+
+  Widget _warning() {
+    return Semantics(
+      button: true,
+      label: 'Falta cargar el saldo inicial',
+      child: InkWell(
+        onTap: onCompletePendingBalance,
+        borderRadius: BorderRadius.circular(12),
+        child: const Padding(
+          padding: EdgeInsets.all(4),
+          child: Icon(
+            Icons.warning_amber_rounded,
+            color: Color(0xFFFBBF24),
+            size: 18,
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _AccountIcon extends StatelessWidget {
+  const _AccountIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.account_balance_wallet_outlined,
+          color: Colors.white70,
+          size: 15,
+        ),
+      ),
+    );
+  }
+}
+
+class _Chevron extends StatelessWidget {
+  const _Chevron();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Icon(
+      Icons.chevron_right_rounded,
+      color: Colors.white54,
+      size: 20,
     );
   }
 }

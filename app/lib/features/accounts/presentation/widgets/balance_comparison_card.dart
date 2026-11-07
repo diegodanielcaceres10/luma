@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_format.dart';
 
+const _kWarningColor = Color(0xFFFBBF24);
+
 double? parseBalanceAmount(String? raw) {
   final text = (raw ?? '').trim().replaceAll(',', '.');
   if (text.isEmpty) return null;
@@ -100,6 +102,9 @@ class BalanceAmountField extends StatelessWidget {
 class BalanceComparisonCard extends StatelessWidget {
   final String previousLabel;
   final String newLabel;
+
+  /// Optional highlighted note shown under [newLabel].
+  final String? newLabelNote;
   final String newBalanceName;
   final double previousBalance;
   final String currency;
@@ -110,6 +115,7 @@ class BalanceComparisonCard extends StatelessWidget {
     super.key,
     this.previousLabel = 'Saldo anterior (en la app)',
     this.newLabel = 'Nuevo saldo actual',
+    this.newLabelNote,
     this.newBalanceName = 'nuevo saldo',
     required this.previousBalance,
     required this.currency,
@@ -161,6 +167,30 @@ class BalanceComparisonCard extends StatelessWidget {
               color: AppColors.authTextSecondary,
             ),
           ),
+          if (newLabelNote != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  size: 16,
+                  color: _kWarningColor,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    newLabelNote!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _kWarningColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 6),
           amountField,
           const SizedBox(height: 16),
@@ -228,58 +258,61 @@ class _DifferenceBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.authCardBorder),
       ),
-      child: Row(
+      // The message goes below the amount, at full width: next to it, small
+      // screens left the text only a few characters per line.
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: tone.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: tone, size: 22),
-          ),
-          const SizedBox(width: 12),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 130),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Diferencia',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.authTextSecondary,
-                  ),
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: tone.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 2),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    valueText,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: diff == null || diff == 0
-                          ? AppColors.authTextPrimary
-                          : tone,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                fontSize: 12,
-                height: 1.4,
-                color: AppColors.authTextSecondary,
+                child: Icon(icon, color: tone, size: 22),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Diferencia',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.authTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        valueText,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: diff == null || diff == 0
+                              ? AppColors.authTextPrimary
+                              : tone,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              color: AppColors.authTextSecondary,
             ),
           ),
         ],

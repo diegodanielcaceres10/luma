@@ -33,9 +33,9 @@ void main() {
     return VersionCheckResult(
       status: status,
       message: 'update message',
-      installedVersion: '3.2.0',
-      currentVersion: '3.2.0',
-      minVersion: '3.2.0',
+      installedVersion: '3.3.0',
+      currentVersion: '3.3.0',
+      minVersion: '3.3.0',
     );
   }
 

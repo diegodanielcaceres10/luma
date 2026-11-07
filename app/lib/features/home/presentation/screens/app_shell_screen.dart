@@ -394,7 +394,7 @@ class _AppSidebar extends StatelessWidget {
                             isSelected: isSelected,
                             onTap: () => onNavigate(item.route),
                           )
-                        : _expandedTile(
+                        : _NavTile(
                             icon: item.icon,
                             label: item.label,
                             isSelected: isSelected,
@@ -410,12 +410,58 @@ class _AppSidebar extends StatelessWidget {
     );
   }
 
-  Widget _expandedTile({
+  Widget _compactTile({
     required IconData icon,
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final color =
+        isSelected ? AppColors.authAccent : AppColors.authTextSecondary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      child: Tooltip(
+        message: label,
+        waitDuration: const Duration(milliseconds: 300),
+        child: Material(
+          color: isSelected ? AppColors.authCardFill : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            hoverColor: AppColors.authCardFill,
+            child: SizedBox(
+              height: 44,
+              child: Center(
+                child: Icon(icon, color: color, size: 22),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Navigation item with icon and label, shared by the sidebar and the drawer.
+/// The selected one gets a lighter fill and a green bar. The fill is the
+/// tile's own [Material], so it shows over the gradient of its container.
+class _NavTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _NavTile({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final color =
         isSelected ? AppColors.authAccent : AppColors.authTextSecondary;
 
@@ -455,39 +501,6 @@ class _AppSidebar extends StatelessWidget {
                     ),
                   ),
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _compactTile({
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final color =
-        isSelected ? AppColors.authAccent : AppColors.authTextSecondary;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      child: Tooltip(
-        message: label,
-        waitDuration: const Duration(milliseconds: 300),
-        child: Material(
-          color: isSelected ? AppColors.authCardFill : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
-            hoverColor: AppColors.authCardFill,
-            child: SizedBox(
-              height: 44,
-              child: Center(
-                child: Icon(icon, color: color, size: 22),
-              ),
             ),
           ),
         ),
@@ -584,36 +597,6 @@ class _AppDrawer extends StatelessWidget {
     required this.onNavigate,
   });
 
-  Widget _tile(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final color =
-        isSelected ? AppColors.authAccent : AppColors.authTextSecondary;
-
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-        ),
-      ),
-      selected: isSelected,
-      selectedTileColor: AppColors.authCardFill,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-      onTap: () {
-        Navigator.of(context).pop();
-        onTap();
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -656,12 +639,14 @@ class _AppDrawer extends StatelessWidget {
                 child: ListView(
                   padding: EdgeInsets.zero,
                   children: _allNavItems.map((item) {
-                    return _tile(
-                      context,
+                    return _NavTile(
                       icon: item.icon,
                       label: item.label,
                       isSelected: item.isSelected(location, navIndex),
-                      onTap: () => onNavigate(item.route),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        onNavigate(item.route);
+                      },
                     );
                   }).toList(),
                 ),

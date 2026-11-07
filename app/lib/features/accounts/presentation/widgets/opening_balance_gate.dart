@@ -97,9 +97,10 @@ class _OpeningBalanceGateState extends State<OpeningBalanceGate> {
         }
 
         return _BlockedView(
-          title: 'Falta cargar el saldo inicial',
-          message: 'Antes de registrar movimientos o actualizar el saldo de '
-              '${widget.account.name}, cargá su saldo inicial de este mes.',
+          title: 'Falta cerrar el mes anterior',
+          message: 'Para continuar con el saldo de este mes, primero registrá '
+              'y cerrá el mes anterior de ${widget.account.name}. Después vas '
+              'a poder cargar el saldo inicial del nuevo mes.',
           actionLabel: 'Cargar saldo inicial',
           onAction: widget.onCompleteBalance,
           onBack: widget.onBack,

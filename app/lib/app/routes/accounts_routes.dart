@@ -57,6 +57,7 @@ List<RouteBase> accountsRoutes(AppDependencies deps) {
       builder: (context, state) => RoutedScreenScaffold(
         body: AccountsScreen(
           accountViewModel: accountViewModel,
+          monthlyBalanceViewModel: monthlyBalanceViewModel,
           preferencesViewModel: preferencesViewModel,
           onOpenView: (account) =>
               context.push('/accounts/${account.id}'),
@@ -88,11 +89,14 @@ List<RouteBase> accountsRoutes(AppDependencies deps) {
           (context, account) => AccountViewScreen(
             account: account,
             accountViewModel: accountViewModel,
+            monthlyBalanceViewModel: monthlyBalanceViewModel,
             onEdit: () => context.push('/accounts/${account.id}/edit'),
             onUpdateBalance: () =>
                 context.push('/accounts/${account.id}/balance'),
             onJustifyUncontrolled: () =>
                 context.push('/accounts/${account.id}/justify'),
+            onCompleteBalance: () =>
+                context.push('/accounts/${account.id}/monthly-balance'),
             onBack: () => context.goBack(),
           ),
         ),
@@ -193,6 +197,7 @@ List<RouteBase> accountsRoutes(AppDependencies deps) {
       builder: (context, state) => RoutedScreenScaffold(
         body: AccountsScreen(
           accountViewModel: accountViewModel,
+          monthlyBalanceViewModel: monthlyBalanceViewModel,
           preferencesViewModel: preferencesViewModel,
           onBack: () => context.goBack(),
           onOpenView: (account) =>

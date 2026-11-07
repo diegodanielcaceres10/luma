@@ -7,7 +7,6 @@ import '../../../../core/widgets/dialogs/confirm_dialog.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/layout/screen_header.dart';
 import '../../../../core/widgets/buttons/secondary_button.dart';
-import '../../../../core/widgets/buttons/text_action_button.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -258,6 +257,15 @@ class _AccountMonthlyBalanceScreenState
   double get _movementsTotal =>
       _savedMovementsTotal + _movementsController.total;
 
+  bool get _uncontrolledExpensesEnabled =>
+      widget.accountViewModel.uncontrolledExpensesEnabled;
+
+  bool get _canSaveUnjustifiedRemainder {
+    final remainder = _unjustifiedRemainder;
+    return remainder != null &&
+        (_uncontrolledExpensesEnabled || remainder.abs() < kRemainderEpsilon);
+  }
+
   /// Part of the difference that the movements don't cover: what is added to
   /// the previous month's `uncontrolled_expenses_total`. Positive: an income
   /// is missing; negative: an expense is missing.
@@ -287,7 +295,12 @@ class _AccountMonthlyBalanceScreenState
     final account = _account;
     final openingBalance = parseBalanceAmount(_openingBalanceController.text);
     final remainder = _unjustifiedRemainder;
-    if (openingBalance == null || remainder == null || _isSaving) return;
+    if (openingBalance == null ||
+        remainder == null ||
+        _isSaving ||
+        !_canSaveUnjustifiedRemainder) {
+      return;
+    }
 
     final confirmed = await showConfirmDialog(context);
     if (!confirmed || !mounted) return;
@@ -390,9 +403,10 @@ class _AccountMonthlyBalanceScreenState
           )
         : await showConfirmDialog(
             context,
-            message: 'Se usará el saldo actual ($balanceLabel) como saldo '
-                'inicial de $_monthLabel, sin movimientos ni ajustes. '
-                '¿Querés continuar?',
+            message: 'Confirmás que no hubo movimientos desde la última '
+                'actualización hasta el cierre del mes. Se usará el saldo '
+                'actual ($balanceLabel) como saldo inicial de $_monthLabel, '
+                'sin movimientos ni ajustes. ¿Querés continuar?',
           );
     if (!confirmed || !mounted) return;
 
@@ -521,6 +535,8 @@ class _AccountMonthlyBalanceScreenState
         return BalanceComparisonCard(
           previousLabel: 'Saldo anterior (desactualizado del ciclo anterior)',
           newLabel: 'Saldo inicial del mes para este nuevo ciclo',
+          newLabelNote: 'No es el saldo actual: es el saldo con el que '
+              'arranca la cuenta este mes.',
           newBalanceName: 'saldo inicial',
           previousBalance: account.balance,
           currency: currency,
@@ -546,11 +562,15 @@ class _AccountMonthlyBalanceScreenState
           helperText: remainder == null
               ? null
               : Text(
-                  remainder == 0
-                      ? 'Ya justificaste toda la diferencia.'
-                      : 'Todavía falta justificar '
-                          '${remainder > 0 ? '+' : ''}'
-                          '${formatCurrency(remainder, currency)}.',
+                  !_uncontrolledExpensesEnabled &&
+                          remainder.abs() >= kRemainderEpsilon
+                      ? 'Los gastos no controlados están desactivados. '
+                          'Cargá movimientos para justificar toda la diferencia.'
+                      : remainder == 0
+                          ? 'Ya justificaste toda la diferencia.'
+                          : 'Todavía falta justificar '
+                              '${remainder > 0 ? '+' : ''}'
+                              '${formatCurrency(remainder, currency)}.',
                   style: TextStyle(
                     fontSize: 12,
                     color: remainder == 0
@@ -693,7 +713,7 @@ class _AccountMonthlyBalanceScreenState
     if (_isSaving) {
       onNext = null;
     } else if (isLastStep) {
-      onNext = _saveAndStartMonth;
+      onNext = _canSaveUnjustifiedRemainder ? _saveAndStartMonth : null;
     } else if (isFirstStep && _difference == null) {
       onNext = null;
     } else {
@@ -714,10 +734,15 @@ class _AccountMonthlyBalanceScreenState
         children: [
           SizedBox(width: double.infinity, child: nextButton),
           const SizedBox(height: 8),
-          TextActionButton(
-            label: 'Mi saldo está al día, sin movimientos',
-            fontWeight: FontWeight.w600,
-            onPressed: _isSaving ? null : _saveWithCurrentBalance,
+          SizedBox(
+            width: double.infinity,
+            child: SecondaryButton(
+              label: 'No hubo movimientos desde la última actualización',
+              labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              disabledAlpha: 0.4,
+              onPressed: _isSaving ? null : _saveWithCurrentBalance,
+            ),
           ),
         ],
       );

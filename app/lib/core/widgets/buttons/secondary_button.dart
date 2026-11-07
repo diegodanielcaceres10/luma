@@ -59,7 +59,7 @@ class SecondaryButton extends StatelessWidget {
     return OutlinedButton(
       style: style,
       onPressed: onPressed,
-      child: Text(label, style: labelStyle),
+      child: Text(label, style: labelStyle, textAlign: TextAlign.center),
     );
   }
 }

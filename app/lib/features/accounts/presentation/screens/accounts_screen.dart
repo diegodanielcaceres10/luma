@@ -9,9 +9,13 @@ import '../../../auth/presentation/view_models/preferences_view_model.dart';
 import '../../../notifications/presentation/widgets/notifications_hint.dart';
 import '../../data/models/account.dart';
 import '../view_models/account_view_model.dart';
+import '../view_models/monthly_balance_view_model.dart';
+
+const _kWarningColor = Color(0xFFFBBF24);
 
 class AccountsScreen extends StatelessWidget {
   final AccountViewModel accountViewModel;
+  final MonthlyBalanceViewModel monthlyBalanceViewModel;
   final PreferencesViewModel preferencesViewModel;
 
   final ValueChanged<Account> onOpenView;
@@ -26,6 +30,7 @@ class AccountsScreen extends StatelessWidget {
   const AccountsScreen({
     super.key,
     required this.accountViewModel,
+    required this.monthlyBalanceViewModel,
     required this.preferencesViewModel,
     required this.onOpenView,
     required this.onOpenForm,
@@ -38,7 +43,10 @@ class AccountsScreen extends StatelessWidget {
     return SafeArea(
       top: false,
       child: ListenableBuilder(
-        listenable: accountViewModel,
+        listenable: Listenable.merge([
+          accountViewModel,
+          monthlyBalanceViewModel,
+        ]),
         builder: (context, _) {
           final accounts = accountViewModel.accounts;
           final currency = accountViewModel.primaryCurrency;
@@ -107,6 +115,12 @@ class AccountsScreen extends StatelessWidget {
                           return _AccountRow(
                             account: account,
                             currency: currency,
+                            // Unknown until the monthly check runs, so nothing
+                            // is flagged by mistake while it loads or fails.
+                            isPending: monthlyBalanceViewModel.checked &&
+                                account.isActive &&
+                                monthlyBalanceViewModel
+                                    .isAccountPending(account.id),
                             onView: () => onOpenView(account),
                             showDivider: i != accounts.length - 1,
                           );
@@ -290,12 +304,14 @@ class _TotalCard extends StatelessWidget {
 class _AccountRow extends StatelessWidget {
   final Account account;
   final String currency;
+  final bool isPending;
   final VoidCallback onView;
   final bool showDivider;
 
   const _AccountRow({
     required this.account,
     required this.currency,
+    required this.isPending,
     required this.onView,
     required this.showDivider,
   });
@@ -392,6 +408,30 @@ class _AccountRow extends StatelessWidget {
                               color: AppColors.authTextFooter,
                             ),
                           ),
+                          if (isPending) ...[
+                            const SizedBox(height: 4),
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 14,
+                                  color: _kWarningColor,
+                                ),
+                                SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    'Falta cargar el saldo inicial',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: _kWarningColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

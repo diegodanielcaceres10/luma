@@ -9,7 +9,6 @@ import '../../../../core/widgets/dialogs/confirm_dialog.dart';
 import '../../../../core/widgets/buttons/primary_button.dart';
 import '../../../../core/widgets/layout/screen_header.dart';
 import '../../../../core/widgets/buttons/secondary_button.dart';
-import '../../../../core/widgets/buttons/text_action_button.dart';
 import '../../../categories/presentation/view_models/category_view_model.dart';
 import '../../../invoices/presentation/view_models/invoice_view_model.dart';
 import '../../../services/presentation/view_models/service_view_model.dart';
@@ -121,6 +120,15 @@ class _AccountUpdateBalanceScreenState
 
   double get _pendingMovementsTotal => _movementsController.total;
 
+  bool get _uncontrolledExpensesEnabled =>
+      widget.accountViewModel.uncontrolledExpensesEnabled;
+
+  bool get _canSaveUnjustifiedRemainder {
+    final remainder = _unjustifiedRemainder;
+    return remainder != null &&
+        (_uncontrolledExpensesEnabled || remainder.abs() < kRemainderEpsilon);
+  }
+
   /// Part of the difference that the loaded movements don't cover. `null`
   /// while there is no computable difference (see [_difference]). Positive:
   /// an income is missing; negative: an expense is missing; zero (or very
@@ -148,7 +156,12 @@ class _AccountUpdateBalanceScreenState
   Future<void> _saveAndUpdateBalance() async {
     final account = widget.account;
     final remainder = _unjustifiedRemainder;
-    if (account == null || remainder == null || _isSaving) return;
+    if (account == null ||
+        remainder == null ||
+        _isSaving ||
+        !_canSaveUnjustifiedRemainder) {
+      return;
+    }
 
     final confirmed = await showConfirmDialog(context);
     if (!confirmed || !mounted) return;
@@ -286,11 +299,15 @@ class _AccountUpdateBalanceScreenState
           helperText: remainder == null
               ? null
               : Text(
-                  remainder == 0
-                      ? 'Ya justificaste toda la diferencia.'
-                      : 'Todavía falta justificar '
-                          '${remainder > 0 ? '+' : ''}'
-                          '${formatCurrency(remainder, currency)}.',
+                  !_uncontrolledExpensesEnabled &&
+                          remainder.abs() >= kRemainderEpsilon
+                      ? 'Los gastos no controlados están desactivados. '
+                          'Cargá movimientos para justificar toda la diferencia.'
+                      : remainder == 0
+                          ? 'Ya justificaste toda la diferencia.'
+                          : 'Todavía falta justificar '
+                              '${remainder > 0 ? '+' : ''}'
+                              '${formatCurrency(remainder, currency)}.',
                   style: TextStyle(
                     fontSize: 12,
                     color: remainder == 0
@@ -435,7 +452,9 @@ class _AccountUpdateBalanceScreenState
           ? (_isSaving || (isFirstStep && _difference == null)
               ? null
               : () => setState(() => _currentStep += 1))
-          : (_difference == null || _isSaving ? null : _saveAndUpdateBalance),
+          : (_isSaving || !_canSaveUnjustifiedRemainder
+              ? null
+              : _saveAndUpdateBalance),
     );
 
     if (isFirstStep) {
@@ -443,12 +462,17 @@ class _AccountUpdateBalanceScreenState
       return Column(
         children: [
           SizedBox(width: double.infinity, child: nextButton),
-          if (diff != null && diff != 0) ...[
+          if (_uncontrolledExpensesEnabled && diff != null && diff != 0) ...[
             const SizedBox(height: 8),
-            TextActionButton(
-              label: 'Guardar sin justificar movimientos',
-              fontWeight: FontWeight.w600,
-              onPressed: _isSaving ? null : _saveAndUpdateBalance,
+            SizedBox(
+              width: double.infinity,
+              child: SecondaryButton(
+                label: 'Guardar sin justificar movimientos',
+                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                disabledAlpha: 0.4,
+                onPressed: _isSaving ? null : _saveAndUpdateBalance,
+              ),
             ),
           ],
         ],

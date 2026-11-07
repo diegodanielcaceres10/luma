@@ -36,14 +36,14 @@ class PreferencesViewModel extends ChangeNotifier {
         () => _repository.setCurrencyCode(value),
       );
 
-  Future<void> setDarkThemeEnabled(bool value) => _applyAndPersist(
-        (prefs) => prefs.copyWith(darkThemeEnabled: value),
-        () => _repository.setDarkThemeEnabled(value),
-      );
-
   Future<void> setNotificationsEnabled(bool value) => _applyAndPersist(
         (prefs) => prefs.copyWith(notificationsEnabled: value),
         () => _repository.setNotificationsEnabled(value),
+      );
+
+  Future<void> setUncontrolledExpensesEnabled(bool value) => _applyAndPersist(
+        (prefs) => prefs.copyWith(uncontrolledExpensesEnabled: value),
+        () => _repository.setUncontrolledExpensesEnabled(value),
       );
 
   Future<void> setBiometricLockEnabled(bool value) => _applyAndPersist(
