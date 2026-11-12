@@ -4,6 +4,7 @@ import { Title } from '@angular/platform-browser';
 
 import { NavbarComponent } from '../../components/navbar/navbar';
 import { FooterComponent } from '../../components/footer/footer';
+import { PRIVACY_POLICY_LAST_UPDATED } from '../legal-dates';
 
 @Component({
   selector: 'app-privacy-policy',
@@ -13,11 +14,7 @@ import { FooterComponent } from '../../components/footer/footer';
 export class PrivacyPolicy {
   private readonly titleService = inject(Title);
 
-  protected readonly lastUpdated = new Date().toLocaleDateString('es-AR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  protected readonly lastUpdated = PRIVACY_POLICY_LAST_UPDATED;
 
   constructor() {
     this.titleService.setTitle('Política de privacidad — Luma');
