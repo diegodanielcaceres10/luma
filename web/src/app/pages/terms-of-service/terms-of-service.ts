@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 
+import { PageUrlService } from '../../services/page-url';
 import { NavbarComponent } from '../../components/navbar/navbar';
 import { FooterComponent } from '../../components/footer/footer';
 import { TERMS_OF_SERVICE_LAST_UPDATED } from '../legal-dates';
@@ -13,10 +14,12 @@ import { TERMS_OF_SERVICE_LAST_UPDATED } from '../legal-dates';
 })
 export class TermsOfService {
   private readonly titleService = inject(Title);
+  private readonly pageUrl = inject(PageUrlService);
 
   protected readonly lastUpdated = TERMS_OF_SERVICE_LAST_UPDATED;
 
   constructor() {
     this.titleService.setTitle('Condiciones del servicio — Luma');
+    this.pageUrl.set('condiciones');
   }
 }

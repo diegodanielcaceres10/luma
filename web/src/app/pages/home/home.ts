@@ -1,5 +1,6 @@
 import { Component, afterNextRender, ElementRef, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { PageUrlService } from '../../services/page-url';
 import { NavbarComponent } from '../../components/navbar/navbar';
 import { HeroComponent } from '../../components/hero/hero';
 import { AppShowcaseComponent } from '../../components/app-showcase/app-showcase';
@@ -33,8 +34,10 @@ import { EditorialBackgroundComponent } from '../../components/editorial-backgro
 export class Home {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly el = inject(ElementRef);
+  private readonly pageUrl = inject(PageUrlService);
 
   constructor() {
+    this.pageUrl.set('');
     afterNextRender(() => {
       this.initScrollReveal();
     });

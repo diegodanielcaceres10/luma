@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://diegodanielcaceres10.github.io/luma/sitemap.xml
