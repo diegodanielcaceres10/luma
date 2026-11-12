@@ -72,9 +72,12 @@
     <!-- Mobile Hamburger Toggle -->
     <button
       type="button"
+      #menuToggle
       (click)="toggleMobileMenu()"
-      class="flex md:hidden rounded-lg p-2 text-neutral-400 hover:bg-neutral-800 hover:text-white focus:outline-none"
-      aria-label="Abrir menú"
+      class="flex md:hidden rounded-lg p-2 text-neutral-400 hover:bg-neutral-800 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+      aria-controls="mobile-menu"
+      [attr.aria-expanded]="isMobileMenuOpen()"
+      [attr.aria-label]="isMobileMenuOpen() ? 'Cerrar menú' : 'Abrir menú'"
     >
       <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         @if (!isMobileMenuOpen()) {
@@ -99,6 +102,7 @@
   <!-- Mobile Dropdown Menu -->
   @if (isMobileMenuOpen()) {
     <div
+      id="mobile-menu"
       class="border-b border-neutral-800 bg-neutral-950/95 px-6 py-6 md:hidden backdrop-blur-2xl"
     >
       <div class="flex flex-col gap-4 text-base font-medium text-neutral-300">

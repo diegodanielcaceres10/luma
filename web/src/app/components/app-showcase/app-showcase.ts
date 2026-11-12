@@ -1,5 +1,7 @@
 import { Component, signal } from '@angular/core';
 
+import { nextTabIndex } from '../../shared/tabs-keyboard';
+
 type TabletScreenId = 'login' | 'home' | 'charts';
 
 interface TabletScreen {
@@ -49,26 +51,9 @@ export class AppShowcaseComponent {
 
   /** Arrow keys, Home and End move between tabs, as in the WAI-ARIA tabs pattern. */
   onTabletKeydown(event: KeyboardEvent): void {
-    const last = this.tabletScreens.length - 1;
     const current = this.tabletScreens.findIndex((s) => s.id === this.activeTablet());
-    let next: number;
-
-    switch (event.key) {
-      case 'ArrowRight':
-        next = current === last ? 0 : current + 1;
-        break;
-      case 'ArrowLeft':
-        next = current === 0 ? last : current - 1;
-        break;
-      case 'Home':
-        next = 0;
-        break;
-      case 'End':
-        next = last;
-        break;
-      default:
-        return;
-    }
+    const next = nextTabIndex(event.key, current, this.tabletScreens.length);
+    if (next === null) return;
 
     event.preventDefault();
     this.activeTablet.set(this.tabletScreens[next].id);

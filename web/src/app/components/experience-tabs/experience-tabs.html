@@ -17,41 +17,37 @@
       </p>
 
       <!-- Tab Buttons Selector -->
-      <div class="mt-10 inline-flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-neutral-900/80 p-1.5 backdrop-blur-xl editorial-reveal editorial-delay-3">
-        <button
-          type="button"
-          (click)="setTab('flow')"
-          [class]="activeTab() === 'flow'
-            ? 'rounded-xl bg-emerald-500 px-5 py-2.5 text-xs sm:text-sm font-semibold text-neutral-950 shadow-md shadow-emerald-500/20 transition-all'
-            : 'rounded-xl px-5 py-2.5 text-xs sm:text-sm font-medium text-neutral-400 hover:text-white transition-all'"
-        >
-          1. Registro Inmediato
-        </button>
-
-        <button
-          type="button"
-          (click)="setTab('budget')"
-          [class]="activeTab() === 'budget'
-            ? 'rounded-xl bg-emerald-500 px-5 py-2.5 text-xs sm:text-sm font-semibold text-neutral-950 shadow-md shadow-emerald-500/20 transition-all'
-            : 'rounded-xl px-5 py-2.5 text-xs sm:text-sm font-medium text-neutral-400 hover:text-white transition-all'"
-        >
-          2. Presupuestos en Tiempo Real
-        </button>
-
-        <button
-          type="button"
-          (click)="setTab('security')"
-          [class]="activeTab() === 'security'
-            ? 'rounded-xl bg-emerald-500 px-5 py-2.5 text-xs sm:text-sm font-semibold text-neutral-950 shadow-md shadow-emerald-500/20 transition-all'
-            : 'rounded-xl px-5 py-2.5 text-xs sm:text-sm font-medium text-neutral-400 hover:text-white transition-all'"
-        >
-          3. Informes & Respaldo
-        </button>
+      <div
+        role="tablist"
+        aria-label="Flujo de trabajo de Luma"
+        (keydown)="onTabsKeydown($event)"
+        class="mt-10 inline-flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-neutral-900/80 p-1.5 backdrop-blur-xl editorial-reveal editorial-delay-3"
+      >
+        @for (tab of tabs; track tab.id) {
+          <button
+            type="button"
+            role="tab"
+            [id]="'experience-tab-' + tab.id"
+            aria-controls="experience-panel"
+            [attr.aria-selected]="activeTab() === tab.id"
+            [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
+            (click)="setTab(tab.id)"
+            [class]="tabClasses(tab.id)"
+          >
+            {{ tab.label }}
+          </button>
+        }
       </div>
     </div>
 
     <!-- Active Tab Panel Showcase -->
-    <div class="mx-auto max-w-5xl rounded-3xl border border-white/[0.08] bg-neutral-900/50 p-6 sm:p-10 backdrop-blur-2xl editorial-reveal-scale editorial-delay-2">
+    <div
+      id="experience-panel"
+      role="tabpanel"
+      tabindex="0"
+      [attr.aria-labelledby]="'experience-tab-' + activeTab()"
+      class="mx-auto max-w-5xl rounded-3xl border border-white/[0.08] bg-neutral-900/50 p-6 sm:p-10 backdrop-blur-2xl editorial-reveal-scale editorial-delay-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
+    >
       
       @if (activeTab() === 'flow') {
         <div class="grid gap-8 lg:grid-cols-2 items-center">
