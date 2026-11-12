@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './styles/reveal.css';
 
 /* Self-hosted fonts (latin subset, SIL OFL 1.1) */
 @font-face {
@@ -181,74 +182,6 @@ p, li, blockquote {
 }
 
 
-/* ==========================================================================
-   Premium Financial Editorial — Scroll & Entrance Animations
-   ========================================================================== */
-
-/* Standard smooth upward fade for titles, paragraphs, buttons */
-.editorial-reveal {
-  opacity: 0;
-  transform: translate3d(0, 18px, 0);
-  transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
-              transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
-}
-
-.editorial-reveal.is-revealed,
-.is-revealed > .editorial-reveal {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
-
-/* Subtle scale & depth entrance for cards, mockups, containers */
-.editorial-reveal-scale {
-  opacity: 0;
-  transform: translate3d(0, 14px, 0) scale(0.98);
-  transition: opacity 750ms cubic-bezier(0.16, 1, 0.3, 1),
-              transform 750ms cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
-}
-
-.editorial-reveal-scale.is-revealed,
-.is-revealed > .editorial-reveal-scale {
-  opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
-}
-
-/* Editorial cadence stagger delays */
-.editorial-delay-1 { transition-delay: 80ms; }
-.editorial-delay-2 { transition-delay: 160ms; }
-.editorial-delay-3 { transition-delay: 240ms; }
-.editorial-delay-4 { transition-delay: 320ms; }
-.editorial-delay-5 { transition-delay: 400ms; }
-.editorial-delay-6 { transition-delay: 480ms; }
-
-/* Financial progress bars - smooth data expansion */
-.editorial-progress-fill {
-  width: 0% !important;
-  transition: width 1100ms cubic-bezier(0.16, 1, 0.3, 1) 250ms !important;
-  will-change: width;
-}
-
-.is-revealed .editorial-progress-fill,
-.editorial-progress-fill.is-revealed {
-  width: var(--progress-width) !important;
-}
-
-/* Editorial statistical number pop */
-.editorial-stat-reveal {
-  opacity: 0;
-  transform: translate3d(0, 10px, 0);
-  transition: opacity 800ms cubic-bezier(0.16, 1, 0.3, 1) 150ms,
-              transform 800ms cubic-bezier(0.16, 1, 0.3, 1) 150ms;
-}
-
-.editorial-stat-reveal.is-revealed,
-.is-revealed .editorial-stat-reveal {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
-
 /* Subtle editorial section separator glow */
 .editorial-section-border {
   position: relative;
@@ -281,31 +214,5 @@ p, li, blockquote {
   }
   to {
     transform: translateY(40px);
-  }
-}
-
-/* Accessibility: Full reduced-motion respect */
-@media (prefers-reduced-motion: reduce) {
-  .editorial-reveal,
-  .editorial-reveal-scale,
-  .editorial-stat-reveal {
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
-    animation: none !important;
-  }
-
-  .editorial-progress-fill {
-    width: var(--progress-width) !important;
-    transition: none !important;
-  }
-
-  .editorial-delay-1,
-  .editorial-delay-2,
-  .editorial-delay-3,
-  .editorial-delay-4,
-  .editorial-delay-5,
-  .editorial-delay-6 {
-    transition-delay: 0ms !important;
   }
 }
