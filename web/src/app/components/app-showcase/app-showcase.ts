@@ -16,8 +16,6 @@ interface TabletScreen {
   templateUrl: './app-showcase.html',
 })
 export class AppShowcaseComponent {
-  protected activeFilter = signal<'all' | 'income' | 'expense'>('all');
-
   protected readonly tabletScreens: readonly TabletScreen[] = [
     {
       id: 'login',
@@ -40,10 +38,6 @@ export class AppShowcaseComponent {
   ];
 
   protected activeTablet = signal<TabletScreenId>('home');
-
-  setFilter(filter: 'all' | 'income' | 'expense'): void {
-    this.activeFilter.set(filter);
-  }
 
   selectTablet(id: TabletScreenId): void {
     this.activeTablet.set(id);
