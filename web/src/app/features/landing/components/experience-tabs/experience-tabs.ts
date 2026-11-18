@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 
-import { nextTabIndex } from '../../../../shared/tabs-keyboard';
+import { nextTabIndex } from '@shared/tabs-keyboard';
 
 type ExperienceTabId = 'flow' | 'budget' | 'security';
 

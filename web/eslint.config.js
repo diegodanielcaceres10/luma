@@ -34,6 +34,46 @@ module.exports = defineConfig([
       ],
     },
   },
+  // Layer boundaries: core <- shared <- features, and no feature imports another feature.
+  // The relative-path cases are covered by src/app/architecture.spec.ts.
+  {
+    files: ['src/app/core/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['@shared/*', '@features/*'], message: 'core must not depend on shared or features.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/app/shared/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: [{ group: ['@features/*'], message: 'shared must not depend on features.' }] },
+      ],
+    },
+  },
+  {
+    files: ['src/app/features/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@features/*'],
+              message: 'A feature must not import another feature. Use relative paths inside the same feature.',
+            },
+          ],
+        },
+      ],
+    },
+  },
   {
     files: ['**/*.html'],
     extends: [angular.configs.templateRecommended, angular.configs.templateAccessibility],

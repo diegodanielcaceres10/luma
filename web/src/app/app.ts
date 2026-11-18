@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
-import { CookieBannerComponent } from './shared/components/cookie-banner/cookie-banner';
+import { CookieBannerComponent } from '@shared/components/cookie-banner/cookie-banner';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,

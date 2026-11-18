@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 
-import { PageUrlService } from '../../../../core/services/page-url';
-import { NavbarComponent } from '../../../../shared/components/navbar/navbar';
-import { FooterComponent } from '../../../../shared/components/footer/footer';
+import { PageUrlService } from '@core/services/page-url';
+import { NavbarComponent } from '@shared/components/navbar/navbar';
+import { FooterComponent } from '@shared/components/footer/footer';
 import { TERMS_OF_SERVICE_LAST_UPDATED } from '../../legal-dates';
 
 @Component({
