@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 
 import { nextTabIndex } from '../../../../shared/tabs-keyboard';
 
@@ -15,6 +15,7 @@ const TAB_ACTIVE_CLASSES = `${TAB_BASE_CLASSES} bg-emerald-500 font-semibold tex
 const TAB_INACTIVE_CLASSES = `${TAB_BASE_CLASSES} font-medium text-neutral-400 hover:text-white`;
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-experience-tabs',
   templateUrl: './experience-tabs.html',
 })

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 
@@ -8,6 +8,7 @@ import { FooterComponent } from '../../../../shared/components/footer/footer';
 import { PRIVACY_POLICY_LAST_UPDATED } from '../../legal-dates';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-privacy-policy',
   imports: [RouterLink, NavbarComponent, FooterComponent],
   templateUrl: './privacy-policy.html',

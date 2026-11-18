@@ -1,4 +1,11 @@
-import { Component, afterNextRender, ElementRef, inject, PLATFORM_ID } from '@angular/core';
+import {
+  Component,
+  afterNextRender,
+  ChangeDetectionStrategy,
+  ElementRef,
+  inject,
+  PLATFORM_ID,
+} from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { PageUrlService } from '../../../../core/services/page-url';
 import { NavbarComponent } from '../../../../shared/components/navbar/navbar';
@@ -14,6 +21,7 @@ import { FooterComponent } from '../../../../shared/components/footer/footer';
 import { EditorialBackgroundComponent } from '../../components/editorial-background/editorial-background';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-home',
   imports: [
     NavbarComponent,

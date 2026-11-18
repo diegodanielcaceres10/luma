@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 
 import { nextTabIndex } from '../../../../shared/tabs-keyboard';
 
@@ -12,6 +12,7 @@ interface TabletScreen {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-showcase',
   templateUrl: './app-showcase.html',
 })
