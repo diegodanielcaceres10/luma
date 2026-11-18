@@ -1,7 +1,6 @@
-import { InjectionToken, isDevMode } from '@angular/core';
+import { InjectionToken } from '@angular/core';
 
-/** Public by design: GA4 measurement IDs ship in every page that uses them. */
-export const ANALYTICS_MEASUREMENT_ID = 'G-0E4MJ98XS2';
+import { environment } from '../../environments/environment';
 
 export interface AnalyticsConfig {
   measurementId: string;
@@ -11,9 +10,5 @@ export interface AnalyticsConfig {
 
 export const ANALYTICS_CONFIG = new InjectionToken<AnalyticsConfig>('ANALYTICS_CONFIG', {
   providedIn: 'root',
-  factory: () => ({
-    measurementId: ANALYTICS_MEASUREMENT_ID,
-    // Keeps local development out of the production reports.
-    enabled: !isDevMode(),
-  }),
+  factory: () => environment.analytics,
 });

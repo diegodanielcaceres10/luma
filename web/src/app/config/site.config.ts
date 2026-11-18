@@ -1,2 +1,4 @@
-/** Public origin of the deployed site, including the GitHub Pages sub-path. */
-export const SITE_URL = 'https://diegodanielcaceres10.github.io/luma/';
+import { environment } from '../../environments/environment';
+
+/** Public origin of the current environment, including the sub-path when there is one. */
+export const SITE_URL = environment.siteUrl;
