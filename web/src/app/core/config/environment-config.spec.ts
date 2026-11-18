@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 import { ANALYTICS_CONFIG } from './analytics.config';
 import { SITE_URL } from './site.config';
 

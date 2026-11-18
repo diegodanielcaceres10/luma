@@ -2,10 +2,10 @@ import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 
-import { PageUrlService } from '../../services/page-url';
-import { NavbarComponent } from '../../components/navbar/navbar';
-import { FooterComponent } from '../../components/footer/footer';
-import { PRIVACY_POLICY_LAST_UPDATED } from '../legal-dates';
+import { PageUrlService } from '../../../../core/services/page-url';
+import { NavbarComponent } from '../../../../shared/components/navbar/navbar';
+import { FooterComponent } from '../../../../shared/components/footer/footer';
+import { PRIVACY_POLICY_LAST_UPDATED } from '../../legal-dates';
 
 @Component({
   selector: 'app-privacy-policy',

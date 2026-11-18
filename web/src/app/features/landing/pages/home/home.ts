@@ -1,7 +1,7 @@
 import { Component, afterNextRender, ElementRef, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { PageUrlService } from '../../services/page-url';
-import { NavbarComponent } from '../../components/navbar/navbar';
+import { PageUrlService } from '../../../../core/services/page-url';
+import { NavbarComponent } from '../../../../shared/components/navbar/navbar';
 import { HeroComponent } from '../../components/hero/hero';
 import { AppShowcaseComponent } from '../../components/app-showcase/app-showcase';
 import { FeaturesBentoComponent } from '../../components/features-bento/features-bento';
@@ -10,7 +10,7 @@ import { GeminiSectionComponent } from '../../components/gemini-section/gemini-s
 import { SecuritySectionComponent } from '../../components/security-section/security-section';
 import { StackSectionComponent } from '../../components/stack-section/stack-section';
 import { CtaBannerComponent } from '../../components/cta-banner/cta-banner';
-import { FooterComponent } from '../../components/footer/footer';
+import { FooterComponent } from '../../../../shared/components/footer/footer';
 import { EditorialBackgroundComponent } from '../../components/editorial-background/editorial-background';
 
 @Component({

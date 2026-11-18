@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 
-import { nextTabIndex } from '../../shared/tabs-keyboard';
+import { nextTabIndex } from '../../../../shared/tabs-keyboard';
 
 type TabletScreenId = 'login' | 'home' | 'charts';
 

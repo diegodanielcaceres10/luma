@@ -2,10 +2,10 @@ import { Type } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { CookieBannerComponent } from './components/cookie-banner/cookie-banner';
-import { ANALYTICS_CONFIG } from './config/analytics.config';
-import { PrivacyPolicy } from './pages/privacy-policy/privacy-policy';
-import { TermsOfService } from './pages/terms-of-service/terms-of-service';
+import { CookieBannerComponent } from './shared/components/cookie-banner/cookie-banner';
+import { ANALYTICS_CONFIG } from './core/config/analytics.config';
+import { PrivacyPolicy } from './features/legal/pages/privacy-policy/privacy-policy';
+import { TermsOfService } from './features/legal/pages/terms-of-service/terms-of-service';
 
 /** Regional second-person forms and words that the site copy must avoid. */
 const REGIONAL_FORMS =

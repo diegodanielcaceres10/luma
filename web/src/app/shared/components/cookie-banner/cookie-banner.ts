@@ -1,7 +1,7 @@
 import { Component, afterNextRender, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { AnalyticsService } from '../../services/analytics';
+import { AnalyticsService } from '../../../core/services/analytics';
 
 @Component({
   selector: 'app-cookie-banner',
