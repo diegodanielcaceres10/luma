@@ -2,6 +2,17 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
+  <!--
+    Content-Security-Policy through a meta tag, because GitHub Pages cannot set response headers
+    (frame-ancestors, report-uri and sandbox are ignored in meta tags).
+    - The first sha256 allows the inline script below. If you change that script, update the hash
+      (src/index-csp.spec.ts fails until you do).
+    - The second sha256 + 'unsafe-hashes' allows the onload="this.media='all'" handler that the Angular
+      build adds when it inlines critical CSS. Remove it if styles.inlineCritical is ever disabled.
+    - style-src keeps 'unsafe-inline' because Angular injects component styles as style elements.
+    - The Google origins are the ones gtag.js needs; the script is only loaded after consent.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-WZRJfWvsnNCPcxzZwvyhovnZGqhZaC+8gPGPRbx6wTk=' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc=' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; font-src 'self'; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Luma — Finanzas personales simples</title>
   <meta name="description" content="Luma es una app ligera para llevar el control de ingresos, gastos, presupuestos e insights mensuales de tus finanzas personales.">
   <script>document.documentElement.classList.add("js");</script>
