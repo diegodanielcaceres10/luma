@@ -74,6 +74,20 @@ module.exports = defineConfig([
       ],
     },
   },
+  // Browser globals are reached through a dedicated service in core/services (or the DOCUMENT token).
+  {
+    files: ['src/app/**/*.ts'],
+    ignores: ['src/app/core/services/**', 'src/app/**/*.spec.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['window', 'document', 'localStorage', 'sessionStorage'].map((name) => ({
+          name,
+          message: 'Access browser globals through a service in core/services or inject DOCUMENT.',
+        })),
+      ],
+    },
+  },
   {
     files: ['**/*.html'],
     extends: [angular.configs.templateRecommended, angular.configs.templateAccessibility],

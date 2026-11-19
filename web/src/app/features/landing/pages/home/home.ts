@@ -7,6 +7,7 @@ import {
   PLATFORM_ID,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { MotionPreferencesService } from '@core/services/motion-preferences';
 import { PageUrlService } from '@core/services/page-url';
 import { NavbarComponent } from '@shared/components/navbar/navbar';
 import { HeroComponent } from '../../components/hero/hero';
@@ -43,6 +44,7 @@ export class Home {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly el = inject(ElementRef);
   private readonly pageUrl = inject(PageUrlService);
+  private readonly motion = inject(MotionPreferencesService);
 
   constructor() {
     this.pageUrl.set('');
@@ -54,7 +56,7 @@ export class Home {
   private initScrollReveal(): void {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReducedMotion = this.motion.prefersReducedMotion();
     const elementsToReveal = this.el.nativeElement.querySelectorAll(
       '.editorial-reveal, .editorial-reveal-scale, .editorial-stat-reveal, .editorial-progress-fill'
     );
