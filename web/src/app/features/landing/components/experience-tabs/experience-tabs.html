@@ -32,7 +32,7 @@
             [attr.aria-selected]="activeTab() === tab.id"
             [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
             (click)="setTab(tab.id)"
-            [class]="tabClasses(tab.id)"
+            [class]="tabClasses()[tab.id]"
           >
             {{ tab.label }}
           </button>

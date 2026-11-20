@@ -70,6 +70,19 @@ describe('ExperienceTabsComponent', () => {
     root.remove();
   });
 
+  it('styles only the selected tab as active, and follows the selection', () => {
+    const isActive = (tab: HTMLElement) => tab.classList.contains('bg-emerald-500');
+
+    expect(tabs().map(isActive)).toEqual([true, false, false]);
+    expect(tabs()[1].classList.contains('text-neutral-400')).toBe(true);
+
+    tabs()[2].click();
+    fixture.detectChanges();
+
+    expect(tabs().map(isActive)).toEqual([false, false, true]);
+    expect(tabs()[0].classList.contains('text-neutral-400')).toBe(true);
+  });
+
   it('shows a visible focus style on tabs', () => {
     expect(tabs().length).toBe(3);
     for (const tab of tabs()) {

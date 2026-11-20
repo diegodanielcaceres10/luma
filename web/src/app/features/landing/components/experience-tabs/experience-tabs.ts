@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 
 import { nextTabIndex } from '@shared/tabs-keyboard';
 
@@ -32,9 +32,12 @@ export class ExperienceTabsComponent {
     this.activeTab.set(tab);
   }
 
-  protected tabClasses(id: ExperienceTabId): string {
-    return this.activeTab() === id ? TAB_ACTIVE_CLASSES : TAB_INACTIVE_CLASSES;
-  }
+  /** Recomputed only when the selection changes, instead of on every change detection pass. */
+  protected readonly tabClasses = computed(() =>
+    Object.fromEntries(
+      this.tabs.map(({ id }) => [id, this.activeTab() === id ? TAB_ACTIVE_CLASSES : TAB_INACTIVE_CLASSES]),
+    ),
+  );
 
   /** Arrow keys, Home and End move between tabs, as in the WAI-ARIA tabs pattern. */
   onTabsKeydown(event: KeyboardEvent): void {
