@@ -110,12 +110,12 @@ export class AnalyticsService {
   }
 
   private installGtag(): void {
-    const win = this.window;
-    win.dataLayer ??= [];
-    win.gtag ??= function () {
+    const view = this.window;
+    view.dataLayer ??= [];
+    view.gtag ??= function () {
       // gtag.js expects the raw `arguments` object, not an array.
       // eslint-disable-next-line prefer-rest-params
-      (win.dataLayer ??= []).push(arguments);
+      (view.dataLayer ??= []).push(arguments);
     };
   }
 

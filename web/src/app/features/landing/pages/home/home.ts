@@ -1,15 +1,7 @@
-import {
-  Component,
-  afterNextRender,
-  ChangeDetectionStrategy,
-  ElementRef,
-  inject,
-  PLATFORM_ID,
-} from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
-import { MotionPreferencesService } from '@core/services/motion-preferences';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { PageUrlService } from '@core/services/page-url';
 import { NavbarComponent } from '@shared/components/navbar/navbar';
+import { ScrollRevealDirective } from '@shared/directives/scroll-reveal';
 import { HeroComponent } from '../../components/hero/hero';
 import { AppShowcaseComponent } from '../../components/app-showcase/app-showcase';
 import { FeaturesBentoComponent } from '../../components/features-bento/features-bento';
@@ -24,6 +16,7 @@ import { EditorialBackgroundComponent } from '../../components/editorial-backgro
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-home',
+  hostDirectives: [ScrollRevealDirective],
   imports: [
     NavbarComponent,
     HeroComponent,
@@ -41,47 +34,9 @@ import { EditorialBackgroundComponent } from '../../components/editorial-backgro
   styleUrl: './home.css'
 })
 export class Home {
-  private readonly platformId = inject(PLATFORM_ID);
-  private readonly el = inject(ElementRef);
   private readonly pageUrl = inject(PageUrlService);
-  private readonly motion = inject(MotionPreferencesService);
 
   constructor() {
     this.pageUrl.set('');
-    afterNextRender(() => {
-      this.initScrollReveal();
-    });
-  }
-
-  private initScrollReveal(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-
-    const prefersReducedMotion = this.motion.prefersReducedMotion();
-    const elementsToReveal = this.el.nativeElement.querySelectorAll(
-      '.editorial-reveal, .editorial-reveal-scale, .editorial-stat-reveal, .editorial-progress-fill'
-    );
-
-    if (prefersReducedMotion) {
-      elementsToReveal.forEach((el: Element) => el.classList.add('is-revealed'));
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries, obs) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-revealed');
-            obs.unobserve(entry.target);
-          }
-        });
-      },
-      {
-        root: null,
-        threshold: 0.1,
-        rootMargin: '0px 0px -40px 0px',
-      }
-    );
-
-    elementsToReveal.forEach((el: Element) => observer.observe(el));
   }
 }
