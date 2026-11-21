@@ -20,7 +20,6 @@
       <div
         role="tablist"
         aria-label="Flujo de trabajo de Luma"
-        (keydown)="onTabsKeydown($event)"
         class="mt-10 inline-flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-neutral-900/80 p-1.5 backdrop-blur-xl editorial-reveal editorial-delay-3"
       >
         @for (tab of tabs; track tab.id) {
@@ -32,6 +31,7 @@
             [attr.aria-selected]="activeTab() === tab.id"
             [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
             (click)="setTab(tab.id)"
+            (keydown)="onTabsKeydown($event)"
             [class]="tabClasses()[tab.id]"
           >
             {{ tab.label }}

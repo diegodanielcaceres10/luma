@@ -47,7 +47,7 @@ export class ExperienceTabsComponent {
 
     event.preventDefault();
     this.activeTab.set(this.tabs[next].id);
-    const buttons = (event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role="tab"]');
-    buttons[next]?.focus();
+    const tablist = (event.currentTarget as HTMLElement).closest('[role="tablist"]');
+    tablist?.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
   }
 }

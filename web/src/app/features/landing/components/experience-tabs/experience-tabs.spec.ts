@@ -50,9 +50,9 @@ describe('ExperienceTabsComponent', () => {
   });
 
   it('moves selection and focus with the arrow keys, Home and End', () => {
-    const tablist = root.querySelector<HTMLElement>('[role="tablist"]')!;
+    const activeTab = () => tabs().find((tab) => tab.getAttribute('aria-selected') === 'true')!;
     const press = (key: string) => {
-      tablist.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+      activeTab().dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
       fixture.detectChanges();
     };
     document.body.appendChild(root);
@@ -68,6 +68,17 @@ describe('ExperienceTabsComponent', () => {
     expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
 
     root.remove();
+  });
+
+  it('ignores key presses that do not come from a tab', () => {
+    const tablist = root.querySelector<HTMLElement>('[role="tablist"]')!;
+    const event = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+
+    tablist.dispatchEvent(event);
+    fixture.detectChanges();
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
   });
 
   it('styles only the selected tab as active, and follows the selection', () => {

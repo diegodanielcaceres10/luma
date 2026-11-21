@@ -38,10 +38,10 @@ describe('AppShowcaseComponent', () => {
   });
 
   describe('keyboard navigation', () => {
-    const press = (key: string) => {
-      const tablist = root.querySelector<HTMLElement>('[role="tablist"]')!;
+    const activeTab = () => tabs().find((tab) => tab.getAttribute('aria-selected') === 'true')!;
+    const press = (key: string, target: HTMLElement = activeTab()) => {
       const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
-      tablist.dispatchEvent(event);
+      target.dispatchEvent(event);
       fixture.detectChanges();
       return event;
     };
@@ -68,6 +68,14 @@ describe('AppShowcaseComponent', () => {
 
       press('ArrowLeft');
       expect(selected()).toEqual(['false', 'false', 'true']);
+    });
+
+    it('ignores key presses that do not come from a tab', () => {
+      const tablist = root.querySelector<HTMLElement>('[role="tablist"]')!;
+      const before = selected();
+
+      expect(press('ArrowRight', tablist).defaultPrevented).toBe(false);
+      expect(selected()).toEqual(before);
     });
 
     it('prevents the default action only for navigation keys', () => {

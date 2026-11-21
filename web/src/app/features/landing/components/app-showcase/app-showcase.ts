@@ -52,7 +52,7 @@ export class AppShowcaseComponent {
 
     event.preventDefault();
     this.activeTablet.set(this.tabletScreens[next].id);
-    const tabs = (event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role="tab"]');
-    tabs[next]?.focus();
+    const tablist = (event.currentTarget as HTMLElement).closest('[role="tablist"]');
+    tablist?.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
   }
 }
