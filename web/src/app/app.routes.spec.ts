@@ -3,7 +3,7 @@ import { Route } from '@angular/router';
 import { routes } from './app.routes';
 
 describe('app routes', () => {
-  const pageRoutes = routes.filter((route): route is Route => !route.redirectTo);
+  const pageRoutes = routes.filter((route): route is Route => route.redirectTo === undefined);
 
   it('declares at least one page route', () => {
     expect(pageRoutes.length).toBeGreaterThan(0);
@@ -20,5 +20,11 @@ describe('app routes', () => {
 
     expect(home?.loadComponent).toBeTypeOf('function');
     expect(await home?.loadComponent?.()).toBeTypeOf('function');
+  });
+
+  it('declares a title for every page route', () => {
+    const untitled = pageRoutes.filter((route) => !route.title).map((route) => route.path);
+
+    expect(untitled).toEqual([]);
   });
 });

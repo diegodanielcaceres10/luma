@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Title } from '@angular/platform-browser';
 
-import { PageUrlService } from '@core/services/page-url';
 import { NavbarComponent } from '@shared/components/navbar/navbar';
 import { FooterComponent } from '@shared/components/footer/footer';
 import { TERMS_OF_SERVICE_LAST_UPDATED } from '../../legal-dates';
@@ -14,13 +12,5 @@ import { TERMS_OF_SERVICE_LAST_UPDATED } from '../../legal-dates';
   templateUrl: './terms-of-service.html',
 })
 export class TermsOfService {
-  private readonly titleService = inject(Title);
-  private readonly pageUrl = inject(PageUrlService);
-
   protected readonly lastUpdated = TERMS_OF_SERVICE_LAST_UPDATED;
-
-  constructor() {
-    this.titleService.setTitle('Condiciones del servicio — Luma');
-    this.pageUrl.set('condiciones');
-  }
 }

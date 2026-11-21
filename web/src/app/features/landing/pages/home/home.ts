@@ -1,5 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { PageUrlService } from '@core/services/page-url';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { NavbarComponent } from '@shared/components/navbar/navbar';
 import { ScrollRevealDirective } from '@shared/directives/scroll-reveal';
 import { HeroComponent } from '../../components/hero/hero';
@@ -33,10 +32,4 @@ import { EditorialBackgroundComponent } from '../../components/editorial-backgro
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
-export class Home {
-  private readonly pageUrl = inject(PageUrlService);
-
-  constructor() {
-    this.pageUrl.set('');
-  }
-}
+export class Home {}
