@@ -48,10 +48,11 @@ export class AppShowcaseComponent {
   onTabletKeydown(event: KeyboardEvent): void {
     const current = this.tabletScreens.findIndex((s) => s.id === this.activeTablet());
     const next = nextTabIndex(event.key, current, this.tabletScreens.length);
-    if (next === null) return;
+    const target = next === null ? undefined : this.tabletScreens[next];
+    if (next === null || !target) return;
 
     event.preventDefault();
-    this.activeTablet.set(this.tabletScreens[next].id);
+    this.activeTablet.set(target.id);
     const tablist = (event.currentTarget as HTMLElement).closest('[role="tablist"]');
     tablist?.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
   }

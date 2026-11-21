@@ -10,9 +10,10 @@ const directives = (): Map<string, string[]> =>
   new Map(
     (cspMeta?.[1] ?? '')
       .split(';')
-      .map((part) => part.trim().split(/\s+/))
-      .filter(([name]) => name)
-      .map(([name, ...sources]) => [name, sources]),
+      .flatMap((part) => {
+        const [name, ...sources] = part.trim().split(/\s+/);
+        return name ? [[name, sources] as [string, string[]]] : [];
+      }),
   );
 
 const sha256 = (content: string) => `'sha256-${createHash('sha256').update(content).digest('base64')}'`;
@@ -20,7 +21,7 @@ const sha256 = (content: string) => `'sha256-${createHash('sha256').update(conte
 /** Inline scripts that the browser executes (JSON data blocks and external scripts are not). */
 const inlineScripts = () =>
   [...html.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/json")[^>]*>([\s\S]*?)<\/script>/gi)].map(
-    ([, content]) => content,
+    ([, content = '']) => content,
   );
 
 describe('index.html Content-Security-Policy', () => {

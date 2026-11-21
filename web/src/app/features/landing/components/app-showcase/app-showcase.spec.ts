@@ -30,11 +30,11 @@ describe('AppShowcaseComponent', () => {
 
   it('selects a tab on click and updates the panel label', () => {
     const third = tabs()[2];
-    third.click();
+    third?.click();
     fixture.detectChanges();
 
     expect(selected()).toEqual(['false', 'false', 'true']);
-    expect(panel()!.getAttribute('aria-labelledby')).toBe(third.id);
+    expect(panel()!.getAttribute('aria-labelledby')).toBe(third?.id);
   });
 
   describe('keyboard navigation', () => {

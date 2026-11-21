@@ -43,10 +43,11 @@ export class ExperienceTabsComponent {
   onTabsKeydown(event: KeyboardEvent): void {
     const current = this.tabs.findIndex((tab) => tab.id === this.activeTab());
     const next = nextTabIndex(event.key, current, this.tabs.length);
-    if (next === null) return;
+    const target = next === null ? undefined : this.tabs[next];
+    if (next === null || !target) return;
 
     event.preventDefault();
-    this.activeTab.set(this.tabs[next].id);
+    this.activeTab.set(target.id);
     const tablist = (event.currentTarget as HTMLElement).closest('[role="tablist"]');
     tablist?.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
   }

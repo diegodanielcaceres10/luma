@@ -23,7 +23,7 @@ interface Edge {
 
 /** Maps a path relative to `src/app` to its layer and, inside `features/`, its feature. */
 const areaOf = (path: string): Area => {
-  const [layer, feature] = path.split(sep);
+  const [layer = '', feature] = path.split(sep);
   return layer === 'features' ? { layer, feature } : { layer: ['core', 'shared'].includes(layer) ? layer : 'shell' };
 };
 
@@ -36,9 +36,9 @@ const sourceFiles = (dir: string): string[] =>
 
 /** Resolves an import to a path relative to `src/app`, or null for packages and files outside the app. */
 const resolveInternal = (file: string, specifier: string): string | null => {
-  const alias = Object.keys(ALIASES).find((prefix) => specifier.startsWith(prefix));
+  const alias = Object.entries(ALIASES).find(([prefix]) => specifier.startsWith(prefix));
   const absolute = alias
-    ? join(APP_DIR, ALIASES[alias], specifier.slice(alias.length))
+    ? join(APP_DIR, alias[1], specifier.slice(alias[0].length))
     : specifier.startsWith('.')
       ? resolve(dirname(file), specifier)
       : null;
@@ -50,7 +50,7 @@ const resolveInternal = (file: string, specifier: string): string | null => {
 const edges: Edge[] = sourceFiles(APP_DIR).flatMap((file) => {
   const from = areaOf(relative(APP_DIR, file));
   const source = readFileSync(file, 'utf8');
-  return [...source.matchAll(IMPORT_PATTERN)].flatMap(([, specifier]) => {
+  return [...source.matchAll(IMPORT_PATTERN)].flatMap(([, specifier = '']) => {
     const target = resolveInternal(file, specifier);
     return target === null
       ? []

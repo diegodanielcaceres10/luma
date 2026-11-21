@@ -79,7 +79,7 @@ describe('AnalyticsService', () => {
       expect(service.consent()).toBe('granted');
       expect(localStorage.getItem(CONSENT_STORAGE_KEY)).toBe('granted');
       expect(gaScripts().length).toBe(1);
-      expect(gaScripts()[0].getAttribute('src')).toContain(`id=${MEASUREMENT_ID}`);
+      expect(gaScripts()[0]?.getAttribute('src')).toContain(`id=${MEASUREMENT_ID}`);
       expect(calls()).toContainEqual(['consent', 'update', { analytics_storage: 'granted' }]);
       expect(calls()).toContainEqual(['config', MEASUREMENT_ID, { send_page_view: false }]);
     });
@@ -94,7 +94,7 @@ describe('AnalyticsService', () => {
 
       expect(afterAccept).toBe(1);
       expect(pageViews().length).toBe(2);
-      expect(pageViews()[1][2]).toMatchObject({ page_path: '/privacidad' });
+      expect(pageViews()[1]?.[2]).toMatchObject({ page_path: '/privacidad' });
     });
 
     it('keeps the consent flow but never loads gtag.js when analytics is disabled', () => {

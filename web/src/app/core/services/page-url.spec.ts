@@ -21,15 +21,15 @@ describe('PageUrlService', () => {
     service.set('');
 
     expect(canonicals()).toHaveLength(1);
-    expect(canonicals()[0].getAttribute('href')).toBe(SITE_URL);
-    expect(ogUrls()[0].getAttribute('content')).toBe(SITE_URL);
+    expect(canonicals()[0]?.getAttribute('href')).toBe(SITE_URL);
+    expect(ogUrls()[0]?.getAttribute('content')).toBe(SITE_URL);
   });
 
   it('appends the route path with a trailing slash', () => {
     service.set('privacidad');
 
-    expect(canonicals()[0].getAttribute('href')).toBe(`${SITE_URL}privacidad/`);
-    expect(ogUrls()[0].getAttribute('content')).toBe(`${SITE_URL}privacidad/`);
+    expect(canonicals()[0]?.getAttribute('href')).toBe(`${SITE_URL}privacidad/`);
+    expect(ogUrls()[0]?.getAttribute('content')).toBe(`${SITE_URL}privacidad/`);
   });
 
   it('replaces the previous values instead of duplicating tags', () => {
@@ -38,12 +38,12 @@ describe('PageUrlService', () => {
 
     expect(canonicals()).toHaveLength(1);
     expect(ogUrls()).toHaveLength(1);
-    expect(canonicals()[0].getAttribute('href')).toBe(`${SITE_URL}condiciones/`);
+    expect(canonicals()[0]?.getAttribute('href')).toBe(`${SITE_URL}condiciones/`);
   });
 
   it('keeps the canonical and og:url in sync', () => {
     service.set('condiciones');
 
-    expect(ogUrls()[0].getAttribute('content')).toBe(canonicals()[0].getAttribute('href'));
+    expect(ogUrls()[0]?.getAttribute('content')).toBe(canonicals()[0]?.getAttribute('href'));
   });
 });

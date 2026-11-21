@@ -23,11 +23,11 @@ describe('ExperienceTabsComponent', () => {
 
   it('marks only the active tab as selected and focusable', () => {
     const [first, second, third] = tabs();
-    expect(first.getAttribute('aria-selected')).toBe('true');
-    expect(second.getAttribute('aria-selected')).toBe('false');
-    expect(third.getAttribute('aria-selected')).toBe('false');
-    expect(first.tabIndex).toBe(0);
-    expect(second.tabIndex).toBe(-1);
+    expect(first?.getAttribute('aria-selected')).toBe('true');
+    expect(second?.getAttribute('aria-selected')).toBe('false');
+    expect(third?.getAttribute('aria-selected')).toBe('false');
+    expect(first?.tabIndex).toBe(0);
+    expect(second?.tabIndex).toBe(-1);
   });
 
   it('links every tab to the single tabpanel, which is labelled by the active tab', () => {
@@ -36,17 +36,17 @@ describe('ExperienceTabsComponent', () => {
     for (const tab of tabs()) {
       expect(tab.getAttribute('aria-controls')).toBe(panel()!.id);
     }
-    expect(panel()!.getAttribute('aria-labelledby')).toBe(active.id);
+    expect(panel()!.getAttribute('aria-labelledby')).toBe(active?.id);
   });
 
   it('selects a tab on click and updates the panel label', () => {
     const second = tabs()[1];
-    second.click();
+    second?.click();
     fixture.detectChanges();
 
-    expect(second.getAttribute('aria-selected')).toBe('true');
-    expect(tabs()[0].getAttribute('aria-selected')).toBe('false');
-    expect(panel()!.getAttribute('aria-labelledby')).toBe(second.id);
+    expect(second?.getAttribute('aria-selected')).toBe('true');
+    expect(tabs()[0]?.getAttribute('aria-selected')).toBe('false');
+    expect(panel()!.getAttribute('aria-labelledby')).toBe(second?.id);
   });
 
   it('moves selection and focus with the arrow keys, Home and End', () => {
@@ -58,14 +58,14 @@ describe('ExperienceTabsComponent', () => {
     document.body.appendChild(root);
 
     press('ArrowRight');
-    expect(tabs()[1].getAttribute('aria-selected')).toBe('true');
+    expect(tabs()[1]?.getAttribute('aria-selected')).toBe('true');
     expect(document.activeElement).toBe(tabs()[1]);
 
     press('End');
-    expect(tabs()[2].getAttribute('aria-selected')).toBe('true');
+    expect(tabs()[2]?.getAttribute('aria-selected')).toBe('true');
 
     press('ArrowRight');
-    expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+    expect(tabs()[0]?.getAttribute('aria-selected')).toBe('true');
 
     root.remove();
   });
@@ -78,20 +78,20 @@ describe('ExperienceTabsComponent', () => {
     fixture.detectChanges();
 
     expect(event.defaultPrevented).toBe(false);
-    expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+    expect(tabs()[0]?.getAttribute('aria-selected')).toBe('true');
   });
 
   it('styles only the selected tab as active, and follows the selection', () => {
     const isActive = (tab: HTMLElement) => tab.classList.contains('bg-emerald-500');
 
     expect(tabs().map(isActive)).toEqual([true, false, false]);
-    expect(tabs()[1].classList.contains('text-neutral-400')).toBe(true);
+    expect(tabs()[1]?.classList.contains('text-neutral-400')).toBe(true);
 
-    tabs()[2].click();
+    tabs()[2]?.click();
     fixture.detectChanges();
 
     expect(tabs().map(isActive)).toEqual([false, false, true]);
-    expect(tabs()[0].classList.contains('text-neutral-400')).toBe(true);
+    expect(tabs()[0]?.classList.contains('text-neutral-400')).toBe(true);
   });
 
   it('shows a visible focus style on tabs', () => {
