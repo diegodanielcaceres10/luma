@@ -64,4 +64,59 @@ describe('NavbarComponent mobile menu', () => {
     expect(classes).not.toContain('focus:outline-none');
     expect(classes).toContain('focus-visible:outline');
   });
+
+  describe('reacting to signal changes', () => {
+    const settle = async () => {
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    const menuLinks = () => Array.from(root.querySelectorAll<HTMLAnchorElement>('#mobile-menu a'));
+
+    beforeEach(() => {
+      // Prevents jsdom from attempting real navigation when a link is clicked.
+      root.addEventListener('click', (event) => event.preventDefault());
+    });
+
+    it('opens and closes the menu on consecutive toggles', async () => {
+      toggle()!.click();
+      await settle();
+      expect(root.querySelector('#mobile-menu')).not.toBeNull();
+
+      toggle()!.click();
+      await settle();
+      expect(root.querySelector('#mobile-menu')).toBeNull();
+    });
+
+    it('closes the open menu after choosing any of its links', async () => {
+      toggle()!.click();
+      await settle();
+      const count = menuLinks().length;
+      expect(count).toBeGreaterThan(0);
+
+      for (let index = 0; index < count; index++) {
+        if (!root.querySelector('#mobile-menu')) {
+          toggle()!.click();
+          await settle();
+        }
+        menuLinks()[index]!.click();
+        await settle();
+
+        expect(root.querySelector('#mobile-menu')).toBeNull();
+        expect(toggle()!.getAttribute('aria-expanded')).toBe('false');
+      }
+    });
+
+    it('keeps the section anchors of the menu aligned with the desktop navigation', async () => {
+      toggle()!.click();
+      await settle();
+
+      const anchors = (selector: string) =>
+        Array.from(root.querySelectorAll<HTMLAnchorElement>(selector))
+          .map((a) => a.getAttribute('href'))
+          .filter((href) => href?.startsWith('#'));
+
+      expect(anchors('#mobile-menu a')).toEqual(anchors('nav a'));
+    });
+  });
 });

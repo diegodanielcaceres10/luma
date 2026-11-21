@@ -100,4 +100,56 @@ describe('ExperienceTabsComponent', () => {
       expect(tab.className).toContain('focus-visible:outline');
     }
   });
+
+  describe('reacting to signal changes', () => {
+    const settle = async () => {
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    it('updates the selection and the panel when the tab is set programmatically', async () => {
+      fixture.componentInstance.setTab('security');
+      await settle();
+
+      expect(tabs()[2]?.getAttribute('aria-selected')).toBe('true');
+      expect(panel()!.getAttribute('aria-labelledby')).toBe(tabs()[2]?.id);
+    });
+
+    it('keeps exactly one active tab after a sequence of changes', async () => {
+      const ids = ['budget', 'security', 'flow', 'budget'] as const;
+
+      for (const id of ids) {
+        fixture.componentInstance.setTab(id);
+        await settle();
+
+        expect(tabs().filter((tab) => tab.getAttribute('aria-selected') === 'true')).toHaveLength(1);
+      }
+      expect(tabs()[1]?.getAttribute('aria-selected')).toBe('true');
+    });
+
+    it('wraps around backwards with ArrowLeft and Home from the first tab', async () => {
+      const press = async (key: string) => {
+        const current = tabs().find((tab) => tab.getAttribute('aria-selected') === 'true')!;
+        current.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+        await settle();
+      };
+
+      await press('ArrowLeft');
+      expect(tabs()[2]?.getAttribute('aria-selected')).toBe('true');
+
+      await press('Home');
+      expect(tabs()[0]?.getAttribute('aria-selected')).toBe('true');
+    });
+
+    it('leaves the selection alone for keys that do not navigate', async () => {
+      const first = tabs()[0]!;
+      const event = new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true });
+
+      first.dispatchEvent(event);
+      await settle();
+
+      expect(event.defaultPrevented).toBe(false);
+      expect(first.getAttribute('aria-selected')).toBe('true');
+    });
+  });
 });
