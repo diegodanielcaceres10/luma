@@ -111,14 +111,12 @@ export class AnalyticsService {
 
   private installGtag(): void {
     const win = this.window;
-    win.dataLayer = win.dataLayer ?? [];
-    win.gtag =
-      win.gtag ??
-      function () {
-        // gtag.js expects the raw `arguments` object, not an array.
-        // eslint-disable-next-line prefer-rest-params
-        win.dataLayer!.push(arguments);
-      };
+    win.dataLayer ??= [];
+    win.gtag ??= function () {
+      // gtag.js expects the raw `arguments` object, not an array.
+      // eslint-disable-next-line prefer-rest-params
+      (win.dataLayer ??= []).push(arguments);
+    };
   }
 
   private gtag(...args: unknown[]): void {
@@ -126,8 +124,8 @@ export class AnalyticsService {
   }
 
   private setDisabled(disabled: boolean): void {
-    (this.window as unknown as Record<string, unknown>)[`ga-disable-${this.config.measurementId}`] =
-      disabled;
+    // Google's opt-out switch: `window['ga-disable-<id>'] = true` stops all measurement for that property.
+    Reflect.set(this.window, `ga-disable-${this.config.measurementId}`, disabled);
   }
 
   private get window(): AnalyticsWindow {

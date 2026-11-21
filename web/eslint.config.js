@@ -88,6 +88,21 @@ module.exports = defineConfig([
       ],
     },
   },
+  // Type-safety escape hatches are not allowed in application code (specs may use them).
+  {
+    files: ['src/app/**/*.ts'],
+    ignores: ['src/app/**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'TSAsExpression[expression.type="TSAsExpression"][expression.typeAnnotation.type="TSUnknownKeyword"]',
+          message: 'Avoid "as unknown as": model the type instead of forcing it.',
+        },
+      ],
+    },
+  },
   {
     files: ['**/*.html'],
     extends: [angular.configs.templateRecommended, angular.configs.templateAccessibility],
