@@ -13,4 +13,13 @@ describe('App', () => {
     expect(root.querySelector('router-outlet')).not.toBeNull();
     expect(root.querySelector('app-cookie-banner')).not.toBeNull();
   });
+
+  it('places the skip link before any other content', () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const first = (fixture.nativeElement as HTMLElement).firstElementChild;
+
+    expect(first?.tagName.toLowerCase()).toBe('app-skip-link');
+  });
 });

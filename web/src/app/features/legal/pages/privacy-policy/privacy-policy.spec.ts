@@ -29,6 +29,13 @@ describe('PrivacyPolicy', () => {
     expect(titles.map((title, index) => title.startsWith(`${index + 1}.`))).not.toContain(false);
   });
 
+  it('exposes the main landmark as the skip link target', () => {
+    const main = root.querySelector('main');
+
+    expect(main?.id).toBe('main-content');
+    expect(main?.getAttribute('tabindex')).toBe('-1');
+  });
+
   it('offers a way back to the home page', () => {
     expect(root.querySelector('a[href="/"]')).not.toBeNull();
   });

@@ -34,3 +34,21 @@ describe('Home scroll reveal', () => {
     expect(elements.every((el) => el.classList.contains('is-revealed'))).toBe(true);
   });
 });
+
+describe('Home skip link target', () => {
+  it('exposes the main landmark as the skip link target', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: ANALYTICS_CONFIG, useValue: { measurementId: 'G-TEST123', enabled: false } },
+      ],
+    });
+    const fixture = TestBed.createComponent(Home);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const main = (fixture.nativeElement as HTMLElement).querySelector('main');
+
+    expect(main?.id).toBe('main-content');
+    expect(main?.getAttribute('tabindex')).toBe('-1');
+  });
+});

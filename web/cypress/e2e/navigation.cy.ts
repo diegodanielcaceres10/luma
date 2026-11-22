@@ -41,4 +41,13 @@ describe('Navigation across routes', () => {
     cy.location('pathname').should('eq', '/');
     cy.get('h1').should('contain.text', 'El arte de tus finanzas');
   });
+
+  it('lets keyboard users skip to the main content without leaving the page', () => {
+    cy.visit('/privacidad');
+
+    cy.contains('a', 'Saltar al contenido').focus().should('be.visible').click();
+
+    cy.focused().should('have.id', 'main-content');
+    cy.location('pathname').should('eq', '/privacidad');
+  });
 });
