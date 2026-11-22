@@ -166,6 +166,13 @@ p, li, blockquote {
   animation: pulse-subtle 3s ease-in-out infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer::after,
+  .animate-pulse-subtle {
+    animation: none;
+  }
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
