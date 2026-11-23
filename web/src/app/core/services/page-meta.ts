@@ -1,12 +1,16 @@
+import { DOCUMENT } from '@angular/common';
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Meta } from '@angular/platform-browser';
 import { ActivatedRouteSnapshot, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 
-/** Keeps the description and the social title and description aligned with the current route. */
+const JSON_LD_SELECTOR = 'script[type="application/ld+json"]';
+
+/** Keeps the description, the social tags and the JSON-LD block aligned with the current route. */
 @Injectable({ providedIn: 'root' })
 export class PageMetaService {
+  private readonly document = inject(DOCUMENT);
   private readonly meta = inject(Meta);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -29,10 +33,25 @@ export class PageMetaService {
     this.meta.updateTag({ name: 'twitter:description', content: description });
   }
 
+  /** Replaces the page's JSON-LD block; `null` removes it. */
+  setStructuredData(data: object | null): void {
+    this.document.head.querySelectorAll(JSON_LD_SELECTOR).forEach((el) => el.remove());
+    if (!data) return;
+
+    const script = this.document.createElement('script');
+    script.type = 'application/ld+json';
+    // "<" is escaped so the data can never close the script element.
+    script.textContent = JSON.stringify(data).replace(/</g, '\\u003c');
+    this.document.head.appendChild(script);
+  }
+
   private apply(route: ActivatedRouteSnapshot): void {
     const title = route.title;
     const description: unknown = route.data['description'];
     if (title && typeof description === 'string') this.set(title, description);
+
+    const structuredData: unknown = route.data['structuredData'];
+    this.setStructuredData(typeof structuredData === 'object' ? structuredData : null);
   }
 
   private deepestRoute(): ActivatedRouteSnapshot {

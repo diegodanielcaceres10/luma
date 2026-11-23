@@ -1,13 +1,25 @@
 import { Routes } from '@angular/router';
 
+import { SITE_URL } from '@core/config/site.config';
+
+const HOME_DESCRIPTION =
+  'Luma es una app ligera para llevar el control de ingresos, gastos, presupuestos e insights mensuales de tus finanzas personales.';
+
+const HOME_STRUCTURED_DATA = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Luma',
+  description: HOME_DESCRIPTION,
+  url: SITE_URL,
+  applicationCategory: 'FinanceApplication',
+  inLanguage: 'es',
+};
+
 export const routes: Routes = [
   {
     path: '',
     title: 'Luma — Finanzas personales simples',
-    data: {
-      description:
-        'Luma es una app ligera para llevar el control de ingresos, gastos, presupuestos e insights mensuales de tus finanzas personales.',
-    },
+    data: { description: HOME_DESCRIPTION, structuredData: HOME_STRUCTURED_DATA },
     loadComponent: () => import('@features/landing/pages/home/home').then((m) => m.Home),
   },
   {

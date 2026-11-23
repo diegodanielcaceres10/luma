@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 
 import { Route } from '@angular/router';
 
+import { SITE_URL } from '@core/config/site.config';
 import { routes } from './app.routes';
 
 describe('app routes', () => {
@@ -54,5 +55,28 @@ describe('app routes', () => {
     const home = routes.find((route) => route.path === '');
 
     expect(home?.data?.['description']).toBe(staticDescription);
+  });
+
+  describe('structured data', () => {
+    const home = routes.find((route) => route.path === '');
+    const structured = home?.data?.['structuredData'] as Record<string, unknown> | undefined;
+
+    it('describes the home page as a software application', () => {
+      expect(structured?.['@context']).toBe('https://schema.org');
+      expect(structured?.['@type']).toBe('SoftwareApplication');
+      expect(structured?.['name']).toBe('Luma');
+      expect(structured?.['applicationCategory']).toBe('FinanceApplication');
+    });
+
+    it('points to the site URL and reuses the page description', () => {
+      expect(structured?.['url']).toBe(SITE_URL);
+      expect(structured?.['description']).toBe(home?.data?.['description']);
+    });
+
+    it('is declared only on the home page', () => {
+      const others = pageRoutes.filter((route) => route.path !== '' && route.data?.['structuredData']);
+
+      expect(others).toEqual([]);
+    });
   });
 });
