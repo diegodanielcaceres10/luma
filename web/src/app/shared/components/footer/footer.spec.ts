@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
+import { CURRENT_YEAR } from '@core/config/current-year';
 import { AnalyticsService } from '@core/services/analytics';
 import { FooterComponent } from './footer';
 
@@ -31,6 +32,17 @@ describe('FooterComponent', () => {
 
   it('shows the current year in the copyright line', () => {
     expect(root.textContent).toContain(`© ${new Date().getFullYear()}`);
+  });
+
+  it('renders the year provided by CURRENT_YEAR', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), { provide: CURRENT_YEAR, useValue: 2031 }],
+    });
+    const other = TestBed.createComponent(FooterComponent);
+    other.detectChanges();
+
+    expect(other.nativeElement.textContent).toContain('© 2031');
   });
 
   it('reopens the cookie preferences from its button', () => {

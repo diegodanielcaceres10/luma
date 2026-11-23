@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { CURRENT_YEAR } from '@core/config/current-year';
 import { AnalyticsService } from '@core/services/analytics';
 
 @Component({
@@ -11,5 +12,5 @@ import { AnalyticsService } from '@core/services/analytics';
 })
 export class FooterComponent {
   protected readonly analytics = inject(AnalyticsService);
-  protected readonly year = new Date().getFullYear();
+  protected readonly year = inject(CURRENT_YEAR);
 }
