@@ -7,7 +7,7 @@ import {
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 
 import { routes } from './app.routes';
-import { provideClientHydration } from '@angular/platform-browser';
+import { provideClientHydration, withNoIncrementalHydration } from '@angular/platform-browser';
 import { AnalyticsService } from '@core/services/analytics';
 import { PageUrlService } from '@core/services/page-url';
 
@@ -22,7 +22,7 @@ export const appConfig: ApplicationConfig = {
         anchorScrolling: 'enabled',
       }),
     ),
-    provideClientHydration(),
+    provideClientHydration(withNoIncrementalHydration()),
     provideAppInitializer(() => inject(AnalyticsService).init()),
     provideAppInitializer(() => inject(PageUrlService).init()),
   ],

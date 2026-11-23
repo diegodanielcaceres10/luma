@@ -24,6 +24,14 @@ const inlineScripts = () =>
     ([, content = '']) => content,
   );
 
+/**
+ * Script that @angular/build (beasties) appends to every built page when `styles.inlineCritical` is on:
+ * it switches the deferred stylesheet from media="print" to media="all". It does not exist in src/index.html,
+ * so its hash must be allowed by hand. After an Angular upgrade, compare it with dist/web/browser/index.html.
+ */
+const CRITICAL_CSS_SWITCH_SCRIPT =
+  "document.querySelectorAll('link[data-beasties-media]').forEach(function(l){l.media=l.getAttribute('data-beasties-media');l.removeAttribute('data-beasties-media')})";
+
 describe('index.html Content-Security-Policy', () => {
   it('declares a policy through a meta tag', () => {
     expect(cspMeta).not.toBeNull();
@@ -50,6 +58,14 @@ describe('index.html Content-Security-Policy', () => {
 
     expect(scripts.length).toBeGreaterThan(0);
     scripts.forEach((content) => expect(scriptSources).toContain(sha256(content)));
+  });
+
+  it('allows the script that Angular adds to activate the deferred stylesheet', () => {
+    expect(directives().get('script-src')).toContain(sha256(CRITICAL_CSS_SWITCH_SCRIPT));
+  });
+
+  it('does not need unsafe-hashes because no inline event handlers remain', () => {
+    expect(directives().get('script-src')).not.toContain("'unsafe-hashes'");
   });
 
   it('blocks plugins and restricts the base URL', () => {

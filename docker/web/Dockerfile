@@ -1,4 +1,7 @@
-FROM node:22-bullseye
+FROM node:22-bookworm
+
+# End-to-end tests (Cypress) run outside the image, so its postinstall binary download is skipped.
+ENV CYPRESS_INSTALL_BINARY=0
 
 WORKDIR /app
 

@@ -1,0 +1,6 @@
+# Host dependencies and build output must never overwrite the ones installed inside the image.
+**/node_modules
+web/dist
+web/coverage
+web/.angular
+.git
