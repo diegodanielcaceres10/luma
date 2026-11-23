@@ -9,6 +9,7 @@ import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { routes } from './app.routes';
 import { provideClientHydration, withNoIncrementalHydration } from '@angular/platform-browser';
 import { AnalyticsService } from '@core/services/analytics';
+import { PageMetaService } from '@core/services/page-meta';
 import { PageUrlService } from '@core/services/page-url';
 
 export const appConfig: ApplicationConfig = {
@@ -25,5 +26,6 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withNoIncrementalHydration()),
     provideAppInitializer(() => inject(AnalyticsService).init()),
     provideAppInitializer(() => inject(PageUrlService).init()),
+    provideAppInitializer(() => inject(PageMetaService).init()),
   ],
 };
