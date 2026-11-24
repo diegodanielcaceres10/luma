@@ -116,6 +116,18 @@ jobs:
           uploadArtifacts: false
           temporaryPublicStorage: true
 
+      - name: Save Lighthouse desktop reports
+        if: ${{ !cancelled() }}
+        env:
+          RESULTS_PATH: ${{ steps.lhci-d.outputs.resultsPath }}
+        run: |
+          if [ -n "$RESULTS_PATH" ] && [ -d "$RESULTS_PATH" ]; then
+            mkdir -p lighthouse-reports/desktop
+            cp -R "$RESULTS_PATH"/. lighthouse-reports/desktop/
+          else
+            echo "No Lighthouse desktop results found."
+          fi
+
       - name: Run Lighthouse CI Mobile
         id: lhci-m
         continue-on-error: true
@@ -124,6 +136,28 @@ jobs:
           configPath: ./web/lighthouserc.mobile.json
           uploadArtifacts: false
           temporaryPublicStorage: true
+
+      - name: Save Lighthouse mobile reports
+        if: ${{ !cancelled() }}
+        env:
+          RESULTS_PATH: ${{ steps.lhci-m.outputs.resultsPath }}
+        run: |
+          if [ -n "$RESULTS_PATH" ] && [ -d "$RESULTS_PATH" ]; then
+            mkdir -p lighthouse-reports/mobile
+            cp -R "$RESULTS_PATH"/. lighthouse-reports/mobile/
+          else
+            echo "No Lighthouse mobile results found."
+          fi
+
+      # The action's own artifact upload uses a fixed name, which would clash between the two runs.
+      - name: Upload Lighthouse reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: lighthouse-reports
+          path: lighthouse-reports
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Publish Lighthouse check
         if: always()
