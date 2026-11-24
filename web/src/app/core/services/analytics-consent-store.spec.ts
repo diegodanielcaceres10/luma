@@ -47,4 +47,16 @@ describe('AnalyticsConsentStore', () => {
 
     expect(() => store.save('granted')).not.toThrow();
   });
+
+  it('reports a blocked save in development instead of discarding it silently', () => {
+    const blocked = new Error('blocked');
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw blocked;
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    store.save('granted');
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('consent'), blocked);
+  });
 });

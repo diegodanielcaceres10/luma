@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 
 export type ConsentStatus = 'unknown' | 'granted' | 'denied';
 
@@ -19,8 +19,11 @@ export class AnalyticsConsentStore {
   save(value: ConsentStatus): void {
     try {
       localStorage.setItem(CONSENT_STORAGE_KEY, value);
-    } catch {
+    } catch (error) {
       // Storage can be blocked (private mode); the choice then lasts for the session only.
+      if (isDevMode()) {
+        console.warn('Analytics consent could not be persisted.', error);
+      }
     }
   }
 }
