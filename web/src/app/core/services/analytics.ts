@@ -1,12 +1,11 @@
 import { DestroyRef, Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs';
+import { Router } from '@angular/router';
 
 import { ANALYTICS_CONFIG } from '../config/analytics.config';
 import { AnalyticsConsentStore, ConsentStatus } from './analytics-consent-store';
 import { GtagClient } from './gtag-client';
+import { onNavigationEnd } from '../utils/navigation-end';
 
 export { CONSENT_STORAGE_KEY } from './analytics-consent-store';
 export type { ConsentStatus } from './analytics-consent-store';
@@ -42,12 +41,7 @@ export class AnalyticsService {
       ad_personalization: 'denied',
     });
 
-    this.router.events
-      .pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((event) => this.sendPageView(event.urlAfterRedirects));
+    onNavigationEnd(this.router, this.destroyRef, (event) => this.sendPageView(event.urlAfterRedirects));
 
     const stored = this.consentStore.read();
     this.consentState.set(stored);

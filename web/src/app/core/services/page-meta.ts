@@ -1,9 +1,9 @@
 import { DOCUMENT } from '@angular/common';
 import { DestroyRef, Injectable, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Meta } from '@angular/platform-browser';
-import { ActivatedRouteSnapshot, NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs';
+import { ActivatedRouteSnapshot, Router } from '@angular/router';
+
+import { onNavigationEnd } from '../utils/navigation-end';
 
 const JSON_LD_SELECTOR = 'script[type="application/ld+json"]';
 
@@ -17,12 +17,7 @@ export class PageMetaService {
 
   /** Starts syncing the tags with every completed navigation. */
   init(): void {
-    this.router.events
-      .pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe(() => this.apply(this.deepestRoute()));
+    onNavigationEnd(this.router, this.destroyRef, () => this.apply(this.deepestRoute()));
   }
 
   set(title: string, description: string): void {

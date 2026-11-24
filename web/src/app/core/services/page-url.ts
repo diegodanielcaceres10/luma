@@ -1,11 +1,10 @@
 import { DOCUMENT } from '@angular/common';
 import { DestroyRef, Injectable, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Meta } from '@angular/platform-browser';
-import { NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs';
+import { Router } from '@angular/router';
 
 import { SITE_URL } from '../config/site.config';
+import { onNavigationEnd } from '../utils/navigation-end';
 
 /** Keeps the canonical link and og:url aligned with the current route. */
 @Injectable({ providedIn: 'root' })
@@ -17,12 +16,7 @@ export class PageUrlService {
 
   /** Starts syncing the canonical link and og:url with every completed navigation. */
   init(): void {
-    this.router.events
-      .pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((event) => this.set(this.toPath(event.urlAfterRedirects)));
+    onNavigationEnd(this.router, this.destroyRef, (event) => this.set(this.toPath(event.urlAfterRedirects)));
   }
 
   /** `path` is relative to the site root, for example `privacidad`. */
