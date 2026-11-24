@@ -103,6 +103,16 @@ module.exports = defineConfig([
       ],
     },
   },
+  // A promise that is neither awaited nor handled fails silently. This rule needs type information.
+  {
+    files: ['src/**/*.ts'],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: __dirname },
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+    },
+  },
   {
     files: ['**/*.html'],
     extends: [angular.configs.templateRecommended, angular.configs.templateAccessibility],
