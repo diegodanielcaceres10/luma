@@ -71,6 +71,8 @@ jobs:
   deploy:
     name: Deploy
     needs: build
+    # A manual run from another branch still builds and tests, but never publishes to production.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
