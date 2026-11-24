@@ -16,7 +16,7 @@
     "e2e": "start-server-and-test start:local http://localhost:4005 cy:run"
   },
   "private": true,
-  "packageManager": "npm@9.4.0",
+  "packageManager": "npm@10.9.9",
   "engines": {
     "node": "^22.22.3"
   },
