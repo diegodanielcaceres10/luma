@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Directive, ElementRef, PLATFORM_ID, afterNextRender, inject } from '@angular/core';
+import { DestroyRef, Directive, ElementRef, PLATFORM_ID, afterNextRender, inject } from '@angular/core';
 
 import { MotionPreferencesService } from '@core/services/motion-preferences';
 
@@ -17,8 +17,11 @@ export class ScrollRevealDirective {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly motion = inject(MotionPreferencesService);
 
+  private intersectionObserver: IntersectionObserver | undefined;
+
   constructor() {
     afterNextRender(() => this.reveal());
+    inject(DestroyRef).onDestroy(() => this.intersectionObserver?.disconnect());
   }
 
   private reveal(): void {
@@ -31,7 +34,7 @@ export class ScrollRevealDirective {
       return;
     }
 
-    const intersectionObserver = new IntersectionObserver(
+    this.intersectionObserver = new IntersectionObserver(
       (entries, observer) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
@@ -43,6 +46,7 @@ export class ScrollRevealDirective {
       { root: null, threshold: 0.1, rootMargin: '0px 0px -40px 0px' },
     );
 
-    targets.forEach((target) => intersectionObserver.observe(target));
+    const observer = this.intersectionObserver;
+    targets.forEach((target) => observer.observe(target));
   }
 }

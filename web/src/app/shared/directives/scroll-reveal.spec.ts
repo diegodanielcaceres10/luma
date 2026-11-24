@@ -25,18 +25,21 @@ type ObserverCallback = (entries: Partial<IntersectionObserverEntry>[], observer
 describe('ScrollRevealDirective', () => {
   const observed: Element[] = [];
   const unobserved: Element[] = [];
+  let disconnects = 0;
   let options: IntersectionObserverInit | undefined;
   let notify: ObserverCallback;
 
-  const render = async (reducedMotion: boolean) => {
+  const renderFixture = async (reducedMotion: boolean) => {
     TestBed.configureTestingModule({
       providers: [{ provide: MotionPreferencesService, useValue: { prefersReducedMotion: () => reducedMotion } }],
     });
     const fixture = TestBed.createComponent(HostComponent);
     await fixture.whenStable();
     fixture.detectChanges();
-    return fixture.nativeElement as HTMLElement;
+    return fixture;
   };
+
+  const render = async (reducedMotion: boolean) => (await renderFixture(reducedMotion)).nativeElement as HTMLElement;
 
   /** The directive stops observing through the observer the browser hands to the callback. */
   const observerStub = { unobserve: (el: Element) => unobserved.push(el) } as unknown as IntersectionObserver;
@@ -47,6 +50,7 @@ describe('ScrollRevealDirective', () => {
   beforeEach(() => {
     observed.length = 0;
     unobserved.length = 0;
+    disconnects = 0;
     options = undefined;
     vi.stubGlobal(
       'IntersectionObserver',
@@ -57,6 +61,7 @@ describe('ScrollRevealDirective', () => {
         }
         observe = (el: Element) => observed.push(el);
         unobserve = (el: Element) => unobserved.push(el);
+        disconnect = () => disconnects++;
       },
     );
   });
@@ -100,5 +105,22 @@ describe('ScrollRevealDirective', () => {
 
     expect(first.classList.contains('is-revealed')).toBe(false);
     expect(unobserved).toEqual([]);
+  });
+
+  it('disconnects the observer when the host is destroyed', async () => {
+    const fixture = await renderFixture(false);
+
+    expect(disconnects).toBe(0);
+    fixture.destroy();
+
+    expect(disconnects).toBe(1);
+  });
+
+  it('has nothing to disconnect when motion is reduced', async () => {
+    const fixture = await renderFixture(true);
+
+    fixture.destroy();
+
+    expect(disconnects).toBe(0);
   });
 });
