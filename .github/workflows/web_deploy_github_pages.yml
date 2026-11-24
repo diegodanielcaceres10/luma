@@ -8,6 +8,11 @@ on:
       - "web/**"
       - ".github/workflows/web_deploy_github_pages.yml"
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit SHA or tag to publish (rollback). Empty publishes the selected branch."
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -30,6 +35,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # An empty ref checks out the commit that triggered the run.
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      # Only commits already merged into the branch that started the run can be published.
+      - name: Validate the ref to publish
+        working-directory: .
+        run: git merge-base --is-ancestor HEAD "$GITHUB_SHA"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -49,7 +63,7 @@ jobs:
 
       - name: Add coverage to job summary
         if: ${{ !cancelled() }}
-        run: npm run --silent coverage:summary >> "$GITHUB_STEP_SUMMARY"
+        run: npm run --if-present --silent coverage:summary >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report
         if: ${{ !cancelled() }}

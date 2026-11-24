@@ -152,6 +152,28 @@ Notas de la versión web:
 - La versión del SDK de Firebase del service worker (10.14.1) está fijada en
   `app/web/firebase-messaging-sw.js`.
 
+## Rollback de la web
+
+La web (Angular, `web/`) se publica en GitHub Pages con el workflow
+**Web Deploy GitHub Pages** y se puede volver a una versión anterior sin
+modificar el código:
+
+1. Identificar el commit (o tag) de la última versión correcta en el historial
+   de `main`.
+2. En GitHub → Actions → **Web Deploy GitHub Pages** → **Run workflow**,
+   elegir la rama `main` y completar el campo `ref` con el SHA o el tag.
+3. Esperar a que terminen `Build`, `Deploy` y `Lighthouse`. El workflow vuelve
+   a ejecutar lint, tests y build sobre ese commit antes de publicarlo.
+
+Condiciones:
+
+- El `ref` debe pertenecer al historial de `main`; si no, el job `Build` falla
+  y no se publica nada.
+- Si se deja `ref` vacío, se publica el último commit de `main`.
+- El rollback no modifica `main`. Para que la versión anterior se mantenga en
+  los próximos despliegues hay que revertir el cambio con un pull request
+  (`git revert <sha>`).
+
 ## Configuración
 
 Las variables de entorno (Supabase y Google) no se empaquetan como archivo:
