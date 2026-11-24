@@ -1,0 +1,5 @@
+# Default owner for every path in the repository.
+*            @diegodanielcaceres10
+
+# Pipelines and deployment configuration.
+/.github/    @diegodanielcaceres10
