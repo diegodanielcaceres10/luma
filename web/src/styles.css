@@ -44,12 +44,19 @@
   --color-obsidian-800: #16201a;
   --color-obsidian-750: #1d2a23;
   --color-obsidian-700: #26362e;
+
+  /* Repeated translucent and edge colors */
+  --color-luma-edge: rgba(5, 223, 114, 0.15);
+  --color-luma-halo: rgba(0, 135, 78, 0.025);
+  --color-luma-mist: rgba(5, 223, 114, 0.015);
+  --color-white-edge: rgba(255, 255, 255, 0.08);
+  --color-grid-line: #ffffff05;
 }
 
 /* Custom Base & Smooth Typography */
 html {
   font-family: var(--font-sans);
-  background-color: #050807;
+  background-color: var(--color-obsidian-950);
   color: #f1f5f9;
   scroll-behavior: smooth;
   color-scheme: dark;
@@ -58,14 +65,14 @@ html {
 body {
   margin: 0;
   padding: 0;
-  background-color: #050807;
-  selection-background-color: #05df72;
-  selection-color: #050807;
+  background-color: var(--color-obsidian-950);
+  selection-background-color: var(--color-luma-500);
+  selection-color: var(--color-obsidian-950);
 }
 
 ::selection {
-  background-color: #05df72;
-  color: #050807;
+  background-color: var(--color-luma-500);
+  color: var(--color-obsidian-950);
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -92,7 +99,7 @@ p, li, blockquote {
   background: rgba(20, 30, 25, 0.75);
   border-color: rgba(5, 223, 114, 0.28);
   box-shadow: 0 12px 40px -10px rgba(5, 223, 114, 0.12),
-              0 0 0 1px rgba(5, 223, 114, 0.15);
+              0 0 0 1px var(--color-luma-edge);
   transform: translateY(-2px);
 }
 
@@ -101,7 +108,7 @@ p, li, blockquote {
               rgba(11, 16, 13, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-white-edge);
 }
 
 .emerald-glow-radial {
@@ -109,13 +116,13 @@ p, li, blockquote {
 }
 
 .emerald-text-gradient {
-  background: linear-gradient(135deg, #ffffff 15%, #bbf7d0 50%, #05df72 100%);
+  background: linear-gradient(135deg, var(--color-white) 15%, #bbf7d0 50%, var(--color-luma-500) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .gold-emerald-gradient {
-  background: linear-gradient(135deg, #f0fdf4 0%, #86efac 40%, #05df72 100%);
+  background: linear-gradient(135deg, #f0fdf4 0%, #86efac 40%, var(--color-luma-500) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -148,9 +155,9 @@ p, li, blockquote {
   transform: translateX(-100%);
   background-image: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0) 100%
+    transparent 0,
+    var(--color-white-edge) 50%,
+    transparent 100%
   );
   animation: shimmer 3.5s infinite;
 }
@@ -177,7 +184,7 @@ p, li, blockquote {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #050807;
+  background: var(--color-obsidian-950);
 }
 ::-webkit-scrollbar-thumb {
   background: #1c2720;
@@ -200,7 +207,7 @@ p, li, blockquote {
   left: 10%;
   right: 10%;
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(5, 223, 114, 0.15) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, var(--color-luma-edge) 50%, transparent 100%);
   pointer-events: none;
 }
 
