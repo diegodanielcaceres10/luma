@@ -31,6 +31,9 @@
   --font-serif: 'Playfair Display', Georgia, Cambria, serif;
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
+  /* Smallest text, for compact labels inside the app mockups */
+  --text-2xs: 0.6875rem;
+
   --color-luma-400: #2be88c;
   --color-luma-500: #05df72;
   --color-luma-600: #00bf5f;
