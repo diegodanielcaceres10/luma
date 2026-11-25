@@ -3,7 +3,7 @@
 >
   <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-8">
     <!-- Brand Logo & Name -->
-    <a routerLink="/" class="group flex items-center gap-3">
+    <a routerLink="/" class="group flex min-h-11 items-center gap-3">
       <div
         class="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-950/40 p-1.5 ring-1 ring-emerald-500/30 transition-transform duration-300 group-hover:scale-105 group-hover:ring-emerald-400/50"
       >
@@ -76,7 +76,7 @@
       type="button"
       #menuToggle
       (click)="toggleMobileMenu()"
-      class="flex md:hidden rounded-lg p-2 text-neutral-400 hover:bg-neutral-800 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+      class="flex md:hidden min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-neutral-400 hover:bg-neutral-800 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
       aria-controls="mobile-menu"
       [attr.aria-expanded]="isMobileMenuOpen()"
       [attr.aria-label]="isMobileMenuOpen() ? 'Cerrar menú' : 'Abrir menú'"

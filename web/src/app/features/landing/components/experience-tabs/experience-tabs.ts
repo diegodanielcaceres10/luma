@@ -10,7 +10,7 @@ interface ExperienceTab {
 }
 
 const TAB_BASE_CLASSES =
-  'rounded-xl px-5 py-2.5 text-xs sm:text-sm transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300';
+  'min-h-11 rounded-xl px-5 text-xs sm:text-sm transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300';
 const TAB_ACTIVE_CLASSES = `${TAB_BASE_CLASSES} bg-emerald-500 font-semibold text-neutral-950 shadow-md shadow-emerald-500/20`;
 const TAB_INACTIVE_CLASSES = `${TAB_BASE_CLASSES} font-medium text-neutral-400 hover:text-white`;
 
