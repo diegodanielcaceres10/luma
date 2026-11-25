@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 
+import { UsdPipe } from '@shared/pipes/usd';
 import { nextTabIndex } from '@shared/tabs-keyboard';
 
 type ExperienceTabId = 'flow' | 'budget' | 'security';
@@ -17,6 +18,7 @@ const TAB_INACTIVE_CLASSES = `${TAB_BASE_CLASSES} font-medium text-neutral-400 h
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-experience-tabs',
+  imports: [UsdPipe],
   templateUrl: './experience-tabs.html',
 })
 export class ExperienceTabsComponent {

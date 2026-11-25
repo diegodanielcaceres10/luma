@@ -35,14 +35,14 @@
       >
         <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
         <span class="text-neutral-300">Ingreso: Dividendos</span>
-        <span class="ml-auto font-bold text-emerald-400">+$1,450</span>
+        <span class="ml-auto font-bold text-emerald-400">{{ 1450 | usd: { signed: true } }}</span>
       </div>
       <div
         class="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950/60 px-4 py-2 text-xs editorial-stat-reveal editorial-delay-1"
       >
         <span class="h-2 w-2 rounded-full bg-rose-400"></span>
         <span class="text-neutral-300">Gasto: Restaurante</span>
-        <span class="ml-auto font-bold text-neutral-200">-$95</span>
+        <span class="ml-auto font-bold text-neutral-200">{{ -95 | usd: { signed: true } }}</span>
       </div>
     </div>
   </div>

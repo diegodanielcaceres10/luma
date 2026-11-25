@@ -35,4 +35,8 @@ describe('GeminiSectionComponent', () => {
   it('links to the privacy policy for the image handling details', () => {
     expect(root.querySelector('a[href="/privacidad"]')).not.toBeNull();
   });
+
+  it('writes the extracted amount with a decimal comma', () => {
+    expect(root.textContent).toContain('USD\u00a018,50');
+  });
 });

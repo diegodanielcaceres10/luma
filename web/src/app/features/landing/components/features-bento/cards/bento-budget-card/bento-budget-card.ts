@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
+import { UsdPipe } from '@shared/pipes/usd';
+
 /**
  * Dynamic budgets card.
  * The host uses `display: contents` so the card box stays a direct item of the bento grid.
@@ -7,6 +9,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-bento-budget-card',
+  imports: [UsdPipe],
   templateUrl: './bento-budget-card.html',
   host: { class: 'contents' },
 })

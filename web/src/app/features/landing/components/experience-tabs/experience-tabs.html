@@ -78,7 +78,7 @@
             <div class="space-y-3">
               <div class="rounded-xl border border-neutral-800 bg-neutral-900/70 p-3 flex justify-between items-center">
                 <span class="text-xs text-neutral-400">Monto:</span>
-                <span class="text-lg font-bold text-white">$ 120.00 USD</span>
+                <span class="text-lg font-bold text-white">{{ 120 | usd: { decimals: 2, code: true } }}</span>
               </div>
               <div class="rounded-xl border border-neutral-800 bg-neutral-900/70 p-3 flex justify-between items-center">
                 <span class="text-xs text-neutral-400">Categoría:</span>
@@ -119,18 +119,18 @@
             <div>
               <div class="flex justify-between text-xs mb-1.5">
                 <span class="font-semibold text-white">Restaurantes & Delivery</span>
-                <span class="text-emerald-400 font-bold">$340 / $500 (68%)</span>
+                <span class="text-emerald-400 font-bold">{{ 340 | usd }} / {{ 500 | usd }} (68%)</span>
               </div>
               <div class="h-2.5 w-full rounded-full bg-neutral-800 overflow-hidden">
                 <div class="h-full bg-emerald-400 rounded-full editorial-progress-fill" style="--progress-width: 68%; width: 68%"></div>
               </div>
-              <div class="text-2xs text-neutral-400 mt-1">Te quedan $160 para los próximos 12 días.</div>
+              <div class="text-2xs text-neutral-400 mt-1">Te quedan {{ 160 | usd }} para los próximos 12 días.</div>
             </div>
 
             <div class="pt-3 border-t border-neutral-800">
               <div class="flex justify-between text-xs mb-1.5">
                 <span class="font-semibold text-white">Servicios Digitales</span>
-                <span class="text-teal-300 font-bold">$89 / $120 (74%)</span>
+                <span class="text-teal-300 font-bold">{{ 89 | usd }} / {{ 120 | usd }} (74%)</span>
               </div>
               <div class="h-2.5 w-full rounded-full bg-neutral-800 overflow-hidden">
                 <div class="h-full bg-teal-400 rounded-full editorial-progress-fill" style="--progress-width: 74%; width: 74%"></div>

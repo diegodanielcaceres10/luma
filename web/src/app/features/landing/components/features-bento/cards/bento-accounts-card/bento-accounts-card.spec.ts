@@ -18,4 +18,11 @@ describe('BentoAccountsCardComponent', () => {
   it('keeps a single heading so the page outline stays predictable', () => {
     expect(root.querySelectorAll('h1, h2, h3, h4')).toHaveLength(1);
   });
+
+  it('writes its balances with Spanish number conventions', () => {
+    const text = root.textContent ?? '';
+
+    expect(text).toContain('$\u00a018.450');
+    expect(text).toContain('$\u00a05.200');
+  });
 });
