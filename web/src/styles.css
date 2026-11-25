@@ -75,6 +75,12 @@ body {
   color: var(--color-obsidian-950);
 }
 
+/* One look for every disabled button, so a new one never ships without a visible disabled state. */
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 h1, h2, h3, h4, h5, h6 {
   text-wrap: balance;
 }
