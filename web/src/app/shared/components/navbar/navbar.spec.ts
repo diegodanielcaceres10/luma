@@ -1,7 +1,11 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
+import { ActiveSectionService } from '@core/services/active-section';
 import { NavbarComponent } from './navbar';
+
+const SECTION_IDS = ['funcionalidades', 'experiencia', 'lectura-ia', 'seguridad', 'stack'];
 
 describe('NavbarComponent mobile menu', () => {
   let fixture: ComponentFixture<NavbarComponent>;
@@ -118,5 +122,60 @@ describe('NavbarComponent mobile menu', () => {
 
       expect(anchors('#mobile-menu a')).toEqual(anchors('nav a'));
     });
+  });
+});
+
+describe('NavbarComponent section highlight', () => {
+  const active = signal<string | null>(null);
+  const watch = vi.fn();
+  const stop = vi.fn();
+  let fixture: ComponentFixture<NavbarComponent>;
+  let root: HTMLElement;
+
+  const desktopLinks = () => Array.from(root.querySelectorAll<HTMLAnchorElement>('nav a'));
+  const mobileLinks = () => Array.from(root.querySelectorAll<HTMLAnchorElement>('#mobile-menu a[href^="#"]'));
+  const current = (links: HTMLAnchorElement[]) =>
+    links.filter((a) => a.getAttribute('aria-current') === 'location').map((a) => a.getAttribute('href'));
+
+  beforeEach(async () => {
+    active.set(null);
+    watch.mockReset();
+    stop.mockReset();
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), { provide: ActiveSectionService, useValue: { active, watch, stop } }],
+    });
+    fixture = TestBed.createComponent(NavbarComponent);
+    await fixture.whenStable();
+    root = fixture.nativeElement;
+  });
+
+  it('watches the sections of the navigation in order once rendered', () => {
+    expect(watch).toHaveBeenCalledWith(SECTION_IDS);
+    expect(desktopLinks().map((a) => a.getAttribute('href'))).toEqual(SECTION_IDS.map((id) => `#${id}`));
+  });
+
+  it('marks no link as current while no section is active', () => {
+    expect(current(desktopLinks())).toEqual([]);
+  });
+
+  it('marks the active section as the current location in the desktop navigation', () => {
+    active.set('seguridad');
+    fixture.detectChanges();
+
+    expect(current(desktopLinks())).toEqual(['#seguridad']);
+  });
+
+  it('marks the active section in the mobile menu too', () => {
+    root.querySelector<HTMLButtonElement>('button[aria-controls="mobile-menu"]')!.click();
+    active.set('stack');
+    fixture.detectChanges();
+
+    expect(current(mobileLinks())).toEqual(['#stack']);
+  });
+
+  it('stops watching when destroyed', () => {
+    fixture.destroy();
+
+    expect(stop).toHaveBeenCalledTimes(1);
   });
 });

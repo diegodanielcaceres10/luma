@@ -32,15 +32,16 @@
 
     <!-- Desktop Navigation Anchors -->
     <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-300">
-      <a href="#funcionalidades" class="transition-colors hover:text-emerald-400">
-        Funcionalidades
-      </a>
-      <a href="#experiencia" class="transition-colors hover:text-emerald-400"> Experiencia </a>
-      <a href="#lectura-ia" class="transition-colors hover:text-emerald-400"> Lectura con IA </a>
-      <a href="#seguridad" class="transition-colors hover:text-emerald-400">
-        Privacidad & Seguridad
-      </a>
-      <a href="#stack" class="transition-colors hover:text-emerald-400"> Tecnología </a>
+      @for (section of sections; track section.id) {
+        <a
+          [href]="'#' + section.id"
+          [attr.aria-current]="activeSection() === section.id ? 'location' : null"
+          [class.text-emerald-400]="activeSection() === section.id"
+          class="transition-colors hover:text-emerald-400"
+        >
+          {{ section.label }}
+        </a>
+      }
     </nav>
 
     <!-- Desktop Action Buttons -->
@@ -107,21 +108,17 @@
       class="border-b border-neutral-800 bg-neutral-950/95 px-6 py-6 md:hidden backdrop-blur-2xl"
     >
       <div class="flex flex-col gap-4 text-base font-medium text-neutral-300">
-        <a (click)="closeMobileMenu()" href="#funcionalidades" class="py-2 hover:text-emerald-400">
-          Funcionalidades
-        </a>
-        <a (click)="closeMobileMenu()" href="#experiencia" class="py-2 hover:text-emerald-400">
-          Experiencia
-        </a>
-        <a (click)="closeMobileMenu()" href="#lectura-ia" class="py-2 hover:text-emerald-400">
-          Lectura con IA
-        </a>
-        <a (click)="closeMobileMenu()" href="#seguridad" class="py-2 hover:text-emerald-400">
-          Privacidad & Seguridad
-        </a>
-        <a (click)="closeMobileMenu()" href="#stack" class="py-2 hover:text-emerald-400">
-          Tecnología
-        </a>
+        @for (section of sections; track section.id) {
+          <a
+            (click)="closeMobileMenu()"
+            [href]="'#' + section.id"
+            [attr.aria-current]="activeSection() === section.id ? 'location' : null"
+            [class.text-emerald-400]="activeSection() === section.id"
+            class="py-2 hover:text-emerald-400"
+          >
+            {{ section.label }}
+          </a>
+        }
         <div class="mt-4 flex flex-col gap-3 pt-4 border-t border-neutral-800">
           <a
             (click)="closeMobileMenu()"
