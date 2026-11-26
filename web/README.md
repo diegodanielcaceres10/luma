@@ -1,59 +1,65 @@
-# Web
+# Luma Web
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.0.
+## Descripción
 
-## Development server
+Sitio web público de Luma, una aplicación de finanzas personales. Es una landing page estática en español, con las páginas de política de privacidad y condiciones de uso. Está hecha con Angular (componentes standalone, signals y renderizado estático en el build) y Tailwind CSS.
 
-To start a local development server, run:
+La aplicación móvil y la base de datos viven en otras carpetas del repositorio (`app/`, `db/`, `supabase/`); consulta el [README principal](../README.md).
 
-```bash
-ng serve
-```
+## Requisitos
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+- Node 22 (la versión exacta está en [`.nvmrc`](.nvmrc) y el rango permitido en `engines` de `package.json`).
+- npm 10, que se instala junto con Node.
+- Opcional: Docker y Docker Compose, para ejecutar el servidor de desarrollo en un contenedor.
 
-## Code scaffolding
+## Instalación
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Desde esta carpeta (`web/`):
 
 ```bash
-ng generate --help
+npm ci
 ```
 
-## Building
+## Ejecución y scripts
 
-To build the project run:
+| Comando | Qué hace |
+|---|---|
+| `npm start` | Servidor de desarrollo en `http://localhost:4200/`, con recarga automática. |
+| `npm run start:local` | Igual que el anterior, en el puerto 4005 (lo usan las pruebas e2e). |
+| `npm run build` | Compila para producción en `dist/web/`, con `/luma/` como base href. |
+| `npm test` | Pruebas unitarias con Vitest y cobertura (umbral mínimo del 80 %). |
+| `npm run lint` | Análisis estático con ESLint. |
+| `npm run e2e` | Levanta el sitio y ejecuta las pruebas de Cypress. |
+| `npm run cy:open` | Abre Cypress de forma interactiva. |
+| `npm run deps:unused` | Detecta dependencias sin uso con Knip. |
+| `npm run check:version` | Comprueba que la versión de `package.json` supere la de la rama base. |
+
+Para usar Docker, desde la raíz del repositorio:
 
 ```bash
-ng build
+docker-compose up
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+El sitio queda disponible en `http://localhost:4005/`.
 
-## Running unit tests
+## Estructura del proyecto
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
+```
+web/
+├── src/
+│   ├── app/
+│   │   ├── core/        # Configuración y servicios globales (analítica, consentimiento, SEO)
+│   │   ├── shared/      # Componentes, directivas y utilidades reutilizables
+│   │   └── features/    # Módulos por funcionalidad: landing y legal
+│   ├── fonts/           # Tipografías autoalojadas
+│   └── *.spec.ts        # Pruebas de reglas del proyecto (CI, estilos, accesibilidad, Docker)
+├── public/              # Archivos estáticos: favicon, imágenes, robots.txt y sitemap.xml
+├── cypress/             # Pruebas end-to-end
+└── scripts/             # Utilidades de Node usadas por npm y por CI
 ```
 
-## Running end-to-end tests
+Los alias `@core/*`, `@shared/*` y `@features/*` apuntan a las carpetas de `src/app`.
 
-For end-to-end (e2e) testing, run:
+## Despliegue
 
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+El sitio se publica en GitHub Pages con el workflow **Web Deploy GitHub Pages** cada vez que cambia `web/` en `main`. El workflow ejecuta lint, pruebas y build antes de publicar, y después una auditoría de Lighthouse. Para volver a una versión anterior, consulta la sección «Rollback de la web» del [README principal](../README.md).
