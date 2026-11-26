@@ -95,4 +95,24 @@ describe('docker-compose.yml', () => {
   it('keeps node_modules in a container volume so host dependencies never shadow the installed ones', () => {
     expect(compose).toMatch(/^\s+- \/app\/node_modules\s*$/m);
   });
+
+  describe('healthcheck', () => {
+    const block = /^ {4}healthcheck:\n((?: {6,}.*\n?)+)/m.exec(compose)?.[1] ?? '';
+
+    it('declares a healthcheck so Docker can tell when the dev server is not responding', () => {
+      expect(block).not.toBe('');
+    });
+
+    it('probes the port the Dockerfile exposes', () => {
+      const exposed = /^EXPOSE\s+(\d+)/m.exec(dockerfile)?.[1];
+
+      expect(block).toContain(`http://127.0.0.1:${exposed}/`);
+    });
+
+    it('allows a start period long enough for the first compilation', () => {
+      const seconds = Number(/start_period:\s*(\d+)s/.exec(block)?.[1]);
+
+      expect(seconds).toBeGreaterThanOrEqual(30);
+    });
+  });
 });
