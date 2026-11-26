@@ -11,6 +11,7 @@ import {
 import { RouterLink } from '@angular/router';
 
 import { ActiveSectionService } from '@core/services/active-section';
+import { AppVersionComponent } from '../app-version/app-version';
 
 const NAV_SECTIONS = [
   { id: 'funcionalidades', label: 'Funcionalidades' },
@@ -23,7 +24,7 @@ const NAV_SECTIONS = [
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-navbar',
-  imports: [RouterLink],
+  imports: [AppVersionComponent, RouterLink],
   templateUrl: './navbar.html',
   host: { '(document:keydown.escape)': 'onEscape()' },
 })

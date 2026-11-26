@@ -178,4 +178,8 @@ describe('NavbarComponent section highlight', () => {
 
     expect(stop).toHaveBeenCalledTimes(1);
   });
+
+  it('shows the product version', () => {
+    expect(root.querySelector('app-version')?.textContent?.trim()).toMatch(/^v \d+\.\d+\.\d+/);
+  });
 });

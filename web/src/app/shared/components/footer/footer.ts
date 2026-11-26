@@ -3,11 +3,12 @@ import { RouterLink } from '@angular/router';
 
 import { CURRENT_YEAR } from '@core/config/current-year';
 import { AnalyticsService } from '@core/services/analytics';
+import { AppVersionComponent } from '../app-version/app-version';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-footer',
-  imports: [RouterLink],
+  imports: [AppVersionComponent, RouterLink],
   templateUrl: './footer.html',
 })
 export class FooterComponent {

@@ -57,4 +57,8 @@ describe('FooterComponent', () => {
     expect(analytics.consent()).toBe('unknown');
     localStorage.clear();
   });
+
+  it('shows the product version', () => {
+    expect(root.querySelector('app-version')?.textContent?.trim()).toMatch(/^v \d+\.\d+\.\d+/);
+  });
 });
