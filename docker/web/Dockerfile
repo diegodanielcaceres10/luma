@@ -5,11 +5,17 @@ ENV CYPRESS_INSTALL_BINARY=0
 
 WORKDIR /app
 
-COPY web/package*.json ./
+# The official image ships an unprivileged "node" user; /app and the dev-server cache must belong to it
+# before the switch. Compose mounts a volume on /app/.angular, which inherits this ownership.
+RUN mkdir /app/.angular && chown node:node /app /app/.angular
+
+USER node
+
+COPY --chown=node:node web/package*.json ./
 
 RUN npm ci
 
-COPY web/ .
+COPY --chown=node:node web/ .
 
 EXPOSE 4200
 
