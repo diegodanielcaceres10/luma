@@ -69,7 +69,15 @@ describe('.dockerignore', () => {
         .filter((line) => line && !line.startsWith('#'))
     : [];
 
-  it.each(['**/node_modules', 'web/dist', 'web/coverage', 'web/.angular', '.git'])(
+  it.each([
+    '**/node_modules',
+    'web/dist',
+    'web/coverage',
+    'web/.angular',
+    '.git',
+    '**/.env*',
+    '**/*.log',
+  ])(
     'keeps %s out of the build context',
     (entry) => {
       expect(ignored).toContain(entry);

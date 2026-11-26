@@ -4,3 +4,7 @@ web/dist
 web/coverage
 web/.angular
 .git
+
+# Local secrets and logs must never be baked into image layers.
+**/.env*
+**/*.log
