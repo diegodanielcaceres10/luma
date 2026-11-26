@@ -47,3 +47,7 @@ Thumbs.db
 /cypress/videos
 /cypress/screenshots
 /cypress/results
+
+# Local environment files
+.env*
+!.env.example
