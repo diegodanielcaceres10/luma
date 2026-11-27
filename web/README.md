@@ -45,7 +45,7 @@ El sitio queda disponible en `http://localhost:4200/`.
 Para cambiar el puerto o el modo, copia `.env.example` a `.env` (en la raíz) y edita sus variables:
 
 - `WEB_PORT`: puerto del equipo donde se publica el sitio (por defecto 4200).
-- `APP_ENV`: `local` arranca el servidor de desarrollo; `dev`, `staging` y `prod` ejecutan `npm run build`.
+- `APP_ENV`: `local` arranca el servidor de desarrollo; `dev` y `prod` ejecutan `npm run build` con la configuración `development` o `production` de Angular.
 
 ## Estructura del proyecto
 

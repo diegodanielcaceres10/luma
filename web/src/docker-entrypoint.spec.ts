@@ -23,7 +23,18 @@ describe('docker-entrypoint.sh', () => {
 
   it('hands over to the final command with exec so it receives the container signals', () => {
     expect(source).toMatch(/^\s*exec npm start$/m);
-    expect(source).toMatch(/^\s*exec npm run build$/m);
+    expect(source).toMatch(/^\s*exec npm run build -- --configuration=\w+$/m);
+  });
+
+  it('only builds with Angular configurations that angular.json defines', () => {
+    const angular = JSON.parse(readFileSync(resolve(process.cwd(), 'angular.json'), 'utf8')) as {
+      projects: Record<string, { architect: { build: { configurations: Record<string, unknown> } } }>;
+    };
+    const defined = Object.keys(Object.values(angular.projects)[0]?.architect.build.configurations ?? {});
+    const used = [...source.matchAll(/--configuration=(\w+)/g)].map((match) => match[1] ?? '');
+
+    expect(used.length).toBeGreaterThan(0);
+    expect(used.filter((name) => !defined.includes(name))).toEqual([]);
   });
 
   it('goes through the npm scripts instead of calling the Angular CLI directly', () => {
@@ -55,16 +66,19 @@ describe('docker-entrypoint.sh', () => {
       expect(run().stdout.trim()).toBe('npm start');
     });
 
-    it.each(['dev', 'staging', 'prod'])('builds the application when APP_ENV is %s', (appEnv) => {
-      expect(run(appEnv).stdout.trim()).toBe('npm run build');
+    it.each([
+      ['dev', 'development'],
+      ['prod', 'production'],
+    ])('builds with the matching Angular configuration when APP_ENV is %s', (appEnv, configuration) => {
+      expect(run(appEnv).stdout.trim()).toBe(`npm run build -- --configuration=${configuration}`);
     });
 
-    it('fails without running npm when APP_ENV is not a known environment', () => {
-      const result = run('prd');
+    it.each(['prd', 'staging'])('fails without running npm when APP_ENV is %s, which is not a supported environment', (appEnv) => {
+      const result = run(appEnv);
 
       expect(result.status).toBe(1);
       expect(result.stdout).toBe('');
-      expect(result.stderr).toContain("unsupported APP_ENV 'prd'");
+      expect(result.stderr).toContain(`unsupported APP_ENV '${appEnv}'`);
     });
   });
 });
