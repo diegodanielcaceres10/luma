@@ -30,6 +30,34 @@ describe('FooterComponent', () => {
     expect(external.every((a) => a.rel.includes('noopener'))).toBe(true);
   });
 
+  describe('author portfolio links', () => {
+    const portfolio = 'https://diegodanielcaceres10.github.io/nura';
+    const caseStudy = 'https://diegodanielcaceres10.github.io/nura/es/work/luma';
+    const find = (url: string) =>
+      Array.from(root.querySelectorAll<HTMLAnchorElement>('a')).find((a) => a.getAttribute('href')?.replace(/\/$/, '') === url);
+    const accessibleName = (a: HTMLAnchorElement | undefined) =>
+      (a?.textContent?.trim() || a?.querySelector('img')?.getAttribute('alt') || '').trim();
+
+    it('links to the author portfolio over https', () => {
+      expect(find(portfolio)).toBeDefined();
+    });
+
+    it('links to the Luma case study in the portfolio', () => {
+      expect(find(caseStudy)).toBeDefined();
+    });
+
+    it('gives both links an accessible name', () => {
+      expect(accessibleName(find(portfolio))).not.toBe('');
+      expect(accessibleName(find(caseStudy))).not.toBe('');
+    });
+
+    it('places the case study link next to the repository link', () => {
+      const repository = Array.from(root.querySelectorAll('a')).find((a) => a.textContent?.includes('GitHub Repository'));
+
+      expect(repository?.parentElement?.contains(find(caseStudy) ?? null)).toBe(true);
+    });
+  });
+
   it('shows the current year in the copyright line', () => {
     expect(root.textContent).toContain(`© ${new Date().getFullYear()}`);
   });
