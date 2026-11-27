@@ -9,6 +9,9 @@ WORKDIR /app
 # before the switch. Compose mounts a volume on /app/.angular, which inherits this ownership.
 RUN mkdir /app/.angular && chown node:node /app /app/.angular
 
+COPY docker/web/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 USER node
 
 COPY --chown=node:node web/package*.json ./
@@ -19,4 +22,4 @@ COPY --chown=node:node web/ .
 
 EXPOSE 4200
 
-CMD ["npm", "start"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

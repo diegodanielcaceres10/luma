@@ -22,17 +22,17 @@ npm ci
 
 ## Ejecución y scripts
 
-| Comando | Qué hace |
-|---|---|
-| `npm start` | Servidor de desarrollo en `http://localhost:4200/`, con recarga automática. |
-| `npm run start:local` | Igual que el anterior, en el puerto 4005 (lo usan las pruebas e2e). |
-| `npm run build` | Compila para producción en `dist/web/`, con `/luma/` como base href. |
-| `npm test` | Pruebas unitarias con Vitest y cobertura (umbral mínimo del 80 %). |
-| `npm run lint` | Análisis estático con ESLint. |
-| `npm run e2e` | Levanta el sitio y ejecuta las pruebas de Cypress. |
-| `npm run cy:open` | Abre Cypress de forma interactiva. |
-| `npm run deps:unused` | Detecta dependencias sin uso con Knip. |
-| `npm run check:version` | Comprueba que la versión de `package.json` supere la de la rama base. |
+| Comando                 | Qué hace                                                                    |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `npm start`             | Servidor de desarrollo en `http://localhost:4200/`, con recarga automática. |
+| `npm run start:local`   | Igual que el anterior, en el puerto 4200 (lo usan las pruebas e2e).         |
+| `npm run build`         | Compila para producción en `dist/web/`, con `/luma/` como base href.        |
+| `npm test`              | Pruebas unitarias con Vitest y cobertura (umbral mínimo del 80 %).          |
+| `npm run lint`          | Análisis estático con ESLint.                                               |
+| `npm run e2e`           | Levanta el sitio y ejecuta las pruebas de Cypress.                          |
+| `npm run cy:open`       | Abre Cypress de forma interactiva.                                          |
+| `npm run deps:unused`   | Detecta dependencias sin uso con Knip.                                      |
+| `npm run check:version` | Comprueba que la versión de `package.json` supere la de la rama base.       |
 
 Para usar Docker, desde la raíz del repositorio:
 
@@ -40,7 +40,12 @@ Para usar Docker, desde la raíz del repositorio:
 docker-compose up
 ```
 
-El sitio queda disponible en `http://localhost:4005/`.
+El sitio queda disponible en `http://localhost:4200/`.
+
+Para cambiar el puerto o el modo, copia `.env.example` a `.env` (en la raíz) y edita sus variables:
+
+- `WEB_PORT`: puerto del equipo donde se publica el sitio (por defecto 4200).
+- `APP_ENV`: `local` arranca el servidor de desarrollo; `dev`, `staging` y `prod` ejecutan `npm run build`.
 
 ## Estructura del proyecto
 

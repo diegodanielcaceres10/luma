@@ -5,7 +5,9 @@ services:
       dockerfile: docker/web/Dockerfile
     container_name: luma-web
     ports:
-      - "4005:4200"
+      - "${WEB_PORT:-4200}:4200"
+    environment:
+      APP_ENV: ${APP_ENV:-local}
     volumes:
       - ./web:/app
       - /app/node_modules

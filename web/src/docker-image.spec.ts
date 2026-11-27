@@ -27,6 +27,23 @@ describe('web Dockerfile', () => {
     expect(dockerfile.indexOf('npm ci')).toBeLessThan(dockerfile.search(/^COPY\s+(--\S+\s+)*web\/ \./m));
   });
 
+  describe('entrypoint', () => {
+    it('starts through an exec-form ENTRYPOINT so the container does not hardcode what it runs', () => {
+      expect(dockerfile).toMatch(/^ENTRYPOINT\s+\["\/usr\/local\/bin\/docker-entrypoint\.sh"\]\s*$/m);
+    });
+
+    it('does not set a CMD that bypasses the environment choice', () => {
+      expect(dockerfile).not.toMatch(/^CMD\b/m);
+    });
+
+    it('installs the script as root-owned and executable, independent of git file modes on Windows', () => {
+      expect(dockerfile).toMatch(
+        /^COPY\s+docker\/web\/docker-entrypoint\.sh\s+\/usr\/local\/bin\/docker-entrypoint\.sh\s*$/m,
+      );
+      expect(dockerfile).toMatch(/^RUN\s+chmod\s+\+x\s+\/usr\/local\/bin\/docker-entrypoint\.sh\s*$/m);
+    });
+  });
+
   describe('runtime user', () => {
     const lines = dockerfile.split('\n').map((line) => line.trim());
     const indexOfLine = (pattern: RegExp) => lines.findIndex((line) => pattern.test(line));
@@ -48,7 +65,7 @@ describe('web Dockerfile', () => {
       expect(chownLine).toBeLessThan(userLine);
     });
 
-    it.each(lines.filter((line) => /^COPY\s/.test(line)))(
+    it.each(lines.filter((line) => /^COPY\s/.test(line) && !line.includes('docker-entrypoint.sh')))(
       'copies files owned by the runtime user: %s',
       (line) => {
         expect(line).toContain('--chown=node:node');
@@ -92,6 +109,14 @@ describe('docker-compose.yml', () => {
     expect(compose).toMatch(/^\s+- \/app\/\.angular\s*$/m);
   });
 
+  it('publishes the host port from WEB_PORT so each machine can avoid its own port conflicts', () => {
+    expect(compose).toMatch(/^\s+- "\$\{WEB_PORT:-4200\}:4200"\s*$/m);
+  });
+
+  it('passes APP_ENV to the container with local as the default', () => {
+    expect(compose).toMatch(/^\s+APP_ENV: \$\{APP_ENV:-local\}\s*$/m);
+  });
+
   it('keeps node_modules in a container volume so host dependencies never shadow the installed ones', () => {
     expect(compose).toMatch(/^\s+- \/app\/node_modules\s*$/m);
   });
@@ -114,5 +139,60 @@ describe('docker-compose.yml', () => {
 
       expect(seconds).toBeGreaterThanOrEqual(30);
     });
+  });
+});
+
+describe('.env.example', () => {
+  const compose = read('docker-compose.yml');
+  const example = existsSync(resolve(root, '.env.example')) ? read('.env.example') : '';
+  const documented = new Map(
+    example
+      .split('\n')
+      .map((line) => /^([A-Z][A-Z0-9_]*)=(.*)$/.exec(line))
+      .filter((match): match is RegExpExecArray => match !== null)
+      .map((match) => [match[1] ?? '', match[2] ?? '']),
+  );
+  const used = [...compose.matchAll(/\$\{([A-Z][A-Z0-9_]*)(?::-([^}]*))?\}/g)];
+
+  it('exists next to docker-compose.yml', () => {
+    expect(example).not.toBe('');
+  });
+
+  it('documents every variable that docker-compose.yml reads', () => {
+    expect(used.length).toBeGreaterThan(0);
+    expect(used.filter((match) => !documented.has(match[1] ?? '')).map((match) => match[1])).toEqual([]);
+  });
+
+  it('shows the same default values that docker-compose.yml falls back to', () => {
+    const mismatched = used
+      .filter((match) => match[2] !== undefined && documented.get(match[1] ?? '') !== match[2])
+      .map((match) => match[1]);
+
+    expect(mismatched).toEqual([]);
+  });
+});
+
+describe('root .gitignore', () => {
+  const entries = existsSync(resolve(root, '.gitignore'))
+    ? read('.gitignore')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('#'))
+    : [];
+
+  it('ignores the local .env so port and environment overrides are never committed', () => {
+    expect(entries).toContain('.env*');
+  });
+
+  it('keeps .env.example trackable', () => {
+    expect(entries.indexOf('!.env.example')).toBeGreaterThan(entries.indexOf('.env*'));
+  });
+});
+
+describe('.gitattributes', () => {
+  it('forces LF endings on Docker shell scripts because CRLF breaks them inside Linux containers', () => {
+    const attributes = existsSync(resolve(root, '.gitattributes')) ? read('.gitattributes') : '';
+
+    expect(attributes).toMatch(/^docker\/\*\*\/\*\.sh\s+text\s+eol=lf\s*$/m);
   });
 });
